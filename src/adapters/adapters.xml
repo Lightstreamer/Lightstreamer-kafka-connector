@@ -4,13 +4,22 @@
     <metadata_adapter_initialised_first>N</metadata_adapter_initialised_first> 
     <metadata_provider>
         <adapter_class>com.lightstreamer.adapters.metadata.LiteralBasedProvider</adapter_class>
-        <classloader>log-enabled</classloader>
+        <!--<classloader>log-enabled</classloader>-->
     </metadata_provider>
 
     <data_provider>
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
-        <param name="bootstrap-servers">kafka:9092</param>
+        <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter</param>
-        <param name="topic">demo</param>
+        
+        <param name="topics">topic3</param>
+        
+        <param name="item_name">name</param>
+        <param name="item_favorite_number">favorite_number</param>
+        <param name="item_age">info.age</param>
+        <param name="item_height">info.height</param>
+        <param name="item_zipcode1">addresses[0].zipcode</param>
+        <param name="item_zipcode2">addresses[1].zipcode</param>
     </data_provider>
+
 </adapters_conf>
