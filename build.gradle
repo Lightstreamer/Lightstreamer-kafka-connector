@@ -15,6 +15,10 @@ plugins {
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+
+    maven {
+      url "https://packages.confluent.io/maven"
+    }
 }
 
 dependencies {
@@ -32,8 +36,11 @@ dependencies {
     // implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
     implementation 'org.slf4j:slf4j-reload4j:2.0.9'
     implementation 'ch.qos.reload4j:reload4j:1.2.25'
+    implementation 'com.google.code.gson:gson:2.10.1'
 
     implementation group:'org.apache.kafka', name:'kafka-clients', version:'3.5.0'
+    implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.0.1'
+    implementation group:'io.confluent', name: 'kafka-json-serializer', version:'7.0.1'
 }
 
 // googleJavaFormat {

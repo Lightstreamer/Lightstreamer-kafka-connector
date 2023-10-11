@@ -2,7 +2,9 @@ package com.lightstreamer.kafka_connector.adapter;
 
 public interface Loop {
 
-    void subscribe(String topic);
+    boolean maySubscribe(String item);
+
+    void subscribe(String item);
 
     void unsubscribe(String topic);
 

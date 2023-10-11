@@ -56,20 +56,13 @@ public class ConfigSpec {
         Pattern p = Pattern.compile("^[a-zA_Z-_]+:[1-9]\\d*$");
         return p.matcher(param).matches();
       }
-    },
-
-    // Topics {
-    // public boolean isValid(String param) {
-    // Pattern p = Pattern.compile("^[a-zA_Z-_]+:[1-9]\\d*$");
-    // return p.matcher(param).matches();
-    // }
-    // }
+    }
   }
 
   private Set<ConfParameter> paramSpec = new HashSet<>();
 
-  public ConfigSpec add(String name, boolean required, Type type) {
-    paramSpec.add(new ConfParameter(name, required, type));
+  public ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
+    paramSpec.add(new ConfParameter(name, required, multiple, type));
     return this;
   }
 
@@ -91,13 +84,13 @@ class ConfParameter {
 
   private boolean required;
 
-  private boolean wildcard;
+  private boolean multiple;
 
-  ConfParameter(String name, boolean required, ConfigSpec.Type type) {
+  ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type) {
     this.name = name;
     this.required = required;
     this.type = type;
-    this.wildcard = name.endsWith("_");
+    this.multiple = multiple;
   }
 
   public void validate(String paramValue) throws ValidateException {
@@ -113,13 +106,13 @@ class ConfParameter {
     }
   }
 
-  boolean isWildcard() {
-    return wildcard;
+  boolean isMultiple() {
+    return multiple;
   }
 
   void populate(Map<String, String> from, Map<String, String> to) throws ValidateException {
     List<String> keys = Collections.singletonList(name);
-    if (isWildcard()) {
+    if (isMultiple()) {
       keys = from.keySet()
           .stream()
           .filter(key -> key.startsWith(name)).toList();
