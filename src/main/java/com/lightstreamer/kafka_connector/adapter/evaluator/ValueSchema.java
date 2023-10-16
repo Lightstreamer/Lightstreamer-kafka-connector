@@ -1,7 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-public interface RecordEvaluator<T> {
+public interface ValueSchema {
 
-    String extract(T t);
+    String name();
 
 }

@@ -9,10 +9,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordEvaluator;
+import com.lightstreamer.kafka_connector.adapter.evaluator.BaseValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
 interface NodeEvaluator {
     JsonNode get(JsonNode node);
+}
+
+record NodeValue(String name, String text) implements Value {
 }
 
 class PropertyGetter implements NodeEvaluator {
@@ -34,7 +38,7 @@ class PropertyGetter implements NodeEvaluator {
 
 class ArrayGetter implements NodeEvaluator {
 
-    private static Pattern pattern = Pattern.compile("\\[(\\d+)\\]");
+    private static Pattern pattern = Pattern.compile("\\[(\\d*)\\]");
 
     private String name;
 
@@ -49,7 +53,7 @@ class ArrayGetter implements NodeEvaluator {
     }
 
     private static List<Integer> parse(String indexedExpression) {
-        List<Integer> index = new ArrayList<>();
+        List<Integer> indexes = new ArrayList<>();
         Matcher matcher = pattern.matcher(indexedExpression);
         int previousEnd = 0;
         while (matcher.find()) {
@@ -59,9 +63,14 @@ class ArrayGetter implements NodeEvaluator {
                 throw new RuntimeException("No valid expression: " + invalidTerm);
             }
             previousEnd = matcher.end();
-            index.add(Integer.parseInt(matcher.group(1)));
+            String group = matcher.group(1);
+            if (group.length() > 0) {
+                indexes.add(Integer.parseInt(matcher.group(1)));
+            } else {
+                indexes.add(-1); // Splat expression
+            }
         }
-        return index;
+        return indexes;
     }
 
     @Override
@@ -78,26 +87,22 @@ class ArrayGetter implements NodeEvaluator {
     }
 }
 
-public class JsonNodeEvaluator implements RecordEvaluator<JsonNode> {
+public class JsonNodeSelector extends BaseValueSelector<JsonNode> {
 
     private String statement;
 
     private List<NodeEvaluator> evaluatorsList;
 
-    public JsonNodeEvaluator(String statement) {
-        System.out.println("Creating navigator for " + statement);
+    public JsonNodeSelector(String name, String expression) {
+        super(name, expression);
+        System.out.println("Creating navigator for " + expression);
         Objects.requireNonNull(statement);
-        this.statement = statement;
         this.evaluatorsList = evaluators(statement);
     }
 
     List<NodeEvaluator> evaluators(String stmt) {
         List<NodeEvaluator> fieldEvaluators = new ArrayList<>();
         StringTokenizer st = new StringTokenizer(stmt, ".");
-        // if (st.hasMoreTokens()) {
-        // fieldEvaluators.add(new RootGetter(st.nextToken()));
-        // }
-
         while (st.hasMoreTokens()) {
             String fieldName = st.nextToken();
             int lbracket = fieldName.indexOf('[');
@@ -111,7 +116,7 @@ public class JsonNodeEvaluator implements RecordEvaluator<JsonNode> {
     }
 
     @Override
-    public String extract(JsonNode node) {
+    public Value extract(JsonNode node) {
         JsonNode currentNode = node;
         Iterator<NodeEvaluator> iterator = evaluatorsList.iterator();
 
@@ -122,6 +127,6 @@ public class JsonNodeEvaluator implements RecordEvaluator<JsonNode> {
                 break;
             }
         }
-        return currentNode.asText();
+        return new NodeValue("", currentNode.asText());
     }
 }

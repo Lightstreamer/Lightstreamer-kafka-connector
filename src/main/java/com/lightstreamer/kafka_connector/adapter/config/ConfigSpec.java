@@ -13,7 +13,12 @@ import java.util.regex.Pattern;
 public class ConfigSpec {
 
   public interface Type {
+
     boolean isValid(String param);
+
+    default String getValue(String param) {
+      return param;
+    }
   }
 
   public static class ListType<T extends Type> implements Type {
@@ -53,10 +58,22 @@ public class ConfigSpec {
 
     Host {
       public boolean isValid(String param) {
-        Pattern p = Pattern.compile("^[a-zA_Z-_]+:[1-9]\\d*$");
+        Pattern p = Pattern.compile("^[a-zA-Z-_]+:[1-9]\\d*$");
         return p.matcher(param).matches();
       }
-    }
+    },
+
+    ItemSpec {
+
+      private Pattern p = Pattern.compile("[a-zA-Z0-9-]+\\$\\{(.*)\\},?+");
+
+      public boolean isValid(String param) {
+        System.out.println("ItemSpec validating " + param);
+        return p.matcher(param).matches();
+      }
+    
+    };
+
   }
 
   private Set<ConfParameter> paramSpec = new HashSet<>();
@@ -121,7 +138,7 @@ class ConfParameter {
     for (String key : keys) {
       String paramValue = from.get(key);
       validate(paramValue);
-      to.put(key, paramValue);
+      to.put(key, type.getValue(paramValue));
     }
   }
 

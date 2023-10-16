@@ -11,7 +11,9 @@ import java.util.regex.Pattern;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordEvaluator;
+import com.lightstreamer.kafka_connector.adapter.evaluator.BaseValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
 interface ExprEvaluator {
     Object get(GenericRecord record);
@@ -99,17 +101,15 @@ class IndexedFieldGetter implements ExprEvaluator {
     }
 }
 
-public class GenericRecordEvaluator implements RecordEvaluator<GenericRecord> {
-
-    private final String statement;
+public class GenericRecordSelector extends BaseValueSelector<GenericRecord> {
 
     private List<ExprEvaluator> evaluatorsList;
 
-    GenericRecordEvaluator(String statement) {
-        System.out.println("Creating navigator for " + statement);
-        Objects.requireNonNull(statement);
-        this.statement = statement;
-        this.evaluatorsList = evaluators(statement);
+    GenericRecordSelector(String name, String expression) {
+        super(name, expression);
+        System.out.println("Creating navigator for " + expression);
+        Objects.requireNonNull(expression);
+        this.evaluatorsList = evaluators(expression);
     }
 
     List<ExprEvaluator> evaluators(String stmt) {
@@ -132,7 +132,7 @@ public class GenericRecordEvaluator implements RecordEvaluator<GenericRecord> {
     }
 
     @Override
-    public String extract(GenericRecord record) {
+    public Value extract(GenericRecord record) {
         Object value = null;
         GenericRecord currentRecord = record;
         Iterator<ExprEvaluator> iterator = evaluatorsList.iterator();
@@ -144,6 +144,6 @@ public class GenericRecordEvaluator implements RecordEvaluator<GenericRecord> {
                 currentRecord = (GenericRecord) value;
             }
         }
-        return value.toString();
+        return new SimpleValue(name(), value.toString());
     }
 }

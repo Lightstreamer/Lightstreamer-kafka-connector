@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,13 +31,13 @@ public class KafkaConnectorAdapter implements DataProvider {
 
     private Logger log;
 
-    private Set<String> topics;
-
     private Map<String, String> configuration;
 
     private List<Loop> loops = new ArrayList<>();
 
     private ItemEventListener eventListener;
+
+    private Set<TopicMapping> topicMappings = new HashSet<>();
 
     static ConfigSpec CONFIG_SPEC;
 
@@ -46,7 +47,7 @@ public class KafkaConnectorAdapter implements DataProvider {
                 .add("group-id", true, false, ConfType.Text)
                 .add("consumer", false, false, ConfType.Text)
                 .add("item_", true, true, ConfType.Text)
-                .add("map.", true, true, new ListType<ConfType>(ConfType.Text));
+                .add("map.", true, true, ConfType.ItemSpec);
     }
 
     public KafkaConnectorAdapter() {
@@ -65,12 +66,11 @@ public class KafkaConnectorAdapter implements DataProvider {
             for (String paramKey : configuration.keySet()) {
                 if (paramKey.startsWith("map.")) {
                     String topic = paramKey.split("\\.")[1];
-                    String[] itemTemplates = configuration.get(paramKey).split(",");
-                    TopicMapping topicMapping = new TopicMapping(topic, itemTemplates);
-                    loops.add(newLoop(topicMapping));
-                    break;
+                    String[] itemTemplates = new String[]{configuration.get(paramKey)};//.split(",");
+                    topicMappings.add(new TopicMapping(topic, itemTemplates));
                 }
             }
+            log.info("Init completed");
         } catch (ValidateException ve) {
             throw new DataProviderException(ve.getMessage());
         }
@@ -84,11 +84,14 @@ public class KafkaConnectorAdapter implements DataProvider {
     @Override
     public void setListener(ItemEventListener eventListener) {
         this.eventListener = eventListener;
+        for (TopicMapping topicMapping : topicMappings) {
+            loops.add(newLoop(topicMapping));
+        }
     }
 
     Loop newLoop(TopicMapping mapping) {
         String loopType = configuration.getOrDefault("consumer", "defaultLoop");
-        log.info("Creating a {} ConsumerLoop instance", loopType);
+        log.info("Creating a <{}> ConsumerLoop instance for topic <{}>", loopType, mapping.topic());
         return switch (loopType) {
             case "SymbolConsumer" -> new SymbolConsumerLoop(configuration, mapping, eventListener);
             case "JsonConsumer" -> new JsonNodeConsumer(configuration, mapping, eventListener);
@@ -103,19 +106,17 @@ public class KafkaConnectorAdapter implements DataProvider {
         log.info("Subscribing to item [{}]", itemName);
         loops.stream()
                 .filter(l -> l.maySubscribe(itemName))
-                .findFirst()
-                .ifPresent(l -> {
+                .forEach(l -> {
                     l.subscribe(itemName);
-                    log.info("Subscribed to [{}]", itemName);
                 });
     }
 
     @Override
     public void unsubscribe(String itemName) throws SubscriptionException, FailureException {
-        if (topics.contains(itemName)) {
-            log.info("Unsubscribed from item [{}]", itemName);
-            // loops.unsubscribe(itemName);
-        }
+        // if (topics.contains(itemName)) {
+        // log.info("Unsubscribed from item [{}]", itemName);
+        // // loops.unsubscribe(itemName);
+        // }
     }
 
 }

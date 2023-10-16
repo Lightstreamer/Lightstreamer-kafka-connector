@@ -14,7 +14,7 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 public class JsonNodeConsumer extends AbstractConsumerLoop<JsonNode> {
 
     public JsonNodeConsumer(Map<String, String> configuration, TopicMapping mapping, ItemEventListener eventListener) {
-        super(configuration, mapping, JsonNodeEvaluator::new, eventListener);
+        super(configuration, mapping, JsonNodeSelector::new, eventListener);
         properties.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, false);
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaJsonDeserializer.class.getName());
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());

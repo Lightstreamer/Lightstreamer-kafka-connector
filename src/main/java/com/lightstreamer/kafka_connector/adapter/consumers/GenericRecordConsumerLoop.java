@@ -15,7 +15,7 @@ public class GenericRecordConsumerLoop extends AbstractConsumerLoop<GenericRecor
 
     public GenericRecordConsumerLoop(Map<String, String> configuration, TopicMapping mappin,
             ItemEventListener eventListener) {
-        super(configuration, mappin, GenericRecordEvaluator::new, eventListener);
+        super(configuration, mappin, GenericRecordSelector::new, eventListener);
         properties.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, false);
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);

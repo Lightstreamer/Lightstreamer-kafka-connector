@@ -30,6 +30,8 @@
 
         <param name="consumer">defaultLoop</param>
 
+            
+
         <!-- Map one topic to one item -->
         <!-- <param name="map.topic-avro-one-to-one.to">kafka-avro-item</param> -->
 

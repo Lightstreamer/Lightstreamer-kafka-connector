@@ -1,7 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -11,9 +10,9 @@ import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -24,11 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter;
 import com.lightstreamer.kafka_connector.adapter.Loop;
-import com.lightstreamer.kafka_connector.adapter.evaluator.EvaluatorFactory;
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordEvaluator;
-import com.lightstreamer.kafka_connector.adapter.evaluator.StatementEvaluator;
+import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
 
 public abstract class AbstractConsumerLoop<T> implements Loop {
 
@@ -37,25 +37,26 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
 
     protected final Properties properties = new Properties();
 
-    private Map<String, RecordEvaluator<T>> recordEvaluators;
+    private List<ValueSelector<T>> valueSelectors;
 
     protected ItemEventListener eventListener;
 
     protected AtomicBoolean isSubscribed = new AtomicBoolean(false);
 
-    private EvaluatorFactory<T> evaluatorFactory;
+    private BiFunction<String, String, ValueSelector<T>> evaluatorFactory;
 
     private TopicMapping topicMapping;
 
-    private Set<String> subscribedItems = ConcurrentHashMap.newKeySet();
+    private Set<Item> subscribedItems = ConcurrentHashMap.newKeySet();
 
-    private List<StatementEvaluator<T>> itemEvaluators;
+    private List<ItemTemplate<T>> itemTemplates;
 
     private CyclicBarrier barrier;
 
-    protected static Logger log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
+    protected static Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
 
-    AbstractConsumerLoop(Map<String, String> configuration, TopicMapping topicMapping, EvaluatorFactory<T> ef,
+    AbstractConsumerLoop(Map<String, String> configuration, TopicMapping topicMapping,
+            BiFunction<String, String, ValueSelector<T>> ef,
             ItemEventListener eventListener) {
         this.eventListener = eventListener;
         this.evaluatorFactory = ef;
@@ -64,32 +65,42 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, configuration.get("group-id"));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        recordEvaluators = configuration.entrySet()
+        log.info("Creating field evaluators");
+        valueSelectors = configuration.entrySet()
                 .stream()
                 .filter(e -> e.getKey().startsWith("item_"))
                 .map(e -> new Pair<>(
                         e.getKey().substring(e.getKey().indexOf("_") + 1),
                         e.getValue()))
-                .collect(Collectors.toMap(Pair::first, p -> ef.get(p.second())));
+                .map(p -> ef.apply(p.first(), p.second()))
+                .toList();
 
-        itemEvaluators = Arrays.stream(topicMapping.itemTemplates())
-                .map(itemTemplate -> new StatementEvaluator<>(itemTemplate, ef)).toList();
+        log.info("Creating item templates for topic <{}>", topicMapping.topic());
+        itemTemplates = Arrays
+                .stream(topicMapping.itemTemplates())
+                .map(s -> ItemTemplate.makeNew(s, ef))
+                .toList();
+        log.info("Item evaluator created");
 
         barrier = new CyclicBarrier(2);
     }
 
-    public EvaluatorFactory<T> getEvaluatorFactory() {
-        return evaluatorFactory;
-    }
-
     @Override
     public boolean maySubscribe(String item) {
-        return itemEvaluators.stream().anyMatch(s -> s.match(item));
+        boolean anyMatch = itemTemplates.stream().anyMatch(s -> {
+            Item fromItem = Item.fromItem(item);
+            MatchResult match = s.match(fromItem);
+            log.info("Item <{}> matches <{}>: {}", s, fromItem, match.matched());
+            return match.matched();
+        });
+        return anyMatch;
     }
 
     @Override
     public void subscribe(String item) {
-        subscribedItems.add(item);
+        Item fromItem = Item.fromItem(item);
+        subscribedItems.add(fromItem);
+        log.info("Subscribed to {}", fromItem);
         if (isSubscribed.compareAndSet(false, true)) {
             start();
         }
@@ -97,7 +108,7 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
 
     @Override
     public void unsubscribe(String item) {
-        subscribedItems.remove(item);
+        subscribedItems.remove(Item.fromItem(item));
         if (subscribedItems.size() == 0) {
             stop();
         }
@@ -133,6 +144,7 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
                 // Poll for new data
                 try {
                     while (isSubscribed.get()) {
+                        log.debug("Polling from topic {} ...", topicMapping.topic());
                         ConsumerRecords<String, T> records = consumer.poll(Duration.ofMillis(100));
                         records.forEach(this::consume);
                     }
@@ -143,10 +155,8 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
                     try {
                         barrier.await();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     } catch (BrokenBarrierException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                     log.info("Disconnected from Kafka");
@@ -158,21 +168,23 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
     }
 
     protected void consume(ConsumerRecord<String, T> record) {
-        itemEvaluators.stream().forEach(itemEvaluator -> {
-            String expandedItem = itemEvaluator.replace(record.value());
-            for (String subscribedItem : subscribedItems) {
-                if (!subscribedItem.equals(expandedItem)) {
+        itemTemplates.stream().forEach(itemTemplate -> {
+            Item expandedItem = itemTemplate.expand(record.value());
+            for (Item subscribedItem : subscribedItems) {
+                if (expandedItem.match(subscribedItem).matched()) {
                     log.warn("Expanded item <{}> does not match subscribed item <{}>", expandedItem, subscribedItem);
+                    continue;
                 }
+
                 Map<String, String> updates = new HashMap<>();
-                for (Map.Entry<String, RecordEvaluator<T>> entry : recordEvaluators.entrySet()) {
-                    RecordEvaluator<T> re = entry.getValue();
-                    String value = re.extract(record.value());
-                    log.info("Extracted <{}> -> <{}>", value, entry.getKey());
-                    updates.put(entry.getKey(), value);
+                for (ValueSelector<T> valueSelector : valueSelectors) {
+                    Value value = valueSelector.extract(record.value());
+                    log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
+                    updates.put(value.name(), value.text());
                 }
-                log.info("Sending updates {}", updates);
-                eventListener.update(subscribedItem, updates, false);
+                log.info("Sending updates [{}] from topic <{}> to item <{}>", updates, topicMapping.topic(),
+                        subscribedItem);
+                eventListener.update(subscribedItem.getSourceItem(), updates, false);
             }
         });
     }
