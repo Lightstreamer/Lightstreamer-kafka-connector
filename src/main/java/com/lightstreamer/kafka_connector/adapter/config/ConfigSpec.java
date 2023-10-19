@@ -65,13 +65,13 @@ public class ConfigSpec {
 
     ItemSpec {
 
-      private Pattern p = Pattern.compile("[a-zA-Z0-9-]+\\$\\{(.*)\\},?+");
+      private Pattern p = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
 
       public boolean isValid(String param) {
         System.out.println("ItemSpec validating " + param);
         return p.matcher(param).matches();
       }
-    
+
     };
 
   }
@@ -110,11 +110,11 @@ class ConfParameter {
     this.multiple = multiple;
   }
 
-  public void validate(String paramValue) throws ValidateException {
-    System.out.println("Validating " + paramValue);
+  public void validate(String paramName, String paramValue) throws ValidateException {
+    System.out.printf("Validating param <%s> = <%s>%n", paramName, paramValue);
     if (required) {
       if (paramValue == null || paramValue.isBlank()) {
-        throw new ValidateException(String.format("Param [%s] is required", name));
+        throw new ValidateException(String.format("Param [%s] is required", paramName));
       }
     }
 
@@ -137,7 +137,7 @@ class ConfParameter {
 
     for (String key : keys) {
       String paramValue = from.get(key);
-      validate(paramValue);
+      validate(key, paramValue);
       to.put(key, type.getValue(paramValue));
     }
   }

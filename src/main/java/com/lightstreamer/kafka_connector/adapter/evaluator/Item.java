@@ -1,52 +1,72 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
+import static java.util.Collections.emptyList;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class Item extends BasicItem {
+import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 
-    private String sourceItem;
+public class Item {
 
-    private Structure itemStructure;
+    private static final Pattern ITEM = Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?");
+
+    // private static final Pattern QUERY_PARAMS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?");
+    private static final Pattern QUERY_PARAMS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
+    
+    private final Object itemHandle;
+
+    private final Structure itemStructure;
+
+    private final BasicItem core;
+
+    private final Map<String, Value> valuesMap;
 
     private record Structure(String prefix, List<Value> selectors) {
     }
 
-    Item(String sourceItem, String prefix, List<Value> selectors) {
-        super(prefix, selectors);
-        this.sourceItem = sourceItem;
-        this.itemStructure = new Structure(prefix, selectors);
+    Item(Object itemHandle, String prefix, List<Value> values) {
+        this.valuesMap = values.stream().collect(toMap(Value::name, identity()));
+        this.core = new BasicItem(prefix, new HashSet<>(values.stream().map(Value::name).toList()));
+        this.itemHandle = itemHandle;
+        this.itemStructure = new Structure(prefix, values);
     }
 
     Item(String sourceItem) {
-        this(sourceItem, sourceItem, Collections.emptyList());
+        this(sourceItem, sourceItem, emptyList());
+    }
+
+    public BasicItem core() {
+        return this.core;
     }
 
     public List<Value> values() {
-        return (List<Value>) this.schemas;
+        return List.copyOf(valuesMap.values());
     }
 
-    public String getSourceItem() {
-        return sourceItem;
+    public Object getItemHandle() {
+        return itemHandle;
     }
 
     public MatchResult match(Item other) {
-        MatchResult result = super.match(other);
+        MatchResult result = core.matchStructure(other.core);
         if (!result.matched()) {
             return result;
         }
 
-        Map<String, Value> thisMap = (Map<String, Value>) schemaMap;
-        Map<String, Value> otherMap = (Map<String, Value>) other.schemaMap;
+        Map<String, Value> otherMap = other.valuesMap;
 
         Set<String> matchedKeys = result.matchedKeys();
         Set<String> finalMatchedKeys = new HashSet<>();
         for (String matchedKey : matchedKeys) {
-            Value thisValue = thisMap.get(matchedKey);
+            Value thisValue = valuesMap.get(matchedKey);
             Value otherValue = otherMap.get(matchedKey);
             if (thisValue.match(otherValue)) {
                 finalMatchedKeys.add(matchedKey);
@@ -60,10 +80,37 @@ public class Item extends BasicItem {
         return itemStructure.toString();
     }
 
-    static public Item fromItem(String input) {
-        int start = input.indexOf("${");
+    static public Item fromItem(String input, Object itemHandle) {
+        Matcher matcher = ITEM.matcher(input);
+        if (matcher.matches()) {
+            List<Value> queryParams = new ArrayList<>();
+            String prefix = matcher.group(1);
+            String queries = matcher.group(3);
+            if (queries != null) {
+                Matcher m = QUERY_PARAMS.matcher(queries);
+                int previousEnd = 0;
+                while (m.find()) {
+                    if (m.start() != previousEnd) {
+                        break;
+                    }
+                    String name = m.group(2);
+                    String value = m.group(3);
+                    queryParams.add(Value.of(name, value));
+                    previousEnd = m.end();
+                }
+                if (previousEnd < queries.length()) {
+                    throw new RuntimeException("Invalid query parameter");
+                }
+            }
+            return new Item(itemHandle, prefix, queryParams);
+        }
+
+        throw new RuntimeException("Invalid item");        
+    }
+    static public Item fromItem2(String input) {
+        int start = input.indexOf("<");
         if (start != -1) {
-            int end = input.lastIndexOf("}");
+            int end = input.lastIndexOf(">");
             if (end != -1) {
                 String prefix = input.substring(0, start);
                 String expr = input.substring(start + 2, end);

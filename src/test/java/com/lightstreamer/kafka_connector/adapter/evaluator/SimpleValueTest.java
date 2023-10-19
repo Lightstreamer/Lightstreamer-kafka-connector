@@ -1,11 +1,8 @@
-package com.lightstreamer.kafka_connector.evaluator;
+package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.jupiter.api.Test;
-
-import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
 public class SimpleValueTest {
 

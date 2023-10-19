@@ -1,9 +1,11 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-public interface ValueSelector<T> extends ValueSchema {
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+
+public interface ValueSelector<K, V> extends ValueSchema {
 
     String expression();
 
-    Value extract(T t);
+    Value extract(ConsumerRecord<K, V> record);
 
 }

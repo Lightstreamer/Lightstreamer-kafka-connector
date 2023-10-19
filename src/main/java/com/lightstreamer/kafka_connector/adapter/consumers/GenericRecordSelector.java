@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BaseValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
@@ -101,11 +102,11 @@ class IndexedFieldGetter implements ExprEvaluator {
     }
 }
 
-public class GenericRecordSelector extends BaseValueSelector<GenericRecord> {
+public class GenericRecordSelector extends BaseValueSelector<String, GenericRecord> {
 
     private List<ExprEvaluator> evaluatorsList;
 
-    GenericRecordSelector(String name, String expression) {
+    public GenericRecordSelector(String name, String expression) {
         super(name, expression);
         System.out.println("Creating navigator for " + expression);
         Objects.requireNonNull(expression);
@@ -132,9 +133,9 @@ public class GenericRecordSelector extends BaseValueSelector<GenericRecord> {
     }
 
     @Override
-    public Value extract(GenericRecord record) {
+    public Value extract(ConsumerRecord<String, GenericRecord> record) {
         Object value = null;
-        GenericRecord currentRecord = record;
+        GenericRecord currentRecord = record.value();
         Iterator<ExprEvaluator> iterator = evaluatorsList.iterator();
 
         while (iterator.hasNext()) {

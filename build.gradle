@@ -23,17 +23,14 @@ repositories {
 
 dependencies {
     // Use JUnit Jupiter for testing.
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
-
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+   	testImplementation(platform('org.junit:junit-bom:5.10.0'))
+	  testImplementation('org.junit.jupiter:junit-jupiter')
+    testImplementation "com.google.truth:truth:1.1.4"
+    testImplementation "com.google.truth.extensions:truth-java8-extension:1.1.4"
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
     implementation 'org.slf4j:slf4j-api:2.0.9'
-    // implementation 'ch.qos.logback:logback-classic:1.3.11'
-    // implementation 'ch.qos.logback:logback-core:1.3.11'
-    // implementation 'org.slf4j:slf4j-simple:2.0.9'
-    // implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
     implementation 'org.slf4j:slf4j-reload4j:2.0.9'
     implementation 'ch.qos.reload4j:reload4j:1.2.25'
     implementation 'com.google.code.gson:gson:2.10.1'
@@ -41,6 +38,8 @@ dependencies {
     implementation group:'org.apache.kafka', name:'kafka-clients', version:'3.5.0'
     implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.0.1'
     implementation group:'io.confluent', name: 'kafka-json-serializer', version:'7.0.1'
+    // implementation group:'io.confluent', name: 'kafka-json-schema-serializer', version:'7.0.1'
+
 }
 
 // googleJavaFormat {
@@ -59,25 +58,33 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-task deploy(type: Copy) {
+task deployAdapter(type: Copy) {
   dependsOn 'cleanDeploy'
 
   into "deploy"
-  // into "/home/gianluca/Lightstreamer/adapters/kafka-connector"
-  
+
   from (jar) {
-    into "lib"
+    into "connector/lib"
   }
-  
+
   from (configurations.runtimeClasspath) {
-    into "lib"
+    into "connector/lib"
     exclude "ls-adapter-inprocess*"
     exclude "jsr305*"
   }
-  
-  from ("src/adapters")
+
+  from ("src/adapters") {
+    into "connector"
+  }
+
+}
+
+task deploy(type: Copy) {
+  dependsOn 'deployAdapter'
+  into "deploy/conf"
+  from ("src/conf")
 }
 
 task cleanDeploy(type: Delete) {
   delete "deploy"
-} 
+}

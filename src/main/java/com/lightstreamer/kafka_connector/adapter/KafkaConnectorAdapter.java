@@ -4,40 +4,42 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import javax.annotation.Nonnull;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.interfaces.data.DataProvider;
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
-import com.lightstreamer.kafka_connector.adapter.consumers.AbstractConsumerLoop.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.consumers.GenericRecordConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.JsonNodeConsumer;
+import com.lightstreamer.kafka_connector.adapter.consumers.RawConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.SymbolConsumerLoop;
+import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 
-public class KafkaConnectorAdapter implements DataProvider {
+public class KafkaConnectorAdapter implements SmartDataProvider {
 
     private Logger log;
 
     private Map<String, String> configuration;
 
-    private List<Loop> loops = new ArrayList<>();
+    private Loop loop;
 
     private ItemEventListener eventListener;
 
-    private Set<TopicMapping> topicMappings = new HashSet<>();
+    private List<TopicMapping> topicMappings = new ArrayList<>();
 
     static ConfigSpec CONFIG_SPEC;
 
@@ -46,8 +48,8 @@ public class KafkaConnectorAdapter implements DataProvider {
                 .add("bootstrap-servers", true, false, new ListType<ConfType>(ConfType.Host))
                 .add("group-id", true, false, ConfType.Text)
                 .add("consumer", false, false, ConfType.Text)
-                .add("item_", true, true, ConfType.Text)
-                .add("map.", true, true, ConfType.ItemSpec);
+                .add("field.", true, true, ConfType.Text)
+                .add("map.", true, true, ConfType.Text);
     }
 
     public KafkaConnectorAdapter() {
@@ -66,8 +68,8 @@ public class KafkaConnectorAdapter implements DataProvider {
             for (String paramKey : configuration.keySet()) {
                 if (paramKey.startsWith("map.")) {
                     String topic = paramKey.split("\\.")[1];
-                    String[] itemTemplates = new String[]{configuration.get(paramKey)};//.split(",");
-                    topicMappings.add(new TopicMapping(topic, itemTemplates));
+                    String[] itemTemplates = new String[] { configuration.get(paramKey) };// .split(",");
+                    topicMappings.add(new TopicMapping(topic, Arrays.asList(itemTemplates)));
                 }
             }
             log.info("Init completed");
@@ -84,39 +86,37 @@ public class KafkaConnectorAdapter implements DataProvider {
     @Override
     public void setListener(ItemEventListener eventListener) {
         this.eventListener = eventListener;
-        for (TopicMapping topicMapping : topicMappings) {
-            loops.add(newLoop(topicMapping));
-        }
+        loop = newLoop(topicMappings);
     }
 
-    Loop newLoop(TopicMapping mapping) {
+    private Loop newLoop(List<TopicMapping> mappings) {
         String loopType = configuration.getOrDefault("consumer", "defaultLoop");
-        log.info("Creating a <{}> ConsumerLoop instance for topic <{}>", loopType, mapping.topic());
+        log.info("Creating ConsumerLoop instance <{}>", loopType);
         return switch (loopType) {
-            case "SymbolConsumer" -> new SymbolConsumerLoop(configuration, mapping, eventListener);
-            case "JsonConsumer" -> new JsonNodeConsumer(configuration, mapping, eventListener);
-            case "defaultLoop" -> new GenericRecordConsumerLoop(configuration, mapping, eventListener);
+            case "SymbolConsumer" -> new SymbolConsumerLoop(configuration, mappings, eventListener);
+            case "JsonConsumer" -> new JsonNodeConsumer(configuration, mappings, eventListener);
+            case "RawConsumer" -> new RawConsumerLoop(configuration, mappings, eventListener);
+            case "defaultLoop" -> new GenericRecordConsumerLoop(configuration, mappings, eventListener);
             default -> throw new RuntimeException("No available consumer " + loopType);
         };
     }
 
+    @Override
     public void subscribe(String itemName, boolean needsIterator)
             throws SubscriptionException, FailureException {
-
-        log.info("Subscribing to item [{}]", itemName);
-        loops.stream()
-                .filter(l -> l.maySubscribe(itemName))
-                .forEach(l -> {
-                    l.subscribe(itemName);
-                });
     }
 
     @Override
     public void unsubscribe(String itemName) throws SubscriptionException, FailureException {
-        // if (topics.contains(itemName)) {
-        // log.info("Unsubscribed from item [{}]", itemName);
-        // // loops.unsubscribe(itemName);
-        // }
+        log.info("Unsibscribing from item [{}]", itemName);
+        loop.unsubscribe(itemName);
+    }
+
+    @Override
+    public void subscribe(@Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
+            throws SubscriptionException, FailureException {
+        log.info("Trying subscription to item [{}]", itemName);
+        loop.trySubscribe(itemName, itemHandle);
     }
 
 }

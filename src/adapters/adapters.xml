@@ -23,18 +23,18 @@
         <param name="item_zipcode2">User.addresses[1].zipcode</param>
     </data_provider> -->
 
-      <data_provider name="Avro">
+      <!--<data_provider name="Avro">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user</param>
 
-        <param name="consumer">defaultLoop</param>
+        <param name="consumer">defaultLoop</param>-->
 
         <!-- Map one topic to one item -->
         <!-- <param name="map.topic-avro-one-to-one.to">kafka-avro-item</param> -->
 
         <!-- Map one topic to multimple items -->
-        <param name="map.topic-avro-one-to-many.to">kafka-avro-${name=User.name,friend=User.friends}</param>
+        <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-${name=User.name,friend=User.friends}</param>-->
         <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-item2</param> -->
 
         <!-- Map many topics to one item -->
@@ -49,13 +49,13 @@
         
         <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
 
-        <param name="item_name">User.name</param>
-        <param name="item_favorite_number">User.favorite_number</param>
-        <param name="item_age">User.info.age</param>
-        <param name="item_height">User.info.height</param>
-        <param name="item_zipcode1">User.addresses[0].zipcode</param>
-        <param name="item_zipcode2">User.addresses[1].zipcode</param>
-    </data_provider>
+        <!--<param name="field.name">User.name</param>
+        <param name="field.favorite_number">User.favorite_number</param>
+        <param name="field.age">User.info.age</param>
+        <param name="field.height">User.info.height</param>
+        <param name="field.zipcode1">User.addresses[0].zipcode</param>
+        <param name="field.zipcode2">User.addresses[1].zipcode</param>
+    </data_provider>-->
 
     <!-- <data_provider name="Suit">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
@@ -80,5 +80,20 @@
         <param name="item_firstname">firstName</param>
         <param name="item_lastname">lastName</param>
     </data_provider> -->
+
+    <data_provider name="Raw">
+        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
+        <param name="bootstrap-servers">broker:29092</param>
+        <param name="group-id">kafka-adapter-json</param>
+
+        <param name="map.topic-raw.to">topic-raw</param>
+
+        <param name="consumer">RawConsumer</param>
+        <param name="field.key">${KEY}</param>
+        <param name="field.value">${VALUE}</param>
+        <param name="field.ts">${TIMESTAMP}</param>
+        <param name="field.partition">${PARTITION}</param>
+    </data_provider>
+
 
 </adapters_conf>

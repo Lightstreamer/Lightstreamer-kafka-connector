@@ -8,6 +8,8 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BaseValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
@@ -87,17 +89,14 @@ class ArrayGetter implements NodeEvaluator {
     }
 }
 
-public class JsonNodeSelector extends BaseValueSelector<JsonNode> {
-
-    private String statement;
+public class JsonNodeSelector extends BaseValueSelector<String, JsonNode> {
 
     private List<NodeEvaluator> evaluatorsList;
 
     public JsonNodeSelector(String name, String expression) {
         super(name, expression);
         System.out.println("Creating navigator for " + expression);
-        Objects.requireNonNull(statement);
-        this.evaluatorsList = evaluators(statement);
+        this.evaluatorsList = evaluators(expression);
     }
 
     List<NodeEvaluator> evaluators(String stmt) {
@@ -116,8 +115,8 @@ public class JsonNodeSelector extends BaseValueSelector<JsonNode> {
     }
 
     @Override
-    public Value extract(JsonNode node) {
-        JsonNode currentNode = node;
+    public Value extract(ConsumerRecord<String, JsonNode> node) {
+        JsonNode currentNode = node.value();
         Iterator<NodeEvaluator> iterator = evaluatorsList.iterator();
 
         while (iterator.hasNext()) {
@@ -128,5 +127,9 @@ public class JsonNodeSelector extends BaseValueSelector<JsonNode> {
             }
         }
         return new NodeValue("", currentNode.asText());
+    }
+
+    public static void main(String[] args) {
+        new JsonNodeSelector("name", "expression");
     }
 }

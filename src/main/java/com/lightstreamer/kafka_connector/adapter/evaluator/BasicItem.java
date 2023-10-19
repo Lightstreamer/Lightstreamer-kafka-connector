@@ -2,44 +2,37 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-public abstract class BasicItem {
+public class BasicItem {
 
     public record MatchResult(Set<String> matchedKeys, boolean matched) {
     }
 
     private final String prefix;
 
-    protected Map<String, ? extends ValueSchema> schemaMap;
+    private Set<String> keys;
 
-    protected List<? extends ValueSchema> schemas;
-
-    public BasicItem(String prefix, List<? extends ValueSchema> schemas) {
+    BasicItem(String prefix, Set<String> keys) {
         this.prefix = prefix;
-        this.schemas = schemas;
-        this.schemaMap = schemas.stream().collect(Collectors.toMap(ValueSchema::name, Function.identity()));
+        this.keys = Collections.unmodifiableSet(keys);
     }
 
     public String prefix() {
         return prefix;
     }
 
-    public List<? extends ValueSchema> schemas() {
-        return Collections.unmodifiableList(schemas);
+    public Set<String> keys() {
+        return this.keys;
     }
 
-    public MatchResult match(BasicItem other) {
+    protected MatchResult matchStructure(BasicItem other) {
         if (!other.prefix.equals(prefix)) {
             return new MatchResult(Collections.emptySet(), false);
         }
 
-        Set<String> thisKeys = schemaMap.keySet();
-        Set<String> otherKeys = other.schemaMap.keySet();
+        Set<String> thisKeys = this.keys;
+        Set<String> otherKeys = other.keys;
 
         HashSet<String> matchedKeys = new HashSet<>(thisKeys);
         matchedKeys.retainAll(otherKeys);

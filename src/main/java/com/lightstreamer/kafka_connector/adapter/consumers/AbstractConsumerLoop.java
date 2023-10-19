@@ -1,19 +1,17 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -32,119 +30,100 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
 
 public abstract class AbstractConsumerLoop<T> implements Loop {
 
-    public static record TopicMapping(String topic, String[] itemTemplates) {
-    }
-
     protected final Properties properties = new Properties();
 
-    private List<ValueSelector<T>> valueSelectors;
+    private List<ValueSelector<String, T>> valueSelectors;
 
     protected ItemEventListener eventListener;
 
     protected AtomicBoolean isSubscribed = new AtomicBoolean(false);
 
-    private BiFunction<String, String, ValueSelector<T>> evaluatorFactory;
+    private List<TopicMapping> topicMappings;
 
-    private TopicMapping topicMapping;
+    private Map<String, Item> subscribedItems = new ConcurrentHashMap<>();
 
-    private Set<Item> subscribedItems = ConcurrentHashMap.newKeySet();
-
-    private List<ItemTemplate<T>> itemTemplates;
+    private List<ItemTemplate<T>> itemTemplates = new ArrayList<>();
 
     private CyclicBarrier barrier;
 
     protected static Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
 
-    AbstractConsumerLoop(Map<String, String> configuration, TopicMapping topicMapping,
-            BiFunction<String, String, ValueSelector<T>> ef,
+    AbstractConsumerLoop(Map<String, String> configuration,
+            List<TopicMapping> topicMappings,
+            BiFunction<String, String, ValueSelector<String, T>> ef,
             ItemEventListener eventListener) {
         this.eventListener = eventListener;
-        this.evaluatorFactory = ef;
-        this.topicMapping = topicMapping;
+        this.topicMappings = topicMappings;
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.get("bootstrap-servers"));
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, configuration.get("group-id"));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         log.info("Creating field evaluators");
-        valueSelectors = configuration.entrySet()
-                .stream()
-                .filter(e -> e.getKey().startsWith("item_"))
-                .map(e -> new Pair<>(
-                        e.getKey().substring(e.getKey().indexOf("_") + 1),
-                        e.getValue()))
-                .map(p -> ef.apply(p.first(), p.second()))
-                .toList();
+        valueSelectors = createValueSelector(configuration, ef);
 
-        log.info("Creating item templates for topic <{}>", topicMapping.topic());
-        itemTemplates = Arrays
-                .stream(topicMapping.itemTemplates())
-                .map(s -> ItemTemplate.makeNew(s, ef))
-                .toList();
-        log.info("Item evaluator created");
+        log.info("Creating item templates");
+        itemTemplates = createItemTemplates(topicMappings, ef);
 
         barrier = new CyclicBarrier(2);
     }
 
-    @Override
-    public boolean maySubscribe(String item) {
-        boolean anyMatch = itemTemplates.stream().anyMatch(s -> {
-            Item fromItem = Item.fromItem(item);
-            MatchResult match = s.match(fromItem);
-            log.info("Item <{}> matches <{}>: {}", s, fromItem, match.matched());
-            return match.matched();
-        });
-        return anyMatch;
+    private List<ItemTemplate<T>> createItemTemplates(
+            List<TopicMapping> topicMappings,
+            BiFunction<String, String, ValueSelector<String, T>> ef) {
+
+        return topicMappings.stream().flatMap(t -> t.createItemTemplates(ef).stream()).toList();
+    }
+
+    private List<ValueSelector<String, T>> createValueSelector(
+            Map<String, String> configuration,
+            BiFunction<String, String, ValueSelector<String, T>> ef) {
+        return configuration.entrySet()
+                .stream()
+                .filter(e -> e.getKey().startsWith("field."))
+                .map(e -> new Pair<>(
+                        e.getKey().substring(e.getKey().indexOf(".") + 1),
+                        e.getValue()))
+                .map(p -> ef.apply(p.first(), p.second()))
+                .toList();
     }
 
     @Override
-    public void subscribe(String item) {
-        Item fromItem = Item.fromItem(item);
-        subscribedItems.add(fromItem);
-        log.info("Subscribed to {}", fromItem);
-        if (isSubscribed.compareAndSet(false, true)) {
+    public void trySubscribe(String item, Object itemHandle) {
+        Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
+            for (ItemTemplate<T> itemTemplate : itemTemplates) {
+                Item newItem = Item.fromItem(it, itemHandle);
+                MatchResult result = itemTemplate.match(newItem);
+                if (result.matched()) {
+                    log.info("Subscribed to {}", it);
+                    return newItem;
+                }
+            }
+            return null;
+        });
+        if (subscribedItem != null) {
             start();
         }
     }
 
-    @Override
-    public void unsubscribe(String item) {
-        subscribedItems.remove(Item.fromItem(item));
-        if (subscribedItems.size() == 0) {
-            stop();
-        }
-    }
-
-    void stop() {
-        if (isSubscribed.compareAndSet(true, false)) {
-            try {
-                barrier.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (BrokenBarrierException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    KafkaConsumer<String, T> newKafkaConsumer(Properties properties) {
-        return new KafkaConsumer<>(properties);
-    }
-
     void start() {
+        if (!(isSubscribed.compareAndSet(false, true))) {
+            return;
+        }
         // Create consumer
         log.info("Connecting to Kafka at {}", properties.getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG));
         barrier.reset();
 
         try {
-            KafkaConsumer<String, T> consumer = newKafkaConsumer(properties);
+            KafkaConsumer<String, T> consumer = new KafkaConsumer<>(properties);
             log.info("Connected to Kafka");
 
-            consumer.subscribe(List.of(topicMapping.topic));
+            List<String> topics = topicMappings.stream().map(TopicMapping::topic).toList();
+            consumer.subscribe(topics);
             CompletableFuture.runAsync(() -> {
                 // Poll for new data
                 try {
                     while (isSubscribed.get()) {
-                        log.debug("Polling from topic {} ...", topicMapping.topic());
+                        log.debug("Polling from topics {} ...", topics);
                         ConsumerRecords<String, T> records = consumer.poll(Duration.ofMillis(100));
                         records.forEach(this::consume);
                     }
@@ -168,25 +147,53 @@ public abstract class AbstractConsumerLoop<T> implements Loop {
     }
 
     protected void consume(ConsumerRecord<String, T> record) {
-        itemTemplates.stream().forEach(itemTemplate -> {
-            Item expandedItem = itemTemplate.expand(record.value());
-            for (Item subscribedItem : subscribedItems) {
-                if (expandedItem.match(subscribedItem).matched()) {
-                    log.warn("Expanded item <{}> does not match subscribed item <{}>", expandedItem, subscribedItem);
-                    continue;
-                }
+        itemTemplates.stream()
+                .filter(template -> template.topic().equals(record.topic()))
+                .map(template -> template.expand(record))
+                .forEach(expandedItem -> processItem(record, expandedItem));
+    }
 
-                Map<String, String> updates = new HashMap<>();
-                for (ValueSelector<T> valueSelector : valueSelectors) {
-                    Value value = valueSelector.extract(record.value());
-                    log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
-                    updates.put(value.name(), value.text());
-                }
-                log.info("Sending updates [{}] from topic <{}> to item <{}>", updates, topicMapping.topic(),
+    private void processItem(ConsumerRecord<String, T> record, Item expandedItem) {
+        for (Item subscribedItem : subscribedItems.values()) {
+            if (!expandedItem.match(subscribedItem).matched()) {
+                log.warn("Expanded item <{}> does not match subscribed item <{}>",
+                        expandedItem,
                         subscribedItem);
-                eventListener.update(subscribedItem.getSourceItem(), updates, false);
+                continue;
             }
-        });
+            // log.info("Sending updates");
+            Map<String, String> updates = new HashMap<>();
+            for (ValueSelector<String, T> valueSelector : valueSelectors) {
+                Value value = valueSelector.extract(record);
+                log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
+                updates.put(value.name(), value.text());
+            }
+            log.info("Sending updates [{}] from topic <{}> to item <{}>",
+                    updates.keySet(),
+                    record.topic(),
+                    subscribedItem);
+            eventListener.smartUpdate(subscribedItem.getItemHandle(), updates, false);
+        }
+    }
+
+    @Override
+    public void unsubscribe(String item) {
+        subscribedItems.remove(item);
+        if (subscribedItems.size() == 0) {
+            stop();
+        }
+    }
+
+    void stop() {
+        if (isSubscribed.compareAndSet(true, false)) {
+            try {
+                barrier.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (BrokenBarrierException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }
