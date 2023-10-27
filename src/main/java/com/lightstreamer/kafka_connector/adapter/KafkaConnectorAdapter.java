@@ -23,11 +23,12 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
-import com.lightstreamer.kafka_connector.adapter.consumers.GenericRecordConsumerLoop;
-import com.lightstreamer.kafka_connector.adapter.consumers.JsonNodeConsumer;
-import com.lightstreamer.kafka_connector.adapter.consumers.RawConsumerLoop;
-import com.lightstreamer.kafka_connector.adapter.consumers.SymbolConsumerLoop;
+import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
+import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.raw.RawValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.SelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 
@@ -36,8 +37,6 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     private Map<String, String> configuration;
 
     private Loop loop;
-
-    private ItemEventListener eventListener;
 
     private List<TopicMapping> topicMappings = new ArrayList<>();
 
@@ -48,6 +47,10 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
                 .add("bootstrap-servers", true, false, new ListType<ConfType>(ConfType.Host))
                 .add("group-id", true, false, ConfType.Text)
                 .add("consumer", false, false, ConfType.Text)
+                .add("value.schema.file", false, false, ConfType.Text)
+                .add("value.consumer", true, false, ConfType.Text)
+                .add("key.schema.file", false, false, ConfType.Text)
+                .add("key.consumer", false, false, ConfType.Text)
                 .add("field.", true, true, ConfType.Text)
                 .add("map.", true, true, ConfType.Text);
     }
@@ -63,6 +66,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
         try {
             this.configuration = CONFIG_SPEC.parse(params);
+            this.configuration.put("adapter.dir", configDir.getAbsolutePath());
 
             // Retrieve "map.<topic-name>.to"
             for (String paramKey : configuration.keySet()) {
@@ -85,20 +89,34 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     @Override
     public void setListener(ItemEventListener eventListener) {
-        this.eventListener = eventListener;
-        loop = newLoop(topicMappings);
+        this.loop = buildLoop(eventListener);
     }
 
-    private Loop newLoop(List<TopicMapping> mappings) {
-        String loopType = configuration.getOrDefault("consumer", "defaultLoop");
-        log.info("Creating ConsumerLoop instance <{}>", loopType);
-        return switch (loopType) {
-            case "SymbolConsumer" -> new SymbolConsumerLoop(configuration, mappings, eventListener);
-            case "JsonConsumer" -> new JsonNodeConsumer(configuration, mappings, eventListener);
-            case "RawConsumer" -> new RawConsumerLoop(configuration, mappings, eventListener);
-            case "defaultLoop" -> new GenericRecordConsumerLoop(configuration, mappings, eventListener);
-            default -> throw new RuntimeException("No available consumer " + loopType);
+    private Loop buildLoop(ItemEventListener eventListener) {
+        String valueConsumer = configuration.get("value.consumer");
+        String keyConsumer = configuration.get("key.consumer");
+
+        SelectorSupplier<?> k = makeSelectorSupplier(keyConsumer, true);
+        SelectorSupplier<?> v = makeSelectorSupplier(valueConsumer, false);
+
+        return makeLoop(k, v, eventListener);
+    }
+
+    private SelectorSupplier<?> makeSelectorSupplier(String consumerType, boolean isKey) {
+        return switch (consumerType) {
+            case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
+            case "JSON" -> new JsonNodeSelectorSupplier(configuration, isKey);
+            case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
+            default -> throw new RuntimeException("No available consumer " + consumerType);
         };
+    }
+
+    private Loop makeLoop(SelectorSupplier<?> k, SelectorSupplier<?> v, ItemEventListener eventListener) {
+        return loop(k, v, eventListener);
+    }
+
+    private <K, V> Loop loop(SelectorSupplier<K> k, SelectorSupplier<V> v, ItemEventListener eventListener) {
+        return new ConsumerLoop<>(configuration, topicMappings, k, v, eventListener);
     }
 
     @Override
@@ -118,5 +136,4 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         log.info("Trying subscription to item [{}]", itemName);
         loop.trySubscribe(itemName, itemHandle);
     }
-
 }

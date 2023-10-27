@@ -11,11 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.InfoSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
-public class RawValueSelectorTest {
+public class InfoSelectorTest {
 
-    private ConsumerRecord<String, String> record() {
+    private static ConsumerRecord<String, String> record() {
         return new ConsumerRecord<>(
                 "record-topic",
                 150,
@@ -33,13 +34,11 @@ public class RawValueSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
                 ATTRIBUTE,      VALUE
-                ${KEY},         record-key
-                ${VALUE},       record-value
-                ${TOPIC},       record-topic
-                ${PARTITION},   150
+                TOPIC,          record-topic
+                PARTITION,      150
             """)
     public void shouldExtractAttribute(String attributeName, String expectedValue) {
-        RawValueSelector r = new RawValueSelector("field_name", attributeName);
+        InfoSelector r = new InfoSelector("field_name", attributeName);
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
@@ -47,7 +46,7 @@ public class RawValueSelectorTest {
 
     @Test
     public void shouldNotExtractAttribute() {
-        RawValueSelector r = new RawValueSelector("field_name", "NOT-EXISTING-ATTRIBUTE");
+        InfoSelector r = new InfoSelector("field_name", "NOT-EXISTING-ATTRIBUTE");
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo("Not-existing record attribute");

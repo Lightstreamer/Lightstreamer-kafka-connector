@@ -5,20 +5,19 @@ import java.util.Map;
 
 import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Selector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 
-public class SymbolConsumerLoop extends AbstractConsumerLoop<GenericEnumSymbol<?>> {
+public class SymbolConsumerLoop extends ConsumerLoop<GenericEnumSymbol<?>> {
 
-    private static class GenericEnumSymbolEvaluator implements ValueSelector<String, GenericEnumSymbol<?>> {
+    private static class GenericEnumSymbolEvaluator implements Selector<GenericEnumSymbol<?>> {
 
         private String schema;
 
@@ -30,11 +29,11 @@ public class SymbolConsumerLoop extends AbstractConsumerLoop<GenericEnumSymbol<?
         }
 
         @Override
-        public Value extract(ConsumerRecord<String, GenericEnumSymbol<?>> record) {
-            if (!record.value().getSchema().getName().equals(schema)) {
+        public Value extract(GenericEnumSymbol<?> value) {
+            if (!value.getSchema().getName().equals(schema)) {
                 log.warn("Message is not of type {}", schema);
             }
-            return new SimpleValue(name(), record.toString());
+            return new SimpleValue(name(), value.toString());
         }
         
 

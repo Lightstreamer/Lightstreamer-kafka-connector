@@ -7,31 +7,20 @@
         <!--<classloader>log-enabled</classloader>-->
     </metadata_provider>
 
-    <!-- <data_provider name="User">
+      <data_provider name="Avro">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user</param>
 
-        <param name="consumer">defaultLoop</param>
-
-        <param name="mapping_for_topic.topic-avro">kafka-user-${User.name}</param>
-        <param name="item_name">User.name</param>
-        <param name="item_favorite_number">User.favorite_number</param>
-        <param name="item_age">User.info.age</param>
-        <param name="item_height">User.info.height</param>
-        <param name="item_zipcode1">User.addresses[0].zipcode</param>
-        <param name="item_zipcode2">User.addresses[1].zipcode</param>
-    </data_provider> -->
-
-      <!--<data_provider name="Avro">
-        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
-        <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-user</param>
-
-        <param name="consumer">defaultLoop</param>-->
 
         <!-- Map one topic to one item -->
-        <!-- <param name="map.topic-avro-one-to-one.to">kafka-avro-item</param> -->
+        <param name="map.topic-avro-local.to">topic-avro-local</param>
+        <param name="value.schema.file">user.avsc</param>
+        <param name="value.consumer">AVRO</param>
+        <param name="key.schema.file">user.avsc</param>
+        <param name="key.consumer">AVRO</param>
+
+        <!-- <param name="schema.registry.url">http://localhost:8081</param> -->
 
         <!-- Map one topic to multimple items -->
         <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-${name=User.name,friend=User.friends}</param>-->
@@ -49,13 +38,13 @@
         
         <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
 
-        <!--<param name="field.name">User.name</param>
-        <param name="field.favorite_number">User.favorite_number</param>
-        <param name="field.age">User.info.age</param>
-        <param name="field.height">User.info.height</param>
-        <param name="field.zipcode1">User.addresses[0].zipcode</param>
-        <param name="field.zipcode2">User.addresses[1].zipcode</param>
-    </data_provider>-->
+        <!--<param name="field.name">User.name</param> -->
+        <param name="field.favorite_number">VALUE.User.favorite_number</param>
+        <param name="field.age">VALUE.User.info.age</param>
+        <param name="field.height">VALUE.User.info.height</param>
+        <param name="field.zipcode1">VALUE.User.addresses[0].zipcode</param>
+        <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param>
+    </data_provider>
 
     <!-- <data_provider name="Suit">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
@@ -74,11 +63,11 @@
         <param name="group-id">kafka-adapter-json</param>
 
         <param name="topics">topic-json</param>
-        <param name="mapped_item">kafka-user-${firtName}</param>
+        <param name="mapped_item">kafka-user-${name=firtName}</param>
 
         <param name="consumer">JsonConsumer</param>
-        <param name="item_firstname">firstName</param>
-        <param name="item_lastname">lastName</param>
+        <param name="field.firstname">${VALUE.firstName}</param>
+        <param name="field.lastname">${VALUE.lastName}</param>
     </data_provider> -->
 
     <data_provider name="Raw">
@@ -86,13 +75,13 @@
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-json</param>
 
-        <param name="map.topic-raw.to">topic-raw</param>
+        <param name="map.topic-raw.to">topic-raw-${key=KEY}</param>
 
         <param name="consumer">RawConsumer</param>
-        <param name="field.key">${KEY}</param>
-        <param name="field.value">${VALUE}</param>
-        <param name="field.ts">${TIMESTAMP}</param>
-        <param name="field.partition">${PARTITION}</param>
+        <param name="field.key">KEY</param>
+        <param name="field.value">VALUE</param>
+        <param name="field.ts">TIMESTAMP</param>
+        <param name="field.partition">PARTITION</param>
     </data_provider>
 
 

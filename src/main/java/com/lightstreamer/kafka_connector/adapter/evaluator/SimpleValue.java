@@ -4,7 +4,7 @@ public class SimpleValue implements Value {
 
     private final String value;
 
-    private String name;
+    private final String name;
 
     public SimpleValue(String name, String value) {
         this.name = name;

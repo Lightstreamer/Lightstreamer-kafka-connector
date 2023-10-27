@@ -11,8 +11,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.IdentityValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
-import com.lightstreamer.kafka_connector.adapter.test_utils.IdentityValueSelector;
 
 public class TopicMappingTest {
 
@@ -57,4 +57,31 @@ public class TopicMappingTest {
                 Arguments.of(List.of("template1", "template2")));
     }
 
+    @ParameterizedTest
+    @MethodSource("topicMappingProvider")
+    public void shouldFlateItemTemplates(List<TopicMapping> topicMappings, List<String> expected) {
+        List<ItemTemplate<String>> templates = TopicMapping.flatItemTemplates(topicMappings,
+                IdentityValueSelector::new);
+        assertThat(templates.stream().map(ItemTemplate::prefix).toList())
+                .containsExactly(expected.toArray());
+
+    }
+
+    static Stream<Arguments> topicMappingProvider() {
+        return Stream.of(
+                Arguments.of(
+                        List.of(
+                                new TopicMapping("topic1", List.of("it1"))),
+                        List.of("it1")),
+                Arguments.of(
+                        List.of(
+                                new TopicMapping("topic1", List.of("it1", "it2"))),
+                        List.of("it1", "it2")),
+                Arguments.of(
+                        List.of(
+                                new TopicMapping("topic1", List.of("it1", "it2")),
+                                new TopicMapping("topic2", List.of("ita1", "ita2"))),
+                        List.of("it1", "it2", "ita1", "ita2")));
+
+    }
 }

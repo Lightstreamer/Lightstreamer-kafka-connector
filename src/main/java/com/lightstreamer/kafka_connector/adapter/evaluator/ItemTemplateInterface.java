@@ -7,9 +7,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 
-public interface ItemTemplateInterface<R> {
+public interface ItemTemplateInterface<K, V> {
 
-    Item expand(ConsumerRecord<String, R> record);
+    Item expand(ConsumerRecord<K, V> record);
 
     String prefix();
 
@@ -17,6 +17,6 @@ public interface ItemTemplateInterface<R> {
 
     MatchResult match(Item other);
 
-    List<? extends ValueSelector<String,R>> valueSelectors();
+    // List<? extends ValueSelector<V>> valueSelectors();
 
 }

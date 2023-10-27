@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.mapping;
+package com.lightstreamer.kafka_connector.adapter.mapping_OLD;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
