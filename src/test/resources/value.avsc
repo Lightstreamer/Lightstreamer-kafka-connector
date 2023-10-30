@@ -1,0 +1,31 @@
+{
+    "namespace": "com.lightstreamer.kafka_connector.avro",
+    "type": "record",
+    "name": "Value",
+    "fields": [
+        {
+            "name": "name",
+            "type": "string"
+        },
+        {
+            "name": "children",
+            "type": {
+                "type": "array",
+                "items": {
+                    "name": "child",
+                    "type": "com.lightstreamer.kafka_connector.avro.Value"
+                }
+            }
+        },
+        {
+            "name": "network",
+            "type": {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": "string"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "namespace": "com.lightstreamer.kafka_connector.avro",
+    "type": "array",
+    "name": "Children",
+    "items": {
+        "name": "children",
+        "type": "com.lightstreamer.kafka_connector.avro.Value"
+    }
+}

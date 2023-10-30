@@ -1,0 +1,10 @@
+{
+    "namespace": "com.lightstreamer.kafka_connector.avro",
+    "name": "Network",
+    "type": "array",
+    "items": {
+        "name": "net",
+        "type": "array",
+        "items": "string"
+    }
+}

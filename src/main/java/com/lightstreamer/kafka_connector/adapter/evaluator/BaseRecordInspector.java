@@ -75,7 +75,6 @@ class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
 
     public static RecordInspector<?, ?> makeInspector(SelectorSupplier<?> ek, SelectorSupplier<?> ev) {
         return makeInspectorKV(ek, ev);
-
     }
 
     static <K, V> RecordInspector<K, V> makeInspectorKV(

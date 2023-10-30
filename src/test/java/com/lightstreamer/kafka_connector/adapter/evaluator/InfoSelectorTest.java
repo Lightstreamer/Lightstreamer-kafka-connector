@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers;
+package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -10,9 +10,6 @@ import org.apache.kafka.common.record.TimestampType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-
-import com.lightstreamer.kafka_connector.adapter.evaluator.InfoSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
 public class InfoSelectorTest {
 
@@ -51,5 +48,4 @@ public class InfoSelectorTest {
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo("Not-existing record attribute");
     }
-
 }

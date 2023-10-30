@@ -32,15 +32,15 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.SelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 
+    private final List<TopicMapping> topicMappings = new ArrayList<>();
+
+    private static final ConfigSpec CONFIG_SPEC;
+
     private Logger log;
 
     private Map<String, String> configuration;
 
     private Loop loop;
-
-    private List<TopicMapping> topicMappings = new ArrayList<>();
-
-    static ConfigSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC = new ConfigSpec()
@@ -60,7 +60,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void init(Map params, File configDir) throws DataProviderException {
+    public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         Path path = Paths.get(configDir.getAbsolutePath(), "log4j.properties");
         PropertyConfigurator.configure(path.toString());
         log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
@@ -83,12 +83,12 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     }
 
     @Override
-    public boolean isSnapshotAvailable(String itemName) throws SubscriptionException {
+    public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
         return false;
     }
 
     @Override
-    public void setListener(ItemEventListener eventListener) {
+    public void setListener(@Nonnull ItemEventListener eventListener) {
         this.loop = buildLoop(eventListener);
     }
 
@@ -107,7 +107,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
             case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
             case "JSON" -> new JsonNodeSelectorSupplier(configuration, isKey);
             case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
-            default -> throw new RuntimeException("No available consumer " + consumerType);
+            default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }
 
@@ -120,12 +120,12 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     }
 
     @Override
-    public void subscribe(String itemName, boolean needsIterator)
+    public void subscribe(@Nonnull String itemName, boolean needsIterator)
             throws SubscriptionException, FailureException {
     }
 
     @Override
-    public void unsubscribe(String itemName) throws SubscriptionException, FailureException {
+    public void unsubscribe(@Nonnull String itemName) throws SubscriptionException, FailureException {
         log.info("Unsibscribing from item [{}]", itemName);
         loop.unsubscribe(itemName);
     }

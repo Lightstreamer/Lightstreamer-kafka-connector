@@ -54,22 +54,11 @@ public final class InfoSelector extends BaseSelector<ConsumerRecord<?, ?>> {
         abstract String value(ConsumerRecord<?, ?> record);
     }
 
-    // Pattern EXPR = Pattern.compile("\\$\\{(.*)\\}");
-    private static final Pattern EXPR = Pattern.compile("(.*)");
-
     private final Attribute attribute;
 
     public InfoSelector(String name, String expression) {
         super(name, expression);
-        Matcher matcher = EXPR.matcher(expression);
-        if (matcher.matches()) {
-            String group = matcher.group(1);
-            log.info("Attribute: {}", group);
-            attribute = Attribute.of(group);
-        } else {
-            // attribute = Attribute.NULL.toString();
-            attribute = null;
-        }
+        attribute = Attribute.of(expression);
     }
 
     @Override

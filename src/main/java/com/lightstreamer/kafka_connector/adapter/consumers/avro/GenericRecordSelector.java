@@ -1,6 +1,5 @@
 package com.lightstreamer.kafka_connector.adapter.consumers.avro;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -9,36 +8,14 @@ import org.apache.avro.generic.GenericRecord;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
-interface ExprEvaluator {
-    Object get(GenericRecord record);
-}
-
-// class RootGetter implements ExprEvaluator {
-
-// private String name;
-
-// public RootGetter(String name) {
-// this.name = name;
-// }
-
-// @Override
-// public Object get(GenericRecord record) {
-// String recordName = record.getSchema().getName();
-// if (!recordName.equals(name)) {
-// throw new RuntimeException("No root <" + name + "> exists! Found <>" +
-// recordName + ">");
-// }
-// return record;
-// }
-// }
-
 class FieldGetter implements NodeEvaluator<GenericRecord, Object> {
 
-    private String name;
+    private final String name;
 
     public FieldGetter(String name) {
         this.name = name;
@@ -84,7 +61,7 @@ class ArrayGetter implements NodeEvaluator<GenericRecord, Object> {
 
 public class GenericRecordSelector extends BaseSelector<GenericRecord> {
 
-    private List<NodeEvaluator<GenericRecord, Object>> evaluatorsList;
+    private LinkedNode<NodeEvaluator<GenericRecord, Object>> linkedNode;
 
     private static final ExpressionParser<GenericRecord, Object> PARSER = new ExpressionParser.Builder<GenericRecord, Object>()
             .withFieldEvaluator(FieldGetter::new)
@@ -93,42 +70,29 @@ public class GenericRecordSelector extends BaseSelector<GenericRecord> {
 
     public GenericRecordSelector(String name, String expression) {
         super(name, expression);
-        Objects.requireNonNull(expression);
-        this.evaluatorsList = PARSER.parse(expression);
+        this.linkedNode = PARSER.parse(expression);
     }
-
-    // List<ExprEvaluator> evaluators(String expression) {
-    // List<ExprEvaluator> fieldEvaluators = new ArrayList<>();
-    // StringTokenizer st = new StringTokenizer(expression, ".");
-    // if (st.hasMoreTokens()) {
-    // fieldEvaluators.add(new RootGetter(st.nextToken()));
-    // }
-
-    // while (st.hasMoreTokens()) {
-    // String fieldName = st.nextToken();
-    // int lbracket = fieldName.indexOf('[');
-    // if (lbracket != -1) {
-    // fieldEvaluators.add(new IndexedFieldGetter(fieldName, lbracket));
-    // } else {
-    // fieldEvaluators.add(new FieldGetter(fieldName));
-    // }
-    // }
-    // return fieldEvaluators;
-    // }
 
     @Override
     public Value extract(GenericRecord record) {
-        Object value = null;
+        Object value = record;
         GenericRecord currentRecord = record;
-        Iterator<NodeEvaluator<GenericRecord, Object>> iterator = evaluatorsList.iterator();
-
-        while (iterator.hasNext()) {
-            NodeEvaluator<GenericRecord, Object> evaluator = iterator.next();
+        LinkedNode<NodeEvaluator<GenericRecord, Object>> currentLinkedNode = linkedNode;
+        while (currentLinkedNode != null) {
+            NodeEvaluator<GenericRecord, Object> evaluator = currentLinkedNode.value();
+            currentRecord = (GenericRecord) value;
             value = evaluator.get(currentRecord);
-            if (iterator.hasNext()) {
-                currentRecord = (GenericRecord) value;
-            }
+            currentLinkedNode = currentLinkedNode.next();
         }
+
+        // } while (linkedNode.hasNext());
+        // while (nodesList.hasNext()) {
+        // NodeEvaluator<GenericRecord, Object> evaluator = nodesList.next();
+        // value = evaluator.get(currentRecord);
+        // if (iterator.hasNext()) {
+        // currentRecord = (GenericRecord) value;
+        // }
+        // }
         return new SimpleValue(name(), value.toString());
     }
 }

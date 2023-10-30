@@ -41,7 +41,7 @@ public class ItemTest {
             """)
     public void shouldMakeItemWitNoValues(String input, String expectedPrefix) {
         Object handle = new Object();
-        Item item = Item.fromItem(input, handle);
+        Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.getItemHandle()).isSameInstanceAs(handle);
         assertThat(item.core().prefix()).isEqualTo(expectedPrefix);
@@ -60,7 +60,7 @@ public class ItemTest {
             """)
     public void shouldMakeItemWithSelector(@NonNull String input, String expectedName, String expectedValue) {
         Object handle = new Object();
-        Item item = Item.fromItem(input, handle);
+        Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.getItemHandle()).isSameInstanceAs(handle);
 
@@ -75,20 +75,19 @@ public class ItemTest {
             """)
     public void shouldMakeItemWithMoreSelectors(String input, String par1, String val1, String par2, String value) {
         Object handle = new Object();
-        Item item = Item.fromItem(input, handle);
+        Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.getItemHandle()).isSameInstanceAs(handle);
 
         List<Value> values = item.values();
         assertThat(values).containsExactly(Value.of(par1, val1),
                 Value.of(par2, value));
-
     }
 
     @Test
     public void shouldHaveCore() {
-        Item item1 = new Item("source", "item", mkList("A", "B"));
-        BasicItem core = item1.core();
+        Item item = new Item("source", "item", mkList("A", "B"));
+        BasicItem core = item.core();
         assertThat(core).isNotNull();
         assertThat(core.keys()).containsExactly(name("B"), name("A"));
     }

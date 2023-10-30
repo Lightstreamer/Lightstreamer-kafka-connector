@@ -24,7 +24,27 @@ public class ExpressionParser<K, V> {
         V get(K k);
     }
 
-    public interface FieldEvaluator<K, V> extends NodeEvaluator<K, V> {
+    public static class LinkedNode<T> {
+
+        private LinkedNode<T> next;
+
+        private T value;
+
+        LinkedNode(T value) {
+            this.value = value;
+        }
+
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        public T value() {
+            return value;
+        }
+
+        public LinkedNode<T> next() {
+            return next;
+        }
     }
 
     public static class Builder<K, V> {
@@ -59,7 +79,7 @@ public class ExpressionParser<K, V> {
         this.arrayEvaluatorFactory = ae;
     }
 
-    public List<NodeEvaluator<K, V>> parse(String expression) {
+    public LinkedNode<NodeEvaluator<K, V>> parse(String expression) {
         StringTokenizer st = new StringTokenizer(expression, ".");
         parseRoot(st);
         return parseTokens(st);
@@ -69,22 +89,35 @@ public class ExpressionParser<K, V> {
         if (!st.hasMoreTokens()) {
             throw new ParseException("Expected root token");
         }
+        st.nextToken();
     }
 
-    private List<NodeEvaluator<K, V>> parseTokens(StringTokenizer st) {
-        List<NodeEvaluator<K, V>> evaluators = new ArrayList<>();
+    private LinkedNode<NodeEvaluator<K, V>> parseTokens(StringTokenizer st) {
+        LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
         while (st.hasMoreTokens()) {
             String fieldName = st.nextToken();
             int lbracket = fieldName.indexOf('[');
+            NodeEvaluator<K, V> node;
             if (lbracket != -1) {
                 List<Integer> parseIndexes = parseIndexes(fieldName.substring(lbracket));
                 String field = fieldName.substring(0, lbracket);
-                evaluators.add(arrayEvaluatorFactory.apply(field, parseIndexes));
+                node = arrayEvaluatorFactory.apply(field, parseIndexes);
             } else {
-                evaluators.add(fieldEvaluatorFactory.apply(fieldName));
+                node = fieldEvaluatorFactory.apply(fieldName);
+            }
+            LinkedNode<NodeEvaluator<K, V>> linkedNode = new LinkedNode<>(node);
+            if (current == null) {
+                current = linkedNode;
+                head = linkedNode;
+            } else {
+                current.next = linkedNode;
+                current = linkedNode;
             }
         }
-        return evaluators;
+        if (head == null) {
+            throw new ParseException("Invalid expression");
+        }
+        return head;
     }
 
     private static List<Integer> parseIndexes(String indexedExpression) {
@@ -107,5 +140,4 @@ public class ExpressionParser<K, V> {
         }
         return indexes;
     }
-
 }

@@ -64,7 +64,7 @@ public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
     static public <K, V> ItemTemplate<K, V> makeNew(
             String topic,
             String template,
-            BaseRecordInspector.Builder<K, V> inspectorBuilder) {
+            RecordInspector.Builder<K, V> inspectorBuilder) {
         Objects.requireNonNull(topic, "Invalid topic");
         Objects.requireNonNull(template, "Invalid template");
         Matcher matcher = ITEM_TEMPLATE.matcher(template);

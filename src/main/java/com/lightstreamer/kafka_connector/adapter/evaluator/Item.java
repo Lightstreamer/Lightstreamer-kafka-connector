@@ -18,9 +18,8 @@ public class Item {
 
     private static final Pattern ITEM = Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?");
 
-    // private static final Pattern QUERY_PARAMS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?");
     private static final Pattern QUERY_PARAMS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
-    
+
     private final Object itemHandle;
 
     private final Structure itemStructure;
@@ -80,50 +79,30 @@ public class Item {
         return itemStructure.toString();
     }
 
-    static public Item fromItem(String input, Object itemHandle) {
+    static public Item of(String input, Object itemHandle) {
         Matcher matcher = ITEM.matcher(input);
-        if (matcher.matches()) {
-            List<Value> queryParams = new ArrayList<>();
-            String prefix = matcher.group(1);
-            String queries = matcher.group(3);
-            if (queries != null) {
-                Matcher m = QUERY_PARAMS.matcher(queries);
-                int previousEnd = 0;
-                while (m.find()) {
-                    if (m.start() != previousEnd) {
-                        break;
-                    }
-                    String name = m.group(2);
-                    String value = m.group(3);
-                    queryParams.add(Value.of(name, value));
-                    previousEnd = m.end();
-                }
-                if (previousEnd < queries.length()) {
-                    throw new RuntimeException("Invalid query parameter");
-                }
-            }
-            return new Item(itemHandle, prefix, queryParams);
+        if (!matcher.matches()) {
+            throw new RuntimeException("Invalid item");
         }
-
-        throw new RuntimeException("Invalid item");        
-    }
-    static public Item fromItem2(String input) {
-        int start = input.indexOf("<");
-        if (start != -1) {
-            int end = input.lastIndexOf(">");
-            if (end != -1) {
-                String prefix = input.substring(0, start);
-                String expr = input.substring(start + 2, end);
-                String[] terms = expr.split(",");
-                List<Value> selectors = new ArrayList<>();
-                for (int i = 0; i < terms.length; i++) {
-                    String name = terms[i].substring(0, terms[i].indexOf('='));
-                    String value = terms[i].substring(terms[i].indexOf('=') + 1);
-                    selectors.add(new SimpleValue(name, value));
+        List<Value> queryParams = new ArrayList<>();
+        String prefix = matcher.group(1);
+        String queries = matcher.group(3);
+        if (queries != null) {
+            Matcher m = QUERY_PARAMS.matcher(queries);
+            int previousEnd = 0;
+            while (m.find()) {
+                if (m.start() != previousEnd) {
+                    break;
                 }
-                return new Item(input, prefix, selectors);
+                String name = m.group(2);
+                String value = m.group(3);
+                queryParams.add(Value.of(name, value));
+                previousEnd = m.end();
+            }
+            if (previousEnd < queries.length()) {
+                throw new RuntimeException("Invalid query parameter");
             }
         }
-        return new Item(input);
+        return new Item(itemHandle, prefix, queryParams);
     }
 }

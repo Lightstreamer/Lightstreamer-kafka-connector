@@ -26,7 +26,7 @@ public interface RecordInspector<K, V> {
 
         private final List<Selector<V>> valueSelectors = new ArrayList<>();
 
-        private final List<InfoSelector> infoSelectors = new ArrayList<>();
+        private final List<Selector<ConsumerRecord<?,?>>> infoSelectors = new ArrayList<>();
 
         public Builder(SelectorSupplier<K> keySupplier, SelectorSupplier<V> valueSupplier) {
             this.keySupplier = keySupplier;
@@ -39,12 +39,15 @@ public interface RecordInspector<K, V> {
             }
 
             if (expression.startsWith("KEY.") || expression.equals("KEY")) {
-                Selector<K> valueSelector = keySupplier.get(name, expression.substring(expression.indexOf('.') + 1));
-                keySelectors.add(valueSelector);
+                Selector<K> keySelector = keySupplier.get(name, expression.substring(expression.indexOf('.') + 1));
+                keySelectors.add(keySelector);
             }
 
             if (expression.startsWith("VALUE.") || expression.equals("VALUE")) {
-                valueSelectors.add(valueSupplier.get(name, expression.substring(expression.indexOf('.') + 1)));
+                // Selector<V> valueSelector = valueSupplier.get(name,
+                // expression.substring(expression.indexOf('.') + 1));
+                Selector<V> valueSelector = valueSupplier.get(name, expression);
+                valueSelectors.add(valueSelector);
             }
             return this;
         }

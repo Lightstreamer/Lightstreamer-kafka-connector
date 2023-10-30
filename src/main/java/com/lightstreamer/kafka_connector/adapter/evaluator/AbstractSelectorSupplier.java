@@ -21,7 +21,6 @@ public abstract class AbstractSelectorSupplier<S> implements SelectorSupplier<S>
         props.setProperty(key, value);
     }
 
-
     @Override
     public final Properties props() {
         return new Properties(props);

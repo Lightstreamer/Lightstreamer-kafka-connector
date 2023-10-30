@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
@@ -13,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.IdentityValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
+import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
 
 public class TopicMappingTest {
 
@@ -22,10 +24,16 @@ public class TopicMappingTest {
         return new TopicMapping(TOPIC, templates);
     }
 
+    private RecordInspector.Builder<String, String> builder() {
+        return new RecordInspector.Builder<>(
+                IdentityValueSelector::new, IdentityValueSelector::new);
+    }
+
     @ParameterizedTest
     @MethodSource("wrongProvider")
     public void shouldNotCreate(String topic, List<String> templates, String errorMessage) {
-        NullPointerException e = assertThrows(NullPointerException.class, () -> new TopicMapping(topic, templates));
+        NullPointerException e = assertThrows(NullPointerException.class,
+                () -> new TopicMapping(topic, templates));
         assertThat(e.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -42,11 +50,11 @@ public class TopicMappingTest {
         assertThat(tm.topic()).isEqualTo(TOPIC);
         assertThat(tm.itemTemplates()).isEqualTo(templates);
 
-        List<ItemTemplate<String>> itemTemplates = tm.createItemTemplates(IdentityValueSelector::new);
+        List<ItemTemplate<String, String>> itemTemplates = tm.createItemTemplates(builder());
         assertThat(itemTemplates).hasSize(templates.size());
         itemTemplates.stream().forEach(it -> {
             assertThat(it.topic()).isEqualTo(TOPIC);
-            assertThat(it.valueSelectors()).isEmpty();
+            assertThat(it.inspector().valueSelectors()).isEmpty();
         });
     }
 
@@ -60,8 +68,7 @@ public class TopicMappingTest {
     @ParameterizedTest
     @MethodSource("topicMappingProvider")
     public void shouldFlateItemTemplates(List<TopicMapping> topicMappings, List<String> expected) {
-        List<ItemTemplate<String>> templates = TopicMapping.flatItemTemplates(topicMappings,
-                IdentityValueSelector::new);
+        List<ItemTemplate<String, String>> templates = TopicMapping.flatItemTemplates(topicMappings, builder());
         assertThat(templates.stream().map(ItemTemplate::prefix).toList())
                 .containsExactly(expected.toArray());
 

@@ -32,16 +32,16 @@ public final class TopicMapping {
         return itemTemplates;
     }
 
-    public <K, V> List<ItemTemplate<K, V>> createItemTemplates(RecordInspector.Builder<K, V> inspector) {
+    public <K, V> List<ItemTemplate<K, V>> createItemTemplates(RecordInspector.Builder<K, V> builder) {
         log.debug("Creating item templates for topic <{}>", topic());
-        return itemTemplates.stream().map(s -> ItemTemplate.makeNew(topic, s, inspector)).toList();
+        return itemTemplates.stream().map(s -> ItemTemplate.makeNew(topic, s, builder)).toList();
     }
 
     public static <K, V> List<ItemTemplate<K, V>> flatItemTemplates(
             List<TopicMapping> topicMappings,
-            RecordInspector.Builder<K, V> inspector) {
+            RecordInspector.Builder<K, V> builder) {
 
-        return topicMappings.stream().flatMap(t -> t.createItemTemplates(inspector).stream()).toList();
+        return topicMappings.stream().flatMap(t -> t.createItemTemplates(builder).stream()).toList();
     }
 
 }

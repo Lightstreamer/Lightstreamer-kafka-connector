@@ -85,7 +85,7 @@ public class ConsumerLoop<K, V> implements Loop {
     public void trySubscribe(String item, Object itemHandle) {
         Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
             for (ItemTemplate<K, V> itemTemplate : this.itemTemplates) {
-                Item newItem = Item.fromItem(it, itemHandle);
+                Item newItem = Item.of(it, itemHandle);
                 MatchResult result = itemTemplate.match(newItem);
                 if (result.matched()) {
                     log.info("Subscribed to {}", it);
