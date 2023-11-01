@@ -8,11 +8,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
-
 class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
 
-    protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
+    protected static Logger log = LoggerFactory.getLogger(BaseRecordInspector.class);
 
     private final List<Selector<ConsumerRecord<?, ?>>> infoSelectors;
 
@@ -23,13 +21,19 @@ class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
     private final int valueSize;
 
     public BaseRecordInspector(
-            List<Selector<ConsumerRecord<?, ?>>> infoSelectors,
-            List<Selector<K>> ek,
-            List<Selector<V>> ev) {
-        this.infoSelectors = infoSelectors;
-        this.keySelectors = ek;
-        this.valueSelectors = ev;
-        valueSize = infoSelectors.size() + valueSelectors.size() + keySelectors.size();
+            List<Selector<ConsumerRecord<?, ?>>> is,
+            List<Selector<K>> ks,
+            List<Selector<V>> vs) {
+        this.infoSelectors = is;
+        this.keySelectors = ks;
+        this.valueSelectors = vs;
+        valueSize = is.size() + valueSelectors.size() + keySelectors.size();
+    }
+
+
+    @Override
+    public List<Selector<ConsumerRecord<?,?>>> infoSelectors() {
+        return infoSelectors;
     }
 
     @Override
@@ -44,12 +48,11 @@ class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
 
     @Override
     public List<String> names() {
-        List<String> list = Stream.concat(
-                keySelectors.stream().map(Selector::name),
-                Stream.concat(valueSelectors.stream().map(Selector::name),
-                        infoSelectors.stream().map(Selector::name)))
-                .toList();
-        return list;
+        Stream<String> infoNames = infoSelectors.stream().map(Selector::name);
+        Stream<String> keyNames = keySelectors.stream().map(Selector::name);
+        Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
+
+        return Stream.of(infoNames, keyNames, valueNames).flatMap(i -> i).toList();
     }
 
     @Override

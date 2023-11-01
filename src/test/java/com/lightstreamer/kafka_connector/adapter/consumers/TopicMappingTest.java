@@ -1,7 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;

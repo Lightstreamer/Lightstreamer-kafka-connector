@@ -2,7 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
+import java.util.Scanner;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -80,22 +80,22 @@ public class ExpressionParser<K, V> {
     }
 
     public LinkedNode<NodeEvaluator<K, V>> parse(String expression) {
-        StringTokenizer st = new StringTokenizer(expression, ".");
-        parseRoot(st);
-        return parseTokens(st);
+        Scanner scanner = new Scanner(expression).useDelimiter("\\.");
+        parseRoot(scanner);
+        return parseTokens(scanner);
     }
 
-    private void parseRoot(StringTokenizer st) {
-        if (!st.hasMoreTokens()) {
+    private void parseRoot(Scanner scanner) {
+        if (!scanner.hasNext()) {
             throw new ParseException("Expected root token");
         }
-        st.nextToken();
+        scanner.next();
     }
 
-    private LinkedNode<NodeEvaluator<K, V>> parseTokens(StringTokenizer st) {
+    private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner) {
         LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
-        while (st.hasMoreTokens()) {
-            String fieldName = st.nextToken();
+        while (scanner.hasNext()) {
+            String fieldName = scanner.next();
             int lbracket = fieldName.indexOf('[');
             NodeEvaluator<K, V> node;
             if (lbracket != -1) {

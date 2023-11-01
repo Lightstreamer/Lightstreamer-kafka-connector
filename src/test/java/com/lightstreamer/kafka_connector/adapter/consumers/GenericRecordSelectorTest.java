@@ -16,6 +16,7 @@ import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordSel
 public class GenericRecordSelectorTest {
 
     private static Schema valueSchema;
+
     private static Schema childrenSchema;
 
     @BeforeAll
@@ -29,11 +30,11 @@ public class GenericRecordSelectorTest {
 
     @Test
     public void shouldExtractSimpleExpression() {
-        GenericRecord parent = new GenericData.Record(valueSchema);
-        parent.put("name", "joe");
+        GenericRecord value = new GenericData.Record(valueSchema);
+        value.put("name", "joe");
 
         GenericRecordSelector selector = new GenericRecordSelector("name", "VALUE.name");
-        assertThat(selector.extract(parent).text()).isEqualTo("joe");
+        assertThat(selector.extract(value).text()).isEqualTo("joe");
     }
 
     @Test

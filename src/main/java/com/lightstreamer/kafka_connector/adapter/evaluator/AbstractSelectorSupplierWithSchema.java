@@ -42,5 +42,4 @@ public abstract class AbstractSelectorSupplierWithSchema<S> extends AbstractSele
             return getSchemaDeserializer().getName();
         }
     }
-
 }

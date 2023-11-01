@@ -2,10 +2,12 @@ package com.lightstreamer.kafka_connector.adapter.consumers.raw;
 
 import java.util.Map;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+
 import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Selector;
 
-public class RawValueSelectorSupplier extends AbstractSelectorSupplier<String> {
+public final class RawValueSelectorSupplier extends AbstractSelectorSupplier<ConsumerRecord<?,?>> {
 
     public RawValueSelectorSupplier(Map<String, String> conf, boolean isKey) {
         if (isKey) {
@@ -16,7 +18,7 @@ public class RawValueSelectorSupplier extends AbstractSelectorSupplier<String> {
     }
 
     @Override
-    public Selector<String> get(String name, String expression) {
-        return new RawValueSelector(name);
+    public Selector<ConsumerRecord<?,?>> get(String name, String expression) {
+        return new RawValueSelector2(name, expression);
     }
 }

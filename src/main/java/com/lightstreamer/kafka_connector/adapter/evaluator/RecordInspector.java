@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import com.lightstreamer.kafka_connector.adapter.consumers.raw.RawValueSelector2;
+
 public interface RecordInspector<K, V> {
 
     List<Value> inspect(ConsumerRecord<K, V> record);
@@ -15,6 +17,8 @@ public interface RecordInspector<K, V> {
     List<Selector<V>> valueSelectors();
 
     List<Selector<K>> keySelectors();
+
+    List<Selector<ConsumerRecord<?,?>>> infoSelectors();
 
     public static class Builder<K, V> {
 
@@ -26,7 +30,7 @@ public interface RecordInspector<K, V> {
 
         private final List<Selector<V>> valueSelectors = new ArrayList<>();
 
-        private final List<Selector<ConsumerRecord<?,?>>> infoSelectors = new ArrayList<>();
+        private final List<Selector<ConsumerRecord<?, ?>>> infoSelectors = new ArrayList<>();
 
         public Builder(SelectorSupplier<K> keySupplier, SelectorSupplier<V> valueSupplier) {
             this.keySupplier = keySupplier;
@@ -35,20 +39,20 @@ public interface RecordInspector<K, V> {
 
         public Builder<K, V> instruct(String name, String expression) {
             if (List.of("TIMESTAMP", "TOPIC", "PARTITION").contains(expression)) {
-                infoSelectors.add(new InfoSelector(name, expression));
+                // infoSelectors.add(new InfoSelector(name, expression));
+                infoSelectors.add(new RawValueSelector2(name, expression));
             }
 
             if (expression.startsWith("KEY.") || expression.equals("KEY")) {
-                Selector<K> keySelector = keySupplier.get(name, expression.substring(expression.indexOf('.') + 1));
+                Selector<K> keySelector = keySupplier.get(name, expression);
                 keySelectors.add(keySelector);
             }
 
             if (expression.startsWith("VALUE.") || expression.equals("VALUE")) {
-                // Selector<V> valueSelector = valueSupplier.get(name,
-                // expression.substring(expression.indexOf('.') + 1));
                 Selector<V> valueSelector = valueSupplier.get(name, expression);
                 valueSelectors.add(valueSelector);
             }
+
             return this;
         }
 

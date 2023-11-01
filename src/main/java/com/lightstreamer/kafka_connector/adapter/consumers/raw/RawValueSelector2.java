@@ -1,12 +1,15 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.consumers.raw;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class InfoSelector extends BaseSelector<ConsumerRecord<?, ?>> {
+import com.lightstreamer.kafka_connector.adapter.evaluator.BaseSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
 
-    private static Logger log = LoggerFactory.getLogger(InfoSelector.class);
+public class RawValueSelector2 extends BaseSelector<ConsumerRecord<?, ?>> {
+
+    protected static Logger log = LoggerFactory.getLogger(RawValueSelector.class);
 
     private static enum Attribute {
         TIMESTAMP {
@@ -15,18 +18,33 @@ public final class InfoSelector extends BaseSelector<ConsumerRecord<?, ?>> {
                 return String.valueOf(record.timestamp());
             }
         },
+
         PARTITION {
             @Override
             String value(ConsumerRecord<?, ?> record) {
                 return String.valueOf(record.partition());
             }
         },
+
         TOPIC {
             @Override
             String value(ConsumerRecord<?, ?> record) {
                 return record.topic();
             }
         },
+
+        KEY {
+            String value(ConsumerRecord<?, ?> record) {
+                return String.valueOf(record.key());
+            }
+        },
+
+        VALUE {
+            String value(ConsumerRecord<?, ?> record) {
+                return String.valueOf(record.value());
+            }
+        },
+
         NULL {
             @Override
             String value(ConsumerRecord<?, ?> record) {
@@ -53,7 +71,7 @@ public final class InfoSelector extends BaseSelector<ConsumerRecord<?, ?>> {
 
     private final Attribute attribute;
 
-    public InfoSelector(String name, String expression) {
+    public RawValueSelector2(String name, String expression) {
         super(name, expression);
         attribute = Attribute.of(expression);
     }
