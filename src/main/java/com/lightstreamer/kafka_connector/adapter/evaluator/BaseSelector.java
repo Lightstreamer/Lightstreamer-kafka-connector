@@ -2,7 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.Objects;
 
-public abstract class BaseSelector<V> implements Selector<V> {
+public abstract class BaseSelector implements Selector {
 
     private final String name;
 
@@ -13,6 +13,7 @@ public abstract class BaseSelector<V> implements Selector<V> {
         this.expression = Objects.requireNonNull(expression);
     }
 
+    @Override
     public String expression() {
         return expression;
     }

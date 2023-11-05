@@ -14,25 +14,25 @@ public interface RecordInspector<K, V> {
 
     List<String> names();
 
-    List<Selector<V>> valueSelectors();
+    List<KeySelector<K>> keySelectors();
 
-    List<Selector<K>> keySelectors();
+    List<ValueSelector<V>> valueSelectors();
 
     List<Selector<ConsumerRecord<?,?>>> infoSelectors();
 
     public static class Builder<K, V> {
 
-        private final SelectorSupplier<K> keySupplier;
+        private final KeySelectorSupplier<K> keySupplier;
 
-        private final SelectorSupplier<V> valueSupplier;
+        private final ValueSelectorSupplier<V> valueSupplier;
 
-        private final List<Selector<K>> keySelectors = new ArrayList<>();
+        private final List<KeySelector<K>> keySelectors = new ArrayList<>();
 
-        private final List<Selector<V>> valueSelectors = new ArrayList<>();
+        private final List<ValueSelector<V>> valueSelectors = new ArrayList<>();
 
         private final List<Selector<ConsumerRecord<?, ?>>> infoSelectors = new ArrayList<>();
 
-        public Builder(SelectorSupplier<K> keySupplier, SelectorSupplier<V> valueSupplier) {
+        public Builder(KeySelectorSupplier<K> keySupplier, ValueSelectorSupplier<V> valueSupplier) {
             this.keySupplier = keySupplier;
             this.valueSupplier = valueSupplier;
         }
@@ -44,12 +44,12 @@ public interface RecordInspector<K, V> {
             }
 
             if (expression.startsWith("KEY.") || expression.equals("KEY")) {
-                Selector<K> keySelector = keySupplier.get(name, expression);
+                KeySelector<K> keySelector = keySupplier.selector(name, expression);
                 keySelectors.add(keySelector);
             }
 
             if (expression.startsWith("VALUE.") || expression.equals("VALUE")) {
-                Selector<V> valueSelector = valueSupplier.get(name, expression);
+                ValueSelector<V> valueSelector = valueSupplier.selector(name, expression);
                 valueSelectors.add(valueSelector);
             }
 

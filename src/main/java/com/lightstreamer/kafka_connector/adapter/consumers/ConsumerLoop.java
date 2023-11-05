@@ -23,9 +23,10 @@ import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
+import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.SelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
 
 public class ConsumerLoop<K, V> implements Loop {
 
@@ -49,8 +50,8 @@ public class ConsumerLoop<K, V> implements Loop {
 
     public ConsumerLoop(Map<String, String> configuration,
             List<TopicMapping> topicMappings,
-            SelectorSupplier<K> ks,
-            SelectorSupplier<V> vs,
+            KeySelectorSupplier<K> ks,
+            ValueSelectorSupplier<V> vs,
             ItemEventListener eventListener) {
 
         this.eventListener = eventListener;
@@ -59,8 +60,8 @@ public class ConsumerLoop<K, V> implements Loop {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, configuration.get("group-id"));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.setProperty("adapter.dir", configuration.get("adapter.dir"));
-        properties.putAll(ks.props());
-        properties.putAll(vs.props());
+        ks.configKey(configuration, properties);
+        vs.configValue(configuration, properties);
 
         log.info("Creating item templates");
         itemTemplates = TopicMapping.flatItemTemplates(topicMappings, new RecordInspector.Builder<K, V>(ks, vs));

@@ -26,9 +26,11 @@ import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.json.KeyJsonNodeSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.json.ValueJsonNodeSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.consumers.raw.RawValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.SelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 
@@ -96,26 +98,35 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         String valueConsumer = configuration.get("value.consumer");
         String keyConsumer = configuration.get("key.consumer");
 
-        SelectorSupplier<?> k = makeSelectorSupplier(keyConsumer, true);
-        SelectorSupplier<?> v = makeSelectorSupplier(valueConsumer, false);
+        KeySelectorSupplier<?> k = makeKeySelectorSupplier(keyConsumer);
+        ValueSelectorSupplier<?> v = makeValueSelectorSupplier(valueConsumer);
 
         return makeLoop(k, v, eventListener);
     }
 
-    private SelectorSupplier<?> makeSelectorSupplier(String consumerType, boolean isKey) {
+    private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
         return switch (consumerType) {
             case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
-            case "JSON" -> new JsonNodeSelectorSupplier(configuration, isKey);
+            case "JSON" -> new KeyJsonNodeSelectorSupplier();
             case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }
 
-    private Loop makeLoop(SelectorSupplier<?> k, SelectorSupplier<?> v, ItemEventListener eventListener) {
+    private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
+        return switch (consumerType) {
+            case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
+            case "JSON" -> new ValueJsonNodeSelectorSupplier();
+            case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
+            default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
+        };
+    }
+
+    private Loop makeLoop(KeySelectorSupplier<?> k, ValueSelectorSupplier<?> v, ItemEventListener eventListener) {
         return loop(k, v, eventListener);
     }
 
-    private <K, V> Loop loop(SelectorSupplier<K> k, SelectorSupplier<V> v, ItemEventListener eventListener) {
+    private <K, V> Loop loop(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v, ItemEventListener eventListener) {
         return new ConsumerLoop<>(configuration, topicMappings, k, v, eventListener);
     }
 

@@ -1,8 +1,8 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.Map;
+import java.util.Properties;
 
-public abstract class AbstractSelectorSupplierWithSchema<S> extends AbstractSelectorSupplier<S> {
+public abstract class AbstractSelectorSupplierWithSchema<S>  {
 
     private static final String KEY_SCHEMA_FILE = "key.schema.file";
 
@@ -10,24 +10,11 @@ public abstract class AbstractSelectorSupplierWithSchema<S> extends AbstractSele
 
     private static final String SCHEMA_REGISTRY_URL = "schema.registry.url";
 
-    protected void configKeyDeserializer(Map<String, String> conf) {
-        props.put(SCHEMA_REGISTRY_URL, conf.get(SCHEMA_REGISTRY_URL));
-        props.put(KEY_SCHEMA_FILE, conf.get(KEY_SCHEMA_FILE));
-        super.configKeyDeserializer(conf);
-    }
-
-    protected void configValueDeserializer(Map<String, String> conf) {
-        props.put(SCHEMA_REGISTRY_URL, conf.get(SCHEMA_REGISTRY_URL));
-        props.put(VALUE_SCHEMA_FILE, conf.get(VALUE_SCHEMA_FILE));
-        super.configKeyDeserializer(conf);
-    }
-
     protected abstract Class<?> getLocalSchemaDeserializer();
 
     protected abstract Class<?> getSchemaDeserializer();
 
-    @Override
-    public String deserializer(boolean isKey) {
+    public String deserializer(boolean isKey, Properties props) {
         if (isKey) {
             return getDeserializer(props.get(KEY_SCHEMA_FILE) != null);
         } else {

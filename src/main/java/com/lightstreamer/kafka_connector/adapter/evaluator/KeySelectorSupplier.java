@@ -1,0 +1,22 @@
+package com.lightstreamer.kafka_connector.adapter.evaluator;
+
+import java.util.Map;
+import java.util.Properties;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+public interface KeySelectorSupplier<V> {
+
+    KeySelector<V> selector(String name, String expression);
+
+    void configKey(Map<String, String> configuration, Properties props);
+
+    default String deserializer(boolean isKey, Properties pros) {
+        return StringDeserializer.class.getName();
+    }
+
+    default void configKeyDeserializer(Map<String, String> conf, Properties props) {
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(true, props));
+    }
+}

@@ -14,35 +14,32 @@ class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
 
     private final List<Selector<ConsumerRecord<?, ?>>> infoSelectors;
 
-    private final List<Selector<K>> keySelectors;
+    private final List<KeySelector<K>> keySelectors;
 
-    private final List<Selector<V>> valueSelectors;
+    private final List<ValueSelector<V>> valueSelectors;
 
     private final int valueSize;
 
     public BaseRecordInspector(
             List<Selector<ConsumerRecord<?, ?>>> is,
-            List<Selector<K>> ks,
-            List<Selector<V>> vs) {
+            List<KeySelector<K>> ks,
+            List<ValueSelector<V>> vs) {
         this.infoSelectors = is;
         this.keySelectors = ks;
         this.valueSelectors = vs;
         valueSize = is.size() + valueSelectors.size() + keySelectors.size();
     }
 
-
     @Override
-    public List<Selector<ConsumerRecord<?,?>>> infoSelectors() {
+    public List<Selector<ConsumerRecord<?, ?>>> infoSelectors() {
         return infoSelectors;
     }
 
-    @Override
-    public List<Selector<K>> keySelectors() {
+    public List<KeySelector<K>> keySelectors() {
         return keySelectors;
     }
 
-    @Override
-    public List<Selector<V>> valueSelectors() {
+    public List<ValueSelector<V>> valueSelectors() {
         return valueSelectors;
     }
 
@@ -63,26 +60,26 @@ class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
             Value value = infoSelector.extract(record);
             values[c++] = value;
         }
-        for (Selector<? super K> keySelector : keySelectors) {
-            Value value = keySelector.extract(record.key());
+        for (KeySelector<K> keySelector : keySelectors) {
+            Value value = keySelector.extract(record);
             log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
             values[c++] = value;
         }
-        for (Selector<? super V> valueSelector : valueSelectors) {
-            Value value = valueSelector.extract(record.value());
+        for (ValueSelector<V> valueSelector : valueSelectors) {
+            Value value = valueSelector.extract(record);
             log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
             values[c++] = value;
         }
         return Arrays.asList(values);
     }
 
-    public static RecordInspector<?, ?> makeInspector(SelectorSupplier<?> ek, SelectorSupplier<?> ev) {
+    public static RecordInspector<?, ?> makeInspector(KeySelectorSupplier<?> ek, ValueSelectorSupplier<?> ev) {
         return makeInspectorKV(ek, ev);
     }
 
     static <K, V> RecordInspector<K, V> makeInspectorKV(
-            SelectorSupplier<K> ek2,
-            SelectorSupplier<V> ev2) {
+            KeySelectorSupplier<K> ek2,
+            ValueSelectorSupplier<V> ev2) {
         return new BaseRecordInspector.Builder<>(ek2, ev2).build();
     }
 }
