@@ -47,9 +47,7 @@ public class AvroDeserializer implements Deserializer<GenericRecord> {
         try {
             return datumReader.read(null, binaryDecoder);
         } catch (IOException e) {
-            e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
     }
-
 }

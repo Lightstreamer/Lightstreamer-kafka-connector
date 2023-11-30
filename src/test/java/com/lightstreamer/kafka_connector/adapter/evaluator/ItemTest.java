@@ -5,13 +5,14 @@ import static com.google.common.truth.Truth.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 
+@Tag("unit")
 public class ItemTest {
 
     static List<Value> mkList(String... suffix) {
@@ -32,7 +33,7 @@ public class ItemTest {
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-            INPUT      | EXPECTED
+            INPUT      | EXPECTED_PREFIX
             item       | item
             item-first | item-first
             item_123_  | item_123_
@@ -58,7 +59,7 @@ public class ItemTest {
             item-<test=>>        | test          |   >
             item-<test=value,>   | test          |   value
             """)
-    public void shouldMakeItemWithSelector(@NonNull String input, String expectedName, String expectedValue) {
+    public void shouldMakeItemWithSelector(String input, String expectedName, String expectedValue) {
         Object handle = new Object();
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
@@ -70,8 +71,8 @@ public class ItemTest {
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-            INPUT                                          | EXPECTED_NAME1 |   EXPECTED_VALUE1 |  EXPECTED_NAME2 |  EXPECTED_VALUE2
-            item-<name1=field1,name2=field2>               | name1          |   field1          |  name2       |  field2
+            INPUT                             | EXPECTED_NAME1 |   EXPECTED_VALUE1 |  EXPECTED_NAME2 |  EXPECTED_VALUE2
+            item-<name1=field1,name2=field2>  | name1          |   field1          |  name2       |  field2
             """)
     public void shouldMakeItemWithMoreSelectors(String input, String par1, String val1, String par2, String value) {
         Object handle = new Object();
@@ -80,8 +81,7 @@ public class ItemTest {
         assertThat(item.getItemHandle()).isSameInstanceAs(handle);
 
         List<Value> values = item.values();
-        assertThat(values).containsExactly(Value.of(par1, val1),
-                Value.of(par2, value));
+        assertThat(values).containsExactly(Value.of(par1, val1), Value.of(par2, value));
     }
 
     @Test
@@ -153,5 +153,4 @@ public class ItemTest {
         assertThat(matchResult.matched()).isFalse();
         assertThat(matchResult.matchedKeys()).containsExactly(name("2"));
     }
-
 }

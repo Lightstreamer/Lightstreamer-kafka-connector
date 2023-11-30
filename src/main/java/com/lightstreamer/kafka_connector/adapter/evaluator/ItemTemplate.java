@@ -2,13 +2,13 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 
 public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
@@ -57,16 +57,23 @@ public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
         return core.matchStructure(other.core());
     }
 
-    public RecordInspector<K,V> inspector() {
-        return inspector;
+    public static <K, V> List<ItemTemplate<K, V>> fromTopicMappings(
+            List<TopicMapping> topics,
+            RecordInspector.Builder<K, V> builder) {
+
+        return topics.stream().flatMap(topic -> fromTopicMapping(topic, builder).stream()).toList();
     }
 
-    static public <K, V> ItemTemplate<K, V> makeNew(
-            String topic,
-            String template,
-            RecordInspector.Builder<K, V> inspectorBuilder) {
-        Objects.requireNonNull(topic, "Invalid topic");
-        Objects.requireNonNull(template, "Invalid template");
+    private static <K, V> List<ItemTemplate<K, V>> fromTopicMapping(
+            TopicMapping topic,
+            RecordInspector.Builder<K, V> builder) {
+
+        return topic.itemTemplates().stream()
+                .map(s -> create(topic.topic(), s, builder)).toList();
+    }
+
+    public static <K, V> ItemTemplate<K, V> create(String topic, String template,
+            RecordInspector.Builder<K, V> builder) {
         Matcher matcher = ITEM_TEMPLATE.matcher(template);
         if (matcher.matches()) {
             String prefix = matcher.group(1);
@@ -80,16 +87,15 @@ public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
                     }
                     String name = m.group(2);
                     String expression = m.group(3);
-                    inspectorBuilder.instruct(name, expression);
+                    builder.instruct(name, expression);
                     previousEnd = m.end();
                 }
                 if (previousEnd < selectors.length()) {
                     throw new RuntimeException("Invalid selector expression");
                 }
             }
-            return new ItemTemplate<>(topic, prefix, inspectorBuilder.build());
+            return new ItemTemplate<>(topic, prefix, builder.build());
         }
-
         throw new RuntimeException("Invalid template");
     }
 }

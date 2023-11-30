@@ -10,13 +10,11 @@ public interface KeySelectorSupplier<V> {
 
     KeySelector<V> selector(String name, String expression);
 
-    void configKey(Map<String, String> configuration, Properties props);
+    default void configKey(Map<String, String> configuration, Properties props) {
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(true, props));
+    }
 
     default String deserializer(boolean isKey, Properties pros) {
         return StringDeserializer.class.getName();
-    }
-
-    default void configKeyDeserializer(Map<String, String> conf, Properties props) {
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(true, props));
     }
 }

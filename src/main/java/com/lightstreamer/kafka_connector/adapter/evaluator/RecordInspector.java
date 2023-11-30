@@ -1,12 +1,14 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.raw.RawValueSelector2;
+import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
 
 public interface RecordInspector<K, V> {
 
@@ -14,11 +16,37 @@ public interface RecordInspector<K, V> {
 
     List<String> names();
 
-    List<KeySelector<K>> keySelectors();
+    Set<KeySelector<K>> keySelectors();
 
-    List<ValueSelector<V>> valueSelectors();
+    Set<ValueSelector<V>> valueSelectors();
 
-    List<Selector<ConsumerRecord<?,?>>> infoSelectors();
+    Set<MetaSelector> metaSelectors();
+
+    /**
+     * Create a builder without {@link KeySelectorSupplier} either
+     * {@link ValueSelectorSupplier}. Mainly used for test purposes.
+     * 
+     * @return a new {@code Builder}
+     */
+    static Builder<?, ?> noSelectorsBuilder() {
+        return new Builder<>();
+    }
+
+    /**
+     * Create a builder with the specified {@link KeySelectorSupplier} and
+     * {@link ValueSelectorSupplier}.
+     * 
+     * @param keySupplier   the key supplier
+     * @param valueSupplier the value supplier
+     * @return a new {@code Builder}
+     */
+    static <K, V> Builder<K, V> builder(KeySelectorSupplier<K> keySupplier, ValueSelectorSupplier<V> valueSupplier) {
+        return new Builder<>(keySupplier, valueSupplier);
+    }
+
+    static Builder<String, String> stringSelectorsBuilder() {
+        return new Builder<>(new StringKeySelectorSupplier(), new StringValueSelectorSupplier());
+    }
 
     public static class Builder<K, V> {
 
@@ -26,43 +54,62 @@ public interface RecordInspector<K, V> {
 
         private final ValueSelectorSupplier<V> valueSupplier;
 
-        private final List<KeySelector<K>> keySelectors = new ArrayList<>();
+        private final Set<KeySelector<K>> keySelectors = new HashSet<>();
 
-        private final List<ValueSelector<V>> valueSelectors = new ArrayList<>();
+        private final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
 
-        private final List<Selector<ConsumerRecord<?, ?>>> infoSelectors = new ArrayList<>();
+        private final Set<MetaSelector> metaSelectors = new HashSet<>();
 
-        public Builder(KeySelectorSupplier<K> keySupplier, ValueSelectorSupplier<V> valueSupplier) {
+        private Builder(KeySelectorSupplier<K> keySupplier, ValueSelectorSupplier<V> valueSupplier) {
             this.keySupplier = keySupplier;
             this.valueSupplier = valueSupplier;
         }
 
+        private Builder() {
+            this(null, null);
+        }
+
         public Builder<K, V> instruct(String name, String expression) {
-            if (List.of("TIMESTAMP", "TOPIC", "PARTITION").contains(expression)) {
-                // infoSelectors.add(new InfoSelector(name, expression));
-                infoSelectors.add(new RawValueSelector2(name, expression));
-            }
-
-            if (expression.startsWith("KEY.") || expression.equals("KEY")) {
-                KeySelector<K> keySelector = keySupplier.selector(name, expression);
-                keySelectors.add(keySelector);
-            }
-
-            if (expression.startsWith("VALUE.") || expression.equals("VALUE")) {
-                ValueSelector<V> valueSelector = valueSupplier.selector(name, expression);
-                valueSelectors.add(valueSelector);
+            boolean managed = false;
+            managed |= addMetaSelector(name, expression);
+            managed |= addKeySelector(name, expression);
+            managed |= addValueSelector(name, expression);
+            if (!managed) {
+                throw new RuntimeException("Unknown expression <" + expression + ">");
             }
 
             return this;
         }
 
+        protected boolean addKeySelector(String name, String expression) {
+            if (expression.startsWith("KEY") && keySupplier != null) {
+                KeySelector<K> keySelector = keySupplier.selector(name, expression);
+                return keySelectors.add(keySelector);
+            }
+            return false;
+        }
+
+        protected boolean addValueSelector(String name, String expression) {
+            if (expression.startsWith("VALUE") && valueSupplier != null) {
+                ValueSelector<V> valueSelector = valueSupplier.selector(name, expression);
+                return valueSelectors.add(valueSelector);
+            }
+            return false;
+        }
+
+        protected boolean addMetaSelector(String name, String expression) {
+            if (List.of("TIMESTAMP", "TOPIC", "PARTITION").contains(expression)) {
+                return metaSelectors.add(new MetaSelectorImpl(name, expression));
+            }
+            return false;
+        }
+
         public RecordInspector<K, V> build() {
             return new BaseRecordInspector<>(
-                    Collections.unmodifiableList(infoSelectors),
-                    Collections.unmodifiableList(keySelectors),
-                    Collections.unmodifiableList(valueSelectors));
+                    Collections.unmodifiableSet(metaSelectors),
+                    Collections.unmodifiableSet(keySelectors),
+                    Collections.unmodifiableSet(valueSelectors));
         }
 
     }
-
 }

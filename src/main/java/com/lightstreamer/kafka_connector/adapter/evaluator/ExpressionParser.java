@@ -79,17 +79,20 @@ public class ExpressionParser<K, V> {
         this.arrayEvaluatorFactory = ae;
     }
 
-    public LinkedNode<NodeEvaluator<K, V>> parse(String expression) {
-        Scanner scanner = new Scanner(expression).useDelimiter("\\.");
-        parseRoot(scanner);
-        return parseTokens(scanner);
+    public LinkedNode<NodeEvaluator<K, V>> parse(String expectedRoot, String expression) {
+        try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
+            parseRoot(scanner, expectedRoot);
+            return parseTokens(scanner);
+        }
     }
 
-    private void parseRoot(Scanner scanner) {
+    private void parseRoot(Scanner scanner, String expectedRoot) {
         if (!scanner.hasNext()) {
             throw new ParseException("Expected root token");
         }
-        scanner.next();
+        if (!expectedRoot.equals(scanner.next())) {
+            throw new ParseException("Expected <" + expectedRoot + ">");
+        }
     }
 
     private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner) {

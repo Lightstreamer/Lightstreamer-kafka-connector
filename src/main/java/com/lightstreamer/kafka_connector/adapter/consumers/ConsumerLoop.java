@@ -64,22 +64,22 @@ public class ConsumerLoop<K, V> implements Loop {
         vs.configValue(configuration, properties);
 
         log.info("Creating item templates");
-        itemTemplates = TopicMapping.flatItemTemplates(topicMappings, new RecordInspector.Builder<K, V>(ks, vs));
-        valueInspector = instruct(configuration, new RecordInspector.Builder<K, V>(ks, vs));
+        itemTemplates = ItemTemplate.fromTopicMappings(topicMappings, RecordInspector.builder(ks, vs));
+        valueInspector = instruct(configuration, RecordInspector.builder(ks, vs));
 
         barrier = new CyclicBarrier(2);
     }
 
-    RecordInspector<K, V> instruct(Map<String, String> configuration, RecordInspector.Builder<K, V> inspector) {
+    RecordInspector<K, V> instruct(Map<String, String> configuration, RecordInspector.Builder<K, V> builder) {
         configuration.entrySet()
                 .stream()
                 .filter(e -> e.getKey().startsWith("field."))
                 .map(e -> new Pair<>(
                         e.getKey().substring(e.getKey().indexOf(".") + 1),
                         e.getValue()))
-                .forEach(p -> inspector.instruct(p.first(), p.second()));
+                .forEach(p -> builder.instruct(p.first(), p.second()));
 
-        return inspector.build();
+        return builder.build();
     }
 
     @Override

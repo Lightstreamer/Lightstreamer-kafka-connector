@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-public class InfoSelectorTest {
+public class MetaSelectorTest {
 
     private static ConsumerRecord<String, String> record() {
         return new ConsumerRecord<>(
@@ -33,9 +33,10 @@ public class InfoSelectorTest {
                 ATTRIBUTE,      VALUE
                 TOPIC,          record-topic
                 PARTITION,      150
+                TIMESTAMP,      -1
             """)
     public void shouldExtractAttribute(String attributeName, String expectedValue) {
-        InfoSelector r = new InfoSelector("field_name", attributeName);
+        MetaSelectorImpl r = new MetaSelectorImpl("field_name", attributeName);
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
@@ -43,7 +44,7 @@ public class InfoSelectorTest {
 
     @Test
     public void shouldNotExtractAttribute() {
-        InfoSelector r = new InfoSelector("field_name", "NOT-EXISTING-ATTRIBUTE");
+        MetaSelectorImpl r = new MetaSelectorImpl("field_name", "NOT-EXISTING-ATTRIBUTE");
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo("Not-existing record attribute");

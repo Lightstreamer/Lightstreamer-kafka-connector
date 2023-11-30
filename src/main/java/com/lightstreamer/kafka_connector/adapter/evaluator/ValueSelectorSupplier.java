@@ -10,13 +10,11 @@ public interface ValueSelectorSupplier<V> {
 
     ValueSelector<V> selector(String name, String expression);
 
-    void configValue(Map<String, String> configuration, Properties props);
+    default void configValue(Map<String, String> configuration, Properties props) {
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(false, props));
+    }
 
     default String deserializer(boolean isKey, Properties pros) {
         return StringDeserializer.class.getName();
-    }
-
-    default  void configValueDeserializer(Map<String, String> conf, Properties props) {
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(false, props));
     }
 }

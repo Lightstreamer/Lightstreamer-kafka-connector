@@ -2,7 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.Properties;
 
-public abstract class AbstractSelectorSupplierWithSchema<S>  {
+public abstract class AbstractSelectorSupplier<S> {
 
     private static final String KEY_SCHEMA_FILE = "key.schema.file";
 

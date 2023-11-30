@@ -25,10 +25,12 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.KeyJsonNodeSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.ValueJsonNodeSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.raw.RawValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
 
@@ -106,18 +108,18 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
-            case "JSON" -> new KeyJsonNodeSelectorSupplier();
-            case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
+            case "AVRO" -> new GenericRecordKeySelectorSupplier();
+            case "JSON" -> new JsonNodeKeySelectorSupplier();
+            case "RAW" -> new StringKeySelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }
 
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> new GenericRecordSelectorSupplier(configuration, isKey);
-            case "JSON" -> new ValueJsonNodeSelectorSupplier();
-            case "RAW" -> new RawValueSelectorSupplier(configuration, isKey);
+            case "AVRO" -> new GenericRecordValueSelectorSupplier();
+            case "JSON" -> new JsonNodeValueSelectorSupplier();
+            case "RAW" -> new StringValueSelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }
