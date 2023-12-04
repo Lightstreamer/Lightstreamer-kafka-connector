@@ -7,18 +7,32 @@
         <!--<classloader>log-enabled</classloader>-->
     </metadata_provider>
 
-      <data_provider name="Avro">
+    <data_provider name="Demo">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user</param>
 
+        <param name="key.consumer">RAW</param>
+        <param name="value.consumer">JSON</param>
+        <param name="value.schema.file">flights.json</param>
+
+        <param name="map.demo.to">flights-${code=KEY}</param>
+        <param name="field.departure">VALUE.departureTime</param>
+        <param name="field.status">VALUE.status</param>
+    </data_provider>
+
+      <!-- <data_provider name="Avro">
+        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
+        <param name="bootstrap-servers">broker:29092</param>
+        <param name="group-id">kafka-adapter-user</param>-->
+
 
         <!-- Map one topic to one item -->
-        <param name="map.topic-avro-local.to">topic-avro-local</param>
+        <!-- <param name="map.topic-avro-local.to">topic-avro-local</param>
         <param name="value.schema.file">user.avsc</param>
         <param name="value.consumer">AVRO</param>
         <param name="key.schema.file">user.avsc</param>
-        <param name="key.consumer">AVRO</param>
+        <param name="key.consumer">AVRO</param> -->
 
         <!-- <param name="schema.registry.url">http://localhost:8081</param> -->
 
@@ -27,8 +41,7 @@
         <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-item2</param> -->
 
         <!-- Map many topics to one item -->
-        <!-- <param name="map.topic-avro-many-to-one-1.to">kafka-avro-many-topics</param>
-        <param name="map.topic-avro-many-to-one-2.to">kafka-avro-many-topics</param> -->
+        <!-- <param name="map.topic-avro-many-to-one-2.to">kafka-avro-many-topics</param> -->
 
         <!-- Map one topic to one item template -->
         <!-- <param name="map.topic-avro.to">kafka-user-${name=User.name,age=User.info.age}</param> -->
@@ -39,12 +52,12 @@
         <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
 
         <!--<param name="field.name">User.name</param> -->
-        <param name="field.favorite_number">VALUE.User.favorite_number</param>
+        <!-- <param name="field.favorite_number">VALUE.User.favorite_number</param>
         <param name="field.age">VALUE.User.info.age</param>
         <param name="field.height">VALUE.User.info.height</param>
         <param name="field.zipcode1">VALUE.User.addresses[0].zipcode</param>
-        <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param>
-    </data_provider>
+        <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param> -->
+    <!-- </data_provider> -->
 
     <!-- <data_provider name="Suit">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
@@ -70,7 +83,7 @@
         <param name="field.lastname">${VALUE.lastName}</param>
     </data_provider> -->
 
-    <data_provider name="Raw">
+    <!-- <data_provider name="Raw">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-json</param>
@@ -82,7 +95,7 @@
         <param name="field.value">VALUE</param>
         <param name="field.ts">TIMESTAMP</param>
         <param name="field.partition">PARTITION</param>
-    </data_provider>
+    </data_provider> -->
 
 
 </adapters_conf>

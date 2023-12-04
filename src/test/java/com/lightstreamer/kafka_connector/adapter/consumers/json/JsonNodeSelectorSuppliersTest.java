@@ -15,10 +15,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
 
 @Tag("unit")
 public class JsonNodeSelectorSuppliersTest {

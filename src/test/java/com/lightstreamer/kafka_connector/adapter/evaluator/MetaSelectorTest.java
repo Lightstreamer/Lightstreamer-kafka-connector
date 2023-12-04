@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+
 public class MetaSelectorTest {
 
     private static ConsumerRecord<String, String> record() {

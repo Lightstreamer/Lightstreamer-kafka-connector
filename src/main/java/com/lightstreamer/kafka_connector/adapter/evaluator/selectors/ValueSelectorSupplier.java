@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors;
 
 import java.util.Map;
 import java.util.Properties;
@@ -14,7 +14,8 @@ public interface ValueSelectorSupplier<V> {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(false, props));
     }
 
-    default String deserializer(boolean isKey, Properties pros) {
-        return StringDeserializer.class.getName();
-    }
+    String deserializer(boolean isKey, Properties pros);
+    // default String deserializer(boolean isKey, Properties pros) {
+    //     return StringDeserializer.class.getName();
+    // }
 }

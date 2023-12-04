@@ -7,11 +7,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 
@@ -34,7 +33,7 @@ public class JsonNodeKeySelectorSupplier extends AbstractSelectorSupplier<JsonNo
     }
 
     protected Class<?> getLocalSchemaDeserializer() {
-        return KafkaJsonDeserializer.class;
+        return JsonLocalSchemaDeserializer.class;
     }
 
     protected Class<?> getSchemaDeserializer() {

@@ -5,6 +5,9 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+
 @Tag("unit")
 public class SimpleValueTest {
 

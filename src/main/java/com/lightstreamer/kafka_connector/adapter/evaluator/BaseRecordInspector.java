@@ -9,6 +9,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.MetaSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Selector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
+
 class BaseRecordInspector<K, V> implements RecordInspector<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(BaseRecordInspector.class);

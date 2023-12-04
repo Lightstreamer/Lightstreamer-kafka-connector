@@ -13,11 +13,11 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
-public class AvroDeserializer implements Deserializer<GenericRecord> {
+public class AvroLocalSchemaDeserializer implements Deserializer<GenericRecord> {
 
     private Schema schema;
 
-    public AvroDeserializer() {
+    public AvroLocalSchemaDeserializer() {
 
     }
 
@@ -37,7 +37,7 @@ public class AvroDeserializer implements Deserializer<GenericRecord> {
                 throw new SerializationException(e.getMessage());
             }
         }
-        throw new SerializationException();
+        throw new SerializationException("Unable to load schema file " + fileSchema);
     }
 
     @Override

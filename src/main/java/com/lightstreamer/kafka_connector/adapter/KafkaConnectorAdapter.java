@@ -31,8 +31,8 @@ import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeKeySelec
 import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 

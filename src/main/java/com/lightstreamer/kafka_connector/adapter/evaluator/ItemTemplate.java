@@ -10,8 +10,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
-public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
+public class ItemTemplate<K, V> {
 
     private static final Pattern ITEM_TEMPLATE = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
 
@@ -32,7 +33,6 @@ public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
         this.core = new BasicItem(prefix, new HashSet<>(inspector.names()));
     }
 
-    @Override
     public Item expand(ConsumerRecord<K, V> record) {
         List<Value> replaced = inspector.inspect(record);
         return new Item("", core.prefix(), replaced);
@@ -42,17 +42,14 @@ public class ItemTemplate<K, V> implements ItemTemplateInterface<K, V> {
         return topic;
     }
 
-    @Override
     public String prefix() {
         return core.prefix();
     }
 
-    @Override
     public Set<String> schemas() {
         return core.keys();
     }
 
-    @Override
     public MatchResult match(Item other) {
         return core.matchStructure(other.core());
     }

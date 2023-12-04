@@ -7,13 +7,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
 
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 
 public class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<JsonNode>
 		implements ValueSelectorSupplier<JsonNode> {
@@ -34,7 +32,7 @@ public class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<Json
 	}
 
 	protected Class<?> getLocalSchemaDeserializer() {
-		return KafkaJsonDeserializer.class;
+		return JsonLocalSchemaDeserializer.class;
 	}
 
 	protected Class<?> getSchemaDeserializer() {
@@ -44,11 +42,17 @@ public class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<Json
 	@Override
 	public void configValue(Map<String, String> conf, Properties props) {
 		ValueSelectorSupplier.super.configValue(conf, props);
-		props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+		// props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
 	}
 
 	@Override
 	public ValueSelector<JsonNode> selector(String name, String expression) {
 		return new JsonNodeValueSelector(name, expression);
+	}
+
+	@Override
+	public String deserializer(boolean isKey, Properties props) {
+		System.out.println("DESERIALIZER");
+		return super.deserializer(isKey, props);
 	}
 }

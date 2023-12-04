@@ -5,12 +5,12 @@ import java.util.List;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.NodeEvaluator;
-import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 sealed class GenericRecordBaseSelector extends BaseSelector
         permits GenericRecordKeySelectorSupplier.GenericRecordKeySelector,

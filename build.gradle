@@ -56,7 +56,9 @@ java {
 
 tasks.named('test') {
     // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
+    useJUnitPlatform {
+      includeTags("unit")
+    }
 }
 
 task deployAdapter(type: Copy) {

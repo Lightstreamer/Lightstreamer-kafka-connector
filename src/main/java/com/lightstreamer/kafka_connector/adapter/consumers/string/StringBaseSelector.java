@@ -1,6 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.consumers.string;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.BaseSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
 
 public class StringBaseSelector extends BaseSelector {
 

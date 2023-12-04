@@ -2,9 +2,9 @@ package com.lightstreamer.kafka_connector.adapter.consumers.string;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public final class StringKeySelectorSupplier implements KeySelectorSupplier<String> {
 

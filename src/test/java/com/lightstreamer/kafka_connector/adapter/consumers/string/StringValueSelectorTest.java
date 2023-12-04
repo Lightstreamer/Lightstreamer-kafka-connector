@@ -13,8 +13,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
 
 @Tag("unit")
 public class StringValueSelectorTest {

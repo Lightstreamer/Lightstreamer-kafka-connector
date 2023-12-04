@@ -11,6 +11,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 @Tag("unit")
 public class ItemTest {

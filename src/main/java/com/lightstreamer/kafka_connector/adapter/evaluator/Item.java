@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public class Item {
 

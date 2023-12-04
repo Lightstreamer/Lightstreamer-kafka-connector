@@ -3,12 +3,12 @@ package com.lightstreamer.kafka_connector.adapter.consumers.json;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.evaluator.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.NodeEvaluator;
-import com.lightstreamer.kafka_connector.adapter.evaluator.SimpleValue;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 abstract sealed class JsonNodeBaseSelector extends BaseSelector
         permits JsonNodeKeySelectorSupplier.JsonNodeKeySelector, JsonNodeValueSelectorSupplier.JsonNodeValueSelector {

@@ -20,6 +20,7 @@ import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordKey
 import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 

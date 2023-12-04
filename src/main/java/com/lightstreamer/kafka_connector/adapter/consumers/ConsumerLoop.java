@@ -3,6 +3,7 @@ package com.lightstreamer.kafka_connector.adapter.consumers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
@@ -23,10 +24,10 @@ import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
-import com.lightstreamer.kafka_connector.adapter.evaluator.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Value;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
 
 public class ConsumerLoop<K, V> implements Loop {
 
@@ -44,7 +45,7 @@ public class ConsumerLoop<K, V> implements Loop {
 
     private final CyclicBarrier barrier;
 
-    private final RecordInspector<K, V> valueInspector;
+    private final RecordInspector<K, V> recordInspector;
 
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
@@ -60,12 +61,17 @@ public class ConsumerLoop<K, V> implements Loop {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, configuration.get("group-id"));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.setProperty("adapter.dir", configuration.get("adapter.dir"));
+        Optional.ofNullable(configuration.get("key.schema.file"))
+                .ifPresent(v -> properties.setProperty("key.schema.file", v));
+        Optional.ofNullable(configuration.get("value.schema.file"))
+                .ifPresent(v -> properties.setProperty("value.schema.file", v));
+        log.info("Properties: {}", properties);
         ks.configKey(configuration, properties);
         vs.configValue(configuration, properties);
 
         log.info("Creating item templates");
         itemTemplates = ItemTemplate.fromTopicMappings(topicMappings, RecordInspector.builder(ks, vs));
-        valueInspector = instruct(configuration, RecordInspector.builder(ks, vs));
+        recordInspector = instruct(configuration, RecordInspector.builder(ks, vs));
 
         barrier = new CyclicBarrier(2);
     }
@@ -157,7 +163,7 @@ public class ConsumerLoop<K, V> implements Loop {
                 continue;
             }
             // log.info("Sending updates");
-            List<Value> updates = valueInspector.inspect(record);
+            List<Value> updates = recordInspector.inspect(record);
             Map<String, String> values = updates.stream().collect(Collectors.toMap(Value::name, Value::text));
             eventListener.smartUpdate(subscribedItem.getItemHandle(), values, false);
         }
