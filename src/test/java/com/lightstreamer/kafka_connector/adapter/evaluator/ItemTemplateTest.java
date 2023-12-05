@@ -15,11 +15,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.truth.BooleanSubject;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 

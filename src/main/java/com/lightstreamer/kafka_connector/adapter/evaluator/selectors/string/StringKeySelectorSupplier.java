@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.string;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 

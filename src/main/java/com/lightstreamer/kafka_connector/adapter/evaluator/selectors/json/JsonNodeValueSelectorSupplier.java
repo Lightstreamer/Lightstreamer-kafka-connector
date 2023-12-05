@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.json;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json;
 
 import java.util.Map;
 import java.util.Properties;

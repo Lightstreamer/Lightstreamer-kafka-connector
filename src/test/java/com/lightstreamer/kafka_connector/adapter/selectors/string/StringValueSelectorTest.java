@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.string;
+package com.lightstreamer.kafka_connector.adapter.selectors.string;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringValueSelectorSupplier;
 
 @Tag("unit")
 public class StringValueSelectorTest {

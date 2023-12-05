@@ -7,7 +7,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordSelectorTest;
+import com.lightstreamer.kafka_connector.adapter.selectors.avro.GenericRecordSelectorTest;
 
 public class GenericRecordProvider {
 

@@ -25,14 +25,14 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.avro.GenericRecordValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.json.JsonNodeValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringValueSelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 

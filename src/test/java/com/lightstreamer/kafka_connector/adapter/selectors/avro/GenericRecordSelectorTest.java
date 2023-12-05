@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.avro;
+package com.lightstreamer.kafka_connector.adapter.selectors.avro;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider.recordWithGenericRecordKey;
@@ -11,6 +11,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 
 @Tag("unit")

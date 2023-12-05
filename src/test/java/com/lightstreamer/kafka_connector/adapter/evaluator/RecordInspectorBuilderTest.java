@@ -25,9 +25,7 @@ public class RecordInspectorBuilderTest {
     @MethodSource("builderProvider")
     public void shouldBuildNotInstructedInspector(Builder<?, ?> builder) {
         RecordInspector<?, ?> inspector = builder.build();
-        assertThat(inspector.metaSelectors()).isEmpty();
-        assertThat(inspector.valueSelectors()).isEmpty();
-        assertThat(inspector.keySelectors()).isEmpty();
+        assertThat(inspector.names()).isEmpty();
     }
 
     @Test

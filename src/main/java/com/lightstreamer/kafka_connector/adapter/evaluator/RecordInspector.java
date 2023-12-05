@@ -11,8 +11,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.consumers.string.StringValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.MetaSelector;
@@ -20,18 +18,14 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Selector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringValueSelectorSupplier;
 
 public interface RecordInspector<K, V> {
 
     List<Value> inspect(ConsumerRecord<K, V> record);
 
     List<String> names();
-
-    Set<KeySelector<K>> keySelectors();
-
-    Set<ValueSelector<V>> valueSelectors();
-
-    Set<MetaSelector> metaSelectors();
 
     /**
      * Create a builder without {@link KeySelectorSupplier} either
@@ -137,31 +131,25 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
 
     private final int valueSize;
 
+    private final List<String> names;
+
     DefaultRecordInspector(
-            Set<MetaSelector> is,
+            Set<MetaSelector> ms,
             Set<KeySelector<K>> ks,
             Set<ValueSelector<V>> vs) {
-        this.metaSelectors = is;
+        this.metaSelectors = ms;
         this.keySelectors = ks;
         this.valueSelectors = vs;
-        valueSize = is.size() + valueSelectors.size() + keySelectors.size();
-    }
-
-    @Override
-    public Set<MetaSelector> metaSelectors() {
-        return metaSelectors;
-    }
-
-    public Set<KeySelector<K>> keySelectors() {
-        return keySelectors;
-    }
-
-    public Set<ValueSelector<V>> valueSelectors() {
-        return valueSelectors;
+        valueSize = ms.size() + valueSelectors.size() + keySelectors.size();
+        this.names = cacheNames();
     }
 
     @Override
     public List<String> names() {
+        return names;
+    }
+
+    private List<String> cacheNames() {
         Stream<String> infoNames = metaSelectors.stream().map(Selector::name);
         Stream<String> keyNames = keySelectors.stream().map(Selector::name);
         Stream<String> valueNames = valueSelectors.stream().map(Selector::name);

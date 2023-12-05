@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.avro;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro;
 
 import java.util.Properties;
 

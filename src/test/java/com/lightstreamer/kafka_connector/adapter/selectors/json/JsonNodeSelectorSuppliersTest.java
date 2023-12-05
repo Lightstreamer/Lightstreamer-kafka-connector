@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers.json;
+package com.lightstreamer.kafka_connector.adapter.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -17,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeValueSelectorSupplier;
 
 @Tag("unit")
 public class JsonNodeSelectorSuppliersTest {
