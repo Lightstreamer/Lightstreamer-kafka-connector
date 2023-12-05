@@ -13,11 +13,11 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
-public class AvroLocalSchemaDeserializer implements Deserializer<GenericRecord> {
+public class GenericRecordLocalSchemaDeserializer implements Deserializer<GenericRecord> {
 
     private Schema schema;
 
-    public AvroLocalSchemaDeserializer() {
+    public GenericRecordLocalSchemaDeserializer() {
 
     }
 

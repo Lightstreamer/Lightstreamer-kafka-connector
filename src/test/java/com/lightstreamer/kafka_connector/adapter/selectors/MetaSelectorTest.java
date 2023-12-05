@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -7,12 +7,15 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.MetaSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
+@Tag("unit")
 public class MetaSelectorTest {
 
     private static ConsumerRecord<String, String> record() {
@@ -38,7 +41,7 @@ public class MetaSelectorTest {
                 TIMESTAMP,      -1
             """)
     public void shouldExtractAttribute(String attributeName, String expectedValue) {
-        MetaSelectorImpl r = new MetaSelectorImpl("field_name", attributeName);
+        MetaSelector r = MetaSelector.of("field_name", attributeName);
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
@@ -46,7 +49,7 @@ public class MetaSelectorTest {
 
     @Test
     public void shouldNotExtractAttribute() {
-        MetaSelectorImpl r = new MetaSelectorImpl("field_name", "NOT-EXISTING-ATTRIBUTE");
+        MetaSelector r = MetaSelector.of("field_name", "NOT-EXISTING-ATTRIBUTE");
         Value value = r.extract(record());
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo("Not-existing record attribute");

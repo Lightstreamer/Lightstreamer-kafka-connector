@@ -42,7 +42,7 @@ public final class StringValueSelectorSupplier implements ValueSelectorSupplier<
     }
 
     @Override
-    public String deserializer(boolean isKey, Properties pros) {
+    public String deserializer(Properties pros) {
         return StringDeserializer.class.getName();
     }
 }

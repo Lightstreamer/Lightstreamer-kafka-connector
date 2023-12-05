@@ -2,6 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.consumers.json;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 
 public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
 
@@ -19,11 +21,15 @@ public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
 
     private JsonSchema schema;
 
+    private KafkaJsonDeserializer<JsonNode> deserializer;
+
     public JsonLocalSchemaDeserializer() {
+        deserializer = new KafkaJsonDeserializer<>();
     }
 
     public void configure(Map<String, ?> configs, boolean isKey) {
         schema = getFileSchema(isKey ? "key.schema.file" : "value.schema.file", configs);
+        deserializer.configure(configs, isKey);
     }
 
     private JsonSchema getFileSchema(String setting, Map<String, ?> configs) {
@@ -33,7 +39,7 @@ public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
         }
         if (fileSchema instanceof String f) {
             try {
-                File file = new File(f);
+                File file = Paths.get((String)configs.get("adapter.dir"), f).toFile();
                 System.out.println(file.getAbsolutePath());
                 return new JsonSchema(objectMapper.readTree(file));
             } catch (IOException e) {
@@ -46,7 +52,7 @@ public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
     @Override
     public JsonNode deserialize(String topic, byte[] data) {
         try {
-            JsonNode node = objectMapper.readTree(data);
+            JsonNode node = deserializer.deserialize(topic, data);
             schema.validate(node);
             return node;
         } catch (IOException | ValidationException e) {

@@ -125,8 +125,12 @@ public class ConsumerLoop<K, V> implements Loop {
                 try {
                     while (isSubscribed.get()) {
                         log.debug("Polling from topics {} ...", topics);
-                        ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(100));
-                        records.forEach(this::consume);
+                        try {
+                            ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(100));
+                            records.forEach(this::consume);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

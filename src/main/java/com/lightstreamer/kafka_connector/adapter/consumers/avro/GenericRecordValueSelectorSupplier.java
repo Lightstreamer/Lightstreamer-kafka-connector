@@ -1,9 +1,11 @@
 package com.lightstreamer.kafka_connector.adapter.consumers.avro;
 
+import java.util.Properties;
+
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.AbstractSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
@@ -33,11 +35,16 @@ public class GenericRecordValueSelectorSupplier extends AbstractSelectorSupplier
 
     @Override
     protected Class<?> getLocalSchemaDeserializer() {
-        return AvroLocalSchemaDeserializer.class;
+        return GenericRecordLocalSchemaDeserializer.class;
     }
 
     @Override
     protected Class<?> getSchemaDeserializer() {
         return KafkaAvroDeserializer.class;
+    }
+
+    @Override
+    public String deserializer(Properties props) {
+        return super.deserializer(false, props);
     }
 }

@@ -16,9 +16,10 @@
         <param name="value.consumer">JSON</param>
         <param name="value.schema.file">flights.json</param>
 
-        <param name="map.demo.to">flights-${code=KEY}</param>
-        <param name="field.departure">VALUE.departureTime</param>
-        <param name="field.status">VALUE.status</param>
+        <param name="map.demo.to">flights-#{code=KEY}</param>
+        <param name="map.demo.to">flights</param>
+        <param name="field.departure">#{VALUE.departureTime}</param>
+        <param name="field.status">#{VALUE.status}</param>
     </data_provider>
 
       <!-- <data_provider name="Avro">

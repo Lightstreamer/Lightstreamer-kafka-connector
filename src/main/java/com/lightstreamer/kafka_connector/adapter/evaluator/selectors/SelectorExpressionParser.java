@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ExpressionParser<K, V> {
+public class SelectorExpressionParser<K, V> {
 
     public static class ParseException extends RuntimeException {
 
@@ -64,8 +64,8 @@ public class ExpressionParser<K, V> {
             return this;
         }
 
-        public ExpressionParser<K, V> build() {
-            return new ExpressionParser<>(fe, ae);
+        public SelectorExpressionParser<K, V> build() {
+            return new SelectorExpressionParser<>(fe, ae);
         }
     }
 
@@ -73,7 +73,7 @@ public class ExpressionParser<K, V> {
 
     private BiFunction<String, List<Integer>, NodeEvaluator<K, V>> arrayEvaluatorFactory;
 
-    ExpressionParser(Function<String, NodeEvaluator<K, V>> fe,
+    SelectorExpressionParser(Function<String, NodeEvaluator<K, V>> fe,
             BiFunction<String, List<Integer>, NodeEvaluator<K, V>> ae) {
         this.fieldEvaluatorFactory = fe;
         this.arrayEvaluatorFactory = ae;

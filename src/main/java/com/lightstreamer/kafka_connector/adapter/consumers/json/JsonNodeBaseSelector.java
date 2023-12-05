@@ -3,12 +3,12 @@ package com.lightstreamer.kafka_connector.adapter.consumers.json;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.LinkedNode;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.LinkedNode;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.NodeEvaluator;
 
 abstract sealed class JsonNodeBaseSelector extends BaseSelector
         permits JsonNodeKeySelectorSupplier.JsonNodeKeySelector, JsonNodeValueSelectorSupplier.JsonNodeValueSelector {
@@ -60,7 +60,7 @@ abstract sealed class JsonNodeBaseSelector extends BaseSelector
 
     private final LinkedNode<NodeEvaluator<JsonNode, JsonNode>> linkedNode;
 
-    private static final ExpressionParser<JsonNode, JsonNode> PARSER = new ExpressionParser.Builder<JsonNode, JsonNode>()
+    private static final SelectorExpressionParser<JsonNode, JsonNode> PARSER = new SelectorExpressionParser.Builder<JsonNode, JsonNode>()
             .withFieldEvaluator(PropertyGetter::new)
             .withArrayEvaluator(ArrayGetter::new)
             .build();

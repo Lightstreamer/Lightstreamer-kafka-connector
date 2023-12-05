@@ -3,8 +3,6 @@ package com.lightstreamer.kafka_connector.adapter.evaluator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
@@ -13,10 +11,6 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public class ItemTemplate<K, V> {
-
-    private static final Pattern ITEM_TEMPLATE = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
-
-    private static final Pattern SELECTORS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?");
 
     private final BasicItem core;
 
@@ -71,28 +65,8 @@ public class ItemTemplate<K, V> {
 
     public static <K, V> ItemTemplate<K, V> create(String topic, String template,
             RecordInspector.Builder<K, V> builder) {
-        Matcher matcher = ITEM_TEMPLATE.matcher(template);
-        if (matcher.matches()) {
-            String prefix = matcher.group(1);
-            String selectors = matcher.group(3);
-            if (selectors != null) {
-                Matcher m = SELECTORS.matcher(selectors);
-                int previousEnd = 0;
-                while (m.find()) {
-                    if (m.start() != previousEnd) {
-                        break;
-                    }
-                    String name = m.group(2);
-                    String expression = m.group(3);
-                    builder.instruct(name, expression);
-                    previousEnd = m.end();
-                }
-                if (previousEnd < selectors.length()) {
-                    throw new RuntimeException("Invalid selector expression");
-                }
-            }
-            return new ItemTemplate<>(topic, prefix, builder.build());
-        }
-        throw new RuntimeException("Invalid template");
+        ExpressionResult result = ItemExpressionEvaluator.TEMPLATE.eval(template);
+        result.pairs().stream().forEach(p -> builder.instruct(p.first(), p.second()));
+        return new ItemTemplate<>(topic, result.prefix(), builder.build());
     }
 }

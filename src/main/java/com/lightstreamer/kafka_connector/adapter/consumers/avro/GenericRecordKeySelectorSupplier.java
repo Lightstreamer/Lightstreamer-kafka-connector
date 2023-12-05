@@ -6,7 +6,7 @@ import java.util.Properties;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.AbstractSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
@@ -43,7 +43,7 @@ public class GenericRecordKeySelectorSupplier extends AbstractSelectorSupplier<G
 
     @Override
     protected Class<?> getLocalSchemaDeserializer() {
-        return AvroLocalSchemaDeserializer.class;
+        return GenericRecordLocalSchemaDeserializer.class;
     }
 
     @Override

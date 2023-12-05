@@ -11,6 +11,9 @@
     "departureTime": {
       "type": "string"
     },
+    "destination": {
+      "type": "string"
+    },
     "status": {
       "enum": [
         "SCHEDULED_ON_TIME",

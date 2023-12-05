@@ -4,18 +4,15 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 
 public interface ValueSelectorSupplier<V> {
 
     ValueSelector<V> selector(String name, String expression);
 
     default void configValue(Map<String, String> configuration, Properties props) {
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(false, props));
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(props));
+        props.put("adapter.dir", configuration.get("adapter.dir"));
     }
 
-    String deserializer(boolean isKey, Properties pros);
-    // default String deserializer(boolean isKey, Properties pros) {
-    //     return StringDeserializer.class.getName();
-    // }
+    String deserializer(Properties pros);
 }

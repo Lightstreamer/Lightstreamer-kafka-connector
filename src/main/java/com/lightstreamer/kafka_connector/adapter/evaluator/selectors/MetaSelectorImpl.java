@@ -1,12 +1,8 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.evaluator.selectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.MetaSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 class MetaSelectorImpl extends BaseSelector implements MetaSelector {
 

@@ -6,4 +6,8 @@ public interface MetaSelector extends Selector {
 
     Value extract(ConsumerRecord<?, ?> record);
 
+    static MetaSelector of(String name, String expression) {
+        return new MetaSelectorImpl(name, expression);
+    }
+
 }

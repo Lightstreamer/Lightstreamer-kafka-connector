@@ -6,7 +6,7 @@ import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.evaluator.AbstractSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.AbstractSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;

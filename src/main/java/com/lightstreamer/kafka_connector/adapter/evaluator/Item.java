@@ -4,22 +4,16 @@ import static java.util.Collections.emptyList;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public class Item {
-
-    private static final Pattern ITEM = Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?");
-
-    private static final Pattern QUERY_PARAMS = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
 
     private final Object itemHandle;
 
@@ -37,10 +31,6 @@ public class Item {
         this.core = new BasicItem(prefix, new HashSet<>(values.stream().map(Value::name).toList()));
         this.itemHandle = itemHandle;
         this.itemStructure = new Structure(prefix, values);
-    }
-
-    Item(String sourceItem) {
-        this(sourceItem, sourceItem, emptyList());
     }
 
     public BasicItem core() {
@@ -81,29 +71,13 @@ public class Item {
     }
 
     static public Item of(String input, Object itemHandle) {
-        Matcher matcher = ITEM.matcher(input);
-        if (!matcher.matches()) {
-            throw new RuntimeException("Invalid item");
-        }
-        List<Value> queryParams = new ArrayList<>();
-        String prefix = matcher.group(1);
-        String queries = matcher.group(3);
-        if (queries != null) {
-            Matcher m = QUERY_PARAMS.matcher(queries);
-            int previousEnd = 0;
-            while (m.find()) {
-                if (m.start() != previousEnd) {
-                    break;
-                }
-                String name = m.group(2);
-                String value = m.group(3);
-                queryParams.add(Value.of(name, value));
-                previousEnd = m.end();
-            }
-            if (previousEnd < queries.length()) {
-                throw new RuntimeException("Invalid query parameter");
-            }
-        }
-        return new Item(itemHandle, prefix, queryParams);
+        ExpressionResult result = ItemExpressionEvaluator.SUBSCRIBED.eval(input);
+        return new Item(itemHandle, result.prefix(),
+                result.pairs().stream().map(Item::toValue).toList());
+    }
+
+    private static Value toValue(Pair<String,String> p) {
+        return Value.of(p.first(), p.second());
+        
     }
 }
