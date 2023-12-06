@@ -9,7 +9,6 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelecto
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.NodeEvaluator;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 sealed class GenericRecordBaseSelector extends BaseSelector
@@ -93,6 +92,6 @@ sealed class GenericRecordBaseSelector extends BaseSelector
         // currentRecord = (GenericRecord) value;
         // }
         // }
-        return new SimpleValue(name(), value.toString());
+        return Value.of(name(), value.toString());
     }
 }

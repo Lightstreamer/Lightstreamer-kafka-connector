@@ -1,6 +1,5 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import static java.util.Collections.emptyList;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
@@ -76,8 +75,7 @@ public class Item {
                 result.pairs().stream().map(Item::toValue).toList());
     }
 
-    private static Value toValue(Pair<String,String> p) {
+    private static Value toValue(Pair<String, String> p) {
         return Value.of(p.first(), p.second());
-        
     }
 }

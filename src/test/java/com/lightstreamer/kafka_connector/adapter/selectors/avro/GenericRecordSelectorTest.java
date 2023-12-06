@@ -29,12 +29,12 @@ public class GenericRecordSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                         EXPECTED
-            VALUE.name,                         joe
-            VALUE.children[0].name,             alex
-            VALUE.children[1].name,             anna
-            VALUE.children[2].name,             serena
-            VALUE.children[1].children[0].name, gloria
-            VALUE.children[1].children[1].name, terence
+            ${VALUE.name},                         joe
+            ${VALUE.children[0].name},             alex
+            ${VALUE.children[1].name},             anna
+            ${VALUE.children[2].name},             serena
+            ${VALUE.children[1].children[0].name}, gloria
+            ${VALUE.children[1].children[1].name}, terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         GenericRecord value = GenericRecordProvider.RECORD;
@@ -45,12 +45,12 @@ public class GenericRecordSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                       EXPECTED
-            KEY.name,                         joe
-            KEY.children[0].name,             alex
-            KEY.children[1].name,             anna
-            KEY.children[2].name,             serena
-            KEY.children[1].children[0].name, gloria
-            KEY.children[1].children[1].name, terence
+            ${KEY.name},                         joe
+            ${KEY.children[0].name},             alex
+            ${KEY.children[1].name},             anna
+            ${KEY.children[2].name},             serena
+            ${KEY.children[1].children[0].name}, gloria
+            ${KEY.children[1].children[1].name}, terence
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         GenericRecord value = GenericRecordProvider.RECORD;

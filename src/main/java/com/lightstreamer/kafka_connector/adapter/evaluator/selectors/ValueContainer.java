@@ -35,3 +35,31 @@ public interface ValueContainer extends Value {
         return new SimpleContainer(name, List.of(v1, v2, v3, v4));
     }
 }
+
+class SimpleContainer implements ValueContainer {
+
+    private String name; 
+
+    private final List<? extends Value> values;
+
+    public SimpleContainer(String name, List<? extends Value> values) {
+        this.name = name;
+        this.values = List.copyOf(values);
+    }
+
+    @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public String text() {
+        return "";
+    }
+
+    @Override
+    public List<? extends Value> values() {
+        return values;
+    }
+    
+}

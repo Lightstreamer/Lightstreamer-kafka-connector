@@ -17,7 +17,11 @@ public class SelectorExpressionParser<K, V> {
         }
     }
 
-    private static Pattern indexesPattern = Pattern.compile("\\[(\\d*)\\]");
+    public static String SELECTION_REGEX = "\\$\\{(.*)\\}";
+
+    private static Pattern SELECTOR_PATTERN = Pattern.compile(SELECTION_REGEX);
+
+    private static Pattern INDEXES = Pattern.compile("\\[(\\d*)\\]");
 
     public interface NodeEvaluator<K, V> {
 
@@ -80,7 +84,11 @@ public class SelectorExpressionParser<K, V> {
     }
 
     public LinkedNode<NodeEvaluator<K, V>> parse(String expectedRoot, String expression) {
-        try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
+        Matcher matcher = SELECTOR_PATTERN.matcher(expression);
+        if (!matcher.matches()) {
+            throw new ParseException("Invalid selector expression");
+        }
+        try (Scanner scanner = new Scanner(matcher.group(1)).useDelimiter("\\.")) {
             parseRoot(scanner, expectedRoot);
             return parseTokens(scanner);
         }
@@ -125,7 +133,7 @@ public class SelectorExpressionParser<K, V> {
 
     private static List<Integer> parseIndexes(String indexedExpression) {
         List<Integer> indexes = new ArrayList<>();
-        Matcher matcher = indexesPattern.matcher(indexedExpression);
+        Matcher matcher = INDEXES.matcher(indexedExpression);
         int previousEnd = 0;
         while (matcher.find()) {
             int currentStart = matcher.start();

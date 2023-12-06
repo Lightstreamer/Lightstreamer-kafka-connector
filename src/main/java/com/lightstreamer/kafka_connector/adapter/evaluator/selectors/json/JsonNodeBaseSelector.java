@@ -5,10 +5,9 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser.NodeEvaluator;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 abstract sealed class JsonNodeBaseSelector extends BaseSelector
         permits JsonNodeKeySelectorSupplier.JsonNodeKeySelector, JsonNodeValueSelectorSupplier.JsonNodeValueSelector {
@@ -77,6 +76,6 @@ abstract sealed class JsonNodeBaseSelector extends BaseSelector
             currentJsonNode = nodeEvaluator.get(currentJsonNode);
             currentLinkedNode = currentLinkedNode.next();
         }
-        return new SimpleValue(name(), currentJsonNode.asText());
+        return Value.of(name(), currentJsonNode.asText());
     }
 }

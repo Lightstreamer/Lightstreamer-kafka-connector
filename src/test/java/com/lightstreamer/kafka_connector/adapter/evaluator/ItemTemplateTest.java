@@ -17,7 +17,7 @@ import com.google.common.truth.BooleanSubject;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SimpleValue;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider;
@@ -36,7 +36,7 @@ public class ItemTemplateTest {
             item-first, item-first
             item_123_,  item_123_
             item-,      item-
-            prefix-#{}, prefix
+            prefix-${}, prefix
             """)
     public void shouldMakeItemWitNoSelectors(String template, String expectedPrefix) {
         Builder<String, String> builder = RecordInspector.stringSelectorsBuilder();
@@ -62,10 +62,10 @@ public class ItemTemplateTest {
     // @ParameterizedTest(name = "[{index}] {arguments}")
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME | EXPECTED_SELECTOR
-    // item-#{name=VALUE.field1} | name | VALUE.field1
-    // item-#{name=VALUE.field[0]} | name | VALUE.field[0]
-    // item-#{alias=VALUE.count} | alias | VALUE.count
-    // item-#{alias=VALUE.count.test[*]} | alias | VALUE.count.test[*]
+    // item-${name=VALUE.field1} | name | VALUE.field1
+    // item-${name=VALUE.field[0]} | name | VALUE.field[0]
+    // item-${alias=VALUE.count} | alias | VALUE.count
+    // item-${alias=VALUE.count.test[*]} | alias | VALUE.count.test[*]
     // """)
     // public void shouldMakeItemWithValueSelector(String template, String
     // expectedName, String expectedSelector) {
@@ -86,7 +86,7 @@ public class ItemTemplateTest {
     // @ParameterizedTest(name = "[{index}] {arguments}")
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME | EXPECTED_SELECTOR
-    // item-#{key=KEY} | key | KEY
+    // item-${key=KEY} | key | KEY
     // """)
     // public void shouldMakeItemWithKeySelector(String template, String
     // expectedName, String expectedSelector) {
@@ -106,9 +106,9 @@ public class ItemTemplateTest {
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME1 | EXPECTED_SELECTOR1 | EXPECTED_NAME2 |
     // EXPECTED_SELECTOR2
-    // item-#{name1=VALUE.field1,name2=VALUE.field2} | name1 | VALUE.field1 | name2
+    // item-${name1=VALUE.field1,name2=VALUE.field2} | name1 | VALUE.field1 | name2
     // | VALUE.field2
-    // item-#{name1=VALUE.field1[0],name2=VALUE.field2.otherField} | name1 |
+    // item-${name1=VALUE.field1[0],name2=VALUE.field2.otherField} | name1 |
     // VALUE.field1[0] | name2 | VALUE.field2.otherField
     // """)
     // public void shouldMakeItemWithMoreValueSelectors(String template, String
@@ -136,9 +136,9 @@ public class ItemTemplateTest {
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME1 | EXPECTED_SELECTOR1 | EXPECTED_NAME2 |
     // EXPECTED_SELECTOR2
-    // item-#{name1=TIMESTAMP,name2=PARTITION} | name1 | TIMESTAMP | name2 |
+    // item-${name1=TIMESTAMP,name2=PARTITION} | name1 | TIMESTAMP | name2 |
     // PARTITION
-    // item-#{name1=TOPIC,name2=PARTITION} | name1 | TOPIC | name2 | PARTITION
+    // item-${name1=TOPIC,name2=PARTITION} | name1 | TOPIC | name2 | PARTITION
     // """)
     // public void shouldMakeItemWithMoreInfoSelectors(String template, String
     // expectedName1, String expectedSelector1,
@@ -164,9 +164,9 @@ public class ItemTemplateTest {
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME1 | EXPECTED_SELECTOR1 | EXPECTED_NAME2 |
     // EXPECTED_SELECTOR2
-    // item-#{name1=KEY.field1,name2=KEY.field2} | name1 | KEY.field1 | name2 |
+    // item-${name1=KEY.field1,name2=KEY.field2} | name1 | KEY.field1 | name2 |
     // KEY.field2
-    // item-#{name1=KEY.field1[0],name2=KEY.field2.otherField} | name1 |
+    // item-${name1=KEY.field1[0],name2=KEY.field2.otherField} | name1 |
     // KEY.field1[0] | name2 | KEY.field2.otherField
     // """)
     // public void shouldMakeItemWithMoreKeySelectors(String template, String
@@ -192,21 +192,20 @@ public class ItemTemplateTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
             INPUT               | EXPECTED_NAME | EXPECTED_SELECTOR
-            item-#{name1=VALUE} | name1          | VALUE
+            item-${name1=VALUE} | name1          | VALUE
             """)
     public void shouldExpandOneValue(String template, String expectedName, String expectedSelector) {
         ItemTemplate<String, String> itemTemplate = ItemTemplate.create("topic",
                 template, RecordInspector.stringSelectorsBuilder());
         Item expanded = itemTemplate.expand(record(null, "record-value"));
         assertThat(expanded.values())
-                .containsExactly(
-                        new SimpleValue(expectedName, "record-value"));
+                .containsExactly(Value.of(expectedName, "record-value"));
     }
 
     // @ParameterizedTest(name = "[{index}] {arguments}")
     // @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
     // INPUT | EXPECTED_NAME | EXPECTED_SELECTOR
-    // item-#{name1=VALUE.field1,name2=VALUE.field2} | name | VALUE.field1
+    // item-${name1=VALUE.field1,name2=VALUE.field2} | name | VALUE.field1
     // """)
     // public void shouldExpandMoreValues(String template) {
     // ItemTemplate<String, String> itemTemplate = ItemTemplate.create("topic",
@@ -229,21 +228,21 @@ public class ItemTemplateTest {
     @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-        TEMPLATE                                                                         | SUBCRIBING_ITEM                        | MATCH
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe>                  | true
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe,child=alex>       | true
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<child=alex>                | true
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro                             | true
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-                            | false
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe>               | true
-            kafka-avro-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe,child=alex>    | true
-            kafka-avro-#{keyName=KEY.name,child=VALUE.children[1].children[0].name}      | kafka-avro-<keyName=joe,child=gloria>  | true
-            kafka-avro-#{keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=terence> | true
-            kafka-avro-#{keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=carol>   | false
-            kafka-avro-#{child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
-            kafka-avro-#{child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
-            kafka-avro-#{child=VALUE.children[1].children[2].name}                       | kafka-avro-<child=terence>             | true
-            """)
+            TEMPLATE                                                                         | SUBCRIBING_ITEM                        | MATCH
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe>                  | true
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe,child=alex>       | true
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<child=alex>                | true
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro                             | true
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-                            | false
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe>               | true
+                kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe,child=alex>    | true
+                kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[0].name}      | kafka-avro-<keyName=joe,child=gloria>  | true
+                kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=terence> | true
+                kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=carol>   | false
+                kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
+                kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
+                kafka-avro-${child=VALUE.children[1].children[2].name}                       | kafka-avro-<child=terence>             | true
+                """)
     public void shouldExpand(String template, String subscribingItem, boolean matched) {
         RecordInspector.Builder<GenericRecord, GenericRecord> builder = RecordInspector.builder(
                 new GenericRecordKeySelectorSupplier(),

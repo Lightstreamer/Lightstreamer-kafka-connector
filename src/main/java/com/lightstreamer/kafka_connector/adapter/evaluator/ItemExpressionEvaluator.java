@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
+import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
 
 record ExpressionResult(String prefix, List<Pair<String, String>> pairs) {
 
@@ -13,10 +14,11 @@ record ExpressionResult(String prefix, List<Pair<String, String>> pairs) {
 
 enum ItemExpressionEvaluator {
 
-    TEMPLATE(Pattern.compile("([a-zA-Z0-9_-]+)(-\\#\\{(.*)\\})?"),
+    TEMPLATE(Pattern.compile("([a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")?"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")),
 
-    SUBSCRIBED(Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?"), Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?"));
+    SUBSCRIBED(Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?"),
+            Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?"));
 
     private final Pattern p1;
 
