@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,7 +28,7 @@ public interface RecordInspector<K, V> {
 
     List<Value> inspect(ConsumerRecord<K, V> record);
 
-    List<String> names();
+    Set<String> names();
 
     /**
      * Create a builder without {@link KeySelectorSupplier} either
@@ -71,9 +72,74 @@ public interface RecordInspector<K, V> {
 
         private final Set<MetaSelector> metaSelectors = new HashSet<>();
 
+        private Builder<K, V>.MetaSelectorManager metaSelectorExprMgr;
+
+        private Builder<K, V>.KeySelectorManager keySelectorExprMgr;
+
+        private Builder<K, V>.ValueSelectorManager valueSelectorExprMgrt;
+
+        private interface SelectorManager {
+
+            boolean manage(String name, String expression);
+
+        }
+
+        private abstract class SelectorManagerChain implements SelectorManager {
+
+            private SelectorManager ref;
+
+            void setDelegate(SelectorManager ref) {
+                this.ref = ref;
+            }
+
+            @Override
+            public boolean manage(String name, String expression) {
+                boolean ret = false;
+                if (ref != null) {
+                    ret = ref.manage(name, expression);
+                }
+                if (!ret) {
+                    return doManage(name, expression);
+                }
+                return ret;
+            }
+
+            abstract boolean doManage(String name, String expression);
+
+        }
+
+        private class KeySelectorManager extends SelectorManagerChain {
+
+            @Override
+            public boolean doManage(String name, String expression) {
+                return addKeySelector(name, expression);
+            }
+        }
+
+        private class ValueSelectorManager extends SelectorManagerChain {
+
+            @Override
+            public boolean doManage(String name, String expression) {
+                return addValueSelector(name, expression);
+            }
+        }
+
+        private class MetaSelectorManager extends SelectorManagerChain {
+
+            @Override
+            public boolean doManage(String name, String expression) {
+                return addMetaSelector(name, expression);
+            }
+        }
+
         private Builder(KeySelectorSupplier<K> keySupplier, ValueSelectorSupplier<V> valueSupplier) {
             this.keySupplier = keySupplier;
             this.valueSupplier = valueSupplier;
+            this.metaSelectorExprMgr = new MetaSelectorManager();
+            this.keySelectorExprMgr = new KeySelectorManager();
+            this.valueSelectorExprMgrt = new ValueSelectorManager();
+            metaSelectorExprMgr.setDelegate(keySelectorExprMgr);
+            keySelectorExprMgr.setDelegate(valueSelectorExprMgrt);
         }
 
         private Builder() {
@@ -81,10 +147,7 @@ public interface RecordInspector<K, V> {
         }
 
         public Builder<K, V> instruct(String name, String expression) {
-            boolean managed = false;
-            managed |= addMetaSelector(name, expression);
-            managed |= addKeySelector(name, expression);
-            managed |= addValueSelector(name, expression);
+            boolean managed = metaSelectorExprMgr.manage(name, expression);
             if (!managed) {
                 throw new RuntimeException("Unknown expression <" + expression + ">");
             }
@@ -94,25 +157,32 @@ public interface RecordInspector<K, V> {
 
         protected boolean addKeySelector(String name, String expression) {
             if (expression.startsWith("KEY") && keySupplier != null) {
-                KeySelector<K> keySelector = keySupplier.selector(name, expression);
-                return keySelectors.add(keySelector);
+                return checkAndAdd(keySelectors, keySupplier.selector(name, expression));
             }
             return false;
         }
 
         protected boolean addValueSelector(String name, String expression) {
             if (expression.startsWith("VALUE") && valueSupplier != null) {
-                ValueSelector<V> valueSelector = valueSupplier.selector(name, expression);
-                return valueSelectors.add(valueSelector);
+                return checkAndAdd(valueSelectors, valueSupplier.selector(name, expression));
             }
             return false;
         }
 
         protected boolean addMetaSelector(String name, String expression) {
             if (List.of("TIMESTAMP", "TOPIC", "PARTITION").contains(expression)) {
-                return metaSelectors.add(MetaSelector.of(name, expression));
+                return checkAndAdd(metaSelectors, MetaSelector.of(name, expression));
             }
             return false;
+        }
+
+        private <T> boolean checkAndAdd(Set<T> set, T value) {
+            if (!metaSelectors.contains(value) &&
+                    !keySelectors.contains(value) &&
+                    !valueSelectors.contains(value)) {
+                return set.add(value);
+            }
+            throw new RuntimeException("Duplicated entry");
         }
 
         public RecordInspector<K, V> build() {
@@ -137,12 +207,9 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
 
     private final int valueSize;
 
-    private final List<String> names;
+    private final Set<String> names;
 
-    DefaultRecordInspector(
-            Set<MetaSelector> ms,
-            Set<KeySelector<K>> ks,
-            Set<ValueSelector<V>> vs) {
+    DefaultRecordInspector(Set<MetaSelector> ms, Set<KeySelector<K>> ks, Set<ValueSelector<V>> vs) {
         this.metaSelectors = ms;
         this.keySelectors = ks;
         this.valueSelectors = vs;
@@ -151,16 +218,16 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
     }
 
     @Override
-    public List<String> names() {
+    public Set<String> names() {
         return names;
     }
 
-    private List<String> cacheNames() {
+    private Set<String> cacheNames() {
         Stream<String> infoNames = metaSelectors.stream().map(Selector::name);
         Stream<String> keyNames = keySelectors.stream().map(Selector::name);
         Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
 
-        return Stream.of(infoNames, keyNames, valueNames).flatMap(i -> i).toList();
+        return Stream.of(infoNames, keyNames, valueNames).flatMap(i -> i).collect(Collectors.toSet());
     }
 
     @Override
@@ -189,7 +256,6 @@ class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {
 
     @Override
     public KeySelector<K> selector(String name, String expression) {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'selector'");
     }
 }

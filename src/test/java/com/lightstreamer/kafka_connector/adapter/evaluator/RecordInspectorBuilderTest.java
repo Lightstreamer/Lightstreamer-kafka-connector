@@ -16,7 +16,7 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Build
 
 public class RecordInspectorBuilderTest {
 
-   static Stream<Builder<?, ?>> builderProvider() {
+    static Stream<Builder<?, ?>> builderProvider() {
         return Stream.of(RecordInspector.noSelectorsBuilder(), RecordInspector.stringSelectorsBuilder());
     }
 
@@ -42,8 +42,9 @@ public class RecordInspectorBuilderTest {
         assertThat(added).isTrue();
 
         // No duplicates
-        added = rawBuilder.addKeySelector("name", "KEY");
-        assertThat(added).isFalse();
+        assertThrows(RuntimeException.class, () -> rawBuilder.addKeySelector("name", "KEY"));
+        assertThrows(RuntimeException.class, () -> rawBuilder.addValueSelector("name", "VALUE"));
+        assertThrows(RuntimeException.class, () -> rawBuilder.addMetaSelector("name", "TOPIC"));
     }
 
     @Test
@@ -69,7 +70,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldNotAddValueSelector() {
-        Builder<?, ?> rawBuilder = RecordInspector.noSelectorsBuilder();
+        Builder<?, ?> rawBuilder = RecordInspector.stringSelectorsBuilder();
         boolean added = rawBuilder.addValueSelector("name", "VALUE");
         assertThat(added).isFalse();
 
@@ -94,26 +95,26 @@ public class RecordInspectorBuilderTest {
         });
     }
 
-    // @ParameterizedTest(name = "[{index}] {arguments}")
-    // @CsvSource(useHeadersInDisplayName = true, textBlock = """
-    // ATTRIBUTE, VALUE
-    // TOPIC, record-topic
-    // PARTITION, 150
-    // """)
-    // public void shouldExtractAttribute(String attributeName, String
-    // expectedValue) {
-    // MetaSelectorImpl r = new MetaSelectorImpl("field_name", attributeName);
-    // Value value = r.extract(record());
-    // assertThat(value.name()).isEqualTo("field_name");
-    // assertThat(value.text()).isEqualTo(expectedValue);
+    @Test
+    public void shouldInstruct() {
+        Builder<String, String> builder = RecordInspector.stringSelectorsBuilder();
+        builder.instruct("name1", "VALUE");
+        builder.instruct("name1", "VALUE");
+        builder.instruct("name1", "KEY");
+        builder.instruct("name3", "TIMESTAMP");
+        builder.instruct("name4", "TOPIC");
+        builder.instruct("name5", "PARTITION");
+    }
+
+    // @ParameterizedTest
+    // @ValueSource(strings = { "TIMESTAMP", "TOPIC", "PARTITION" })
+    // public void shouldNotInstruct() {
+    // Builder<String, String> builder = RecordInspector.stringSelectorsBuilder();
+    // builder.instruct("name1", "VALUE");
+    // builder.instruct("name2", "KEY");
+    // builder.instruct("name3", "TIMESTAMP");
+    // builder.instruct("name4", "TOPIC");
+    // builder.instruct("name5", "PARTITION");
     // }
 
-    // @Test
-    // public void shouldNotExtractAttribute() {
-    // MetaSelectorImpl r = new MetaSelectorImpl("field_name",
-    // "NOT-EXISTING-ATTRIBUTE");
-    // Value value = r.extract(record());
-    // assertThat(value.name()0).isEqualTo("field_name");
-    // assertThat(value.text()).isEqualTo("Not-existing record attribute");
-    // }
 }

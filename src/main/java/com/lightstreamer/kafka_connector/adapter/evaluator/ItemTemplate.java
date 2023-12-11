@@ -23,7 +23,7 @@ public class ItemTemplate<K, V> {
     ItemTemplate(String topic, String prefix, RecordInspector<K, V> inspector) {
         this.topic = Objects.requireNonNull(topic);
         this.inspector = Objects.requireNonNull(inspector);
-        this.schema = ItemSchema.of(prefix, new HashSet<>(inspector.names()));
+        this.schema = ItemSchema.of(prefix, inspector.names());
     }
 
     public Optional<Item> expand(ConsumerRecord<K, V> record) {

@@ -5,6 +5,8 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
@@ -70,12 +72,12 @@ public class Item {
         return itemStructure.toString();
     }
 
-    static public Item of(String input, Object itemHandle) throws EvaluationException{
+    static public Item of(String input, Object itemHandle) throws EvaluationException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        List<Value> values = result.pairs()
+        Set<Value> values = result.pairs()
                 .stream()
                 .map(Item::toValue)
-                .toList();
+                .collect(Collectors.toSet());
         return new Item(itemHandle, ItemSchema.of(result.prefix(), values), values);
     }
 

@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public class ItemTest {
@@ -120,7 +121,7 @@ public class ItemTest {
             item-      | item-
             prefix-<>  | prefix
             """)
-    public void shouldMakeItemWitNoValues(String input, String expectedPrefix) {
+    public void shouldMakeItemWitNoValues(String input, String expectedPrefix) throws EvaluationException {
         Object handle = new Object();
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
@@ -140,7 +141,7 @@ public class ItemTest {
             item-<test=>>        | test          |   >
             item-<test=value,>   | test          |   value
             """)
-    public void shouldMakeItemWithSelector(String input, String expectedName, String expectedValue) {
+    public void shouldMakeItemWithSelector(String input, String expectedName, String expectedValue) throws EvaluationException {
         Object handle = new Object();
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
@@ -156,7 +157,7 @@ public class ItemTest {
             INPUT                              | EXPECTED_NAME1 |   EXPECTED_VALUE1 |  EXPECTED_NAME2 |  EXPECTED_VALUE2
             item-<name1=field1,name2=field2>   | name1          |   field1          |  name2       |  field2
             """)
-    public void shouldMakeItemWithMoreSelectors(String input, String name1, String val1, String name2, String value2) {
+    public void shouldMakeItemWithMoreSelectors(String input, String name1, String val1, String name2, String value2) throws EvaluationException {
         Object handle = new Object();
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();

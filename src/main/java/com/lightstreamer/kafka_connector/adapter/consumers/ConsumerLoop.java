@@ -159,7 +159,7 @@ public class ConsumerLoop<K, V> implements Loop {
 
     private void processItem(ConsumerRecord<K, V> record, Item expandedItem) {
         for (Item subscribedItem : subscribedItems.values()) {
-            if (!expandedItem.matches(subscribedItem).matched()) {
+            if (!expandedItem.matches(subscribedItem)) {
                 log.warn("Expanded item <{}> does not match subscribed item <{}>",
                         expandedItem,
                         subscribedItem);

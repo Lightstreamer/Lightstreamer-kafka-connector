@@ -1,7 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,7 +17,7 @@ public interface ItemExpressionEvaluator {
         }
     }
 
-    record Result(String prefix, List<Pair<String, String>> pairs) {
+    record Result(String prefix, Set<Pair<String, String>> pairs) {
 
     }
 
@@ -54,7 +54,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
         if (!matcher.matches()) {
             throw new RuntimeException("Invalid item");
         }
-        List<Pair<String, String>> queryParams = new ArrayList<>();
+        Set<Pair<String, String>> queryParams = new LinkedHashSet<>();
         String prefix = matcher.group(1);
         String queryString = matcher.group(3);
         if (queryString != null) {
