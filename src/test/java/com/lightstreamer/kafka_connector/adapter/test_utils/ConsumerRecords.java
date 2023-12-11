@@ -7,7 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 
-public class ConsumerRecordProvider {
+public class ConsumerRecords {
 
     public static ConsumerRecord<GenericRecord, ?> recordWithGenericRecordKey(GenericRecord key) {
         return record(key, null);
@@ -21,7 +21,7 @@ public class ConsumerRecordProvider {
         return record(key, value);
     }
 
-    private static <K, V> ConsumerRecord<K, V> record(K key, V value) {
+    public static <K, V> ConsumerRecord<K, V> record(K key, V value) {
         return new ConsumerRecord<K,V>(
                 "record-topic",
                 150,
@@ -35,4 +35,19 @@ public class ConsumerRecordProvider {
                 new RecordHeaders(),
                 Optional.empty());
     }
+
+    public static <K, V> ConsumerRecord<K, V> record(String topic, K key, V value) {
+        return new ConsumerRecord<K,V>(
+                topic,
+                150,
+                120,
+                ConsumerRecord.NO_TIMESTAMP,
+                TimestampType.NO_TIMESTAMP_TYPE,
+                ConsumerRecord.NULL_SIZE,
+                ConsumerRecord.NULL_SIZE,
+                key,
+                value,
+                new RecordHeaders(),
+                Optional.empty());
+    }    
 }

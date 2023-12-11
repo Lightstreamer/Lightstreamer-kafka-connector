@@ -12,7 +12,7 @@ public interface Value extends ValueSchema {
         return new SimpleValue(name, text);
     }
 
-    default boolean match(Value other) {
+    default boolean matches(Value other) {
         return name().equals(other.name()) && text().equals(other.text());
     }
 

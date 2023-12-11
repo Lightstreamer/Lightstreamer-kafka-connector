@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
-import com.lightstreamer.kafka_connector.adapter.evaluator.BasicItem.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ItemSchema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
@@ -93,7 +93,7 @@ public class ConsumerLoop<K, V> implements Loop {
         Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
             for (ItemTemplate<K, V> itemTemplate : this.itemTemplates) {
                 Item newItem = Item.of(it, itemHandle);
-                MatchResult result = itemTemplate.match(newItem);
+                MatchResult result = itemTemplate.match(newItem.schema());
                 if (result.matched()) {
                     log.info("Subscribed to {}", it);
                     return newItem;
@@ -153,14 +153,13 @@ public class ConsumerLoop<K, V> implements Loop {
 
     protected void consume(ConsumerRecord<K, V> record) {
         itemTemplates.stream()
-                .filter(template -> template.topic().equals(record.topic()))
-                .map(template -> template.expand(record))
+                .flatMap(template -> template.expand(record).stream())
                 .forEach(expandedItem -> processItem(record, expandedItem));
     }
 
     private void processItem(ConsumerRecord<K, V> record, Item expandedItem) {
         for (Item subscribedItem : subscribedItems.values()) {
-            if (!expandedItem.match(subscribedItem).matched()) {
+            if (!expandedItem.matches(subscribedItem).matched()) {
                 log.warn("Expanded item <{}> does not match subscribed item <{}>",
                         expandedItem,
                         subscribedItem);

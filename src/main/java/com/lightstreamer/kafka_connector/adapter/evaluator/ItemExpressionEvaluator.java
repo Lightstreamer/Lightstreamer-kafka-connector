@@ -8,11 +8,31 @@ import java.util.regex.Pattern;
 import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
 
-record ExpressionResult(String prefix, List<Pair<String, String>> pairs) {
+public interface ItemExpressionEvaluator {
 
+    static class EvaluationException extends Exception {
+
+        EvaluationException(String message) {
+            super(message);
+        }
+    }
+
+    record Result(String prefix, List<Pair<String, String>> pairs) {
+
+    }
+
+    static ItemExpressionEvaluator template() {
+        return ItemEvaluator.TEMPLATE;
+    }
+
+    static ItemExpressionEvaluator subscribed() {
+        return ItemEvaluator.SUBSCRIBED;
+    }
+
+    Result eval(String expression) throws EvaluationException;
 }
 
-enum ItemExpressionEvaluator {
+enum ItemEvaluator implements ItemExpressionEvaluator {
 
     TEMPLATE(Pattern.compile("([a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")?"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")),
@@ -24,12 +44,12 @@ enum ItemExpressionEvaluator {
 
     private final Pattern p2;
 
-    ItemExpressionEvaluator(Pattern global, Pattern specific) {
+    private ItemEvaluator(Pattern global, Pattern specific) {
         this.p1 = global;
         this.p2 = specific;
     }
 
-    ExpressionResult eval(String expression) {
+    public Result eval(String expression) throws EvaluationException {
         Matcher matcher = p1.matcher(expression);
         if (!matcher.matches()) {
             throw new RuntimeException("Invalid item");
@@ -46,7 +66,9 @@ enum ItemExpressionEvaluator {
                 }
                 String key = m.group(2);
                 String value = m.group(3);
-                queryParams.add(Pair.p(key, value));
+                if (!queryParams.add(Pair.p(key, value))) {
+                    throw new EvaluationException("No duplicated keys are allowed");
+                }
                 previousEnd = m.end();
             }
             if (previousEnd < queryString.length()) {
@@ -54,6 +76,6 @@ enum ItemExpressionEvaluator {
             }
         }
 
-        return new ExpressionResult(prefix, queryParams);
+        return new Result(prefix, queryParams);
     }
 }

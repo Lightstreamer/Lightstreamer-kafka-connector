@@ -20,14 +20,14 @@ public class ValueTest {
     public void shouldMatch() {
         Value value1 = Value.of("name", "value");
         Value value2 = Value.of("name", "value");
-        assertThat(value1.match(value2)).isTrue();
+        assertThat(value1.matches(value2)).isTrue();
     }
 
     @Test
     public void shouldNotMatch() {
         Value value1 = Value.of("name", "value1");
         Value value2 = Value.of("name", "value2");
-        assertThat(value1.match(value2)).isFalse();
+        assertThat(value1.matches(value2)).isFalse();
     }
 
     public void shouldNotBeContainer() {

@@ -1,8 +1,8 @@
 package com.lightstreamer.kafka_connector.adapter.selectors.avro;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider.recordWithGenericRecordKey;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecordProvider.recordWithGenericRecordValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithGenericRecordKey;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithGenericRecordValue;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;

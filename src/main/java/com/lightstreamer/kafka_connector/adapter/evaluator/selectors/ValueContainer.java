@@ -10,7 +10,7 @@ public interface ValueContainer extends Value {
     }
 
     @Override
-    default boolean match(Value other) {
+    default boolean matches(Value other) {
         if (!other.isContainer()) {
             return values().contains(other);
         }

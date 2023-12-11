@@ -41,9 +41,9 @@ public class ValueContainerTest {
                         Value.of("name1", "value1"),
                         Value.of("name2", "value2"),
                         Value.of("name3", "value3"));
-        assertThat(container.match(Value.of("name1", "value1"))).isTrue();
-        assertThat(container.match(Value.of("name2", "value2"))).isTrue();
-        assertThat(container.match(Value.of("name3", "value3"))).isTrue();
+        assertThat(container.matches(Value.of("name1", "value1"))).isTrue();
+        assertThat(container.matches(Value.of("name2", "value2"))).isTrue();
+        assertThat(container.matches(Value.of("name3", "value3"))).isTrue();
     }
 
     @Test
@@ -53,8 +53,8 @@ public class ValueContainerTest {
                         Value.of("name1", "value1"),
                         Value.of("name2", "value2"),
                         Value.of("name3", "value3"));
-        assertThat(container.match(Value.of("name1", "valueX"))).isFalse();
-        assertThat(container.match(Value.of("name", "value1"))).isFalse();
+        assertThat(container.matches(Value.of("name1", "valueX"))).isFalse();
+        assertThat(container.matches(Value.of("name", "value1"))).isFalse();
     }
 
     @Test
@@ -69,7 +69,7 @@ public class ValueContainerTest {
                         Value.of("name1", "value1"),
                         Value.of("name2", "value2"));
 
-        assertThat(container1.match(container2)).isTrue();
+        assertThat(container1.matches(container2)).isTrue();
     }
 
     @Test
@@ -85,6 +85,6 @@ public class ValueContainerTest {
                         Value.of("name1", "value1"),
                         Value.of("name2", "value2"),
                         Value.of("name3", "value3"));
-        assertThat(container1.match(container2)).isFalse();
+        assertThat(container1.matches(container2)).isFalse();
     }
 }
