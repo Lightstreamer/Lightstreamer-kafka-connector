@@ -168,7 +168,7 @@ public class ConsumerLoop<K, V> implements Loop {
             }
             // log.info("Sending updates");
             Map<String, String> values = recordInspector.inspect(record);
-            eventListener.smartUpdate(subscribedItem.getItemHandle(), values, false);
+            eventListener.smartUpdate(subscribedItem.itemHandle(), values, false);
         }
     }
 

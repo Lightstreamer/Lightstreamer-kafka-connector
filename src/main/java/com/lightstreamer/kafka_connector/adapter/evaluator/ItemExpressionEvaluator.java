@@ -1,13 +1,10 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
 
 public interface ItemExpressionEvaluator {
@@ -19,12 +16,7 @@ public interface ItemExpressionEvaluator {
         }
     }
 
-    record Result(String prefix, Set<Pair<String, String>> pairs) {
-
-        Map<String, String> pairsToMap() {
-            return pairs().stream()
-                    .collect(Collectors.toMap(Pair::first, Pair::second));
-        }
+    record Result(String prefix, Map<String, String> params) {
 
     }
 
@@ -61,7 +53,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
         if (!matcher.matches()) {
             throw new RuntimeException("Invalid item");
         }
-        Set<Pair<String, String>> queryParams = new LinkedHashSet<>();
+        Map<String, String> queryParams = new HashMap<>();
         String prefix = matcher.group(1);
         String queryString = matcher.group(3);
         if (queryString != null) {
@@ -73,7 +65,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
                 }
                 String key = m.group(2);
                 String value = m.group(3);
-                if (!queryParams.add(Pair.p(key, value))) {
+                if (queryParams.put(key, value) != null) {
                     throw new EvaluationException("No duplicated keys are allowed");
                 }
                 previousEnd = m.end();

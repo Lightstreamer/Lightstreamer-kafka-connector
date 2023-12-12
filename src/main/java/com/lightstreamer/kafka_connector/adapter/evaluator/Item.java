@@ -28,7 +28,7 @@ public class Item {
         return Map.copyOf(valuesMap);
     }
 
-    public Object getItemHandle() {
+    public Object itemHandle() {
         return itemHandle;
     }
 
@@ -45,6 +45,6 @@ public class Item {
 
     static public Item of(String input, Object itemHandle) throws EvaluationException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        return new Item(itemHandle, result.prefix(), result.pairsToMap());
+        return new Item(itemHandle, result.prefix(), result.params());
     }
 }

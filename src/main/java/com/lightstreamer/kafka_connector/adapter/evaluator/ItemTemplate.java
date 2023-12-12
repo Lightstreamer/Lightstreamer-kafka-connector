@@ -62,17 +62,9 @@ public class ItemTemplate<K, V> {
     }
 
     public static <K, V> ItemTemplate<K, V> create(String topic, String template,
-            RecordInspector.Builder<K, V> builder) {
-        Result result;
-        try {
-            result = ItemExpressionEvaluator.template().eval(template);
-            result.pairs().stream().forEach(p -> builder.instruct(p.first(), p.second()));
-            return new ItemTemplate<>(topic, result.prefix(), builder.build());
-
-        } catch (EvaluationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return null;
-        }
+            RecordInspector.Builder<K, V> builder) throws EvaluationException {
+        Result result = ItemExpressionEvaluator.template().eval(template);
+        result.params().entrySet().stream().forEach(p -> builder.instruct(p.getKey(), p.getValue()));
+        return new ItemTemplate<>(topic, result.prefix(), builder.build());
     }
 }
