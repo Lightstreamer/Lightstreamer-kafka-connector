@@ -10,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -22,11 +21,9 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemSchema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
 
 public class ConsumerLoop<K, V> implements Loop {
@@ -92,11 +89,15 @@ public class ConsumerLoop<K, V> implements Loop {
     public void trySubscribe(String item, Object itemHandle) {
         Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
             for (ItemTemplate<K, V> itemTemplate : this.itemTemplates) {
-                Item newItem = Item.of(it, itemHandle);
-                MatchResult result = itemTemplate.match(newItem.schema());
-                if (result.matched()) {
-                    log.info("Subscribed to {}", it);
-                    return newItem;
+                try {
+                    Item newItem = Item.of(it, itemHandle);
+                    boolean result = itemTemplate.matches(newItem);
+                    if (result) {
+                        log.info("Subscribed to {}", it);
+                        return newItem;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
             return null;
@@ -166,8 +167,7 @@ public class ConsumerLoop<K, V> implements Loop {
                 continue;
             }
             // log.info("Sending updates");
-            List<Value> updates = recordInspector.inspect(record);
-            Map<String, String> values = updates.stream().collect(Collectors.toMap(Value::name, Value::text));
+            Map<String, String> values = recordInspector.inspect(record);
             eventListener.smartUpdate(subscribedItem.getItemHandle(), values, false);
         }
     }

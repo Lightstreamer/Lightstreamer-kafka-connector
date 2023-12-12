@@ -1,9 +1,11 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.Pair;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.SelectorExpressionParser;
@@ -18,6 +20,11 @@ public interface ItemExpressionEvaluator {
     }
 
     record Result(String prefix, Set<Pair<String, String>> pairs) {
+
+        Map<String, String> pairsToMap() {
+            return pairs().stream()
+                    .collect(Collectors.toMap(Pair::first, Pair::second));
+        }
 
     }
 
@@ -40,17 +47,17 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
     SUBSCRIBED(Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?"));
 
-    private final Pattern p1;
+    private final Pattern gobal;
 
-    private final Pattern p2;
+    private final Pattern local;
 
-    private ItemEvaluator(Pattern global, Pattern specific) {
-        this.p1 = global;
-        this.p2 = specific;
+    private ItemEvaluator(Pattern global, Pattern local) {
+        this.gobal = global;
+        this.local = local;
     }
 
     public Result eval(String expression) throws EvaluationException {
-        Matcher matcher = p1.matcher(expression);
+        Matcher matcher = gobal.matcher(expression);
         if (!matcher.matches()) {
             throw new RuntimeException("Invalid item");
         }
@@ -58,7 +65,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
         String prefix = matcher.group(1);
         String queryString = matcher.group(3);
         if (queryString != null) {
-            Matcher m = p2.matcher(queryString);
+            Matcher m = local.matcher(queryString);
             int previousEnd = 0;
             while (m.find()) {
                 if (m.start() != previousEnd) {

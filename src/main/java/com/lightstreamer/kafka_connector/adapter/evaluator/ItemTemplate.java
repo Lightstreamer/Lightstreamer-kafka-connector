@@ -1,16 +1,15 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.Result;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemSchema.MatchResult;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
 
 public class ItemTemplate<K, V> {
 
@@ -28,7 +27,7 @@ public class ItemTemplate<K, V> {
 
     public Optional<Item> expand(ConsumerRecord<K, V> record) {
         if (record.topic().equals(this.topic)) {
-            List<Value> replaced = inspector.inspect(record);
+            Map<String, String> replaced = inspector.inspect(record);
             return Optional.of(new Item("", schema.prefix(), replaced));
         }
         return Optional.empty();
@@ -43,8 +42,8 @@ public class ItemTemplate<K, V> {
         return this.schema;
     }
 
-    public MatchResult match(ItemSchema schema) {
-        return this.schema.matches(schema);
+    public boolean matches(Item item) {
+        return this.schema.matches(item.schema()).matched();
     }
 
     public static <K, V> List<ItemTemplate<K, V>> fromTopicMappings(
@@ -64,8 +63,16 @@ public class ItemTemplate<K, V> {
 
     public static <K, V> ItemTemplate<K, V> create(String topic, String template,
             RecordInspector.Builder<K, V> builder) {
-        Result result = ItemExpressionEvaluator.template().eval(template);
-        result.pairs().stream().forEach(p -> builder.instruct(p.first(), p.second()));
-        return new ItemTemplate<>(topic, result.prefix(), builder.build());
+        Result result;
+        try {
+            result = ItemExpressionEvaluator.template().eval(template);
+            result.pairs().stream().forEach(p -> builder.instruct(p.first(), p.second()));
+            return new ItemTemplate<>(topic, result.prefix(), builder.build());
+
+        } catch (EvaluationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        }
     }
 }

@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.truth.BooleanSubject;
+import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.evaluator.ItemSchema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
 import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
@@ -24,25 +25,6 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.Generi
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 
 public class ItemTemplateTest {
-
-        @ParameterizedTest(name = "[{index}] {arguments}")
-        @CsvSource(useHeadersInDisplayName = true, textBlock = """
-                        INPUT,      EXPECTED_PREFIX
-                        item,       item
-                        item-first, item-first
-                        item_123_,  item_123_
-                        item-,      item-
-                        prefix-,    prefix
-                        """)
-        public void test(String input, String expectedPrefix) {
-                Builder<String, String> noSelectorsBuilder = RecordInspector.<String, String>noSelectorsBuilder();
-
-                // ItemTemplate<String, String> itemTemplate = new ItemTemplate<>("topic",
-                // expectedPrefix,
-                // assertThat(itemTemplate.topic()).isEqualTo("topic");
-                // assertThat(itemTemplate.prefix()).isEqualTo(expectedPrefix);
-                // assertThat(itemTemplate.keys()).isEmpty();
-        }
 
         @Tag("unit")
         @ParameterizedTest
@@ -202,7 +184,7 @@ public class ItemTemplateTest {
         @Tag("integration")
         @ParameterizedTest(name = "[{index}] {arguments}")
         @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-                        TEMPLATE                                                                         | SUBCRIBING_ITEM                        | MATCH
+                            TEMPLATE                                                                         | SUBCRIBING_ITEM                        | MATCH
                             kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe>                  | true
                             kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe,child=alex>       | true
                             kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<child=alex>                | true
@@ -216,8 +198,8 @@ public class ItemTemplateTest {
                             kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
                             kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
                             kafka-avro-${child=VALUE.children[1].children[2].name}                       | kafka-avro-<child=terence>             | true
-                            """)
-        public void shouldExpand(String template, String subscribingItem, boolean matched) {
+                        """)
+        public void shouldExpand(String template, String subscribingItem, boolean matched) throws EvaluationException {
                 RecordInspector.Builder<GenericRecord, GenericRecord> builder = RecordInspector.builder(
                                 new GenericRecordKeySelectorSupplier(),
                                 new GenericRecordValueSelectorSupplier());
@@ -225,12 +207,12 @@ public class ItemTemplateTest {
                 ItemTemplate<GenericRecord, GenericRecord> itemTemplate = ItemTemplate.create("topic", template,
                                 builder);
 
-                ConsumerRecord<GenericRecord, GenericRecord> incomingRecord = recordWithGenericRecordPair(
+                ConsumerRecord<GenericRecord, GenericRecord> incomingRecord = recordWithGenericRecordPair("topic",
                                 GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
                 Item subscribedItem = Item.of(subscribingItem, new Object());
-                Item expandedItem = itemTemplate.expand(incomingRecord);
-                MatchResult match = expandedItem.matches(subscribedItem);
-                BooleanSubject assertion = assertThat(match.matched());
+                Optional<Item> expandedItem = itemTemplate.expand(incomingRecord);
+                boolean match = expandedItem.get().matches(subscribedItem);
+                BooleanSubject assertion = assertThat(match);
                 if (matched) {
                         assertion.isTrue();
                 } else {

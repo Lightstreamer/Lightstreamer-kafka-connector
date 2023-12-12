@@ -84,11 +84,16 @@ public class SelectorExpressionParser<K, V> {
     }
 
     public LinkedNode<NodeEvaluator<K, V>> parse(String expectedRoot, String expression) {
-        Matcher matcher = SELECTOR_PATTERN.matcher(expression);
-        if (!matcher.matches()) {
-            throw new ParseException("Invalid selector expression");
-        }
-        try (Scanner scanner = new Scanner(matcher.group(1)).useDelimiter("\\.")) {
+        // Matcher matcher = SELECTOR_PATTERN.matcher(expression);
+        // if (!matcher.matches()) {
+        // throw new ParseException("Invalid selector expression:
+        // \"%s\"".formatted(expression));
+        // }
+        // try (Scanner scanner = new Scanner(matcher.group(1)).useDelimiter("\\.")) {
+        // parseRoot(scanner, expectedRoot);
+        // return parseTokens(scanner);
+        // }
+        try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
             parseRoot(scanner, expectedRoot);
             return parseTokens(scanner);
         }

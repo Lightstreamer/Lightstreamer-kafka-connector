@@ -1,11 +1,14 @@
 package com.lightstreamer.kafka_connector.adapter.evaluator;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,7 +29,7 @@ import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.Stri
 
 public interface RecordInspector<K, V> {
 
-    List<Value> inspect(ConsumerRecord<K, V> record);
+    Map<String, String> inspect(ConsumerRecord<K, V> record);
 
     Set<String> names();
 
@@ -71,6 +74,8 @@ public interface RecordInspector<K, V> {
         private final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
 
         private final Set<MetaSelector> metaSelectors = new HashSet<>();
+
+        private final Map<String, Selector> selectors = new HashMap<>();
 
         private Builder<K, V>.MetaSelectorManager metaSelectorExprMgr;
 
@@ -205,16 +210,19 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
 
     private final Set<ValueSelector<V>> valueSelectors;
 
-    private final int valueSize;
-
     private final Set<String> names;
+
+    private Map<String, Selector> s = new HashMap<>();
 
     DefaultRecordInspector(Set<MetaSelector> ms, Set<KeySelector<K>> ks, Set<ValueSelector<V>> vs) {
         this.metaSelectors = ms;
         this.keySelectors = ks;
         this.valueSelectors = vs;
-        this.valueSize = ms.size() + valueSelectors.size() + keySelectors.size();
         this.names = cacheNames();
+
+        metaSelectors.stream().forEach(m -> s.put(m.name(), m));
+        valueSelectors.stream().forEach(m -> s.put(m.name(), m));
+        keySelectors.stream().forEach(m -> s.put(m.name(), m));
     }
 
     @Override
@@ -227,29 +235,49 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
         Stream<String> keyNames = keySelectors.stream().map(Selector::name);
         Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
 
-        return Stream.of(infoNames, keyNames, valueNames).flatMap(i -> i).collect(Collectors.toSet());
+        return Stream.of(infoNames, keyNames, valueNames)
+                .flatMap(Function.identity())
+                .collect(Collectors.toSet());
     }
 
     @Override
-    public List<Value> inspect(ConsumerRecord<K, V> record) {
-        Value[] values = new Value[valueSize];
-        int c = 0;
-        for (MetaSelector infoSelector : metaSelectors) {
-            Value value = infoSelector.extract(record);
-            values[c++] = value;
+    public Map<String, String> inspect(ConsumerRecord<K, V> record) {
+        Collection<Selector> values2 = s.values();
+
+        Map<String, String> values = new HashMap<>();
+        for (Selector v : values2) {
+            Value value = switch (v) {
+                case KeySelector ks -> ks.extract(record);
+
+                case ValueSelector vs -> vs.extract(record);
+
+                case MetaSelector ms -> ms.extract(record);
+
+                default -> {
+                    throw new RuntimeException("Error");
+                }
+            };
+            values.put(value.name(), value.text());
         }
-        for (KeySelector<K> keySelector : keySelectors) {
-            Value value = keySelector.extract(record);
-            log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
-            values[c++] = value;
-        }
-        for (ValueSelector<V> valueSelector : valueSelectors) {
-            Value value = valueSelector.extract(record);
-            log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
-            values[c++] = value;
-        }
-        return Arrays.asList(values);
+        return values;
+
+        // for (MetaSelector infoSelector : metaSelectors) {
+        // Value value = infoSelector.extract(record);
+        // values[c++] = value;
+        // }
+        // for (KeySelector<K> keySelector : keySelectors) {
+        // Value value = keySelector.extract(record);
+        // log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
+        // values[c++] = value;
+        // }
+        // for (ValueSelector<V> valueSelector : valueSelectors) {
+        // Value value = valueSelector.extract(record);
+        // log.debug("Extracted <{}> -> <{}>", value.name(), value.text());
+        // values[c++] = value;
+        // }
+        // return Arrays.asList(values);
     }
+
 }
 
 class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {

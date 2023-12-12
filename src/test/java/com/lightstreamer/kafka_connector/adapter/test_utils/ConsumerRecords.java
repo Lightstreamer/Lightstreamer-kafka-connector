@@ -17,8 +17,8 @@ public class ConsumerRecords {
         return record(null, value);
     }
 
-    public static ConsumerRecord<GenericRecord, GenericRecord> recordWithGenericRecordPair(GenericRecord key, GenericRecord value) {
-        return record(key, value);
+    public static ConsumerRecord<GenericRecord, GenericRecord> recordWithGenericRecordPair(String topic, GenericRecord key, GenericRecord value) {
+        return record(topic, key, value);
     }
 
     public static <K, V> ConsumerRecord<K, V> record(K key, V value) {
