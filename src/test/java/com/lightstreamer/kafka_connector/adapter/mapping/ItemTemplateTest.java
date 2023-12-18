@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.evaluator;
+package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.record;

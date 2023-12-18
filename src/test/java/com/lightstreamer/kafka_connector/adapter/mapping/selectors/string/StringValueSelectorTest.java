@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.selectors.string;
+package com.lightstreamer.kafka_connector.adapter.mapping.selectors.string;
 
 import static com.google.common.truth.Truth.assertThat;
 
