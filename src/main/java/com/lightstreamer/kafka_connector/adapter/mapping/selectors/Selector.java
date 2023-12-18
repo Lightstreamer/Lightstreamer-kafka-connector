@@ -1,0 +1,11 @@
+package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
+
+public interface Selector extends ValueSchema {
+
+    String expression();
+
+    default String expectedRoot() {
+        return "";
+    }
+
+}

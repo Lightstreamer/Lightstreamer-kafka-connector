@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 
 @Tag("unit")

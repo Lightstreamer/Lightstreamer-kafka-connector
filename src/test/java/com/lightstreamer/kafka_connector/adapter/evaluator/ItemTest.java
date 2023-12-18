@@ -15,7 +15,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
+import com.lightstreamer.kafka_connector.adapter.mapping.Item;
+import com.lightstreamer.kafka_connector.adapter.mapping.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 
 public class ItemTest {
 
@@ -23,7 +25,7 @@ public class ItemTest {
     @Test
     public void shouldHaveSchemaAndValues() {
         Item item = new Item("source", "item", Map.of("a", "A", "b", "B"));
-        ItemSchema schema = item.schema();
+        Schema schema = item.schema();
         assertThat(schema).isNotNull();
         assertThat(schema.prefix()).isEqualTo("item");
         assertThat(schema.keys()).isNotEmpty();

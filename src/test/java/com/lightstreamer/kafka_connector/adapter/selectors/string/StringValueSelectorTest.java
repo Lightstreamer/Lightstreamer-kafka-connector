@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringValueSelectorSupplier;
 
 @Tag("unit")
 public class StringValueSelectorTest {

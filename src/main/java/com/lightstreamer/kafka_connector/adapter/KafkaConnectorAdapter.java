@@ -5,11 +5,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 
 import javax.annotation.Nonnull;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,15 +28,20 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
+import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.json.JsonNodeValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.string.StringValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
+import com.lightstreamer.kafka_connector.adapter.mapping.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
+import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorSuppliersPair;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringValueSelectorSupplier;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 
@@ -45,6 +54,10 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     private Map<String, String> configuration;
 
     private Loop loop;
+
+    private Selectors<?, ?> fieldsSelector;
+
+    private ConsumerLoopConfig<?, ?> loopConfig;
 
     static {
         CONFIG_SPEC = new ConfigSpec()
@@ -80,9 +93,68 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
                     topicMappings.add(new TopicMapping(topic, Arrays.asList(itemTemplates)));
                 }
             }
+
+            // Retrieve "field.<name>"
+            Map<String, String> fields = new HashMap<>();
+            for (String paramKey : configuration.keySet()) {
+                if (paramKey.startsWith("field.")) {
+                    String fieldName = paramKey.split("\\.")[1];
+                    String mapping = configuration.get(paramKey);
+                    fields.put(fieldName, mapping);
+                }
+            }
+
+            String valueConsumer = configuration.get("value.consumer");
+            String keyConsumer = configuration.get("key.consumer");
+
+            SelectorSuppliersPair<?, ?> pairSupplier = SelectorSuppliersPair.wrap(makeKeySelectorSupplier(keyConsumer),
+                    makeValueSelectorSupplier(valueConsumer));
+
+            fieldsSelector = Selectors.builder(pairSupplier)
+                    .withMap(fields)
+                    .build();
+
+            ItemTemplates<?, ?> itemTemplates = initItemTemplates(pairSupplier);
+
+            Properties properties = initProps(configuration, pairSupplier);
+            loopConfig = ConsumerLoopConfig.of(properties, itemTemplates, fieldsSelector);
+
             log.info("Init completed");
         } catch (ValidateException ve) {
             throw new DataProviderException(ve.getMessage());
+        }
+    }
+
+    private Properties initProps(Map<String, String> config, SelectorSuppliersPair<?, ?> pairSupplier) {
+        return initConsumerProperties(config, pairSupplier);
+    }
+
+    private <K, V> Properties initConsumerProperties(Map<String, String> config,
+            SelectorSuppliersPair<K, V> pairSupplier) {
+        Properties properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.get("bootstrap-servers"));
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, config.get("group-id"));
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty("adapter.dir", config.get("adapter.dir"));
+        Optional.ofNullable(config.get("key.schema.file"))
+                .ifPresent(v -> properties.setProperty("key.schema.file", v));
+        Optional.ofNullable(config.get("value.schema.file"))
+                .ifPresent(v -> properties.setProperty("value.schema.file", v));
+        pairSupplier.keySelectorSupplier().configKey(config, properties);
+        pairSupplier.valueSelectorSupplier().configValue(config, properties);
+        log.info("Properties: {}", properties);
+        return properties;
+    }
+
+    private ItemTemplates<?, ?> initItemTemplates(SelectorSuppliersPair<?, ?> pairSupplier) throws ValidateException {
+        return init(pairSupplier);
+    }
+
+    private <K, V> ItemTemplates<K, V> init(SelectorSuppliersPair<K, V> pairSupplier) throws ValidateException {
+        try {
+            return ItemTemplates.of(topicMappings, pairSupplier);
+        } catch (EvaluationException e) {
+            throw new ValidateException(e.getMessage());
         }
     }
 
@@ -93,17 +165,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.loop = buildLoop(eventListener);
-    }
-
-    private Loop buildLoop(ItemEventListener eventListener) {
-        String valueConsumer = configuration.get("value.consumer");
-        String keyConsumer = configuration.get("key.consumer");
-
-        KeySelectorSupplier<?> k = makeKeySelectorSupplier(keyConsumer);
-        ValueSelectorSupplier<?> v = makeValueSelectorSupplier(valueConsumer);
-
-        return makeLoop(k, v, eventListener);
+        this.loop = makeLoop(loopConfig, eventListener);
     }
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
@@ -124,12 +186,12 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         };
     }
 
-    private Loop makeLoop(KeySelectorSupplier<?> k, ValueSelectorSupplier<?> v, ItemEventListener eventListener) {
-        return loop(k, v, eventListener);
+    private Loop makeLoop(ConsumerLoopConfig<?, ?> config, ItemEventListener eventListener) {
+        return loop(config, eventListener);
     }
 
-    private <K, V> Loop loop(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v, ItemEventListener eventListener) {
-        return new ConsumerLoop<>(configuration, topicMappings, k, v, eventListener);
+    private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
+        return new ConsumerLoop<>(config, eventListener);
     }
 
     @Override

@@ -12,7 +12,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder;
 
 public class RecordInspectorBuilderTest {
 

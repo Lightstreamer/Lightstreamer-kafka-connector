@@ -16,12 +16,14 @@ import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.truth.BooleanSubject;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemExpressionEvaluator.EvaluationException;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemSchema.MatchResult;
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector.Builder;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.Value;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.Item;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
+import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
+import com.lightstreamer.kafka_connector.adapter.mapping.Schema.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 
 public class ItemTemplateTest {
@@ -184,7 +186,7 @@ public class ItemTemplateTest {
 	@Tag("integration")
 	@ParameterizedTest(name = "[{index}] {arguments}")
 	@CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-			    TEMPLATE                                                                         | SUBCRIBING_ITEM                        | MATCH
+			    TEMPLATE                                                                     | SUBCRIBING_ITEM                        | MATCH
 			    kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe>                  | true
 			    kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe,child=alex>       | true
 			    kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<child=alex>                | true
@@ -198,6 +200,7 @@ public class ItemTemplateTest {
 			    kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
 			    kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
 			    kafka-avro-${child=VALUE.children[1].children[2].name}                       | kafka-avro-<child=terence>             | true
+				#kafka-avro-${KEY}
 			""")
 	public void shouldExpand(String template, String subscribingItem, boolean matched) throws EvaluationException {
 		RecordInspector.Builder<GenericRecord, GenericRecord> builder = RecordInspector.builder(

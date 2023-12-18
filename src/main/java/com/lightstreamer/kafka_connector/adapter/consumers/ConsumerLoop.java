@@ -3,7 +3,6 @@ package com.lightstreamer.kafka_connector.adapter.consumers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
@@ -20,86 +19,59 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
-import com.lightstreamer.kafka_connector.adapter.evaluator.Item;
-import com.lightstreamer.kafka_connector.adapter.evaluator.ItemTemplate;
-import com.lightstreamer.kafka_connector.adapter.evaluator.RecordInspector;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.evaluator.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.Item;
+import com.lightstreamer.kafka_connector.adapter.mapping.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
+import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
 
 public class ConsumerLoop<K, V> implements Loop {
 
-    private final Properties properties = new Properties();
+    private final Properties properties;
 
     private final ItemEventListener eventListener;
 
     private final AtomicBoolean isSubscribed = new AtomicBoolean(false);
 
-    private final List<TopicMapping> topicMappings;
-
     private final Map<String, Item> subscribedItems = new ConcurrentHashMap<>();
-
-    private final List<ItemTemplate<K, V>> itemTemplates;
 
     private final CyclicBarrier barrier;
 
     private final RecordInspector<K, V> recordInspector;
 
+    private final Selectors<K, V> fieldsSelectors;
+
+    private final ItemTemplates<K, V> itemTemplates;
+
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
-    public ConsumerLoop(Map<String, String> configuration,
-            List<TopicMapping> topicMappings,
-            KeySelectorSupplier<K> ks,
-            ValueSelectorSupplier<V> vs,
-            ItemEventListener eventListener) {
+    public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
+        this.properties = config.consumerProperties();
+        this.itemTemplates = config.itemTemplates();
+        this.fieldsSelectors = config.fieldsSelectors();
 
         this.eventListener = eventListener;
-        this.topicMappings = topicMappings;
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.get("bootstrap-servers"));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, configuration.get("group-id"));
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.setProperty("adapter.dir", configuration.get("adapter.dir"));
-        Optional.ofNullable(configuration.get("key.schema.file"))
-                .ifPresent(v -> properties.setProperty("key.schema.file", v));
-        Optional.ofNullable(configuration.get("value.schema.file"))
-                .ifPresent(v -> properties.setProperty("value.schema.file", v));
-        log.info("Properties: {}", properties);
-        ks.configKey(configuration, properties);
-        vs.configValue(configuration, properties);
 
-        log.info("Creating item templates");
-        itemTemplates = ItemTemplate.fromTopicMappings(topicMappings, RecordInspector.builder(ks, vs));
-        recordInspector = instruct(configuration, RecordInspector.builder(ks, vs));
+        recordInspector = RecordInspector.<K, V>builder()
+                .withItemTemplates(itemTemplates)
+                .withSelectors(fieldsSelectors)
+                .build();
 
         barrier = new CyclicBarrier(2);
-    }
-
-    RecordInspector<K, V> instruct(Map<String, String> configuration, RecordInspector.Builder<K, V> builder) {
-        configuration.entrySet()
-                .stream()
-                .filter(e -> e.getKey().startsWith("field."))
-                .map(e -> new Pair<>(
-                        e.getKey().substring(e.getKey().indexOf(".") + 1),
-                        e.getValue()))
-                .forEach(p -> builder.instruct(p.first(), p.second()));
-
-        return builder.build();
     }
 
     @Override
     public void trySubscribe(String item, Object itemHandle) {
         Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
-            for (ItemTemplate<K, V> itemTemplate : this.itemTemplates) {
-                try {
-                    Item newItem = Item.of(it, itemHandle);
-                    boolean result = itemTemplate.matches(newItem);
-                    if (result) {
-                        log.info("Subscribed to {}", it);
-                        return newItem;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+            try {
+                Item newItem = Item.of(it, itemHandle);
+                if (itemTemplates.matches(newItem)) {
+                    log.info("Subscribed to {}", it);
+                    return newItem;
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+
             return null;
         });
         if (subscribedItem != null) {
@@ -119,7 +91,7 @@ public class ConsumerLoop<K, V> implements Loop {
             KafkaConsumer<K, V> consumer = new KafkaConsumer<>(properties);
             log.info("Connected to Kafka");
 
-            List<String> topics = topicMappings.stream().map(TopicMapping::topic).toList();
+            List<String> topics = itemTemplates.topics().toList();
             consumer.subscribe(topics);
             CompletableFuture.runAsync(() -> {
                 // Poll for new data
@@ -153,12 +125,11 @@ public class ConsumerLoop<K, V> implements Loop {
     }
 
     protected void consume(ConsumerRecord<K, V> record) {
-        itemTemplates.stream()
-                .flatMap(template -> template.expand(record).stream())
-                .forEach(expandedItem -> processItem(record, expandedItem));
+        RemappedRecord remappedRecord = recordInspector.extract(record);
+        itemTemplates.expand(remappedRecord).forEach(expandedItem -> processItem(remappedRecord, expandedItem));
     }
 
-    private void processItem(ConsumerRecord<K, V> record, Item expandedItem) {
+    private void processItem(RemappedRecord record, Item expandedItem) {
         for (Item subscribedItem : subscribedItems.values()) {
             if (!expandedItem.matches(subscribedItem)) {
                 log.warn("Expanded item <{}> does not match subscribed item <{}>",
@@ -167,8 +138,7 @@ public class ConsumerLoop<K, V> implements Loop {
                 continue;
             }
             // log.info("Sending updates");
-            Map<String, String> values = recordInspector.inspect(record);
-            eventListener.smartUpdate(subscribedItem.itemHandle(), values, false);
+            eventListener.smartUpdate(subscribedItem.itemHandle(), record.filter(fieldsSelectors.schema()), false);
         }
     }
 
