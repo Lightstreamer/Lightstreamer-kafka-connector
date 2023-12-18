@@ -57,7 +57,6 @@ public class ConfigParser {
 
     private Logger log = LoggerFactory.getLogger(ConfigParser.class);
 
-
     public ConfigParser() {
     }
 
@@ -122,6 +121,7 @@ public class ConfigParser {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ValidateException {
         Map<String, String> configuration = CONFIG_SPEC.parse(params);
+
         // Retrieve "map.<topic-name>.to"
         List<TopicMapping> topicMappings = new ArrayList<>();
         for (String paramKey : configuration.keySet()) {
@@ -133,12 +133,12 @@ public class ConfigParser {
         }
 
         // Retrieve "field.<name>"
-        Map<String, String> fields = new HashMap<>();
+        Map<String, String> fieldsMapping = new HashMap<>();
         for (String paramKey : configuration.keySet()) {
             if (paramKey.startsWith("field.")) {
                 String fieldName = paramKey.split("\\.")[1];
-                String mapping = configuration.get(paramKey);
-                fields.put(fieldName, mapping);
+                String mappingExpression = configuration.get(paramKey);
+                fieldsMapping.put(fieldName, mappingExpression);
             }
         }
 
@@ -149,7 +149,7 @@ public class ConfigParser {
         Properties props = initProperties(configuration, selectorsSupplier);
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(topicMappings, selectorsSupplier);
         Selectors<?, ?> fieldsSelectors = Selectors.builder(selectorsSupplier)
-                .withMap(fields)
+                .withMap(fieldsMapping)
                 .build();
 
         return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);

@@ -68,20 +68,18 @@ public interface ItemTemplates<K, V> {
 
     static <K, V> ItemTemplates<K, V> of(List<TopicMapping> topics, SelectorsSupplier<K, V> selectorsSupplier)
             throws EvaluationException {
-
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
-                Selectors.Builder<K, V> selectorsBuilder = Selectors.builder(selectorsSupplier);
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                result.forEach(selectorsBuilder::withEntry);
-                templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectorsBuilder.build()));
+                Selectors<K, V> selectors = Selectors.builder(selectorsSupplier)
+                        .withMap(result.params())
+                        .build();
+                templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectors));
             }
         }
         return new DefaultItemTemplates<>(templates);
-
     }
-
 }
 
 class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {

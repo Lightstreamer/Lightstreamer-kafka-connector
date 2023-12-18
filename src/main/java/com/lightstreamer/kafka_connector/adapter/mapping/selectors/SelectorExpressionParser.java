@@ -24,7 +24,6 @@ public class SelectorExpressionParser<K, V> {
     private static Pattern INDEXES = Pattern.compile("\\[(\\d*)\\]");
 
     public interface NodeEvaluator<K, V> {
-
         V get(K k);
     }
 
@@ -32,7 +31,7 @@ public class SelectorExpressionParser<K, V> {
 
         private LinkedNode<T> next;
 
-        private T value;
+        private final T value;
 
         LinkedNode(T value) {
             this.value = value;

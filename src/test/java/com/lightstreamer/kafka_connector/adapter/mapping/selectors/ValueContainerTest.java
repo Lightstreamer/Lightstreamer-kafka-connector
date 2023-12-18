@@ -5,9 +5,6 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueContainer;
-
 @Tag("unit")
 public class ValueContainerTest {
 

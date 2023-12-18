@@ -2,7 +2,6 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,10 +17,6 @@ public interface ItemExpressionEvaluator {
     }
 
     record Result(String prefix, Map<String, String> params) {
-
-        void forEach(Consumer<? super Map.Entry<String, String>> c) {
-            params.entrySet().forEach(c);
-        }
 
         Schema schema() {
             return Schema.of(params.keySet());
