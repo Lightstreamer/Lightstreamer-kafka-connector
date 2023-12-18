@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.consumers;
+package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import java.util.List;
 import java.util.Objects;

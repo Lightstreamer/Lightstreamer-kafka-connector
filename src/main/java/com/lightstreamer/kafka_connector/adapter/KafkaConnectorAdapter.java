@@ -3,6 +3,7 @@ package com.lightstreamer.kafka_connector.adapter;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -16,35 +17,20 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigParser;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
-import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoopConfig;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
 
-    private static final ConfigSpec CONFIG_SPEC;
+    private static final ConfigParser CONFIG_PARSER = new ConfigParser();
 
     private Logger log;
 
     private Loop loop;
 
     private ConsumerLoopConfig<?, ?> loopConfig;
-
-    static {
-        CONFIG_SPEC = new ConfigSpec()
-                .add("bootstrap-servers", true, false, new ListType<ConfType>(ConfType.Host))
-                .add("group-id", true, false, ConfType.Text)
-                .add("consumer", false, false, ConfType.Text)
-                .add("value.schema.file", false, false, ConfType.Text)
-                .add("value.consumer", true, false, ConfType.Text)
-                .add("key.schema.file", false, false, ConfType.Text)
-                .add("key.consumer", false, false, ConfType.Text)
-                .add("field.", true, true, ConfType.Text)
-                .add("map.", true, true, ConfType.Text);
-    }
 
     public KafkaConnectorAdapter() {
     }
@@ -56,14 +42,9 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         PropertyConfigurator.configure(path.toString());
         log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
         try {
-            Map<String, String> configuration = CONFIG_SPEC.parse(params);
-            configuration.put("adapter.dir", configDir.getAbsolutePath());
-
-            // SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
-            // makeKeySelectorSupplier(configuration.get("key.consumer")),
-            // makeValueSelectorSupplier(configuration.get("value.consumer")));
-
-            loopConfig = ConsumerLoopConfig.init(configuration);
+            Map<String, String> conf = new HashMap<>(params);
+            conf.put("adapter.dir", configDir.getAbsolutePath());
+            loopConfig = CONFIG_PARSER.parse(conf);
             log.info("Init completed");
         } catch (ValidateException ve) {
             throw new DataProviderException(ve.getMessage());
@@ -75,17 +56,17 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         return false;
     }
 
-    @Override
-    public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.loop = makeLoop(loopConfig, eventListener);
+    private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
+        return new ConsumerLoop<>(config, eventListener);
     }
 
     private Loop makeLoop(ConsumerLoopConfig<?, ?> config, ItemEventListener eventListener) {
         return loop(config, eventListener);
     }
 
-    private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        return new ConsumerLoop<>(config, eventListener);
+    @Override
+    public void setListener(@Nonnull ItemEventListener eventListener) {
+        this.loop = makeLoop(loopConfig, eventListener);
     }
 
     @Override
@@ -94,15 +75,15 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     }
 
     @Override
-    public void unsubscribe(@Nonnull String itemName) throws SubscriptionException, FailureException {
-        log.info("Unsibscribing from item [{}]", itemName);
-        loop.unsubscribe(itemName);
-    }
-
-    @Override
     public void subscribe(@Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
         log.info("Trying subscription to item [{}]", itemName);
         loop.trySubscribe(itemName, itemHandle);
+    }
+
+    @Override
+    public void unsubscribe(@Nonnull String itemName) throws SubscriptionException, FailureException {
+        log.info("Unsibscribing from item [{}]", itemName);
+        loop.unsubscribe(itemName);
     }
 }

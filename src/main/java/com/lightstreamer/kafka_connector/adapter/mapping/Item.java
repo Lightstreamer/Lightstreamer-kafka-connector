@@ -23,11 +23,11 @@ public class Item {
         this.schema = Schema.of(values.keySet());
     }
 
-    public String prefix() {
+    String prefix() {
         return prefix;
     }
 
-    public Schema schema() {
+    Schema schema() {
         return schema;
     }
 

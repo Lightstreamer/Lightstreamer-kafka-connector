@@ -7,10 +7,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.RemappedRecord;
-import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 
 class ItemTemplate<K, V> {

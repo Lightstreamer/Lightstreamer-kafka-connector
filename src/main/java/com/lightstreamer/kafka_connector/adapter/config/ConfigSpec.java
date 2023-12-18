@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ConfigSpec {
+class ConfigSpec {
 
-  public interface Type {
+  interface Type {
 
     boolean isValid(String param);
 
@@ -21,7 +21,7 @@ public class ConfigSpec {
     }
   }
 
-  public static class ListType<T extends Type> implements Type {
+  static class ListType<T extends Type> implements Type {
 
     private final T type;
 
@@ -37,7 +37,7 @@ public class ConfigSpec {
 
   }
 
-  public enum ConfType implements Type {
+  enum ConfType implements Type {
 
     Text {
       public boolean isValid(String param) {
@@ -78,12 +78,12 @@ public class ConfigSpec {
 
   private Set<ConfParameter> paramSpec = new HashSet<>();
 
-  public ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
+  ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
     paramSpec.add(new ConfParameter(name, required, multiple, type));
     return this;
   }
 
-  public Map<String, String> parse(Map<String, String> params) throws ValidateException {
+  Map<String, String> parse(Map<String, String> params) throws ValidateException {
     Map<String, String> parsedValues = new HashMap<>();
 
     for (ConfParameter parameter : paramSpec) {
@@ -110,7 +110,7 @@ class ConfParameter {
     this.multiple = multiple;
   }
 
-  public void validate(String paramName, String paramValue) throws ValidateException {
+  void validate(String paramName, String paramValue) throws ValidateException {
     System.out.printf("Validating param <%s> = <%s>%n", paramName, paramValue);
     if (required) {
       if (paramValue == null || paramValue.isBlank()) {

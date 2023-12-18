@@ -13,7 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.lightstreamer.kafka_connector.adapter.consumers.RemappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.DefaultRemappedRecord;
 
 public class ConsumedRecordTest {
 
@@ -21,7 +21,7 @@ public class ConsumedRecordTest {
     @ParameterizedTest
     @MethodSource("provider")
     public void shouldExtractSubValues(Map<String, String> values, Set<String> keys, Map<String, String> expected) {
-        RemappedRecord r = new RemappedRecord("topic", values);
+        DefaultRemappedRecord r = new DefaultRemappedRecord("topic", values);
         Map<String, String> subMap = r.subValues(keys);
         assertThat(subMap).isEqualTo(expected);
     }
