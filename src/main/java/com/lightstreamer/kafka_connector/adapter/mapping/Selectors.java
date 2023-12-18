@@ -20,13 +20,13 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 
 public interface Selectors<K, V> {
 
-    interface SelectorSuppliersPair<K, V> {
+    interface SelectorsSupplier<K, V> {
 
         KeySelectorSupplier<K> keySelectorSupplier();
 
         ValueSelectorSupplier<V> valueSelectorSupplier();
 
-        static <K, V> SelectorSuppliersPair<K, V> wrap(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
+        static <K, V> SelectorsSupplier<K, V> wrap(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
             return new DefautlSelectorSupplier<>(k, v);
 
         }
@@ -37,8 +37,8 @@ public interface Selectors<K, V> {
 
     Schema schema();
 
-    static <K, V> Builder<K, V> builder(SelectorSuppliersPair<K, V> pair) {
-        return new Builder<>(pair.keySelectorSupplier(), pair.valueSelectorSupplier());
+    static <K, V> Builder<K, V> builder(SelectorsSupplier<K, V> selectorsSupplier) {
+        return new Builder<>(selectorsSupplier.keySelectorSupplier(), selectorsSupplier.valueSelectorSupplier());
     }
 
     static class Builder<K, V> {
@@ -188,6 +188,6 @@ record DefaultSelectors<K, V>(Set<KeySelector<K>> keySelectors, Set<ValueSelecto
 }
 
 record DefautlSelectorSupplier<K, V>(KeySelectorSupplier<K> keySelectorSupplier,
-        ValueSelectorSupplier<V> valueSelectorSupplier) implements Selectors.SelectorSuppliersPair<K, V> {
+        ValueSelectorSupplier<V> valueSelectorSupplier) implements Selectors.SelectorsSupplier<K, V> {
 
 }

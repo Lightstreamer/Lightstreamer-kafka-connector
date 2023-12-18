@@ -18,7 +18,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder
 public class RecordInspectorBuilderTest {
 
     static Stream<Builder<?, ?>> builderProvider() {
-        return Stream.of(RecordInspector.noSelectorsBuilder(), RecordInspector.stringSelectorsBuilder());
+        return Stream.init(RecordInspector.noSelectorsBuilder(), RecordInspector.stringSelectorsBuilder());
     }
 
     @Tag("unit")

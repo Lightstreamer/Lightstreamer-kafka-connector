@@ -11,7 +11,7 @@ import com.lightstreamer.kafka_connector.adapter.consumers.RemappedRecord;
 import com.lightstreamer.kafka_connector.adapter.consumers.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
-import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorSuppliersPair;
+import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 
 class ItemTemplate<K, V> {
 
@@ -67,13 +67,13 @@ public interface ItemTemplates<K, V> {
 
     Stream<String> topics();
 
-    static <K, V> ItemTemplates<K, V> of(List<TopicMapping> topics, SelectorSuppliersPair<K, V> pairSupplier)
+    static <K, V> ItemTemplates<K, V> of(List<TopicMapping> topics, SelectorsSupplier<K, V> selectorsSupplier)
             throws EvaluationException {
 
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
-                Selectors.Builder<K, V> selectorsBuilder = Selectors.builder(pairSupplier);
+                Selectors.Builder<K, V> selectorsBuilder = Selectors.builder(selectorsSupplier);
                 Result result = ItemExpressionEvaluator.template().eval(template);
                 result.forEach(selectorsBuilder::withEntry);
                 templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectorsBuilder.build()));
