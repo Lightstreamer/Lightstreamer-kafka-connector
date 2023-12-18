@@ -15,8 +15,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.Item;
-import com.lightstreamer.kafka_connector.adapter.mapping.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 
 public class ItemTest {
@@ -25,9 +23,10 @@ public class ItemTest {
     @Test
     public void shouldHaveSchemaAndValues() {
         Item item = new Item("source", "item", Map.of("a", "A", "b", "B"));
+        assertThat(item.prefix()).isEqualTo("item");
+
         Schema schema = item.schema();
         assertThat(schema).isNotNull();
-        assertThat(schema.prefix()).isEqualTo("item");
         assertThat(schema.keys()).isNotEmpty();
         assertThat(schema.keys()).containsExactly("a", "b");
         assertThat(item.values()).isNotEmpty();
@@ -103,7 +102,7 @@ public class ItemTest {
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
-        assertThat(item.schema().prefix()).isEqualTo(expectedPrefix);
+        assertThat(item.prefix()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEmpty();
         assertThat(item.values()).isEmpty();
     }
@@ -127,8 +126,9 @@ public class ItemTest {
         Object handle = new Object();
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
+        assertThat(item.prefix()).isEqualTo(expectedPrefix);
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
-        assertThat(item.schema().prefix()).isEqualTo(expectedPrefix);
+
         if (expectedName != null && expectedValue != null) {
             assertThat(item.values()).containsExactly(expectedName, expectedValue);
         } else {
@@ -148,7 +148,6 @@ public class ItemTest {
         Item item = Item.of(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
-
         assertThat(item.values()).containsExactly(name1, val1, name2, value2);
     }
 

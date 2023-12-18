@@ -45,6 +45,10 @@ public class Item {
             return false;
         }
 
+        if (!prefix.equals(other.prefix())) {
+            return false;
+        }
+
         return result.matchedKeys()
                 .stream()
                 .allMatch(key -> valuesMap.get(key).equals(other.valuesMap.get(key)));

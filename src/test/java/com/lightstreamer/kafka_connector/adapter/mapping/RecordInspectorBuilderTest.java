@@ -12,7 +12,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder;
 
 public class RecordInspectorBuilderTest {
@@ -98,7 +97,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldInstruct() {
-        Builder<String, String> builder = RecordInspector.stringSelectorsBuilder();
+        Builder<String, String> builder = RecordInspector.builder();
         builder.instruct("name1", "VALUE");
         builder.instruct("name1", "VALUE");
         builder.instruct("name1", "KEY");

@@ -29,7 +29,7 @@ public interface RecordInspector<K, V> {
 		Map<String, String> filter(Schema schema);
 	}
 
-	DefaultRemappedRecord extract(ConsumerRecord<K, V> record);
+	RemappedRecord extract(ConsumerRecord<K, V> record);
 
 	static <K, V> Builder<K, V> builder() {
 		return new Builder<>();
@@ -70,7 +70,7 @@ class DefaultRecordInspector<K, V> implements RecordInspector<K, V> {
 	}
 
 	@Override
-	public DefaultRemappedRecord extract(ConsumerRecord<K, V> record) {
+	public RemappedRecord extract(ConsumerRecord<K, V> record) {
 		Set<Value> values = selectors.stream().flatMap(s -> s.extract(record).stream()).collect(Collectors.toSet());
 		return new DefaultRemappedRecord(record.topic(), values);
 	}
