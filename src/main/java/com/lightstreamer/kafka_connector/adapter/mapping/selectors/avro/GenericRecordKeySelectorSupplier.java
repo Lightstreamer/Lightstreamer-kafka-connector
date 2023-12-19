@@ -20,8 +20,8 @@ public class GenericRecordKeySelectorSupplier extends AbstractSelectorSupplier<G
     static final class GenericRecordKeySelector extends GenericRecordBaseSelector
             implements KeySelector<GenericRecord> {
 
-        GenericRecordKeySelector(String name, String expression) {
-            super(name, expression);
+        GenericRecordKeySelector(String name, String expectedRoot, String expression) {
+            super(name, expectedRoot, expression);
         }
 
         @Override
@@ -32,7 +32,7 @@ public class GenericRecordKeySelectorSupplier extends AbstractSelectorSupplier<G
 
     @Override
     public KeySelector<GenericRecord> selector(String name, String expression) {
-        return new GenericRecordKeySelector(name, expression);
+        return new GenericRecordKeySelector(name, expectedRoot(), expression);
     }
 
     @Override

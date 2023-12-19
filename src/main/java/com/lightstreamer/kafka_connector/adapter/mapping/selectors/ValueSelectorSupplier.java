@@ -4,8 +4,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 
-public interface ValueSelectorSupplier<V> {
+public interface ValueSelectorSupplier<V> extends SelectorSupplier<ValueSelector<V>> {
 
     ValueSelector<V> selector(String name, String expression);
 
@@ -14,5 +15,12 @@ public interface ValueSelectorSupplier<V> {
         props.put("adapter.dir", configuration.get("adapter.dir"));
     }
 
-    String deserializer(Properties pros);
+    default String deserializer(Properties pros) {
+        return StringDeserializer.class.getName();
+    }
+
+    default String expectedRoot() {
+        return "VALUE";
+    }
+
 }

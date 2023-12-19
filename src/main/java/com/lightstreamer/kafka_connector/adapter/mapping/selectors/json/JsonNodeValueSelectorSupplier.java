@@ -19,8 +19,8 @@ public class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<Json
 
     static final class JsonNodeValueSelector extends JsonNodeBaseSelector implements ValueSelector<JsonNode> {
 
-        protected JsonNodeValueSelector(String name, String expression) {
-            super(name, expression);
+        protected JsonNodeValueSelector(String name, String expectedRoot, String expression) {
+            super(name, expectedRoot, expression);
         }
 
         @Override
@@ -49,7 +49,7 @@ public class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<Json
 
     @Override
     public ValueSelector<JsonNode> selector(String name, String expression) {
-        return new JsonNodeValueSelector(name, expression);
+        return new JsonNodeValueSelector(name, expectedRoot(), expression);
     }
 
     @Override

@@ -1,73 +1,20 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithKey;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider.RECORD;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.record.TimestampType;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 
 @Tag("unit")
 public class JsonNodeSelectorSuppliersTest {
-
-    static class Value {
-
-        public String name;
-
-        public Value child;
-
-        public List<Value> children;
-
-        public Value[][] family;
-
-        public Value(String name) {
-            this.name = name;
-        }
-
-        public Value(String name, List<Value> children) {
-            this(name);
-            this.children = List.copyOf(children);
-        }
-
-        public Value(String name, Value[][] family) {
-            this(name);
-            this.family = family;
-        }
-    }
-
-    private static ConsumerRecord<JsonNode, ?> recordWithKey(JsonNode key) {
-        return record(key, null);
-    }
-
-    private static ConsumerRecord<?, JsonNode> recordWithValue(JsonNode value) {
-        return record(null, value);
-    }
-
-    private static ConsumerRecord<JsonNode, JsonNode> record(JsonNode key, JsonNode value) {
-        return new ConsumerRecord<>(
-                "record-topic",
-                150,
-                120,
-                ConsumerRecord.NO_TIMESTAMP,
-                TimestampType.NO_TIMESTAMP_TYPE,
-                ConsumerRecord.NULL_SIZE,
-                ConsumerRecord.NULL_SIZE,
-                key,
-                value,
-                new RecordHeaders(),
-                Optional.empty());
-    }
 
     static ValueSelector<JsonNode> valueSelector(String expression) {
         return new JsonNodeValueSelectorSupplier().selector("name", expression);
@@ -88,20 +35,8 @@ public class JsonNodeSelectorSuppliersTest {
             VALUE.children[1].children[1].name, terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
-        ObjectNode node = newNode();
         ValueSelector<JsonNode> s = valueSelector(expression);
-        assertThat(s.extract(recordWithValue(node)).text()).isEqualTo(expectedValue);
-    }
-
-    private ObjectNode newNode() {
-        Value value = new Value("joe",
-                List.of(new Value("alex"),
-                        new Value("anna",
-                                List.of(new Value("gloria"), new Value("terence"))),
-                        new Value("serena")));
-
-        ObjectNode node = new ObjectMapper().valueToTree(value);
-        return node;
+        assertThat(s.extract(recordWithValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -115,8 +50,7 @@ public class JsonNodeSelectorSuppliersTest {
             KEY.children[1].children[1].name,  terence
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
-        ObjectNode node = newNode();
         KeySelector<JsonNode> s = keySelector(expression);
-        assertThat(s.extract(recordWithKey(node)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract(recordWithKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 }

@@ -2,7 +2,6 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import java.util.Map;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.Schema.MatchResult;
 
@@ -54,7 +53,7 @@ public class Item {
                 .allMatch(key -> valuesMap.get(key).equals(other.valuesMap.get(key)));
     }
 
-    static public Item of(String input, Object itemHandle) throws EvaluationException {
+    static public Item of(String input, Object itemHandle) throws ExpressionException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
         return new Item(itemHandle, result.prefix(), result.params());
     }

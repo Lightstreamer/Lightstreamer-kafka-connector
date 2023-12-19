@@ -6,8 +6,4 @@ public interface KeySelector<K> extends Selector {
 
     Value extract(ConsumerRecord<K, ?> record);
 
-    default String expectedRoot() {
-        return "KEY";
-    }
-
 }

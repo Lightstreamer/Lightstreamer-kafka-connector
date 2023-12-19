@@ -64,10 +64,11 @@ abstract sealed class JsonNodeBaseSelector extends BaseSelector
             .withArrayEvaluator(ArrayGetter::new)
             .build();
 
-    protected JsonNodeBaseSelector(String name, String expression) {
+    protected JsonNodeBaseSelector(String name, String expectedRoot, String expression) {
         super(name, expression);
-        this.linkedNode = PARSER.parse(expectedRoot(), expression);
+        this.linkedNode = PARSER.parse(expectedRoot, expression);
     }
+
 
     protected Value eval(JsonNode currentJsonNode) {
         LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = linkedNode;

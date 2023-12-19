@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder;
-
+    
 public class RecordInspectorBuilderTest {
 
     static Stream<Builder<?, ?>> builderProvider() {

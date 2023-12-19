@@ -8,14 +8,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
+
 public class SelectorExpressionParser<K, V> {
-
-    public static class ParseException extends RuntimeException {
-
-        ParseException(String message) {
-            super(message);
-        }
-    }
 
     public static String SELECTION_REGEX = "\\$\\{(.*)\\}";
 
@@ -100,10 +95,10 @@ public class SelectorExpressionParser<K, V> {
 
     private void parseRoot(Scanner scanner, String expectedRoot) {
         if (!scanner.hasNext()) {
-            throw new ParseException("Expected root token");
+            throw new ExpressionException("Expected root token");
         }
         if (!expectedRoot.equals(scanner.next())) {
-            throw new ParseException("Expected <" + expectedRoot + ">");
+            ExpressionException.throwExpectedToken(expectedRoot);
         }
     }
 
@@ -130,7 +125,7 @@ public class SelectorExpressionParser<K, V> {
             }
         }
         if (head == null) {
-            throw new ParseException("Invalid expression");
+            ExpressionException.throwInvalidExpression();
         }
         return head;
     }

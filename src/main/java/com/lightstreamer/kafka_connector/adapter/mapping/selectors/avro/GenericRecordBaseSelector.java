@@ -68,9 +68,9 @@ sealed class GenericRecordBaseSelector extends BaseSelector
             .withArrayEvaluator(ArrayGetter::new)
             .build();
 
-    public GenericRecordBaseSelector(String name, String expression) {
+    public GenericRecordBaseSelector(String name, String expectedRoot, String expression) {
         super(name, expression);
-        this.linkedNode = PARSER.parse(expectedRoot(), expression);
+        this.linkedNode = PARSER.parse(expectedRoot, expression);
     }
 
     protected Value eval(GenericRecord record) {
@@ -84,14 +84,6 @@ sealed class GenericRecordBaseSelector extends BaseSelector
             currentLinkedNode = currentLinkedNode.next();
         }
 
-        // } while (linkedNode.hasNext());
-        // while (nodesList.hasNext()) {
-        // NodeEvaluator<GenericRecord, Object> evaluator = nodesList.next();
-        // value = evaluator.get(currentRecord);
-        // if (iterator.hasNext()) {
-        // currentRecord = (GenericRecord) value;
-        // }
-        // }
         return Value.of(name(), value.toString());
     }
 }

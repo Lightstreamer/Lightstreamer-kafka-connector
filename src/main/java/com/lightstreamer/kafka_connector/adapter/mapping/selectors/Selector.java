@@ -4,8 +4,4 @@ public interface Selector extends ValueSchema {
 
     String expression();
 
-    default String expectedRoot() {
-        return "";
-    }
-
 }

@@ -9,13 +9,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpre
 
 public interface ItemExpressionEvaluator {
 
-    static class EvaluationException extends Exception {
-
-        EvaluationException(String message) {
-            super(message);
-        }
-    }
-
     record Result(String prefix, Map<String, String> params) {
 
         Schema schema() {
@@ -32,7 +25,7 @@ public interface ItemExpressionEvaluator {
         return ItemEvaluator.SUBSCRIBED;
     }
 
-    Result eval(String expression) throws EvaluationException;
+    Result eval(String expression) throws ExpressionException;
 }
 
 enum ItemEvaluator implements ItemExpressionEvaluator {
@@ -52,10 +45,14 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
         this.local = local;
     }
 
-    public Result eval(String expression) throws EvaluationException {
+    /**
+     * 
+     * @throws ExpressionException
+     */
+    public Result eval(String expression) {
         Matcher matcher = gobal.matcher(expression);
         if (!matcher.matches()) {
-            throw new RuntimeException("Invalid item");
+            throw new ExpressionException("Invalid item");
         }
         Map<String, String> queryParams = new HashMap<>();
         String prefix = matcher.group(1);
@@ -70,12 +67,12 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
                 String key = m.group(2);
                 String value = m.group(3);
                 if (queryParams.put(key, value) != null) {
-                    throw new EvaluationException("No duplicated keys are allowed");
+                    throw new ExpressionException("No duplicated keys are allowed");
                 }
                 previousEnd = m.end();
             }
             if (previousEnd < queryString.length()) {
-                throw new RuntimeException("Invalid query parameter");
+                throw new ExpressionException("Invalid query parameter");
             }
         }
 

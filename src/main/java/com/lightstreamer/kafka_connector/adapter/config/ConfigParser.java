@@ -15,11 +15,11 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
-import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
-import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
@@ -71,7 +71,7 @@ public class ConfigParser {
             throws ValidateException {
         try {
             return ItemTemplates.of(topicMappings, selectorsSupplier);
-        } catch (EvaluationException e) {
+        } catch (ExpressionException e) {
             throw new ValidateException(e.getMessage());
         }
     }
@@ -148,9 +148,7 @@ public class ConfigParser {
 
         Properties props = initProperties(configuration, selectorsSupplier);
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(topicMappings, selectorsSupplier);
-        Selectors<?, ?> fieldsSelectors = Selectors.builder(selectorsSupplier)
-                .withMap(fieldsMapping)
-                .build();
+        Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, fieldsMapping);
 
         return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);
     }

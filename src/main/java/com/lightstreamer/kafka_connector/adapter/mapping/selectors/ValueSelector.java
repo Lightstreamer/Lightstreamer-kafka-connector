@@ -6,8 +6,4 @@ public interface ValueSelector<V> extends Selector {
 
     Value extract(ConsumerRecord<?, V> record);
 
-    default String expectedRoot() {
-        return "VALUE";
-    }
-
 }

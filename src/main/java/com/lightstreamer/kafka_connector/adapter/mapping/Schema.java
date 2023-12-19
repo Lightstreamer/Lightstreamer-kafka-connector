@@ -11,6 +11,10 @@ public interface Schema {
 
     public Set<String> keys();
 
+    default boolean isEmpty() {
+        return keys().isEmpty();
+    }
+
     default public MatchResult matches(Schema other) {
         Set<String> thisKeys = keys();
         Set<String> otherKeys = other.keys();

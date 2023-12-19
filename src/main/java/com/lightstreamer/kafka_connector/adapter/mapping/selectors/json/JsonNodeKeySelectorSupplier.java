@@ -19,8 +19,8 @@ public class JsonNodeKeySelectorSupplier extends AbstractSelectorSupplier<JsonNo
 
     static final class JsonNodeKeySelector extends JsonNodeBaseSelector implements KeySelector<JsonNode> {
 
-        protected JsonNodeKeySelector(String name, String expression) {
-            super(name, expression);
+        protected JsonNodeKeySelector(String name, String expectedRoot, String expression) {
+            super(name, expectedRoot, expression);
         }
 
         @Override
@@ -48,7 +48,7 @@ public class JsonNodeKeySelectorSupplier extends AbstractSelectorSupplier<JsonNo
 
     @Override
     public KeySelector<JsonNode> selector(String name, String expression) {
-        return new JsonNodeKeySelector(name, expression);
+        return new JsonNodeKeySelector(name, expectedRoot(), expression);
     }
 
 }

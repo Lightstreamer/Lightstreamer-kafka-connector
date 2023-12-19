@@ -100,50 +100,50 @@ class DefaultRemappedRecord implements RemappedRecord {
 	}
 }
 
-class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {
+// class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {
 
-	@Override
-	public KeySelector<K> selector(String name, String expression) {
-		throw new UnsupportedOperationException("Unimplemented method 'selector'");
-	}
-}
+// 	@Override
+// 	public KeySelector<K> selector(String name, String expression) {
+// 		throw new UnsupportedOperationException("Unimplemented method 'selector'");
+// 	}
+// }
 
-class FakeValueSelectorSupplier<V> implements ValueSelectorSupplier<V> {
+// class FakeValueSelectorSupplier<V> implements ValueSelectorSupplier<V> {
 
-	@Override
-	public ValueSelector<V> selector(String name, String expression) {
-		throw new UnsupportedOperationException("Unimplemented method 'selector'");
-	}
+// 	@Override
+// 	public ValueSelector<V> selector(String name, String expression) {
+// 		throw new UnsupportedOperationException("Unimplemented method 'selector'");
+// 	}
 
-	@Override
-	public String deserializer(Properties pros) {
-		throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
-	}
+// 	@Override
+// 	public String deserializer(Properties pros) {
+// 		throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
+// 	}
 
-}
+// }
 
-class FakeKeySelector<K> extends BaseSelector implements KeySelector<K> {
+// class FakeKeySelector<K> extends BaseSelector implements KeySelector<K> {
 
-	protected FakeKeySelector(String name, String expression) {
-		super(name, expression);
-	}
+// 	protected FakeKeySelector(String name, String expression) {
+// 		super(name, expression);
+// 	}
 
-	@Override
-	public Value extract(ConsumerRecord<K, ?> record) {
-		throw new UnsupportedOperationException("Unimplemented method 'extract'");
-	}
+// 	@Override
+// 	public Value extract(ConsumerRecord<K, ?> record) {
+// 		throw new UnsupportedOperationException("Unimplemented method 'extract'");
+// 	}
 
-}
+// }
 
-class FakeValueSelector<V> extends BaseSelector implements ValueSelector<V> {
+// class FakeValueSelector<V> extends BaseSelector implements ValueSelector<V> {
 
-	protected FakeValueSelector(String name, String expression) {
-		super(name, expression);
-	}
+// 	protected FakeValueSelector(String name, String expression) {
+// 		super(name, expression);
+// 	}
 
-	@Override
-	public Value extract(ConsumerRecord<?, V> record) {
-		throw new UnsupportedOperationException("Unimplemented method 'extract'");
-	}
+// 	@Override
+// 	public Value extract(ConsumerRecord<?, V> record) {
+// 		throw new UnsupportedOperationException("Unimplemented method 'extract'");
+// 	}
 
-}
+// }

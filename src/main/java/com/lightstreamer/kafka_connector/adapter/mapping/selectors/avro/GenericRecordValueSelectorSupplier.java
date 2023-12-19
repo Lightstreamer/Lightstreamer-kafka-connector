@@ -18,8 +18,8 @@ public class GenericRecordValueSelectorSupplier extends AbstractSelectorSupplier
     static final class GenericRecordValueSelector extends GenericRecordBaseSelector
             implements ValueSelector<GenericRecord> {
 
-        public GenericRecordValueSelector(String name, String expression) {
-            super(name, expression);
+        public GenericRecordValueSelector(String name, String expectedRoot, String expression) {
+            super(name, expectedRoot, expression);
         }
 
         @Override
@@ -30,7 +30,7 @@ public class GenericRecordValueSelectorSupplier extends AbstractSelectorSupplier
 
     @Override
     public ValueSelector<GenericRecord> selector(String name, String expression) {
-        return new GenericRecordValueSelector(name, expression);
+        return new GenericRecordValueSelector(name, expectedRoot(), expression);
     }
 
     @Override

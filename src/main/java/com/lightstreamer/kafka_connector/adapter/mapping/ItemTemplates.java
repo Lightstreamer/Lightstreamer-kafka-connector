@@ -7,7 +7,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.EvaluationException;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
@@ -66,15 +65,14 @@ public interface ItemTemplates<K, V> {
 
     Stream<String> topics();
 
+    // Invocato in fase di inizializzazione della configurazione
     static <K, V> ItemTemplates<K, V> of(List<TopicMapping> topics, SelectorsSupplier<K, V> selectorsSupplier)
-            throws EvaluationException {
+            throws ExpressionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.builder(selectorsSupplier)
-                        .withMap(result.params())
-                        .build();
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.params());
                 templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectors));
             }
         }
