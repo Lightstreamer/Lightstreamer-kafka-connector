@@ -8,5 +8,7 @@ public interface SelectorSupplier<S extends Selector> {
         return expression.startsWith(expectedRoot() + ".");
     }
 
-    String expectedRoot();
+    default String expectedRoot() {
+        return "";
+    }
 }

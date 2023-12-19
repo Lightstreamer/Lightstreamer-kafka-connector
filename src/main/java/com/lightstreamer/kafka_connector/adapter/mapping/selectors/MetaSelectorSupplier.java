@@ -1,8 +1,12 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
 
+import java.util.List;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 
 public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
 
@@ -50,10 +54,18 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
         }
 
         abstract String value(ConsumerRecord<?, ?> record);
+
+        static List<Attribute> validAttributes() {
+            return List.of(TIMESTAMP, PARTITION, TOPIC);
+
+        }
     }
 
     @Override
     public MetaSelector selector(String name, String expression) {
+        if (!maySupply(expression)) {
+            ExpressionException.throwExpectedToken("on of " + Attribute.validAttributes());
+        }
         return new DefaultMetaSelector(name, expression);
     }
 
