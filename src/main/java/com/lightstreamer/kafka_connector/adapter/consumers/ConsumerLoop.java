@@ -20,8 +20,9 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
-import com.lightstreamer.kafka_connector.adapter.mapping.Item;
-import com.lightstreamer.kafka_connector.adapter.mapping.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapter.mapping.Items;
+import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
+import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
@@ -65,7 +66,7 @@ public class ConsumerLoop<K, V> implements Loop {
 	public void trySubscribe(String item, Object itemHandle) {
 		Item subscribedItem = subscribedItems.computeIfAbsent(item, it -> {
 			try {
-				Item newItem = Item.of(it, itemHandle);
+				Item newItem = Items.itemFrom(it, itemHandle);
 				if (itemTemplates.matches(newItem)) {
 					log.info("Subscribed to {}", it);
 					return newItem;

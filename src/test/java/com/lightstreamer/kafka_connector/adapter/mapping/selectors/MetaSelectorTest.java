@@ -5,7 +5,6 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecor
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -32,9 +31,15 @@ public class MetaSelectorTest {
         assertThat(value.text()).isEqualTo(expectedValue);
     }
 
-    @Test
-    public void shouldNotCreate() {
-        ExpressionException ee = assertThrows(ExpressionException.class, () -> metaSelector("NOT-EXISTING-ATTRIBUTE"));
-        assertThat(ee.getMessage()).isEqualTo("Expected <on of [TIMESTAMP, PARTITION, TOPIC]>");
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+                EXPRESSION               |   EXPECTED_ERROR_MESSAGE
+                NOT-EXISTING-ATTRIBUTE   |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
+                ""                       |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
+                PARTITION.               |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
+            """)
+    public void shouldNotCreate(String expression, String expectedErrorMessage) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> metaSelector(expression));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

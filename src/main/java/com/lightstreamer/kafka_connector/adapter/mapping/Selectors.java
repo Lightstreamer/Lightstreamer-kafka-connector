@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.MetaSelector;
@@ -22,6 +23,8 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeKeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringValueSelectorSupplier;
 
@@ -37,12 +40,16 @@ public interface Selectors<K, V> {
             return new DefautlSelectorSupplier<>(k, v);
         }
 
-        static SelectorsSupplier<String, String> stringSelectorsSupplier() {
+        static SelectorsSupplier<String, String> string() {
             return wrap(new StringKeySelectorSupplier(), new StringValueSelectorSupplier());
         }
 
-        static SelectorsSupplier<GenericRecord, GenericRecord> genericRecordSelectorsSupplier() {
+        static SelectorsSupplier<GenericRecord, GenericRecord> genericRecord() {
             return wrap(new GenericRecordKeySelectorSupplier(), new GenericRecordValueSelectorSupplier());
+        }
+
+        static SelectorsSupplier<JsonNode, JsonNode> jsonNode() {
+            return wrap(new JsonNodeKeySelectorSupplier(), new JsonNodeValueSelectorSupplier());
         }
 
     }
@@ -182,7 +189,7 @@ public interface Selectors<K, V> {
         public Selectors<K, V> build() {
             entries.entrySet().stream().forEach(e -> {
                 if (!metaSelectorExprMgr.manage(e.getKey(), e.getValue())) {
-                    throw new ExpressionException("Unparsable expression \"" + e.getValue() + "\"");
+                    ExpressionException.throwInvalidExpression();
                 }
             });
 

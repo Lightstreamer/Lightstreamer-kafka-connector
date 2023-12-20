@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -12,17 +11,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 
 public interface RecordInspector<K, V> {
 
-	public interface RemappedRecord {
+	interface RemappedRecord {
 
 		String topic();
 
@@ -35,7 +30,7 @@ public interface RecordInspector<K, V> {
 		return new Builder<>();
 	}
 
-	public static class Builder<K, V> {
+	static class Builder<K, V> {
 
 		final List<Selectors<K, V>> allSelectors = new ArrayList<>();
 
@@ -102,48 +97,49 @@ class DefaultRemappedRecord implements RemappedRecord {
 
 // class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {
 
-// 	@Override
-// 	public KeySelector<K> selector(String name, String expression) {
-// 		throw new UnsupportedOperationException("Unimplemented method 'selector'");
-// 	}
+// @Override
+// public KeySelector<K> selector(String name, String expression) {
+// throw new UnsupportedOperationException("Unimplemented method 'selector'");
+// }
 // }
 
 // class FakeValueSelectorSupplier<V> implements ValueSelectorSupplier<V> {
 
-// 	@Override
-// 	public ValueSelector<V> selector(String name, String expression) {
-// 		throw new UnsupportedOperationException("Unimplemented method 'selector'");
-// 	}
+// @Override
+// public ValueSelector<V> selector(String name, String expression) {
+// throw new UnsupportedOperationException("Unimplemented method 'selector'");
+// }
 
-// 	@Override
-// 	public String deserializer(Properties pros) {
-// 		throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
-// 	}
+// @Override
+// public String deserializer(Properties pros) {
+// throw new UnsupportedOperationException("Unimplemented method
+// 'deserializer'");
+// }
 
 // }
 
 // class FakeKeySelector<K> extends BaseSelector implements KeySelector<K> {
 
-// 	protected FakeKeySelector(String name, String expression) {
-// 		super(name, expression);
-// 	}
+// protected FakeKeySelector(String name, String expression) {
+// super(name, expression);
+// }
 
-// 	@Override
-// 	public Value extract(ConsumerRecord<K, ?> record) {
-// 		throw new UnsupportedOperationException("Unimplemented method 'extract'");
-// 	}
+// @Override
+// public Value extract(ConsumerRecord<K, ?> record) {
+// throw new UnsupportedOperationException("Unimplemented method 'extract'");
+// }
 
 // }
 
 // class FakeValueSelector<V> extends BaseSelector implements ValueSelector<V> {
 
-// 	protected FakeValueSelector(String name, String expression) {
-// 		super(name, expression);
-// 	}
+// protected FakeValueSelector(String name, String expression) {
+// super(name, expression);
+// }
 
-// 	@Override
-// 	public Value extract(ConsumerRecord<?, V> record) {
-// 		throw new UnsupportedOperationException("Unimplemented method 'extract'");
-// 	}
+// @Override
+// public Value extract(ConsumerRecord<?, V> record) {
+// throw new UnsupportedOperationException("Unimplemented method 'extract'");
+// }
 
 // }

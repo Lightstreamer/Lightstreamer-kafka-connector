@@ -29,11 +29,6 @@ public class GenericRecordValueSelectorSupplier extends AbstractSelectorSupplier
     }
 
     @Override
-    public ValueSelector<GenericRecord> selector(String name, String expression) {
-        return new GenericRecordValueSelector(name, expectedRoot(), expression);
-    }
-
-    @Override
     protected Class<?> getLocalSchemaDeserializer() {
         return GenericRecordLocalSchemaDeserializer.class;
     }
@@ -46,5 +41,10 @@ public class GenericRecordValueSelectorSupplier extends AbstractSelectorSupplier
     @Override
     public String deserializer(Properties props) {
         return super.deserializer(false, props);
+    }
+
+    @Override
+    public ValueSelector<GenericRecord> selector(String name, String expression) {
+        return new GenericRecordValueSelector(name, expectedRoot(), expression);
     }
 }

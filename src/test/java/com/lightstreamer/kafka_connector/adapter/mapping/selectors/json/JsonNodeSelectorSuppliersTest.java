@@ -1,15 +1,17 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithKey;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.fromKey;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.fromValue;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider.RECORD;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 
@@ -17,11 +19,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class JsonNodeSelectorSuppliersTest {
 
     static ValueSelector<JsonNode> valueSelector(String expression) {
-        return new JsonNodeValueSelectorSupplier().selector("name", expression);
+        return JsonNodeSelectorsSuppliers.valueSelectorSupplier().selector("name", expression);
     }
 
     static KeySelector<JsonNode> keySelector(String expression) {
-        return new JsonNodeKeySelectorSupplier().selector("name", expression);
+        return JsonNodeSelectorsSuppliers.keySelectorSupplier().selector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -36,7 +38,7 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<JsonNode> s = valueSelector(expression);
-        assertThat(s.extract(recordWithValue(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -51,6 +53,34 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<JsonNode> s = keySelector(expression);
-        assertThat(s.extract(recordWithKey(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            ESPRESSION,                        EXPECTED_ERROR_MESSAGE
+            invalidKey,                        Expected <KEY>
+            "",                                Expected <KEY>
+            KEY,                               Incomplete expression
+            KEY.,                              Incomplete expression
+            """)
+    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> keySelector(expression));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            ESPRESSION,                        EXPECTED_ERROR_MESSAGE
+            invalidValue,                      Expected <VALUE>
+            "",                                Expected <VALUE>
+            VALUE,                             Incomplete expression
+            VALUE.,                            Incomplete expression
+            VALUE..,                           Tokens cannot be blank
+            """)
+    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
 }

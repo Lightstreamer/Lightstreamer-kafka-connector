@@ -11,32 +11,27 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public class ConsumerRecords {
 
-    public static ConsumerRecord<GenericRecord, ?> recordWithKey(GenericRecord key) {
+    public static ConsumerRecord<GenericRecord, ?> fromKey(GenericRecord key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, GenericRecord> recordWithValue(GenericRecord value) {
+    public static ConsumerRecord<?, GenericRecord> fromValue(GenericRecord value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<JsonNode, ?> recordWithKey(JsonNode key) {
+    public static ConsumerRecord<JsonNode, ?> fromKey(JsonNode key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, JsonNode> recordWithValue(JsonNode value) {
+    public static ConsumerRecord<?, JsonNode> fromValue(JsonNode value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<GenericRecord, GenericRecord> recordWithGenericRecordPair(String topic,
-            GenericRecord key, GenericRecord value) {
-        return record(topic, key, value);
-    }
-
-    public static ConsumerRecord<String, ?> recordWithKey(String key) {
+    public static ConsumerRecord<String, ?> fromKey(String key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, String> recordWithStringValue(String value) {
+    public static ConsumerRecord<?, String> fromValue(String value) {
         return record(null, value);
     }
 

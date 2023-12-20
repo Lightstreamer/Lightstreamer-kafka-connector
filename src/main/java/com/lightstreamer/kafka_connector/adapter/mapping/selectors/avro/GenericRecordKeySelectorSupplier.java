@@ -31,11 +31,6 @@ public class GenericRecordKeySelectorSupplier extends AbstractSelectorSupplier<G
     }
 
     @Override
-    public KeySelector<GenericRecord> selector(String name, String expression) {
-        return new GenericRecordKeySelector(name, expectedRoot(), expression);
-    }
-
-    @Override
     public void configKey(Map<String, String> conf, Properties props) {
         KeySelectorSupplier.super.configKey(conf, props);
         props.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_KEY_TYPE_CONFIG, true);
@@ -51,4 +46,9 @@ public class GenericRecordKeySelectorSupplier extends AbstractSelectorSupplier<G
         return KafkaAvroDeserializer.class;
     }
 
+
+    @Override
+    public KeySelector<GenericRecord> selector(String name, String expression) {
+        return new GenericRecordKeySelector(name, expectedRoot(), expression);
+    }
 }

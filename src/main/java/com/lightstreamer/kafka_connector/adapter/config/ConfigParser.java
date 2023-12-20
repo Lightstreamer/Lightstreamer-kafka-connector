@@ -16,7 +16,8 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoo
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
-import com.lightstreamer.kafka_connector.adapter.mapping.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapter.mapping.Items;
+import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
@@ -24,10 +25,8 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSu
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
 public class ConfigParser {
 
@@ -70,7 +69,7 @@ public class ConfigParser {
             SelectorsSupplier<K, V> selectorsSupplier)
             throws ValidateException {
         try {
-            return ItemTemplates.of(topicMappings, selectorsSupplier);
+            return Items.templatesFrom(topicMappings, selectorsSupplier);
         } catch (ExpressionException e) {
             throw new ValidateException(e.getMessage());
         }
@@ -103,8 +102,8 @@ public class ConfigParser {
     private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
         return switch (consumerType) {
             case "AVRO" -> new GenericRecordKeySelectorSupplier();
-            case "JSON" -> new JsonNodeKeySelectorSupplier();
-            case "RAW" -> new StringKeySelectorSupplier();
+            case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier();
+            case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }
@@ -112,8 +111,8 @@ public class ConfigParser {
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
         return switch (consumerType) {
             case "AVRO" -> new GenericRecordValueSelectorSupplier();
-            case "JSON" -> new JsonNodeValueSelectorSupplier();
-            case "RAW" -> new StringValueSelectorSupplier();
+            case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier();
+            case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
     }

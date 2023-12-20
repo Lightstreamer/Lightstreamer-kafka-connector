@@ -1,8 +1,8 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.string;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithKey;
-import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.recordWithStringValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.fromKey;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.fromValue;
 import static org.junit.Assert.assertThrows;
 
 import org.junit.jupiter.api.Tag;
@@ -18,11 +18,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class StringSelectorsTest {
 
     static ValueSelector<String> valueSelector(String expression) {
-        return new StringValueSelectorSupplier().selector("name", expression);
+        return StringSelectorSuppliers.valueSelectorSupplier().selector("name", expression);
     }
 
     static KeySelector<String> keySelector(String expression) {
-        return new StringKeySelectorSupplier().selector("name", expression);
+        return StringSelectorSuppliers.keySelectorSupplier().selector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -34,7 +34,7 @@ public class StringSelectorsTest {
     public void shouldExtractValue(String expression, String expected) {
         ValueSelector<String> selector = valueSelector(expression);
         assertThat(selector.name()).isEqualTo("name");
-        assertThat(selector.extract(recordWithStringValue(expected)).text()).isEqualTo(expected);
+        assertThat(selector.extract(fromValue(expected)).text()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -46,7 +46,7 @@ public class StringSelectorsTest {
     public void shouldExtractKey(String expression, String expected) {
         KeySelector<String> selector = keySelector(expression);
         assertThat(selector.name()).isEqualTo("name");
-        assertThat(selector.extract(recordWithKey(expected)).text()).isEqualTo(expected);
+        assertThat(selector.extract(fromKey(expected)).text()).isEqualTo(expected);
     }
 
     @Test

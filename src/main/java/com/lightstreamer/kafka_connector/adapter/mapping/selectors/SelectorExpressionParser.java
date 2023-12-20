@@ -95,7 +95,7 @@ public class SelectorExpressionParser<K, V> {
 
     private void parseRoot(Scanner scanner, String expectedRoot) {
         if (!scanner.hasNext()) {
-            throw new ExpressionException("Expected root token");
+            ExpressionException.throwExpectedToken(expectedRoot);
         }
         if (!expectedRoot.equals(scanner.next())) {
             ExpressionException.throwExpectedToken(expectedRoot);
@@ -106,6 +106,9 @@ public class SelectorExpressionParser<K, V> {
         LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
         while (scanner.hasNext()) {
             String fieldName = scanner.next();
+            if (fieldName.isBlank()) {
+                ExpressionException.throwBlankToken();
+            }
             int lbracket = fieldName.indexOf('[');
             NodeEvaluator<K, V> node;
             if (lbracket != -1) {
@@ -125,7 +128,7 @@ public class SelectorExpressionParser<K, V> {
             }
         }
         if (head == null) {
-            ExpressionException.throwInvalidExpression();
+            ExpressionException.throwIncompleteExpression();
         }
         return head;
     }
