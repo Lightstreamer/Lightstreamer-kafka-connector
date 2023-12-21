@@ -14,7 +14,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 public class MetaSelectorTest {
 
     static MetaSelector metaSelector(String expression) {
-        return new MetaSelectorSupplier().selector("field_name", expression);
+        return new MetaSelectorSupplier().newSelector("field_name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

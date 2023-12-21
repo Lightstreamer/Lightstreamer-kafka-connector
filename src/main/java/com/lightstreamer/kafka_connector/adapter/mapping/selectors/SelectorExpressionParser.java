@@ -60,7 +60,7 @@ public class SelectorExpressionParser<K, V> {
                 BiFunction<String, List<Integer>, NodeEvaluator<K, V>> ae) {
             this.ae = ae;
             return this;
-        }
+        }   
 
         public SelectorExpressionParser<K, V> build() {
             return new SelectorExpressionParser<>(fe, ae);

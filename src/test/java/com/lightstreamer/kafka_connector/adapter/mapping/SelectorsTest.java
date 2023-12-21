@@ -3,7 +3,6 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.junit.jupiter.params.provider.Arguments.of;
 
 import java.util.Collections;
 import java.util.Map;
@@ -18,7 +17,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupp
 
 public class SelectorsTest {
 
-    static Stream<Arguments> providerForStringSelectors() {
+    static Stream<Arguments> stringSelectorsArguments() {
         return Stream.of(
                 arguments(
                         Collections.emptyMap(),
@@ -39,7 +38,7 @@ public class SelectorsTest {
 
     @Tag("unit")
     @ParameterizedTest
-    @MethodSource("providerForStringSelectors")
+    @MethodSource("stringSelectorsArguments")
     public void shouldCreate(Map<String, String> input, Schema expected) {
         Selectors<String, String> selectors = Selectors.from(SelectorsSupplier.string(), input);
         assertThat(selectors.schema()).isEqualTo(expected);

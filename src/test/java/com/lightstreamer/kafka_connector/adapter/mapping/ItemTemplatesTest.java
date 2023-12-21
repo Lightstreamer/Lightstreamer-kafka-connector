@@ -14,12 +14,16 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.truth.BooleanSubject;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
+import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
 
 public class ItemTemplatesTest {
 
@@ -50,7 +54,7 @@ public class ItemTemplatesTest {
                             kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=carol>   | false
                             kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
                             kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
-            #               kafka-avro-${child=VALUE.children[1].children[2].name}                       | kafka-avro-<child=terence>             | true
+                           kafka-avro-${child=VALUE.children[1].children[1].name1}                       | kafka-avro-<child=terence>             | true
                             item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<ts=-1>                           | true
                             item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=150>                   | true
                             item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=150,ts=-1>             | true
@@ -62,7 +66,7 @@ public class ItemTemplatesTest {
                             item-                                                                        | item-                                  | true
                             prefix-${}                                                                   | prefix                                 | true
                             prefix-${}                                                                   | prefix-                                | false
-            #        x       kafka-avro-${KEY}
+            #               kafka-avro-${KEY}
                                 """)
     public void shouldExpand(String template, String subscribingItem, boolean matched) {
         SelectorsSupplier<GenericRecord, GenericRecord> selectionsSupplier = SelectorsSupplier.genericRecord();
@@ -70,14 +74,74 @@ public class ItemTemplatesTest {
         List<TopicMapping> tp = new ArrayList<>();
         tp.add(new TopicMapping("topic", List.of(template)));
         ItemTemplates<GenericRecord, GenericRecord> itemTemplates = Items.templatesFrom(tp, selectionsSupplier);
-        RecordInspector<GenericRecord, GenericRecord> inspector = RecordInspector
+        RecordMapper<GenericRecord, GenericRecord> remapper = RecordMapper
                 .<GenericRecord, GenericRecord>builder()
                 .withItemTemplates(itemTemplates)
                 .build();
 
         ConsumerRecord<GenericRecord, GenericRecord> incomingRecord = record("topic",
                 GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
-        RemappedRecord remappedRecord = inspector.extract(incomingRecord);
+        MappedRecord remappedRecord = remapper.map(incomingRecord);
+        Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
+        Stream<Item> expandedItem = itemTemplates.expand(remappedRecord);
+        Optional<Item> first = expandedItem.findFirst();
+
+        assertThat(first.isPresent()).isTrue();
+
+        Item it = first.get();
+        boolean match = it.matches(subscribedItem);
+        BooleanSubject assertion = assertThat(match);
+        if (matched) {
+            assertion.isTrue();
+        } else {
+            assertion.isFalse();
+        }
+    }
+
+    @Tag("integration")
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            TEMPLATE                                                                       | SUBCRIBING_ITEM                          | SHOULD_MATCH
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<name=joe>                  | true
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<name=joe,child=alex>       | true
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<child=alex>                | true
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item                             | true
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-                            | false
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<keyName=joe>               | true
+            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<keyName=joe,child=alex>    | true
+            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[0].name}      | complex-item-<keyName=joe,child=gloria>  | true
+            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | complex-item-<keyName=joe,child=terence> | true
+            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | complex-item-<keyName=joe,child=carol>   | false
+            complex-item-${child=VALUE.children[1].children[1].name}                       | complex-item-<keyName=joe,child=terence> | false
+            complex-item-${child=VALUE.children[1].children[1].name}                       | complex-item-<child=terence>             | true
+            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<ts=-1>                             | true
+            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150>                     | true
+            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150,ts=-1>               | true
+            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150,ts=1>                | false
+            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=50>                      | false
+            item                                                                           | item                                     | true
+            item-first                                                                     | item-first                               | true
+            item_123_                                                                      | item_123_                                | true
+            item-                                                                          | item-                                    | true
+            prefix-${}                                                                     | prefix                                   | true
+            prefix-${}                                                                     | prefix-                                  | false
+                """)
+    public void shouldExpandMixedKeyAndValueTypes(String template, String subscribingItem, boolean matched) {
+        SelectorsSupplier<GenericRecord, JsonNode> selectionsSupplier = SelectorsSupplier.wrap(
+                GeneircRecordSelectorsSuppliers.keySelectorSupplier(),
+                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+
+        List<TopicMapping> tp = new ArrayList<>();
+        tp.add(new TopicMapping("topic", List.of(template)));
+        ItemTemplates<GenericRecord, JsonNode> itemTemplates = Items.templatesFrom(tp, selectionsSupplier);
+        RecordMapper<GenericRecord, JsonNode> remapper = RecordMapper
+                .<GenericRecord, JsonNode>builder()
+                .withItemTemplates(itemTemplates)
+                .build();
+
+        ConsumerRecord<GenericRecord, JsonNode> incomingRecord = record("topic",
+                GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
+        MappedRecord remappedRecord = remapper.map(incomingRecord);
         Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
         Stream<Item> expandedItem = itemTemplates.expand(remappedRecord);
         Optional<Item> first = expandedItem.findFirst();
@@ -95,4 +159,3 @@ public class ItemTemplatesTest {
         ;
     }
 }
-

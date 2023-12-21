@@ -23,8 +23,8 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoo
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector;
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors;
 
 public class ConsumerLoop<K, V> implements Loop {
@@ -39,7 +39,7 @@ public class ConsumerLoop<K, V> implements Loop {
 
 	private final CyclicBarrier barrier;
 
-	private final RecordInspector<K, V> recordInspector;
+	private final RecordMapper<K, V> recordRemapper;
 
 	private final Selectors<K, V> fieldsSelectors;
 
@@ -52,8 +52,8 @@ public class ConsumerLoop<K, V> implements Loop {
 		this.itemTemplates = config.itemTemplates();
 		this.fieldsSelectors = config.fieldsSelectors();
 
-		recordInspector = RecordInspector.<K, V>builder()
-				.withItemTemplates(itemTemplates)
+		recordRemapper = RecordMapper.<K, V>builder()
+				.withSelectors(itemTemplates.selectors())
 				.withSelectors(fieldsSelectors)
 				.build();
 
@@ -128,11 +128,11 @@ public class ConsumerLoop<K, V> implements Loop {
 	}
 
 	protected void consume(ConsumerRecord<K, V> record) {
-		RemappedRecord remappedRecord = recordInspector.extract(record);
+		MappedRecord remappedRecord = recordRemapper.map(record);
 		itemTemplates.expand(remappedRecord).forEach(expandedItem -> processItem(remappedRecord, expandedItem));
 	}
 
-	private void processItem(RemappedRecord record, Item expandedItem) {
+	private void processItem(MappedRecord record, Item expandedItem) {
 		for (Item subscribedItem : subscribedItems.values()) {
 			if (!expandedItem.matches(subscribedItem)) {
 				log.warn("Expanded item <{}> does not match subscribed item <{}>", expandedItem, subscribedItem);

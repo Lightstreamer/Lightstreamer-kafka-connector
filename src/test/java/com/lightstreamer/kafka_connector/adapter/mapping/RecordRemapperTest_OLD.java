@@ -12,32 +12,32 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.Builder;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordRemapper.Builder;
     
-public class RecordInspectorBuilderTest {
+public class RecordRemapperTest {
 
     static Stream<Builder<?, ?>> builderProvider() {
-        return Stream.init(RecordInspector.noSelectorsBuilder(), RecordInspector.stringSelectorsBuilder());
+        return Stream.init(RecordRemapper.noSelectorsBuilder(), RecordRemapper.stringSelectorsBuilder());
     }
 
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("builderProvider")
     public void shouldBuildNotInstructedInspector(Builder<?, ?> builder) {
-        RecordInspector<?, ?> inspector = builder.build();
+        RecordRemapper<?, ?> inspector = builder.build();
         assertThat(inspector.names()).isEmpty();
     }
 
     @Test
     public void shouldNotInstructInspector() {
-        Builder<?, ?> builder = RecordInspector.noSelectorsBuilder();
+        Builder<?, ?> builder = RecordRemapper.noSelectorsBuilder();
         Exception exception = assertThrows(RuntimeException.class, () -> builder.instruct("name", "unknown"));
         assertThat(exception.getMessage()).isEqualTo("Unknown expression <unknown>");
     }
 
     @Test
     public void shouldAddKeySelector() {
-        Builder<String, String> rawBuilder = RecordInspector.stringSelectorsBuilder();
+        Builder<String, String> rawBuilder = RecordRemapper.stringSelectorsBuilder();
         boolean added = rawBuilder.addKeySelector("name", "KEY");
         assertThat(added).isTrue();
 
@@ -49,7 +49,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldNotAddKeySelector() {
-        Builder<?, ?> rawBuilder = RecordInspector.noSelectorsBuilder();
+        Builder<?, ?> rawBuilder = RecordRemapper.noSelectorsBuilder();
         boolean added = rawBuilder.addKeySelector("name", "KEY");
         assertThat(added).isFalse();
 
@@ -59,7 +59,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldAddValueSelector() {
-        Builder<String, String> rawBuilder = RecordInspector.stringSelectorsBuilder();
+        Builder<String, String> rawBuilder = RecordRemapper.stringSelectorsBuilder();
         boolean added = rawBuilder.addValueSelector("name", "VALUE");
         assertThat(added).isTrue();
 
@@ -70,7 +70,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldNotAddValueSelector() {
-        Builder<?, ?> rawBuilder = RecordInspector.stringSelectorsBuilder();
+        Builder<?, ?> rawBuilder = RecordRemapper.stringSelectorsBuilder();
         boolean added = rawBuilder.addValueSelector("name", "VALUE");
         assertThat(added).isFalse();
 
@@ -82,8 +82,8 @@ public class RecordInspectorBuilderTest {
     @ParameterizedTest
     @ValueSource(strings = { "TIMESTAMP", "TOPIC", "PARTITION" })
     public void shouldAddMetaSelector(String expression) {
-        Builder<?, ?> builder1 = RecordInspector.noSelectorsBuilder();
-        Builder<?, ?> builder2 = RecordInspector.stringSelectorsBuilder();
+        Builder<?, ?> builder1 = RecordRemapper.noSelectorsBuilder();
+        Builder<?, ?> builder2 = RecordRemapper.stringSelectorsBuilder();
 
         List.of(builder1, builder2).forEach(builder -> {
             boolean added = builder.addMetaSelector("name", expression);
@@ -97,7 +97,7 @@ public class RecordInspectorBuilderTest {
 
     @Test
     public void shouldInstruct() {
-        Builder<String, String> builder = RecordInspector.builder();
+        Builder<String, String> builder = RecordRemapper.builder();
         builder.instruct("name1", "VALUE");
         builder.instruct("name1", "VALUE");
         builder.instruct("name1", "KEY");

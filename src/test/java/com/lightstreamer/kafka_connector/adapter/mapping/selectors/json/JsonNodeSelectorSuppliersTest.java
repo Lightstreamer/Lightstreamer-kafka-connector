@@ -19,11 +19,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class JsonNodeSelectorSuppliersTest {
 
     static ValueSelector<JsonNode> valueSelector(String expression) {
-        return JsonNodeSelectorsSuppliers.valueSelectorSupplier().selector("name", expression);
+        return JsonNodeSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
     static KeySelector<JsonNode> keySelector(String expression) {
-        return JsonNodeSelectorsSuppliers.keySelectorSupplier().selector("name", expression);
+        return JsonNodeSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

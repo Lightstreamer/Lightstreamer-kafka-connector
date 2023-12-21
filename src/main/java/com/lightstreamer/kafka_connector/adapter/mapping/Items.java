@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 
@@ -31,7 +31,7 @@ public class Items {
 
     public static interface ItemTemplates<K, V> {
 
-        Stream<Item> expand(RemappedRecord record);
+        Stream<Item> expand(MappedRecord record);
 
         boolean matches(Item item);
 
@@ -137,7 +137,7 @@ public class Items {
             this.prefix = Objects.requireNonNull(prefix);
         }
 
-        Optional<Item> expand(RemappedRecord record) {
+        Optional<Item> expand(MappedRecord record) {
             if (record.topic().equals(this.topic)) {
                 Map<String, String> values = record.filter(schema);
                 return Optional.of(new DefaultItem("", prefix, values));
@@ -172,7 +172,7 @@ public class Items {
             this.templates = Collections.unmodifiableList(templates);
         }
 
-        public Stream<Item> expand(RemappedRecord record) {
+        public Stream<Item> expand(MappedRecord record) {
             return templates.stream().flatMap(i -> i.expand(record).stream());
         }
 

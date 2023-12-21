@@ -21,12 +21,9 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
 public interface Selectors<K, V> {
 
@@ -41,20 +38,22 @@ public interface Selectors<K, V> {
         }
 
         static SelectorsSupplier<String, String> string() {
-            return wrap(new StringKeySelectorSupplier(), new StringValueSelectorSupplier());
+            return wrap(StringSelectorSuppliers.keySelectorSupplier(), StringSelectorSuppliers.valueSelectorSupplier());
         }
 
         static SelectorsSupplier<GenericRecord, GenericRecord> genericRecord() {
-            return wrap(new GenericRecordKeySelectorSupplier(), new GenericRecordValueSelectorSupplier());
+            return wrap(GeneircRecordSelectorsSuppliers.keySelectorSupplier(),
+                    GeneircRecordSelectorsSuppliers.valueSelectorSupplier());
         }
 
         static SelectorsSupplier<JsonNode, JsonNode> jsonNode() {
-            return wrap(new JsonNodeKeySelectorSupplier(), new JsonNodeValueSelectorSupplier());
+            return wrap(JsonNodeSelectorsSuppliers.keySelectorSupplier(),
+                    JsonNodeSelectorsSuppliers.valueSelectorSupplier());
         }
 
     }
 
-    Set<Value> extract(ConsumerRecord<K, V> record);
+    Set<Value> extractValues(ConsumerRecord<K, V> record);
 
     Schema schema();
 
@@ -64,15 +63,6 @@ public interface Selectors<K, V> {
 
     private static <K, V> Builder<K, V> builder(SelectorsSupplier<K, V> selectorsSupplier) {
         return new Builder<>(selectorsSupplier.keySelectorSupplier(), selectorsSupplier.valueSelectorSupplier());
-    }
-
-    private static <K, V> Builder<K, V> builder(KeySelectorSupplier<K> keySupplier,
-            ValueSelectorSupplier<V> valueSupplier) {
-        return new Builder<>(keySupplier, valueSupplier);
-    }
-
-    private static Builder<String, String> stringSelectorsBuilder() {
-        return new Builder<>(new StringKeySelectorSupplier(), new StringValueSelectorSupplier());
     }
 
     static class Builder<K, V> {
@@ -141,7 +131,7 @@ public interface Selectors<K, V> {
             @Override
             public boolean doManage(String name, String expression) {
                 if (keySupplier.maySupply(expression)) {
-                    return keySelectors.add(keySupplier.selector(name, expression));
+                    return keySelectors.add(keySupplier.newSelector(name, expression));
                 }
                 return false;
             }
@@ -152,7 +142,7 @@ public interface Selectors<K, V> {
             @Override
             public boolean doManage(String name, String expression) {
                 if (valueSupplier.maySupply(expression)) {
-                    return valueSelectors.add(valueSupplier.selector(name, expression));
+                    return valueSelectors.add(valueSupplier.newSelector(name, expression));
                 }
                 return false;
             }
@@ -163,7 +153,7 @@ public interface Selectors<K, V> {
             @Override
             public boolean doManage(String name, String expression) {
                 if (metaSelectorSupplier.maySupply(expression)) {
-                    return metaSelectors.add(metaSelectorSupplier.selector(name, expression));
+                    return metaSelectors.add(metaSelectorSupplier.newSelector(name, expression));
                 }
                 return false;
             }
@@ -211,7 +201,7 @@ record DefaultSelectors<K, V>(Set<KeySelector<K>> keySelectors, Set<ValueSelecto
                 .collect(Collectors.toSet()));
     }
 
-    public Set<Value> extract(ConsumerRecord<K, V> record) {
+    public Set<Value> extractValues(ConsumerRecord<K, V> record) {
         return Stream.of(
                 keySelectors.stream().map(k -> k.extract(record)),
                 valueSelectors.stream().map(v -> v.extract(record)),

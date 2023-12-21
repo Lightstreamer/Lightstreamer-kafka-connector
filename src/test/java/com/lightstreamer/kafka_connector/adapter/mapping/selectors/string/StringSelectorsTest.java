@@ -18,11 +18,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class StringSelectorsTest {
 
     static ValueSelector<String> valueSelector(String expression) {
-        return StringSelectorSuppliers.valueSelectorSupplier().selector("name", expression);
+        return StringSelectorSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
     static KeySelector<String> keySelector(String expression) {
-        return StringSelectorSuppliers.keySelectorSupplier().selector("name", expression);
+        return StringSelectorSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

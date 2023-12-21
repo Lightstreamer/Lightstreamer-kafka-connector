@@ -12,7 +12,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
@@ -23,8 +22,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupp
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordKeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
@@ -101,7 +99,7 @@ public class ConfigParser {
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> new GenericRecordKeySelectorSupplier();
+            case "AVRO" -> GeneircRecordSelectorsSuppliers.keySelectorSupplier();
             case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier();
             case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
@@ -110,7 +108,7 @@ public class ConfigParser {
 
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> new GenericRecordValueSelectorSupplier();
+            case "AVRO" -> GeneircRecordSelectorsSuppliers.valueSelectorSupplier();
             case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier();
             case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
@@ -121,7 +119,7 @@ public class ConfigParser {
     public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ValidateException {
         Map<String, String> configuration = CONFIG_SPEC.parse(params);
 
-        // Retrieve "map.<topic-name>.to"
+        // Process "map.<topic-name>.to"
         List<TopicMapping> topicMappings = new ArrayList<>();
         for (String paramKey : configuration.keySet()) {
             if (paramKey.startsWith("map.")) {
@@ -131,7 +129,7 @@ public class ConfigParser {
             }
         }
 
-        // Retrieve "field.<name>"
+        // Process "field.<name>"
         Map<String, String> fieldsMapping = new HashMap<>();
         for (String paramKey : configuration.keySet()) {
             if (paramKey.startsWith("field.")) {
@@ -152,9 +150,9 @@ public class ConfigParser {
         return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);
     }
 
-}
+    static record DefaultConsumerLoopConfig<K, V>(
+            Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
+            Selectors<K, V> fieldsSelectors) implements ConsumerLoopConfig<K, V> {
+    }
 
-record DefaultConsumerLoopConfig<K, V>(
-        Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
-        Selectors<K, V> fieldsSelectors) implements ConsumerLoopConfig<K, V> {
 }

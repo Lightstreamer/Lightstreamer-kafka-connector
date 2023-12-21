@@ -14,23 +14,26 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.RecordInspector.RemappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 
 public class MappedRecordTest {
+
+    private static Set<Value> toValues(Map<String, String> values) {
+        return values.entrySet()
+                .stream()
+                .map(Value::of)
+                .collect(Collectors.toSet());
+    }
 
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("provider")
     public void shouldFilter(Map<String, String> values, Schema schema, Map<String, String> expected) {
-        RemappedRecord mapped = new DefaultRemappedRecord("topic", toValues(values));
+        MappedRecord mapped = new DefaultMappedRecord("topic", toValues(values));
         assertThat(mapped.topic()).isEqualTo("topic");
         Map<String, String> subMap = mapped.filter(schema);
         assertThat(subMap).isEqualTo(expected);
-    }
-
-    private Set<Value> toValues(Map<String, String> values) {
-        return values.entrySet().stream().map(e -> Value.of(e.getKey(), e.getValue())).collect(Collectors.toSet());
     }
 
     static Stream<Arguments> provider() {

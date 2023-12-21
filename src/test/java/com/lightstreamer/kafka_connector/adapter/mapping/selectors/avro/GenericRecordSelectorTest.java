@@ -19,11 +19,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class GenericRecordSelectorTest {
 
     static ValueSelector<GenericRecord> valueSelector(String expression) {
-        return new GenericRecordValueSelectorSupplier().selector("name", expression);
+        return GeneircRecordSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
     static KeySelector<GenericRecord> keySelector(String expression) {
-        return new GenericRecordKeySelectorSupplier().selector("name", expression);
+        return GeneircRecordSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -81,5 +81,5 @@ public class GenericRecordSelectorTest {
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }    
+    }
 }

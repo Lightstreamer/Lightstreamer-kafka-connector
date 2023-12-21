@@ -8,7 +8,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 public interface KeySelectorSupplier<V> extends SelectorSupplier<KeySelector<V>> {
 
-    KeySelector<V> selector(String name, String expression);
+    KeySelector<V> newSelector(String name, String expression);
 
     default void configKey(Map<String, String> configuration, Properties props) {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(props));

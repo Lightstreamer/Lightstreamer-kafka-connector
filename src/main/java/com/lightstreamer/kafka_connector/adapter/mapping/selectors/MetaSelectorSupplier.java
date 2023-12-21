@@ -62,7 +62,7 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
     }
 
     @Override
-    public MetaSelector selector(String name, String expression) {
+    public MetaSelector newSelector(String name, String expression) {
         if (!maySupply(expression)) {
             ExpressionException.throwExpectedToken("on of " + Attribute.validAttributes());
         }

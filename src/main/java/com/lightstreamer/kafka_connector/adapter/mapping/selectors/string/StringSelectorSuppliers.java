@@ -32,7 +32,7 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public KeySelector<String> selector(String name, String expression) {
+        public KeySelector<String> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
                 ExpressionException.throwExpectedToken(expectedRoot());
             }
@@ -60,7 +60,7 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public ValueSelector<String> selector(String name, String expression) {
+        public ValueSelector<String> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
                 ExpressionException.throwExpectedToken(expectedRoot());
             }

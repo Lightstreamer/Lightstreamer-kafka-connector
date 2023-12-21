@@ -36,7 +36,7 @@ public class JsonNodeSelectorsSuppliers {
         return VALUE_SELECTOR_SUPPLIER;
     }
 
-    private static abstract class JsonNodeBaseSelector extends BaseSelector {
+    static abstract class JsonNodeBaseSelector extends BaseSelector {
 
         private static class PropertyGetter implements NodeEvaluator<JsonNode, JsonNode> {
 
@@ -83,34 +83,31 @@ public class JsonNodeSelectorsSuppliers {
             }
         }
 
-        private final LinkedNode<NodeEvaluator<JsonNode, JsonNode>> linkedNode;
+        private final LinkedNode<NodeEvaluator<JsonNode, JsonNode>> rootNode;
 
         private static final SelectorExpressionParser<JsonNode, JsonNode> PARSER = new SelectorExpressionParser.Builder<JsonNode, JsonNode>()
                 .withFieldEvaluator(PropertyGetter::new)
                 .withArrayEvaluator(ArrayGetter::new)
                 .build();
 
-        protected JsonNodeBaseSelector(String name, String expectedRoot, String expression) {
+        private JsonNodeBaseSelector(String name, String expectedRoot, String expression) {
             super(name, expression);
-            this.linkedNode = PARSER.parse(expectedRoot, expression);
+            this.rootNode = PARSER.parse(expectedRoot, expression);
         }
 
-        protected Value eval(JsonNode currentJsonNode) {
-            LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = linkedNode;
+        Value eval(JsonNode node) {
+            LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = rootNode;
             while (currentLinkedNode != null) {
                 NodeEvaluator<JsonNode, JsonNode> nodeEvaluator = currentLinkedNode.value();
-                currentJsonNode = nodeEvaluator.get(currentJsonNode);
+                node = nodeEvaluator.get(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
-            return Value.of(name(), currentJsonNode.asText());
+            return Value.of(name(), node.asText());
         }
     }
 
     static class JsonNodeKeySelectorSupplier extends AbstractSelectorSupplier<JsonNode>
             implements KeySelectorSupplier<JsonNode> {
-
-        public JsonNodeKeySelectorSupplier() {
-        }
 
         protected Class<?> getLocalSchemaDeserializer() {
             return JsonLocalSchemaDeserializer.class;
@@ -127,7 +124,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public KeySelector<JsonNode> selector(String name, String expression) {
+        public KeySelector<JsonNode> newSelector(String name, String expression) {
             return new JsonNodeKeySelector(name, expectedRoot(), expression);
         }
 
@@ -135,7 +132,7 @@ public class JsonNodeSelectorsSuppliers {
 
     static final class JsonNodeKeySelector extends JsonNodeBaseSelector implements KeySelector<JsonNode> {
 
-        protected JsonNodeKeySelector(String name, String expectedRoot, String expression) {
+        JsonNodeKeySelector(String name, String expectedRoot, String expression) {
             super(name, expectedRoot, expression);
         }
 
@@ -147,9 +144,6 @@ public class JsonNodeSelectorsSuppliers {
 
     static class JsonNodeValueSelectorSupplier extends AbstractSelectorSupplier<JsonNode>
             implements ValueSelectorSupplier<JsonNode> {
-
-        public JsonNodeValueSelectorSupplier() {
-        }
 
         protected Class<?> getLocalSchemaDeserializer() {
             return JsonLocalSchemaDeserializer.class;
@@ -172,7 +166,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public ValueSelector<JsonNode> selector(String name, String expression) {
+        public ValueSelector<JsonNode> newSelector(String name, String expression) {
             return new JsonNodeValueSelector(name, expectedRoot(), expression);
         }
     }

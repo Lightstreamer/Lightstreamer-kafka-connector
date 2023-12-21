@@ -8,7 +8,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 public interface ValueSelectorSupplier<V> extends SelectorSupplier<ValueSelector<V>> {
 
-    ValueSelector<V> selector(String name, String expression);
+    ValueSelector<V> newSelector(String name, String expression);
 
     default void configValue(Map<String, String> configuration, Properties props) {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(props));

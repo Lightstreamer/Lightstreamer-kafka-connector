@@ -31,6 +31,7 @@ public class GenericRecordProvider {
 
     public static GenericRecord RECORD = PROVIDER.newGenericRecord();
 
+
     private GenericRecord newGenericRecord() {
         GenericRecord parentJoe = new GenericData.Record(valueSchema);
         parentJoe.put("name", "joe");
