@@ -19,11 +19,11 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 public class GenericRecordSelectorTest {
 
     static ValueSelector<GenericRecord> valueSelector(String expression) {
-        return GeneircRecordSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
+        return GenericRecordSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
     static KeySelector<GenericRecord> keySelector(String expression) {
-        return GeneircRecordSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
+        return GenericRecordSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -38,7 +38,7 @@ public class GenericRecordSelectorTest {
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
-        assertThat(selector.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(selector.extract("tag", fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -53,7 +53,7 @@ public class GenericRecordSelectorTest {
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<GenericRecord> selector = keySelector(expression);
-        assertThat(selector.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(selector.extract("tag", fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

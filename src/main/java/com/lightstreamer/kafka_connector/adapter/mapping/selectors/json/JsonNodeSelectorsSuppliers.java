@@ -95,14 +95,14 @@ public class JsonNodeSelectorsSuppliers {
             this.rootNode = PARSER.parse(expectedRoot, expression);
         }
 
-        Value eval(JsonNode node) {
+        Value eval(String tag, JsonNode node) {
             LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = rootNode;
             while (currentLinkedNode != null) {
                 NodeEvaluator<JsonNode, JsonNode> nodeEvaluator = currentLinkedNode.value();
                 node = nodeEvaluator.get(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
-            return Value.of(name(), node.asText());
+            return Value.of(tag, name(), node.asText());
         }
     }
 
@@ -137,8 +137,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<JsonNode, ?> record) {
-            return super.eval(record.key());
+        public Value extract(String tag, ConsumerRecord<JsonNode, ?> record) {
+            return super.eval(tag, record.key());
         }
     }
 
@@ -178,8 +178,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, JsonNode> record) {
-            return super.eval(record.value());
+        public Value extract(String tag, ConsumerRecord<?, JsonNode> record) {
+            return super.eval(tag, record.value());
         }
     }
 

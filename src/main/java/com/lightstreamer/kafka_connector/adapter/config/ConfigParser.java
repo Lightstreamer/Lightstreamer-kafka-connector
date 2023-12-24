@@ -22,7 +22,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupp
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
@@ -57,8 +57,48 @@ public class ConfigParser {
     public ConfigParser() {
     }
 
-    private ItemTemplates<?, ?> initItemTemplates(List<TopicMapping> topicMappings,
-            SelectorsSupplier<?, ?> selectorsSupplier)
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ValidateException {
+        Map<String, String> configuration = CONFIG_SPEC.parse(params);
+
+        // Process "map.<topic-name>.to"
+        List<TopicMapping> topicMappings = new ArrayList<>();
+        for (String paramKey : configuration.keySet()) {
+            if (paramKey.startsWith("map.")) {
+                String topic = paramKey.split("\\.")[1];
+                String[] itemTemplates = new String[] { configuration.get(paramKey) };// .split(",");
+                topicMappings.add(new TopicMapping(topic, Arrays.asList(itemTemplates)));
+            }
+        }
+
+        // Process "field.<name>"
+        Map<String, String> fieldsMapping = new HashMap<>();
+        for (String paramKey : configuration.keySet()) {
+            if (paramKey.startsWith("field.")) {
+                String fieldName = paramKey.split("\\.")[1];
+                String mappingExpression = configuration.get(paramKey);
+                fieldsMapping.put(fieldName, mappingExpression);
+            }
+        }
+
+        SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
+                makeKeySelectorSupplier(configuration.get("key.consumer")),
+                makeValueSelectorSupplier(configuration.get("value.consumer")));
+
+        Properties props = initProperties(configuration, selectorsSupplier);
+        ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
+        Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
+
+        return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);
+    }
+
+    static record DefaultConsumerLoopConfig<K, V>(
+            Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
+            Selectors<K, V> fieldsSelectors) implements ConsumerLoopConfig<K, V> {
+    }
+
+    private ItemTemplates<?, ?> initItemTemplates(SelectorsSupplier<?, ?> selectorsSupplier,
+            List<TopicMapping> topicMappings)
             throws ValidateException {
         return initItemTemplatesHelper(topicMappings, selectorsSupplier);
     }
@@ -99,7 +139,7 @@ public class ConfigParser {
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> GeneircRecordSelectorsSuppliers.keySelectorSupplier();
+            case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier();
             case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier();
             case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
@@ -108,51 +148,11 @@ public class ConfigParser {
 
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
         return switch (consumerType) {
-            case "AVRO" -> GeneircRecordSelectorsSuppliers.valueSelectorSupplier();
+            case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier();
             case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier();
             case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
             default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
         };
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ValidateException {
-        Map<String, String> configuration = CONFIG_SPEC.parse(params);
-
-        // Process "map.<topic-name>.to"
-        List<TopicMapping> topicMappings = new ArrayList<>();
-        for (String paramKey : configuration.keySet()) {
-            if (paramKey.startsWith("map.")) {
-                String topic = paramKey.split("\\.")[1];
-                String[] itemTemplates = new String[] { configuration.get(paramKey) };// .split(",");
-                topicMappings.add(new TopicMapping(topic, Arrays.asList(itemTemplates)));
-            }
-        }
-
-        // Process "field.<name>"
-        Map<String, String> fieldsMapping = new HashMap<>();
-        for (String paramKey : configuration.keySet()) {
-            if (paramKey.startsWith("field.")) {
-                String fieldName = paramKey.split("\\.")[1];
-                String mappingExpression = configuration.get(paramKey);
-                fieldsMapping.put(fieldName, mappingExpression);
-            }
-        }
-
-        SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
-                makeKeySelectorSupplier(configuration.get("key.consumer")),
-                makeValueSelectorSupplier(configuration.get("value.consumer")));
-
-        Properties props = initProperties(configuration, selectorsSupplier);
-        ItemTemplates<?, ?> itemTemplates = initItemTemplates(topicMappings, selectorsSupplier);
-        Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, fieldsMapping);
-
-        return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);
-    }
-
-    static record DefaultConsumerLoopConfig<K, V>(
-            Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
-            Selectors<K, V> fieldsSelectors) implements ConsumerLoopConfig<K, V> {
     }
 
 }

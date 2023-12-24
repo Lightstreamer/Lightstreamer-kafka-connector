@@ -47,8 +47,8 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<String, ?> record) {
-            return Value.of(name(), record.key());
+        public Value extract(String tag, ConsumerRecord<String, ?> record) {
+            return Value.of(tag, name(), record.key());
         }
     }
 
@@ -75,8 +75,8 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, String> record) {
-            return Value.of(name(), record.value());
+        public Value extract(String tag, ConsumerRecord<?, String> record) {
+            return Value.of(tag, name(), record.value());
         }
     }
 

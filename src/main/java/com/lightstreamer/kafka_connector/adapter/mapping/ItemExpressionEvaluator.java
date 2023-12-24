@@ -11,9 +11,9 @@ public interface ItemExpressionEvaluator {
 
     record Result(String prefix, Map<String, String> params) {
 
-        Schema schema() {
-            return Schema.of(params.keySet());
-        }
+        // Schema schema() {
+        //     return Schema.of("", params.keySet());
+        // }
 
     }
 

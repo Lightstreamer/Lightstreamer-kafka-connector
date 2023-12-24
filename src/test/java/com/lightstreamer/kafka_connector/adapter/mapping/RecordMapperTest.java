@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
@@ -24,18 +24,18 @@ public class RecordMapperTest {
     public void shouldMap() {
         SelectorsSupplier<String, GenericRecord> selectorsSuppliers = SelectorsSupplier.wrap(
                 StringSelectorSuppliers.keySelectorSupplier(),
-                GeneircRecordSelectorsSuppliers.valueSelectorSupplier());
+                GenericRecordSelectorsSuppliers.valueSelectorSupplier());
 
         Selectors<String, GenericRecord> nameSelector = Selectors.from(
-                selectorsSuppliers,
+                selectorsSuppliers, "test",
                 Map.of("name", "VALUE.name"));
 
         Selectors<String, GenericRecord> childSelector1 = Selectors.from(
-                selectorsSuppliers,
+                selectorsSuppliers, "test",
                 Map.of("firstChildName", "VALUE.children[0].name"));
 
         Selectors<String, GenericRecord> childSelector2 = Selectors.from(
-                selectorsSuppliers,
+                selectorsSuppliers, "test",
                 Map.of("secondChildName", "VALUE.children[1].name",
                         "grandChildName", "VALUE.children[1].children[1].name"));
 
@@ -57,7 +57,7 @@ public class RecordMapperTest {
         Map<String, String> otherPeopleNames = remap.filter(childSelector2.schema());
         assertThat(otherPeopleNames).containsExactly("secondChildName", "anna", "grandChildName", "terence");
 
-        assertThat(remap.filter(Schema.of("nonExistingKey"))).isEmpty();
+        assertThat(remap.filter(Schema.of("test", "nonExistingKey"))).isEmpty();
     }
 
 }

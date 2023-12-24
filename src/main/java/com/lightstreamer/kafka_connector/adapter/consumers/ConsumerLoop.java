@@ -138,7 +138,7 @@ public class ConsumerLoop<K, V> implements Loop {
 				log.warn("Expanded item <{}> does not match subscribed item <{}>", expandedItem, subscribedItem);
 				continue;
 			}
-			// log.info("Sending updates");
+			log.info("Sending updates");
 			eventListener.smartUpdate(subscribedItem.itemHandle(), record.filter(fieldsSelectors.schema()), false);
 		}
 	}

@@ -21,26 +21,26 @@ public class SelectorsTest {
         return Stream.of(
                 arguments(
                         Collections.emptyMap(),
-                        Schema.empty()),
+                        Schema.empty("tag")),
                 arguments(
                         Map.of("name", "VALUE"),
-                        Schema.of("name")),
+                        Schema.of("tag", "name")),
                 arguments(
                         Map.of("value", "VALUE",
                                 "key", "KEY"),
-                        Schema.of("value", "key")),
+                        Schema.of("tag", "value", "key")),
                 arguments(
                         Map.of("timestamp", "TIMESTAMP",
                                 "partition", "PARTITION",
                                 "topic", "TOPIC"),
-                        Schema.of("timestamp", "partition", "topic")));
+                        Schema.of("tag", "timestamp", "partition", "topic")));
     }
 
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("stringSelectorsArguments")
     public void shouldCreate(Map<String, String> input, Schema expected) {
-        Selectors<String, String> selectors = Selectors.from(SelectorsSupplier.string(), input);
+        Selectors<String, String> selectors = Selectors.from(SelectorsSupplier.string(), "tag", input);
         assertThat(selectors.schema()).isEqualTo(expected);
     }
 
@@ -60,7 +60,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.genericRecord(), input));
+                () -> Selectors.from(SelectorsSupplier.genericRecord(), "test", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -69,7 +69,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateJsonModeSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.jsonNode(), input));
+                () -> Selectors.from(SelectorsSupplier.jsonNode(), "test", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -87,7 +87,7 @@ public class SelectorsTest {
     @MethodSource("wrongArgumentsProviderForStringSelectors")
     public void shouldNotCreate3(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.string(), input));
+                () -> Selectors.from(SelectorsSupplier.string(), "test", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 

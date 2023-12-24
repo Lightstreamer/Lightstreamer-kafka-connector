@@ -23,7 +23,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 
-public class GeneircRecordSelectorsSuppliers {
+public class GenericRecordSelectorsSuppliers {
 
     private static final GenericRecordKeySelectorSupplier KEY_SELECTOR_SUPPLIER = new GenericRecordKeySelectorSupplier();
 
@@ -97,7 +97,7 @@ public class GeneircRecordSelectorsSuppliers {
             this.linkedNode = PARSER.parse(expectedRoot, expression);
         }
 
-        protected Value eval(GenericRecord record) {
+        protected Value eval(String tag, GenericRecord record) {
             Object value = record;
             GenericRecord currentRecord = record;
             LinkedNode<NodeEvaluator<GenericRecord, Object>> currentLinkedNode = linkedNode;
@@ -112,7 +112,7 @@ public class GeneircRecordSelectorsSuppliers {
                 currentLinkedNode = currentLinkedNode.next();
             }
 
-            return Value.of(name(), value.toString());
+            return Value.of(tag, name(), value.toString());
         }
     }
 
@@ -149,8 +149,8 @@ public class GeneircRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<GenericRecord, ?> record) {
-            return super.eval(record.key());
+        public Value extract(String tag, ConsumerRecord<GenericRecord, ?> record) {
+            return super.eval(tag, record.key());
         }
     }
 
@@ -186,8 +186,8 @@ public class GeneircRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, GenericRecord> record) {
-            return super.eval(record.value());
+        public Value extract(String tag, ConsumerRecord<?, GenericRecord> record) {
+            return super.eval(tag, record.value());
         }
     }
 

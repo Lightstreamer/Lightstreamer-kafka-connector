@@ -9,26 +9,11 @@ import org.junit.jupiter.api.Test;
 public class ValueTest {
 
     @Test
-    public void shouldReturnText() {
-        Value value = Value.of("name", "value");
+    public void trivial() {
+        Value value = Value.of("tag", "name", "value");
         assertThat(value.text()).isEqualTo("value");
+        assertThat(value.tag()).isEqualTo("tag");
+        assertThat(value.name()).isEqualTo("name");
     }
 
-    @Test
-    public void shouldMatch() {
-        Value value1 = Value.of("name", "value");
-        Value value2 = Value.of("name", "value");
-        assertThat(value1.matches(value2)).isTrue();
-    }
-
-    @Test
-    public void shouldNotMatch() {
-        Value value1 = Value.of("name", "value1");
-        Value value2 = Value.of("name", "value2");
-        assertThat(value1.matches(value2)).isFalse();
-    }
-
-    public void shouldNotBeContainer() {
-        assertThat(Value.of("name", "value").isContainer()).isFalse();
-    }
 }

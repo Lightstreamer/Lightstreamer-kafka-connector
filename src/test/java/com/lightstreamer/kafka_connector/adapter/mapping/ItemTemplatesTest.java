@@ -2,26 +2,29 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.record;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.CsvFileSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.truth.BooleanSubject;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GeneircRecordSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
 
@@ -38,124 +41,155 @@ public class ItemTemplatesTest {
     // assertThat(exception.getMessage()).isEqualTo("Invalid item");
     // }
 
-    @Tag("integration")
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-                            TEMPLATE                                                                     | SUBCRIBING_ITEM                        | MATCH
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe>                  | true
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<name=joe,child=alex>       | true
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<child=alex>                | true
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro                             | true
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-                            | false
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe>               | true
-                            kafka-avro-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | kafka-avro-<keyName=joe,child=alex>    | true
-                            kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[0].name}      | kafka-avro-<keyName=joe,child=gloria>  | true
-                            kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=terence> | true
-                            kafka-avro-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | kafka-avro-<keyName=joe,child=carol>   | false
-                            kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<keyName=joe,child=terence> | false
-                            kafka-avro-${child=VALUE.children[1].children[1].name}                       | kafka-avro-<child=terence>             | true
-                           kafka-avro-${child=VALUE.children[1].children[1].name1}                       | kafka-avro-<child=terence>             | true
-                            item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<ts=-1>                           | true
-                            item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=150>                   | true
-                            item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=150,ts=-1>             | true
-                            item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=150,ts=1>              | false
-                            item-${ts=TIMESTAMP,partition=PARTITION}                                     | item-<partition=50>                    | false
-                            item                                                                         | item                                   | true
-                            item-first                                                                   | item-first                             | true
-                            item_123_                                                                    | item_123_                              | true
-                            item-                                                                        | item-                                  | true
-                            prefix-${}                                                                   | prefix                                 | true
-                            prefix-${}                                                                   | prefix-                                | false
-            #               kafka-avro-${KEY}
-                                """)
-    public void shouldExpand(String template, String subscribingItem, boolean matched) {
-        SelectorsSupplier<GenericRecord, GenericRecord> selectionsSupplier = SelectorsSupplier.genericRecord();
+    private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier,
+            String... template) {
+        List<TopicMapping> topicMappings = List.of(new TopicMapping("topic", Arrays.asList(template)));
+        return Items.templatesFrom(topicMappings, selectionsSupplier);
+    }
 
-        List<TopicMapping> tp = new ArrayList<>();
-        tp.add(new TopicMapping("topic", List.of(template)));
-        ItemTemplates<GenericRecord, GenericRecord> itemTemplates = Items.templatesFrom(tp, selectionsSupplier);
-        RecordMapper<GenericRecord, GenericRecord> remapper = RecordMapper
-                .<GenericRecord, GenericRecord>builder()
-                .withItemTemplates(itemTemplates)
+    private static <K, V> ItemTemplates<K, V> templates2(SelectorsSupplier<K, V> selectionsSupplier,
+            List<String> topics, String... template) {
+        List<TopicMapping> topicMappings = List.of(new TopicMapping("topic", Arrays.asList(template)));
+        return Items.templatesFrom(topicMappings, selectionsSupplier);
+    }
+
+    private static ItemTemplates<GenericRecord, GenericRecord> getGenericRecordsGenericRecordTemplates(
+            String template) {
+        return templates(SelectorsSupplier.genericRecord(), template);
+    }
+
+    private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
+        return templates(SelectorsSupplier.wrap(
+                GenericRecordSelectorsSuppliers.keySelectorSupplier(),
+                JsonNodeSelectorsSuppliers.valueSelectorSupplier()), template);
+    }
+
+    @Test
+    public void shouldNotAllowDuplicatedKeysOnTheSameTemplat() {
+        ExpressionException e = assertThrows(ExpressionException.class,
+                () -> templates(SelectorsSupplier.string(), "item-${name=VALUE,name=PARTITITION}"));
+        assertThat(e.getMessage()).isEqualTo("No duplicated keys are allowed");
+    }
+
+    @Test
+    public void shouldOneToMany() {
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSupplier.wrap(
+                StringSelectorSuppliers.keySelectorSupplier(),
+                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+
+        List<TopicMapping> tp = List.of(
+                new TopicMapping("topic",
+                        List.of("family-${topic=TOPIC,info=PARTITION}", "relatives-${topic=TOPIC,info=TIMESTAMP}")));
+
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(tp, suppliers);
+
+        Item subcribingItem1 = Items.itemFrom("family-<topic=topic>", "");
+        assertThat(templates.matches(subcribingItem1)).isTrue();
+
+        Item subcribingItem2 = Items.itemFrom("relatives-<topic=topic>", "");
+        assertThat(templates.matches(subcribingItem2)).isTrue();
+
+        RecordMapper<String, JsonNode> mapper = RecordMapper
+                .<String, JsonNode>builder()
+                .withSelectors(templates.selectors())
                 .build();
 
-        ConsumerRecord<GenericRecord, GenericRecord> incomingRecord = record("topic",
-                GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
-        MappedRecord remappedRecord = remapper.map(incomingRecord);
-        Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
-        Stream<Item> expandedItem = itemTemplates.expand(remappedRecord);
-        Optional<Item> first = expandedItem.findFirst();
+        ConsumerRecord<String, JsonNode> record = record("topic", "key", JsonNodeProvider.RECORD);
+        MappedRecord map = mapper.map(record);
 
-        assertThat(first.isPresent()).isTrue();
+        List<Item> expandedItems = templates.expand(map).toList();
+        assertThat(expandedItems).hasSize(2);
 
-        Item it = first.get();
-        boolean match = it.matches(subscribedItem);
-        BooleanSubject assertion = assertThat(match);
-        if (matched) {
-            assertion.isTrue();
-        } else {
-            assertion.isFalse();
-        }
+        Map<String, String> valuesFamily = map.filter(Schema.of("family", "topic", "info"));
+        assertThat(valuesFamily).containsExactly("topic", "topic", "info", "150");
+
+        valuesFamily = map.filter(Schema.of("family", "info"));
+        assertThat(valuesFamily).containsExactly("info", "150");
+
+        Map<String, String> valuesRelatived = map.filter(Schema.of("relatives", "topic", "info"));
+        assertThat(valuesRelatived).containsExactly("topic", "topic", "info", "-1");
+    }
+
+    @Test
+    public void shouldManyToOne() {
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSupplier.wrap(
+                StringSelectorSuppliers.keySelectorSupplier(),
+                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+
+        List<TopicMapping> tp = List.of(
+                new TopicMapping("new_orders", List.of("orders-${topic=TOPIC}", "item-${topic=TOPIC}")),
+                new TopicMapping("past_orders", List.of("orders-${topic=TOPIC}")));
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(tp, suppliers);
+
+        Item subcribingItem = Items.itemFrom("orders-<topic=new_orders>", "");
+        assertThat(templates.matches(subcribingItem)).isTrue();
+
+        RecordMapper<String, JsonNode> mapper = RecordMapper
+                .<String, JsonNode>builder()
+                .withSelectors(templates.selectors())
+                .build();
+
+        ConsumerRecord<String, JsonNode> record = record("new_orders", "key", JsonNodeProvider.RECORD);
+        MappedRecord map = mapper.map(record);
+
+        List<Item> expandedItems = templates.expand(map).toList();
+        assertThat(expandedItems).hasSize(2);
+
+        Map<String, String> newOrders = map.filter(Schema.of("orders", "topic"));
+        assertThat(newOrders).containsExactly("topic", "new_orders");
+
+        Map<String, String> pastOrders = map.filter(Schema.of("past_orders", "topic"));
+        assertThat(pastOrders).isEmpty();
     }
 
     @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-            TEMPLATE                                                                       | SUBCRIBING_ITEM                          | SHOULD_MATCH
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<name=joe>                  | true
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<name=joe,child=alex>       | true
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<child=alex>                | true
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item                             | true
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-                            | false
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<keyName=joe>               | true
-            complex-item-${keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-<keyName=joe,child=alex>    | true
-            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[0].name}      | complex-item-<keyName=joe,child=gloria>  | true
-            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | complex-item-<keyName=joe,child=terence> | true
-            complex-item-${keyName=KEY.name,child=VALUE.children[1].children[1].name}      | complex-item-<keyName=joe,child=carol>   | false
-            complex-item-${child=VALUE.children[1].children[1].name}                       | complex-item-<keyName=joe,child=terence> | false
-            complex-item-${child=VALUE.children[1].children[1].name}                       | complex-item-<child=terence>             | true
-            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<ts=-1>                             | true
-            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150>                     | true
-            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150,ts=-1>               | true
-            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=150,ts=1>                | false
-            item-${ts=TIMESTAMP,partition=PARTITION}                                       | item-<partition=50>                      | false
-            item                                                                           | item                                     | true
-            item-first                                                                     | item-first                               | true
-            item_123_                                                                      | item_123_                                | true
-            item-                                                                          | item-                                    | true
-            prefix-${}                                                                     | prefix                                   | true
-            prefix-${}                                                                     | prefix-                                  | false
-                """)
-    public void shouldExpandMixedKeyAndValueTypes(String template, String subscribingItem, boolean matched) {
-        SelectorsSupplier<GenericRecord, JsonNode> selectionsSupplier = SelectorsSupplier.wrap(
-                GeneircRecordSelectorsSuppliers.keySelectorSupplier(),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+    @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
+    public void shouldExpand(String template, String subscribingItem, boolean canSubscribe, boolean exandable) {
+        ItemTemplates<GenericRecord, GenericRecord> templates = getGenericRecordsGenericRecordTemplates(template);
+        RecordMapper<GenericRecord, GenericRecord> mapper = RecordMapper
+                .<GenericRecord, GenericRecord>builder()
+                .withSelectors(templates.selectors())
+                .build();
 
-        List<TopicMapping> tp = new ArrayList<>();
-        tp.add(new TopicMapping("topic", List.of(template)));
-        ItemTemplates<GenericRecord, JsonNode> itemTemplates = Items.templatesFrom(tp, selectionsSupplier);
-        RecordMapper<GenericRecord, JsonNode> remapper = RecordMapper
+        ConsumerRecord<GenericRecord, GenericRecord> incomingRecord = record("topic",
+                GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
+        MappedRecord mapped = mapper.map(incomingRecord);
+        Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
+
+        assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
+
+        Stream<Item> expandedItem = templates.expand(mapped);
+        List<Item> list = expandedItem.toList();
+        assertThat(list.size()).isEqualTo(1);
+        Item first = list.get(0);
+
+        assertThat(first.matches(subscribedItem)).isEqualTo(exandable);
+    }
+
+    @Tag("integration")
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
+    public void shouldExpandMixedKeyAndValueTypes(String template, String subscribingItem, boolean canSubscribe,
+            boolean exandable) {
+        ItemTemplates<GenericRecord, JsonNode> templates = getGenericRecordJsonNodeTemplates(template);
+        RecordMapper<GenericRecord, JsonNode> mapper = RecordMapper
                 .<GenericRecord, JsonNode>builder()
-                .withItemTemplates(itemTemplates)
+                .withSelectors(templates.selectors())
                 .build();
 
         ConsumerRecord<GenericRecord, JsonNode> incomingRecord = record("topic",
                 GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
-        MappedRecord remappedRecord = remapper.map(incomingRecord);
+        MappedRecord mapped = mapper.map(incomingRecord);
         Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
-        Stream<Item> expandedItem = itemTemplates.expand(remappedRecord);
+
+        assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
+
+        Stream<Item> expandedItem = templates.expand(mapped);
         Optional<Item> first = expandedItem.findFirst();
 
         assertThat(first.isPresent()).isTrue();
 
-        Item it = first.get();
-        boolean match = it.matches(subscribedItem);
-        BooleanSubject assertion = assertThat(match);
-        if (matched) {
-            assertion.isTrue();
-        } else {
-            assertion.isFalse();
-        }
-        ;
+        assertThat(first.get().matches(subscribedItem)).isEqualTo(exandable);
     }
 }

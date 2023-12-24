@@ -4,6 +4,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public interface ValueSelector<V> extends Selector {
 
-    Value extract(ConsumerRecord<?, V> record);
+    Value extract(String tag, ConsumerRecord<?, V> record);
 
 }

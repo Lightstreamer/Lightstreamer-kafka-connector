@@ -20,6 +20,9 @@
         <param name="map.demo.to">flights</param>
         <param name="field.departure">#{VALUE.departureTime}</param>
         <param name="field.status">#{VALUE.status}</param>
+
+        <param name="map.new_orders.to">orders-${topic=TOPIC}</param>
+        <param name="map.past_orders.to">orders-${topic=TOPIC}</param>
     </data_provider>
 
       <!-- <data_provider name="Avro">

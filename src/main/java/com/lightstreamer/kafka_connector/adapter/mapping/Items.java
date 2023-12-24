@@ -58,7 +58,7 @@ public class Items {
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.params());
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
                 templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectors));
             }
         }
@@ -79,7 +79,7 @@ public class Items {
             this.valuesMap = values;
             this.prefix = prefix;
             this.itemHandle = itemHandle;
-            this.schema = Schema.of(values.keySet());
+            this.schema = Schema.of(prefix, values.keySet());
         }
 
         @Override
@@ -104,12 +104,12 @@ public class Items {
 
         @Override
         public boolean matches(Item other) {
-            MatchResult result = schema.matches(other.schema());
-            if (!result.matched()) {
+            if (!prefix.equals(other.prefix())) {
                 return false;
             }
 
-            if (!prefix.equals(other.prefix())) {
+            MatchResult result = schema.matches(other.schema());
+            if (!result.matched()) {
                 return false;
             }
 
@@ -151,15 +151,15 @@ public class Items {
         }
 
         String topic() {
-            return this.topic;
+            return topic;
         }
 
         Schema schema() {
-            return this.schema;
+            return schema;
         }
 
         public boolean matches(Item item) {
-            return this.schema.matches(item.schema()).matched();
+            return prefix.equals(item.prefix()) && schema.matches(item.schema()).matched();
         }
 
     }

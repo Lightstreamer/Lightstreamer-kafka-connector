@@ -26,7 +26,7 @@ public class MetaSelectorTest {
             """)
     public void shouldExtractAttribute(String expression, String expectedValue) {
         MetaSelector selector = metaSelector(expression);
-        Value value = selector.extract(record("record-key", "record-value"));
+        Value value = selector.extract("tag", record("record-key", "record-value"));
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
     }

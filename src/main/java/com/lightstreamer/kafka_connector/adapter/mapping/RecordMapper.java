@@ -18,132 +18,84 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 
 public interface RecordMapper<K, V> {
 
-	interface MappedRecord {
+    interface MappedRecord {
 
-		String topic();
+        String topic();
 
-		Map<String, String> filter(Schema schema);
-	}
+        Map<String, String> filter(Schema schema);
+    }
 
-	MappedRecord map(ConsumerRecord<K, V> record);
+    MappedRecord map(ConsumerRecord<K, V> record);
 
-	static <K, V> Builder<K, V> builder() {
-		return new Builder<>();
-	}
+    static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
+    }
 
-	static class Builder<K, V> {
+    static class Builder<K, V> {
 
-		final List<Selectors<K, V>> allSelectors = new ArrayList<>();
+        final List<Selectors<K, V>> allSelectors = new ArrayList<>();
 
-		private Builder() {
-		}
+        private Builder() {
+        }
 
-		public Builder<K, V> withSelectors(Stream<Selectors<K, V>> selector) {
-			allSelectors.addAll(selector.toList());
-			return this;
-		}
+        public Builder<K, V> withSelectors(Stream<Selectors<K, V>> selector) {
+            allSelectors.addAll(selector.toList());
+            return this;
+        }
 
-		public final Builder<K, V> withSelectors(Selectors<K, V> selector) {
-			allSelectors.add(selector);
-			return this;
-		}
+        public final Builder<K, V> withSelectors(Selectors<K, V> selector) {
+            allSelectors.add(selector);
+            return this;
+        }
 
-		public RecordMapper<K, V> build() {
-			return new DefaultRecordMapper<>(this);
-		}
+        public RecordMapper<K, V> build() {
+            return new DefaultRecordMapper<>(this);
+        }
 
-	}
+    }
 }
 
 class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
-	protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
+    protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-	private final List<Selectors<K, V>> selectors;
+    private final List<Selectors<K, V>> selectors;
 
-	DefaultRecordMapper(Builder<K, V> builder) {
-		this.selectors = Collections.unmodifiableList(builder.allSelectors);
-	}
+    DefaultRecordMapper(Builder<K, V> builder) {
+        this.selectors = Collections.unmodifiableList(builder.allSelectors);
+    }
 
-	@Override
-	public MappedRecord map(ConsumerRecord<K, V> record) {
-		Set<Value> values = selectors.stream()
-				.flatMap(s -> s.extractValues(record).stream())
-				.collect(Collectors.toSet());
-		return new DefaultMappedRecord(record.topic(), values);
-	}
+    @Override
+    public MappedRecord map(ConsumerRecord<K, V> record) {
+        Set<Value> values = selectors.stream()
+                .flatMap(s -> s.extractValues(record).stream())
+                .collect(Collectors.toSet());
+        return new DefaultMappedRecord(record.topic(), values);
+    }
 
 }
 
 class DefaultMappedRecord implements MappedRecord {
 
-	private final String topic;
+    private final String topic;
 
-	private final Set<Value> valuesSet;
+    private final Set<Value> valuesSet;
 
-	DefaultMappedRecord(String topic, Set<Value> values) {
-		this.topic = topic;
-		this.valuesSet = values;
-	}
+    DefaultMappedRecord(String topic, Set<Value> values) {
+        this.topic = topic;
+        this.valuesSet = values;
+    }
 
-	@Override
-	public String topic() {
-		return topic;
-	}
+    @Override
+    public String topic() {
+        return topic;
+    }
 
-	@Override
-	public Map<String, String> filter(Schema schema) {
-		return valuesSet.stream()
-				.filter(v -> schema.keys().contains(v.name()))
-				.collect(Collectors.toMap(Value::name, Value::text));
-	}
+    @Override
+    public Map<String, String> filter(Schema schema) {
+        return valuesSet.stream()
+                .filter(value -> schema.keys().contains(value.name()) &&
+                        schema.tag().equals(value.tag()))
+                .collect(Collectors.toMap(Value::name, Value::text));
+    }
 }
-
-// class FakeKeySelectorSupplier<K> implements KeySelectorSupplier<K> {
-
-// @Override
-// public KeySelector<K> selector(String name, String expression) {
-// throw new UnsupportedOperationException("Unimplemented method 'selector'");
-// }
-// }
-
-// class FakeValueSelectorSupplier<V> implements ValueSelectorSupplier<V> {
-
-// @Override
-// public ValueSelector<V> selector(String name, String expression) {
-// throw new UnsupportedOperationException("Unimplemented method 'selector'");
-// }
-
-// @Override
-// public String deserializer(Properties pros) {
-// throw new UnsupportedOperationException("Unimplemented method
-// 'deserializer'");
-// }
-
-// }
-
-// class FakeKeySelector<K> extends BaseSelector implements KeySelector<K> {
-
-// protected FakeKeySelector(String name, String expression) {
-// super(name, expression);
-// }
-
-// @Override
-// public Value extract(ConsumerRecord<K, ?> record) {
-// throw new UnsupportedOperationException("Unimplemented method 'extract'");
-// }
-
-// }
-
-// class FakeValueSelector<V> extends BaseSelector implements ValueSelector<V> {
-
-// protected FakeValueSelector(String name, String expression) {
-// super(name, expression);
-// }
-
-// @Override
-// public Value extract(ConsumerRecord<?, V> record) {
-// throw new UnsupportedOperationException("Unimplemented method 'extract'");
-// }
-
-// }

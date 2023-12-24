@@ -38,7 +38,7 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<JsonNode> s = valueSelector(expression);
-        assertThat(s.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract("tag", fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -53,7 +53,7 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<JsonNode> s = keySelector(expression);
-        assertThat(s.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract("tag", fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

@@ -9,7 +9,9 @@ public interface Schema {
     record MatchResult(Set<String> matchedKeys, boolean matched) {
     }
 
-    public Set<String> keys();
+    Set<String> keys();
+
+    String tag();
 
     default boolean isEmpty() {
         return keys().isEmpty();
@@ -25,27 +27,27 @@ public interface Schema {
         return new MatchResult(matchedKeys, thisKeys.containsAll(otherKeys));
     }
 
-    static Schema of(Set<String> keys) {
-        return new DefaultSchema(keys);
+    static Schema of(String tag, Set<String> keys) {
+        return new DefaultSchema(tag, keys);
     }
 
-    static Schema of(String k1) {
-        return new DefaultSchema(Set.of(k1));
+    static Schema of(String tag, String k1) {
+        return new DefaultSchema(tag, Set.of(k1));
     }
 
-    static Schema of(String k1, String k2) {
-        return new DefaultSchema(Set.of(k1, k2));
+    static Schema of(String tag, String k1, String k2) {
+        return new DefaultSchema(tag, Set.of(k1, k2));
     }
 
-    static Schema of(String k1, String k2, String k3) {
-        return new DefaultSchema(Set.of(k1, k2, k3));
+    static Schema of(String tag, String k1, String k2, String k3) {
+        return new DefaultSchema(tag, Set.of(k1, k2, k3));
     }
 
-    static Schema empty() {
-        return new DefaultSchema(Collections.emptySet());
+    static Schema empty(String tag) {
+        return new DefaultSchema(tag, Collections.emptySet());
     }
 
 }
 
-record DefaultSchema(Set<String> keys) implements Schema {
+record DefaultSchema(String tag, Set<String> keys) implements Schema {
 }
