@@ -16,14 +16,16 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 public class MappedRecordTest {
 
-    private static Set<Value> toValues(String tag, Map<String, String> values) {
+    private static Set<Value> toValues(String schemaName, Map<String, String> values) {
         return values.entrySet()
                 .stream()
-                .map(e -> Value.of(tag, e))
+                .map(e -> Value.of(SchemaName.of(schemaName), e))
                 .collect(Collectors.toSet());
     }
 
@@ -31,7 +33,7 @@ public class MappedRecordTest {
     @ParameterizedTest
     @MethodSource("provider")
     public void shouldFilter(Map<String, String> values, Schema schema, Map<String, String> expected) {
-        MappedRecord mapped = new DefaultMappedRecord("topic", toValues("tag", values));
+        MappedRecord mapped = new DefaultMappedRecord("topic", toValues("test", values));
 
         assertThat(mapped.topic()).isEqualTo("topic");
         assertThat(mapped.filter(schema)).isEqualTo(expected);
@@ -39,15 +41,15 @@ public class MappedRecordTest {
 
     @Test
     public void shouldFilterFromDifferentSchemas() {
-        Set<Value> tag1Set = toValues("tag1", Map.of("a", "A"));
-        Set<Value> tag2Set = toValues("tag2", Map.of("a", "B"));
+        Set<Value> tag1Set = toValues("schema1", Map.of("a", "A"));
+        Set<Value> tag2Set = toValues("schema2", Map.of("a", "B"));
 
         Set<Value> allValues = Stream.concat(tag1Set.stream(), tag2Set.stream()).collect(Collectors.toSet());
 
         MappedRecord mapped = new DefaultMappedRecord("topic", allValues);
 
-        assertThat(mapped.filter(Schema.of("tag1", "a", "c"))).containsExactly("a", "A");
-        assertThat(mapped.filter(Schema.of("tag2", "a", "c"))).containsExactly("a", "B");
+        assertThat(mapped.filter(Schema.of(SchemaName.of("schema1"), "a", "c"))).containsExactly("a", "A");
+        assertThat(mapped.filter(Schema.of(SchemaName.of("schema2"), "a", "c"))).containsExactly("a", "B");
     }
 
     static Stream<Arguments> provider() {
@@ -58,27 +60,27 @@ public class MappedRecordTest {
                         Collections.emptyMap()),
                 arguments(
                         Collections.emptyMap(),
-                        Schema.of("test", "a"),
+                        Schema.of(SchemaName.of("test"), "a"),
                         Collections.emptyMap()),
                 arguments(
                         Map.of("a", "A"),
-                        Schema.of("test", "a"),
+                        Schema.of(SchemaName.of("test"), "a"),
                         Map.of("a", "A")),
                 arguments(
                         Map.of("a", "A", "b", "B"),
-                        Schema.of("test", "a"),
+                        Schema.of(SchemaName.of("test"), "a"),
                         Map.of("a", "A")),
                 arguments(
                         Map.of("a", "A", "b", "B"),
-                        Schema.of("test", "a", "b"),
+                        Schema.of(SchemaName.of("test"), "a", "b"),
                         Map.of("a", "A", "b", "B")),
                 arguments(
                         Map.of("a", "A", "b", "B"),
-                        Schema.of("test", "a", "b", "c"),
+                        Schema.of(SchemaName.of("test"), "a", "b", "c"),
                         Map.of("a", "A", "b", "B")),
                 arguments(
                         Map.of("a", "A", "b", "B"),
-                        Schema.of("test", "c", "d"),
+                        Schema.of(SchemaName.of("test"), "c", "d"),
                         Collections.emptyMap()));
 
     }

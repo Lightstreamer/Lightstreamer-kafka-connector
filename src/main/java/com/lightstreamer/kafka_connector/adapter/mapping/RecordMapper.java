@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 
 public interface RecordMapper<K, V> {
@@ -95,7 +96,7 @@ class DefaultMappedRecord implements MappedRecord {
     public Map<String, String> filter(Schema schema) {
         return valuesSet.stream()
                 .filter(value -> schema.keys().contains(value.name()) &&
-                        schema.tag().equals(value.tag()))
+                        schema.name().equals(value.schemaName()))
                 .collect(Collectors.toMap(Value::name, Value::text));
     }
 }

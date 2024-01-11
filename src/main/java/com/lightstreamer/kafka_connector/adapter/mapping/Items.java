@@ -10,8 +10,10 @@ import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.MatchResult;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 public class Items {
 
@@ -58,7 +60,7 @@ public class Items {
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, SchemaName.of(result.prefix()), result.params());
                 templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectors));
             }
         }
@@ -79,7 +81,7 @@ public class Items {
             this.valuesMap = values;
             this.prefix = prefix;
             this.itemHandle = itemHandle;
-            this.schema = Schema.of(prefix, values.keySet());
+            this.schema = Schema.of(SchemaName.of(prefix), values.keySet());
         }
 
         @Override

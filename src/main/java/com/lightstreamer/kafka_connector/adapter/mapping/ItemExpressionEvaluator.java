@@ -10,11 +10,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpre
 public interface ItemExpressionEvaluator {
 
     record Result(String prefix, Map<String, String> params) {
-
-        // Schema schema() {
-        //     return Schema.of("", params.keySet());
-        // }
-
     }
 
     static ItemExpressionEvaluator template() {

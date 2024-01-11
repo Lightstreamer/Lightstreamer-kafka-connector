@@ -14,6 +14,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 public class SelectorsTest {
 
@@ -21,26 +23,27 @@ public class SelectorsTest {
         return Stream.of(
                 arguments(
                         Collections.emptyMap(),
-                        Schema.empty("tag")),
+                        Schema.empty("schema")),
                 arguments(
                         Map.of("name", "VALUE"),
-                        Schema.of("tag", "name")),
+                        Schema.of(SchemaName.of("schema"), "name")),
                 arguments(
                         Map.of("value", "VALUE",
                                 "key", "KEY"),
-                        Schema.of("tag", "value", "key")),
+                        Schema.of(SchemaName.of("schema"), "value", "key")),
                 arguments(
                         Map.of("timestamp", "TIMESTAMP",
                                 "partition", "PARTITION",
                                 "topic", "TOPIC"),
-                        Schema.of("tag", "timestamp", "partition", "topic")));
+                        Schema.of(SchemaName.of("schema"), "timestamp", "partition", "topic")));
     }
 
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("stringSelectorsArguments")
     public void shouldCreate(Map<String, String> input, Schema expected) {
-        Selectors<String, String> selectors = Selectors.from(SelectorsSupplier.string(), "tag", input);
+        Selectors<String, String> selectors = Selectors.from(
+                SelectorsSupplier.string(), SchemaName.of("schema"), input);
         assertThat(selectors.schema()).isEqualTo(expected);
     }
 
@@ -60,7 +63,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.genericRecord(), "test", input));
+                () -> Selectors.from(SelectorsSupplier.genericRecord(), SchemaName.of("schema"), input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -69,7 +72,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateJsonModeSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.jsonNode(), "test", input));
+                () -> Selectors.from(SelectorsSupplier.jsonNode(), SchemaName.of("schema"), input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -87,7 +90,7 @@ public class SelectorsTest {
     @MethodSource("wrongArgumentsProviderForStringSelectors")
     public void shouldNotCreate3(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.string(), "test", input));
+                () -> Selectors.from(SelectorsSupplier.string(), SchemaName.of("schema"), input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 

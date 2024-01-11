@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 
 @Tag("unit")
@@ -38,7 +39,7 @@ public class GenericRecordSelectorTest {
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
-        assertThat(selector.extract("tag", fromValue(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(selector.extract(SchemaName.of("schema"), fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -53,7 +54,7 @@ public class GenericRecordSelectorTest {
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<GenericRecord> selector = keySelector(expression);
-        assertThat(selector.extract("tag", fromKey(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(selector.extract(SchemaName.of("schema"), fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

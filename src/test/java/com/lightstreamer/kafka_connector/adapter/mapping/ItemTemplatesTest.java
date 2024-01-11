@@ -22,6 +22,8 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
@@ -95,18 +97,18 @@ public class ItemTemplatesTest {
                 .build();
 
         ConsumerRecord<String, JsonNode> record = record("topic", "key", JsonNodeProvider.RECORD);
-        MappedRecord map = mapper.map(record);
+        MappedRecord mappedRecord = mapper.map(record);
 
-        List<Item> expandedItems = templates.expand(map).toList();
+        List<Item> expandedItems = templates.expand(mappedRecord).toList();
         assertThat(expandedItems).hasSize(2);
 
-        Map<String, String> valuesFamily = map.filter(Schema.of("family", "topic", "info"));
+        Map<String, String> valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"), "topic", "info"));
         assertThat(valuesFamily).containsExactly("topic", "topic", "info", "150");
 
-        valuesFamily = map.filter(Schema.of("family", "info"));
+        valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"), "info"));
         assertThat(valuesFamily).containsExactly("info", "150");
 
-        Map<String, String> valuesRelatived = map.filter(Schema.of("relatives", "topic", "info"));
+        Map<String, String> valuesRelatived = mappedRecord.filter(Schema.of(SchemaName.of("relativies"), "topic", "info"));
         assertThat(valuesRelatived).containsExactly("topic", "topic", "info", "-1");
     }
 
@@ -135,10 +137,10 @@ public class ItemTemplatesTest {
         List<Item> expandedItems = templates.expand(map).toList();
         assertThat(expandedItems).hasSize(2);
 
-        Map<String, String> newOrders = map.filter(Schema.of("orders", "topic"));
+        Map<String, String> newOrders = map.filter(Schema.of(SchemaName.of("orders"), "topic"));
         assertThat(newOrders).containsExactly("topic", "new_orders");
 
-        Map<String, String> pastOrders = map.filter(Schema.of("past_orders", "topic"));
+        Map<String, String> pastOrders = map.filter(Schema.of(SchemaName.of("past_orders"), "topic"));
         assertThat(pastOrders).isEmpty();
     }
 

@@ -2,7 +2,6 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.generic.GenericRecord;
@@ -12,6 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
@@ -27,15 +28,13 @@ public class RecordMapperTest {
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier());
 
         Selectors<String, GenericRecord> nameSelector = Selectors.from(
-                selectorsSuppliers, "test",
-                Map.of("name", "VALUE.name"));
+                selectorsSuppliers, SchemaName.of("test"), Map.of("name", "VALUE.name"));
 
         Selectors<String, GenericRecord> childSelector1 = Selectors.from(
-                selectorsSuppliers, "test",
-                Map.of("firstChildName", "VALUE.children[0].name"));
+                selectorsSuppliers, SchemaName.of("test"), Map.of("firstChildName", "VALUE.children[0].name"));
 
         Selectors<String, GenericRecord> childSelector2 = Selectors.from(
-                selectorsSuppliers, "test",
+                selectorsSuppliers, SchemaName.of("test"),
                 Map.of("secondChildName", "VALUE.children[1].name",
                         "grandChildName", "VALUE.children[1].children[1].name"));
 
@@ -45,7 +44,8 @@ public class RecordMapperTest {
                 .withSelectors(childSelector2)
                 .build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("",
+                GenericRecordProvider.RECORD);
         MappedRecord remap = remapper.map(kafkaRecord);
 
         Map<String, String> parentName = remap.filter(nameSelector.schema());
@@ -57,7 +57,7 @@ public class RecordMapperTest {
         Map<String, String> otherPeopleNames = remap.filter(childSelector2.schema());
         assertThat(otherPeopleNames).containsExactly("secondChildName", "anna", "grandChildName", "terence");
 
-        assertThat(remap.filter(Schema.of("test", "nonExistingKey"))).isEmpty();
+        assertThat(remap.filter(Schema.of(SchemaName.of("test"), "nonExistingKey"))).isEmpty();
     }
 
 }

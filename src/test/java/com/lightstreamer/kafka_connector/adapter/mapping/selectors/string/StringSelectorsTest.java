@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 @Tag("unit")
 public class StringSelectorsTest {
@@ -34,7 +35,7 @@ public class StringSelectorsTest {
     public void shouldExtractValue(String expression, String expected) {
         ValueSelector<String> selector = valueSelector(expression);
         assertThat(selector.name()).isEqualTo("name");
-        assertThat(selector.extract("tag",fromValue(expected)).text()).isEqualTo(expected);
+        assertThat(selector.extract(SchemaName.of("schema"),fromValue(expected)).text()).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -46,7 +47,7 @@ public class StringSelectorsTest {
     public void shouldExtractKey(String expression, String expected) {
         KeySelector<String> selector = keySelector(expression);
         assertThat(selector.name()).isEqualTo("name");
-        assertThat(selector.extract("tag", fromKey(expected)).text()).isEqualTo(expected);
+        assertThat(selector.extract(SchemaName.of("schema"), fromKey(expected)).text()).isEqualTo(expected);
     }
 
     @Test

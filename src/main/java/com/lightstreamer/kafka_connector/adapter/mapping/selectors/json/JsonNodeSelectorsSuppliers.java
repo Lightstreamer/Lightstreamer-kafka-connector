@@ -17,6 +17,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpre
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
@@ -95,14 +96,14 @@ public class JsonNodeSelectorsSuppliers {
             this.rootNode = PARSER.parse(expectedRoot, expression);
         }
 
-        Value eval(String tag, JsonNode node) {
+        Value eval(SchemaName schemaName, JsonNode node) {
             LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = rootNode;
             while (currentLinkedNode != null) {
                 NodeEvaluator<JsonNode, JsonNode> nodeEvaluator = currentLinkedNode.value();
                 node = nodeEvaluator.get(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
-            return Value.of(tag, name(), node.asText());
+            return Value.of(schemaName, name(), node.asText());
         }
     }
 
@@ -137,8 +138,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(String tag, ConsumerRecord<JsonNode, ?> record) {
-            return super.eval(tag, record.key());
+        public Value extract(SchemaName schemaName, ConsumerRecord<JsonNode, ?> record) {
+            return super.eval(schemaName, record.key());
         }
     }
 
@@ -178,8 +179,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(String tag, ConsumerRecord<?, JsonNode> record) {
-            return super.eval(tag, record.value());
+        public Value extract(SchemaName schemaName, ConsumerRecord<?, JsonNode> record) {
+            return super.eval(schemaName, record.value());
         }
     }
 

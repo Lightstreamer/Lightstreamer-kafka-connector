@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 
 public class ItemTest {
 

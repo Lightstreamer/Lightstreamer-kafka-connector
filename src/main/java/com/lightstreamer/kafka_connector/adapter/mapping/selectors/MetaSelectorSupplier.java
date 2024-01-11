@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
 
@@ -87,7 +88,7 @@ class DefaultMetaSelector extends BaseSelector implements MetaSelector {
     }
 
     @Override
-    public Value extract(String tag, ConsumerRecord<?, ?> record) {
-        return Value.of(tag, name(), attribute.value(record));
+    public Value extract(SchemaName schemaName, ConsumerRecord<?, ?> record) {
+        return Value.of(schemaName, name(), attribute.value(record));
     }
 }

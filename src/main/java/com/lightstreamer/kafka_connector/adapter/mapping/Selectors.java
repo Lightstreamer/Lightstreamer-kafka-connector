@@ -17,10 +17,12 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.MetaSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.MetaSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
@@ -57,10 +59,10 @@ public interface Selectors<K, V> {
 
     Schema schema();
 
-    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, String tag, Map<String, String> entries) {
+    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, SchemaName schemaName, Map<String, String> entries) {
         return builder(suppliers)
                 .withMap(entries)
-                .withTag(tag)
+                .withSchemaName(schemaName)
                 .build();
     }
 
@@ -90,7 +92,7 @@ public interface Selectors<K, V> {
 
         private final Map<String, String> entries = new HashMap<>();
 
-        private String tag = "";
+        private SchemaName schemaName;
 
         private Builder(KeySelectorSupplier<K> ks, ValueSelectorSupplier<V> vs) {
             this.keySupplier = Objects.requireNonNull(ks);
@@ -181,8 +183,8 @@ public interface Selectors<K, V> {
             return this;
         }
 
-        public Builder<K, V> withTag(String tag) {
-            this.tag = tag;
+        public Builder<K, V> withSchemaName(SchemaName schemaName) {
+            this.schemaName = schemaName;
             return this;
         }
 
@@ -193,12 +195,12 @@ public interface Selectors<K, V> {
                 }
             });
 
-            return new DefaultSelectors<>(tag, keySelectors, valueSelectors, metaSelectors);
+            return new DefaultSelectors<>(schemaName, keySelectors, valueSelectors, metaSelectors);
         }
     }
 }
 
-record DefaultSelectors<K, V>(String tag, Set<KeySelector<K>> keySelectors, Set<ValueSelector<V>> valueSelectors,
+record DefaultSelectors<K, V>(SchemaName schemaName, Set<KeySelector<K>> keySelectors, Set<ValueSelector<V>> valueSelectors,
         Set<MetaSelector> metaSelectors) implements Selectors<K, V> {
 
     public Schema schema() {
@@ -206,16 +208,16 @@ record DefaultSelectors<K, V>(String tag, Set<KeySelector<K>> keySelectors, Set<
         Stream<String> keyNames = keySelectors().stream().map(Selector::name);
         Stream<String> valueNames = valueSelectors().stream().map(Selector::name);
 
-        return Schema.of(tag(), Stream.of(infoNames, keyNames, valueNames)
+        return Schema.of(schemaName(), Stream.of(infoNames, keyNames, valueNames)
                 .flatMap(Function.identity())
                 .collect(Collectors.toSet()));
     }
 
     public Set<Value> extractValues(ConsumerRecord<K, V> record) {
         return Stream.of(
-                keySelectors.stream().map(k -> k.extract(tag, record)),
-                valueSelectors.stream().map(v -> v.extract(tag, record)),
-                metaSelectors.stream().map(m -> m.extract(tag, record)))
+                keySelectors.stream().map(k -> k.extract(schemaName, record)),
+                valueSelectors.stream().map(v -> v.extract(schemaName, record)),
+                metaSelectors.stream().map(m -> m.extract(schemaName, record)))
                 .flatMap(Function.identity())
                 .collect(Collectors.toSet());
     }
