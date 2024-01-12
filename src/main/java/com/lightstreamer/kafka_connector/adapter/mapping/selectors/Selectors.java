@@ -217,6 +217,23 @@ class DefaultSelectors<K, V> implements Selectors<K, V> {
                         .collect(Collectors.toSet()));
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(keySelectors, valueSelectors, metaSelectors, schema);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+
+        return obj instanceof DefaultSelectors<?, ?> other
+                && Objects.equals(keySelectors, other.keySelectors)
+                && Objects.equals(valueSelectors, other.valueSelectors)
+                && Objects.equals(metaSelectors, other.metaSelectors)
+                && Objects.equals(schema, other.schema);
+    }
+
 }
 
 record DefautlSelectorSupplier<K, V>(KeySelectorSupplier<K> keySelectorSupplier,

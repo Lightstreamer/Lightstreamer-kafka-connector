@@ -33,32 +33,16 @@ public abstract class BaseSelector implements Selector {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + ((expression == null) ? 0 : expression.hashCode());
-        return result;
+        return Objects.hash(name, expression);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        BaseSelector other = (BaseSelector) obj;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
-            return false;
-        if (expression == null) {
-            if (other.expression != null)
-                return false;
-        } else if (!expression.equals(other.expression))
-            return false;
-        return true;
+
+        return obj instanceof BaseSelector other &&
+                Objects.equals(name, other.name) &&
+                Objects.equals(expression, other.expression);
     }
 }
