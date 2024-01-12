@@ -27,7 +27,7 @@ public class ItemTest {
 
         Schema schema = item.schema();
         assertThat(schema).isNotNull();
-        assertThat(schema.name().id()).isEqualTo("item");
+        assertThat(schema.name()).isEqualTo("item");
         assertThat(schema.keys()).isNotEmpty();
         assertThat(schema.keys()).containsExactly("a", "b");
         assertThat(item.values()).isNotEmpty();
@@ -102,7 +102,7 @@ public class ItemTest {
         Item item = Items.itemFrom(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
-        assertThat(item.schema().name().id()).isEqualTo(expectedPrefix);
+        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEmpty();
         assertThat(item.values()).isEmpty();
     }
@@ -110,21 +110,21 @@ public class ItemTest {
     @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-            INPUT | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
-            item-<name=field1> | item | name | field1
-            item-first-<height=12.34> | item-first | height | 12.34
-            item_123_-<test=\\> | item_123_ | test | \\
-            item-<test=""> | item | test | ""
-            prefix-<test=>> | prefix | test | >
-            item-<test=value,> | item | test | value
-            item- | item- | |
-            item-<> | item | |
+            INPUT                     | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
+            item-<name=field1>        | item            | name          | field1
+            item-first-<height=12.34> | item-first      | height        | 12.34
+            item_123_-<test=\\>       | item_123_       | test          | \\
+            item-<test="">            | item            | test          | ""
+            prefix-<test=>>           | prefix          | test          | >
+            item-<test=value,>        | item            | test          | value
+            item-                     | item-           |               |
+            item-<>                   | item            |               |
             """)
     public void shouldMakeWithValue(String input, String expectedPrefix, String expectedName, String expectedValue) {
         Object handle = new Object();
         Item item = Items.itemFrom(input, handle);
         assertThat(item).isNotNull();
-        assertThat(item.schema().name().id()).isEqualTo(expectedPrefix);
+        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
 
         if (expectedName != null && expectedValue != null) {

@@ -62,6 +62,5 @@ public class StringSelectorsTest {
 
         ExpressionException e4 = assertThrows(ExpressionException.class, () -> valueSelector(""));
         assertThat(e4.getMessage()).isEqualTo("Expected <VALUE>");
-
     }
 }

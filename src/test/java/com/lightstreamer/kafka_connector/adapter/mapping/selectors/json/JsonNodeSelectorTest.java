@@ -16,7 +16,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 
 @Tag("unit")
-public class JsonNodeSelectorSuppliersTest {
+public class JsonNodeSelectorTest {
 
     static ValueSelector<JsonNode> valueSelector(String expression) {
         return JsonNodeSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
@@ -37,8 +37,8 @@ public class JsonNodeSelectorSuppliersTest {
             VALUE.children[1].children[1].name, terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
-        ValueSelector<JsonNode> s = valueSelector(expression);
-        assertThat(s.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
+        ValueSelector<JsonNode> selector = valueSelector(expression);
+        assertThat(selector.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -52,8 +52,8 @@ public class JsonNodeSelectorSuppliersTest {
             KEY.children[1].children[1].name,  terence
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
-        KeySelector<JsonNode> s = keySelector(expression);
-        assertThat(s.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
+        KeySelector<JsonNode> selector = keySelector(expression);
+        assertThat(selector.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -82,5 +82,4 @@ public class JsonNodeSelectorSuppliersTest {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
-
 }

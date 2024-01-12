@@ -102,14 +102,16 @@ class DefaultMappedRecord implements MappedRecord {
 
     @Override
     public int mappedValuesSize() {
-        return valuesContainers.stream().mapToInt(v -> v.values().size()).sum();
+        return valuesContainers.stream()
+                .mapToInt(v -> v.values().size())
+                .sum();
     }
 
     @Override
     public Map<String, String> filter(Selectors<?, ?> selectors) {
         return valuesContainers.stream()
-                .filter(v -> v.selectors().equals(selectors))
-                .flatMap(v -> v.values().stream())
+                .filter(container -> container.selectors().equals(selectors))
+                .flatMap(container -> container.values().stream())
                 .collect(Collectors.toMap(Value::name, Value::text));
     }
 }

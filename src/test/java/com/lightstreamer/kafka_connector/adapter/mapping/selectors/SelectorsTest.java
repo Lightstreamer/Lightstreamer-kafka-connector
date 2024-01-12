@@ -6,92 +6,110 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
 public class SelectorsTest {
 
-    static Stream<Arguments> stringSelectorsArguments() {
-        return Stream.of(
-                arguments(
-                        Collections.emptyMap(),
-                        Schema.empty("schema")),
-                arguments(
-                        Map.of("name", "VALUE"),
-                        Schema.of(SchemaName.of("schema"), "name")),
-                arguments(
-                        Map.of("value", "VALUE",
-                                "key", "KEY"),
-                        Schema.of(SchemaName.of("schema"), "value", "key")),
-                arguments(
-                        Map.of("timestamp", "TIMESTAMP",
-                                "partition", "PARTITION",
-                                "topic", "TOPIC"),
-                        Schema.of(SchemaName.of("schema"), "timestamp", "partition", "topic")));
-    }
+	static Stream<Arguments> stringSelectorsArguments() {
+		return Stream.of(
+				arguments(
+						Collections.emptyMap(),
+						Schema.empty("schema"),
+						Collections.emptySet()),
+				arguments(
+						Map.of("name", "VALUE"),
+						Schema.from("schema", Set.of("name")),
+						Set.of(new SimpleValue("name", "aValue"))),
+				arguments(
+						Map.of("value", "VALUE",
+								"key", "KEY"),
+						Schema.from("schema", Set.of("value", "key")),
+						Set.of(new SimpleValue("key", "aKey"),
+								new SimpleValue("value", "aValue"))),
+				arguments(
+						Map.of("timestamp", "TIMESTAMP",
+								"partition", "PARTITION",
+								"topic", "TOPIC"),
+						Schema.from("schema", Set.of("timestamp", "partition", "topic")),
+						Set.of(new SimpleValue("partition", "150"),
+								new SimpleValue("topic", "record-topic"),
+								new SimpleValue("timestamp", "-1"))));
 
-    @Tag("unit")
-    @ParameterizedTest
-    @MethodSource("stringSelectorsArguments")
-    public void shouldCreate(Map<String, String> input, Schema expected) {
-        Selectors<String, String> selectors = Selectors.from(
-                SelectorsSupplier.string(), SchemaName.of("schema"), input);
-        assertThat(selectors.schema()).isEqualTo(expected);
-    }
+	}
 
-    static Stream<Arguments> wrongArguments() {
-        return Stream.of(
-                arguments(Map.of("name", "VALUE."), "Incomplete expression"),
-                arguments(Map.of("name", "VALUE.."), "Tokens cannot be blank"),
-                arguments(Map.of("name", "VALUE"), "Invalid expression"),
-                arguments(Map.of("name", "KEY."), "Incomplete expression"),
-                arguments(Map.of("name", "KEY.."), "Tokens cannot be blank"),
-                arguments(Map.of("name", "KEY"), "Invalid expression"),
-                arguments(Map.of("name", "wrong"), "Invalid expression"));
-    }
+	@Tag("unit")
+	@ParameterizedTest
+	@MethodSource("stringSelectorsArguments")
+	public void shouldCreateAndExtractValues(Map<String, String> expressions, Schema expectedSchema,
+			Set<Value> expectedValues) {
+		Selectors<String, String> selectors = Selectors.from(
+				SelectorsSuppliers.string(), "schema", expressions);
+		assertThat(selectors.schema()).isEqualTo(expectedSchema);
 
-    @Tag("unit")
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.genericRecord(), SchemaName.of("schema"), input));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
-    }
+		ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+		ValuesContainer values = selectors.extractValues(kafkaRecord);
 
-    @Tag("unit")
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateJsonNodeSelectors(Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.jsonNode(), SchemaName.of("schema"), input));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
-    }
+		assertThat(values.selectors()).isSameInstanceAs(selectors);
+		Set<Value> values2 = values.values();
+		assertThat(values2).isEqualTo(expectedValues);
+	}
 
-    static Stream<Arguments> wrongArgumentsProviderForStringSelectors() {
-        return Stream.of(
-                arguments(Map.of("name", "VALUE."), "Invalid expression"),
-                arguments(Map.of("name", "VALUE.."), "Invalid expression"),
-                arguments(Map.of("name", "KEY."), "Invalid expression"),
-                arguments(Map.of("name", "KEY.."), "Invalid expression"),
-                arguments(Map.of("name", "wrong"), "Invalid expression"));
-    }
+	static Stream<Arguments> wrongArguments() {
+		return Stream.of(
+				arguments(Map.of("name", "VALUE."), "Incomplete expression"),
+				arguments(Map.of("name", "VALUE.."), "Tokens cannot be blank"),
+				arguments(Map.of("name", "VALUE"), "Invalid expression"),
+				arguments(Map.of("name", "KEY."), "Incomplete expression"),
+				arguments(Map.of("name", "KEY.."), "Tokens cannot be blank"),
+				arguments(Map.of("name", "KEY"), "Invalid expression"),
+				arguments(Map.of("name", "wrong"), "Invalid expression"));
+	}
 
-    @Tag("unit")
-    @ParameterizedTest
-    @MethodSource("wrongArgumentsProviderForStringSelectors")
-    public void shouldNotCreateStringSelectors(Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSupplier.string(), SchemaName.of("schema"), input));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
-    }
+	@Tag("unit")
+	@ParameterizedTest
+	@MethodSource("wrongArguments")
+	public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
+		ExpressionException exception = assertThrows(ExpressionException.class,
+				() -> Selectors.from(SelectorsSuppliers.genericRecord(), "schema", input));
+		assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
+	}
+
+	@Tag("unit")
+	@ParameterizedTest
+	@MethodSource("wrongArguments")
+	public void shouldNotCreateJsonNodeSelectors(Map<String, String> input, String expectedErrorMessage) {
+		ExpressionException exception = assertThrows(ExpressionException.class,
+				() -> Selectors.from(SelectorsSuppliers.jsonNode(), "schema", input));
+		assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
+	}
+
+	static Stream<Arguments> wrongArgumentsProviderForStringSelectors() {
+		return Stream.of(
+				arguments(Map.of("name", "VALUE."), "Invalid expression"),
+				arguments(Map.of("name", "VALUE.."), "Invalid expression"),
+				arguments(Map.of("name", "KEY."), "Invalid expression"),
+				arguments(Map.of("name", "KEY.."), "Invalid expression"),
+				arguments(Map.of("name", "wrong"), "Invalid expression"));
+	}
+
+	@Tag("unit")
+	@ParameterizedTest
+	@MethodSource("wrongArgumentsProviderForStringSelectors")
+	public void shouldNotCreateStringSelectors(Map<String, String> input, String expectedErrorMessage) {
+		ExpressionException exception = assertThrows(ExpressionException.class,
+				() -> Selectors.from(SelectorsSuppliers.string(), "schema", input));
+		assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
+	}
 
 }

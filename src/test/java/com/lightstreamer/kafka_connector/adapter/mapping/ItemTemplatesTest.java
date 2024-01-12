@@ -21,14 +21,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
 public class ItemTemplatesTest {
 
@@ -57,7 +56,7 @@ public class ItemTemplatesTest {
 
     private static ItemTemplates<GenericRecord, GenericRecord> getGenericRecordsGenericRecordTemplates(
             String template) {
-        return templates(SelectorsSupplier.genericRecord(), template);
+        return templates(SelectorsSuppliers.genericRecord(), template);
     }
 
     private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
@@ -69,7 +68,7 @@ public class ItemTemplatesTest {
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplat() {
         ExpressionException e = assertThrows(ExpressionException.class,
-                () -> templates(SelectorsSupplier.string(), "item-${name=VALUE,name=PARTITION}"));
+                () -> templates(SelectorsSuppliers.string(), "item-${name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage()).isEqualTo("No duplicated keys are allowed");
     }
 

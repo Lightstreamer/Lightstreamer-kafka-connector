@@ -88,6 +88,6 @@ class DefaultMetaSelector extends BaseSelector implements MetaSelector {
 
     @Override
     public Value extract(ConsumerRecord<?, ?> record) {
-        return Value.of(name(), attribute.value(record));
+        return new SimpleValue(name(), attribute.value(record));
     }
 }

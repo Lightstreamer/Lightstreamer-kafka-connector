@@ -11,9 +11,8 @@ import java.util.stream.Stream;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.MatchResult;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 
 public class Items {
@@ -61,8 +60,7 @@ public class Items {
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, SchemaName.of(result.prefix()),
-                        result.params());
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
                 templates.add(new ItemTemplate<>(topic.topic(), selectors));
             }
         }
@@ -80,7 +78,7 @@ public class Items {
         DefaultItem(Object itemHandle, String prefix, Map<String, String> values) {
             this.valuesMap = values;
             this.itemHandle = itemHandle;
-            this.schema = Schema.of(SchemaName.of(prefix), values.keySet());
+            this.schema = Schema.from(prefix, values.keySet());
         }
 
         @Override
@@ -129,7 +127,7 @@ public class Items {
         Optional<Item> expand(MappedRecord record) {
             if (record.topic().equals(this.topic)) {
                 Map<String, String> values = record.filter(selectors);
-                return Optional.of(new DefaultItem("", schema.name().id(), values));
+                return Optional.of(new DefaultItem("", schema.name(), values));
             }
 
             return Optional.empty();
@@ -181,7 +179,7 @@ public class Items {
 
         @Override
         public Optional<Selectors<K, V>> selectorsByName(String name) {
-            return selectors().filter(s -> s.schema().name().id().equals(name)).findFirst();
+            return selectors().filter(s -> s.schema().name().equals(name)).findFirst();
         }
     }
 

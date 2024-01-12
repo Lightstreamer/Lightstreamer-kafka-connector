@@ -9,19 +9,9 @@ public interface Schema {
     record MatchResult(Set<String> matchedKeys, boolean matched) {
     }
 
-    public interface SchemaName {
-
-        String id();
-
-        static SchemaName of(String id) {
-            return new DefaultSchemaName(id);
-        }
-
-    }
-
     Set<String> keys();
 
-    SchemaName name();
+    String name();
 
     default boolean isEmpty() {
         return keys().isEmpty();
@@ -40,35 +30,15 @@ public interface Schema {
         return new MatchResult(matchedKeys, thisKeys.containsAll(otherKeys));
     }
 
-    static Schema of(SchemaName name, Set<String> keys) {
+    static Schema from(String name, Set<String> keys) {
         return new DefaultSchema(name, keys);
     }
 
-    static Schema of(SchemaName name, String k1) {
-        return new DefaultSchema(name, Set.of(k1));
-    }
-
-    static Schema of(SchemaName name, String k1, String k2) {
-        return new DefaultSchema(name, Set.of(k1, k2));
-    }
-
-    static Schema of(SchemaName name, String k1, String k2, String k3) {
-        return new DefaultSchema(name, Set.of(k1, k2, k3));
-    }
-
-    static Schema empty(SchemaName name) {
+    static Schema empty(String name) {
         return new DefaultSchema(name, Collections.emptySet());
     }
 
-    static Schema empty(String name) {
-        return empty(SchemaName.of(name));
-    }
-
 }
 
-record DefaultSchema(SchemaName name, Set<String> keys) implements Schema {
-}
-
-record DefaultSchemaName(String id) implements Schema.SchemaName {
-
+record DefaultSchema(String name, Set<String> keys) implements Schema {
 }

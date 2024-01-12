@@ -9,15 +9,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
 public interface Selectors<K, V> {
 
@@ -31,27 +25,13 @@ public interface Selectors<K, V> {
             return new DefautlSelectorSupplier<>(k, v);
         }
 
-        static SelectorsSupplier<String, String> string() {
-            return wrap(StringSelectorSuppliers.keySelectorSupplier(), StringSelectorSuppliers.valueSelectorSupplier());
-        }
-
-        static SelectorsSupplier<GenericRecord, GenericRecord> genericRecord() {
-            return wrap(GenericRecordSelectorsSuppliers.keySelectorSupplier(),
-                    GenericRecordSelectorsSuppliers.valueSelectorSupplier());
-        }
-
-        static SelectorsSupplier<JsonNode, JsonNode> jsonNode() {
-            return wrap(JsonNodeSelectorsSuppliers.keySelectorSupplier(),
-                    JsonNodeSelectorsSuppliers.valueSelectorSupplier());
-        }
-
     }
 
     ValuesContainer extractValues(ConsumerRecord<K, V> record);
 
     Schema schema();
 
-    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, SchemaName schemaName,
+    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, String schemaName,
             Map<String, String> entries) {
         return builder(suppliers)
                 .withMap(entries)
@@ -79,7 +59,7 @@ public interface Selectors<K, V> {
 
         private final Map<String, String> entries = new HashMap<>();
 
-        SchemaName schemaName;
+        String schemaName;
 
         final Set<KeySelector<K>> keySelectors = new HashSet<>();
 
@@ -176,7 +156,7 @@ public interface Selectors<K, V> {
             return this;
         }
 
-        public Builder<K, V> withSchemaName(SchemaName schemaName) {
+        public Builder<K, V> withSchemaName(String schemaName) {
             this.schemaName = schemaName;
             return this;
         }
@@ -210,14 +190,15 @@ class DefaultSelectors<K, V> implements Selectors<K, V> {
         this.schema = mkSchema(builder.schemaName);
     }
 
-    private Schema mkSchema(SchemaName schemaName) {
-        Stream<String> infoNames = metaSelectors.stream().map(Selector::name);
+    private Schema mkSchema(String schemaName) {
         Stream<String> keyNames = keySelectors.stream().map(Selector::name);
         Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
+        Stream<String> metaNames = metaSelectors.stream().map(Selector::name);
 
-        return Schema.of(schemaName, Stream.of(infoNames, keyNames, valueNames)
-                .flatMap(Function.identity())
-                .collect(Collectors.toSet()));
+        return Schema.from(schemaName,
+                Stream.of(metaNames, keyNames, valueNames)
+                        .flatMap(Function.identity())
+                        .collect(Collectors.toSet()));
     }
 
     @Override
@@ -227,7 +208,7 @@ class DefaultSelectors<K, V> implements Selectors<K, V> {
 
     @Override
     public ValuesContainer extractValues(ConsumerRecord<K, V> record) {
-        return ValuesContainer.of(this,
+        return new DefaultValuesContainer(this,
                 Stream.of(
                         keySelectors.stream().map(k -> k.extract(record)),
                         valueSelectors.stream().map(v -> v.extract(record)),
