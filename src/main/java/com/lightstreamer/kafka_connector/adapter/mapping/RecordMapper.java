@@ -1,9 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,8 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValuesContainer;
 
 public interface RecordMapper<K, V> {
 
@@ -23,8 +22,12 @@ public interface RecordMapper<K, V> {
 
         String topic();
 
-        Map<String, String> filter(Schema schema);
+        int mappedValuesSize();
+
+        Map<String, String> filter(Selectors<?, ?> selectors);
     }
+
+    int selectorsSize();
 
     MappedRecord map(ConsumerRecord<K, V> record);
 
@@ -34,7 +37,7 @@ public interface RecordMapper<K, V> {
 
     static class Builder<K, V> {
 
-        final List<Selectors<K, V>> allSelectors = new ArrayList<>();
+        final Set<Selectors<K, V>> allSelectors = new HashSet<>();
 
         private Builder() {
         }
@@ -60,18 +63,23 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-    private final List<Selectors<K, V>> selectors;
+    private final Set<Selectors<K, V>> selectors;
 
     DefaultRecordMapper(Builder<K, V> builder) {
-        this.selectors = Collections.unmodifiableList(builder.allSelectors);
+        this.selectors = Collections.unmodifiableSet(builder.allSelectors);
     }
 
     @Override
     public MappedRecord map(ConsumerRecord<K, V> record) {
-        Set<Value> values = selectors.stream()
-                .flatMap(s -> s.extractValues(record).stream())
+        Set<ValuesContainer> values = selectors.stream()
+                .map(s -> s.extractValues(record))
                 .collect(Collectors.toSet());
         return new DefaultMappedRecord(record.topic(), values);
+    }
+
+    @Override
+    public int selectorsSize() {
+        return this.selectors.size();
     }
 
 }
@@ -80,11 +88,11 @@ class DefaultMappedRecord implements MappedRecord {
 
     private final String topic;
 
-    private final Set<Value> valuesSet;
+    private final Set<ValuesContainer> valuesContainers;
 
-    DefaultMappedRecord(String topic, Set<Value> values) {
+    DefaultMappedRecord(String topic, Set<ValuesContainer> valuesContainers) {
         this.topic = topic;
-        this.valuesSet = values;
+        this.valuesContainers = valuesContainers;
     }
 
     @Override
@@ -93,10 +101,15 @@ class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Map<String, String> filter(Schema schema) {
-        return valuesSet.stream()
-                .filter(value -> schema.keys().contains(value.name()) &&
-                        schema.name().equals(value.schemaName()))
+    public int mappedValuesSize() {
+        return valuesContainers.stream().mapToInt(v -> v.values().size()).sum();
+    }
+
+    @Override
+    public Map<String, String> filter(Selectors<?, ?> selectors) {
+        return valuesContainers.stream()
+                .filter(v -> v.selectors().equals(selectors))
+                .flatMap(v -> v.values().stream())
                 .collect(Collectors.toMap(Value::name, Value::text));
     }
 }

@@ -28,6 +28,9 @@ public interface Schema {
     }
 
     default public MatchResult matches(Schema other) {
+        if (!name().equals(other.name())) {
+            return new MatchResult(Collections.emptySet(), false);
+        }
         Set<String> thisKeys = keys();
         Set<String> otherKeys = other.keys();
 

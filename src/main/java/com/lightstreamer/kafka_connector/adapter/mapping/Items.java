@@ -10,16 +10,15 @@ import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 
 public class Items {
 
     public static interface Item {
-
-        String prefix();
 
         Schema schema();
 
@@ -38,6 +37,8 @@ public class Items {
         boolean matches(Item item);
 
         Stream<Selectors<K, V>> selectors();
+
+        Optional<Selectors<K, V>> selectorsByName(String name);
 
         Stream<String> topics();
 
@@ -60,8 +61,9 @@ public class Items {
         for (TopicMapping topic : topics) {
             for (String template : topic.itemTemplates()) {
                 Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, SchemaName.of(result.prefix()), result.params());
-                templates.add(new ItemTemplate<>(topic.topic(), result.prefix(), selectors));
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, SchemaName.of(result.prefix()),
+                        result.params());
+                templates.add(new ItemTemplate<>(topic.topic(), selectors));
             }
         }
         return new DefaultItemTemplates<>(templates);
@@ -75,18 +77,10 @@ public class Items {
 
         private final Schema schema;
 
-        private final String prefix;
-
         DefaultItem(Object itemHandle, String prefix, Map<String, String> values) {
             this.valuesMap = values;
-            this.prefix = prefix;
             this.itemHandle = itemHandle;
             this.schema = Schema.of(SchemaName.of(prefix), values.keySet());
-        }
-
-        @Override
-        public String prefix() {
-            return prefix;
         }
 
         @Override
@@ -106,10 +100,6 @@ public class Items {
 
         @Override
         public boolean matches(Item other) {
-            if (!prefix.equals(other.prefix())) {
-                return false;
-            }
-
             MatchResult result = schema.matches(other.schema());
             if (!result.matched()) {
                 return false;
@@ -128,21 +118,18 @@ public class Items {
 
         private final String topic;
 
-        private final String prefix;
-
         private final Selectors<K, V> selectors;
 
-        ItemTemplate(String topic, String prefix, Selectors<K, V> selectors) {
+        ItemTemplate(String topic, Selectors<K, V> selectors) {
             this.topic = Objects.requireNonNull(topic);
             this.selectors = Objects.requireNonNull(selectors);
             this.schema = selectors.schema();
-            this.prefix = Objects.requireNonNull(prefix);
         }
 
         Optional<Item> expand(MappedRecord record) {
             if (record.topic().equals(this.topic)) {
-                Map<String, String> values = record.filter(schema);
-                return Optional.of(new DefaultItem("", prefix, values));
+                Map<String, String> values = record.filter(selectors);
+                return Optional.of(new DefaultItem("", schema.name().id(), values));
             }
 
             return Optional.empty();
@@ -161,7 +148,7 @@ public class Items {
         }
 
         public boolean matches(Item item) {
-            return prefix.equals(item.prefix()) && schema.matches(item.schema()).matched();
+            return schema.matches(item.schema()).matched();
         }
 
     }
@@ -190,6 +177,11 @@ public class Items {
         @Override
         public Stream<String> topics() {
             return templates.stream().map(ItemTemplate::topic);
+        }
+
+        @Override
+        public Optional<Selectors<K, V>> selectorsByName(String name) {
+            return selectors().filter(s -> s.schema().name().id().equals(name)).findFirst();
         }
     }
 

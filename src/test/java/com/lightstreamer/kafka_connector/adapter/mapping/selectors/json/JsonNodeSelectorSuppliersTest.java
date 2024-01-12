@@ -13,7 +13,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 
 @Tag("unit")
@@ -39,7 +38,7 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<JsonNode> s = valueSelector(expression);
-        assertThat(s.extract(SchemaName.of("schema"), fromValue(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract(fromValue(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -54,7 +53,7 @@ public class JsonNodeSelectorSuppliersTest {
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<JsonNode> s = keySelector(expression);
-        assertThat(s.extract(SchemaName.of("schema"), fromKey(RECORD)).text()).isEqualTo(expectedValue);
+        assertThat(s.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

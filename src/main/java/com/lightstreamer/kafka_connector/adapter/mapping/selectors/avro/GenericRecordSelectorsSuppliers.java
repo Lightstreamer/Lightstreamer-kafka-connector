@@ -13,7 +13,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractSelec
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
@@ -98,7 +97,7 @@ public class GenericRecordSelectorsSuppliers {
             this.linkedNode = PARSER.parse(expectedRoot, expression);
         }
 
-        protected Value eval(SchemaName schemaName, GenericRecord record) {
+        protected Value eval(GenericRecord record) {
             Object value = record;
             GenericRecord currentRecord = record;
             LinkedNode<NodeEvaluator<GenericRecord, Object>> currentLinkedNode = linkedNode;
@@ -113,7 +112,7 @@ public class GenericRecordSelectorsSuppliers {
                 currentLinkedNode = currentLinkedNode.next();
             }
 
-            return Value.of(schemaName, name(), value.toString());
+            return Value.of(name(), value.toString());
         }
     }
 
@@ -150,8 +149,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(SchemaName schemaName, ConsumerRecord<GenericRecord, ?> record) {
-            return super.eval(schemaName, record.key());
+        public Value extract(ConsumerRecord<GenericRecord, ?> record) {
+            return super.eval(record.key());
         }
     }
 
@@ -187,8 +186,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(SchemaName schemaName, ConsumerRecord<?, GenericRecord> record) {
-            return super.eval(schemaName, record.value());
+        public Value extract(ConsumerRecord<?, GenericRecord> record) {
+            return super.eval(record.value());
         }
     }
 

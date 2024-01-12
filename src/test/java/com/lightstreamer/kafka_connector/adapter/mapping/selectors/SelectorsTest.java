@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.mapping;
+package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,9 +13,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 
 public class SelectorsTest {
 
@@ -70,7 +70,7 @@ public class SelectorsTest {
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("wrongArguments")
-    public void shouldNotCreateJsonModeSelectors(Map<String, String> input, String expectedErrorMessage) {
+    public void shouldNotCreateJsonNodeSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
                 () -> Selectors.from(SelectorsSupplier.jsonNode(), SchemaName.of("schema"), input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
@@ -88,7 +88,7 @@ public class SelectorsTest {
     @Tag("unit")
     @ParameterizedTest
     @MethodSource("wrongArgumentsProviderForStringSelectors")
-    public void shouldNotCreate3(Map<String, String> input, String expectedErrorMessage) {
+    public void shouldNotCreateStringSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
                 () -> Selectors.from(SelectorsSupplier.string(), SchemaName.of("schema"), input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);

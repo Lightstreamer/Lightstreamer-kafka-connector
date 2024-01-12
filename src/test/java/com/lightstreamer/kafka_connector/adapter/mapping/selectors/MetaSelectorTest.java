@@ -9,7 +9,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 @Tag("unit")
 public class MetaSelectorTest {
@@ -27,7 +26,7 @@ public class MetaSelectorTest {
             """)
     public void shouldExtractAttribute(String expression, String expectedValue) {
         MetaSelector selector = metaSelector(expression);
-        Value value = selector.extract(SchemaName.of("schema"), record("record-key", "record-value"));
+        Value value = selector.extract(record("record-key", "record-value"));
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
     }

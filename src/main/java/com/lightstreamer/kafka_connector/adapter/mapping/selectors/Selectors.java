@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.adapter.mapping;
+package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,15 +13,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.MetaSelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.MetaSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
@@ -55,11 +47,12 @@ public interface Selectors<K, V> {
 
     }
 
-    Set<Value> extractValues(ConsumerRecord<K, V> record);
+    ValuesContainer extractValues(ConsumerRecord<K, V> record);
 
     Schema schema();
 
-    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, SchemaName schemaName, Map<String, String> entries) {
+    static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, SchemaName schemaName,
+            Map<String, String> entries) {
         return builder(suppliers)
                 .withMap(entries)
                 .withSchemaName(schemaName)
@@ -76,12 +69,6 @@ public interface Selectors<K, V> {
 
         private final KeySelectorSupplier<K> keySupplier;
 
-        private final Set<KeySelector<K>> keySelectors = new HashSet<>();
-
-        private final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
-
-        private final Set<MetaSelector> metaSelectors = new HashSet<>();
-
         private final KeySelectorManager keySelectorExprMgr;
 
         private final ValueSelectorManager valueSelectorExprMgrt;
@@ -92,7 +79,13 @@ public interface Selectors<K, V> {
 
         private final Map<String, String> entries = new HashMap<>();
 
-        private SchemaName schemaName;
+        SchemaName schemaName;
+
+        final Set<KeySelector<K>> keySelectors = new HashSet<>();
+
+        final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
+
+        final Set<MetaSelector> metaSelectors = new HashSet<>();
 
         private Builder(KeySelectorSupplier<K> ks, ValueSelectorSupplier<V> vs) {
             this.keySupplier = Objects.requireNonNull(ks);
@@ -195,36 +188,56 @@ public interface Selectors<K, V> {
                 }
             });
 
-            return new DefaultSelectors<>(schemaName, keySelectors, valueSelectors, metaSelectors);
+            return new DefaultSelectors<>(this);
         }
     }
 }
 
-record DefaultSelectors<K, V>(SchemaName schemaName, Set<KeySelector<K>> keySelectors, Set<ValueSelector<V>> valueSelectors,
-        Set<MetaSelector> metaSelectors) implements Selectors<K, V> {
+class DefaultSelectors<K, V> implements Selectors<K, V> {
 
-    public Schema schema() {
-        Stream<String> infoNames = metaSelectors().stream().map(Selector::name);
-        Stream<String> keyNames = keySelectors().stream().map(Selector::name);
-        Stream<String> valueNames = valueSelectors().stream().map(Selector::name);
+    private final Set<KeySelector<K>> keySelectors;
 
-        return Schema.of(schemaName(), Stream.of(infoNames, keyNames, valueNames)
+    private final Set<ValueSelector<V>> valueSelectors;
+
+    private final Set<MetaSelector> metaSelectors;
+
+    private final Schema schema;
+
+    DefaultSelectors(Selectors.Builder<K, V> builder) {
+        this.keySelectors = builder.keySelectors;
+        this.valueSelectors = builder.valueSelectors;
+        this.metaSelectors = builder.metaSelectors;
+        this.schema = mkSchema(builder.schemaName);
+    }
+
+    private Schema mkSchema(SchemaName schemaName) {
+        Stream<String> infoNames = metaSelectors.stream().map(Selector::name);
+        Stream<String> keyNames = keySelectors.stream().map(Selector::name);
+        Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
+
+        return Schema.of(schemaName, Stream.of(infoNames, keyNames, valueNames)
                 .flatMap(Function.identity())
                 .collect(Collectors.toSet()));
     }
 
-    public Set<Value> extractValues(ConsumerRecord<K, V> record) {
-        return Stream.of(
-                keySelectors.stream().map(k -> k.extract(schemaName, record)),
-                valueSelectors.stream().map(v -> v.extract(schemaName, record)),
-                metaSelectors.stream().map(m -> m.extract(schemaName, record)))
-                .flatMap(Function.identity())
-                .collect(Collectors.toSet());
+    @Override
+    public Schema schema() {
+        return schema;
+    }
+
+    @Override
+    public ValuesContainer extractValues(ConsumerRecord<K, V> record) {
+        return ValuesContainer.of(this,
+                Stream.of(
+                        keySelectors.stream().map(k -> k.extract(record)),
+                        valueSelectors.stream().map(v -> v.extract(record)),
+                        metaSelectors.stream().map(m -> m.extract(record)))
+                        .flatMap(Function.identity())
+                        .collect(Collectors.toSet()));
     }
 
 }
 
 record DefautlSelectorSupplier<K, V>(KeySelectorSupplier<K> keySelectorSupplier,
         ValueSelectorSupplier<V> valueSelectorSupplier) implements Selectors.SelectorsSupplier<K, V> {
-
 }

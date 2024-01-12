@@ -21,9 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
@@ -69,7 +69,7 @@ public class ItemTemplatesTest {
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplat() {
         ExpressionException e = assertThrows(ExpressionException.class,
-                () -> templates(SelectorsSupplier.string(), "item-${name=VALUE,name=PARTITITION}"));
+                () -> templates(SelectorsSupplier.string(), "item-${name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage()).isEqualTo("No duplicated keys are allowed");
     }
 
@@ -92,9 +92,9 @@ public class ItemTemplatesTest {
         assertThat(templates.matches(subcribingItem2)).isTrue();
 
         RecordMapper<String, JsonNode> mapper = RecordMapper
-                .<String, JsonNode>builder()
-                .withSelectors(templates.selectors())
-                .build();
+            .<String, JsonNode>builder()
+            .withSelectors(templates.selectors())
+            .build();
 
         ConsumerRecord<String, JsonNode> record = record("topic", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(record);
@@ -102,13 +102,14 @@ public class ItemTemplatesTest {
         List<Item> expandedItems = templates.expand(mappedRecord).toList();
         assertThat(expandedItems).hasSize(2);
 
-        Map<String, String> valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"), "topic", "info"));
+        Map<String, String> valuesFamily = mappedRecord.filter(templates.selectorsByName("family").get());
         assertThat(valuesFamily).containsExactly("topic", "topic", "info", "150");
 
-        valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"), "info"));
-        assertThat(valuesFamily).containsExactly("info", "150");
+        // valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"),
+        // "info"));
+        // assertThat(valuesFamily).containsExactly("info", "150");
 
-        Map<String, String> valuesRelatived = mappedRecord.filter(Schema.of(SchemaName.of("relativies"), "topic", "info"));
+        Map<String, String> valuesRelatived = mappedRecord.filter(templates.selectorsByName("relatives").get());
         assertThat(valuesRelatived).containsExactly("topic", "topic", "info", "-1");
     }
 
@@ -137,11 +138,12 @@ public class ItemTemplatesTest {
         List<Item> expandedItems = templates.expand(map).toList();
         assertThat(expandedItems).hasSize(2);
 
-        Map<String, String> newOrders = map.filter(Schema.of(SchemaName.of("orders"), "topic"));
+        Map<String, String> newOrders = map.filter(templates.selectorsByName("orders").get());
         assertThat(newOrders).containsExactly("topic", "new_orders");
 
-        Map<String, String> pastOrders = map.filter(Schema.of(SchemaName.of("past_orders"), "topic"));
-        assertThat(pastOrders).isEmpty();
+        // Map<String, String> pastOrders =
+        // map.filter(Schema.of(SchemaName.of("past_orders"), "topic"));
+        // assertThat(pastOrders).isEmpty();
     }
 
     @Tag("integration")

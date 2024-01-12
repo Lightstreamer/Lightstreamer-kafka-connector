@@ -9,7 +9,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSu
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
 
 public class StringSelectorSuppliers {
 
@@ -48,8 +47,8 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public Value extract(SchemaName schemaName, ConsumerRecord<String, ?> record) {
-            return Value.of(schemaName, name(), record.key());
+        public Value extract(ConsumerRecord<String, ?> record) {
+            return Value.of(name(), record.key());
         }
     }
 
@@ -76,8 +75,8 @@ public class StringSelectorSuppliers {
         }
 
         @Override
-        public Value extract(SchemaName schemaName, ConsumerRecord<?, String> record) {
-            return Value.of(schemaName, name(), record.value());
+        public Value extract(ConsumerRecord<?, String> record) {
+            return Value.of(name(), record.value());
         }
     }
 

@@ -9,10 +9,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.Selectors.SelectorsSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.SchemaName;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
@@ -20,44 +21,124 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvide
 
 public class RecordMapperTest {
 
-    @Tag("unit")
-    @Test
-    public void shouldMap() {
+    private static SelectorsSupplier<String, GenericRecord> wrapper() {
         SelectorsSupplier<String, GenericRecord> selectorsSuppliers = SelectorsSupplier.wrap(
                 StringSelectorSuppliers.keySelectorSupplier(),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier());
+        return selectorsSuppliers;
+    }
 
-        Selectors<String, GenericRecord> nameSelector = Selectors.from(
-                selectorsSuppliers, SchemaName.of("test"), Map.of("name", "VALUE.name"));
+    private static Selectors<String, GenericRecord> selectors(String schemaName, Map<String, String> entries) {
+        return Selectors.from(wrapper(), SchemaName.of(schemaName), entries);
+    }
 
-        Selectors<String, GenericRecord> childSelector1 = Selectors.from(
-                selectorsSuppliers, SchemaName.of("test"), Map.of("firstChildName", "VALUE.children[0].name"));
+    private static Builder<String, GenericRecord> builder() {
+        return RecordMapper.<String, GenericRecord>builder();
+    }
 
-        Selectors<String, GenericRecord> childSelector2 = Selectors.from(
-                selectorsSuppliers, SchemaName.of("test"),
+    @Tag("unit")
+    @Test
+    public void shouldBuildEmptyMapper() {
+        RecordMapper<String, GenericRecord> mapper = builder().build();
+        assertThat(mapper).isNotNull();
+        assertThat(mapper.selectorsSize()).isEqualTo(0);
+    }
+
+    @Tag("unit")
+    @Test
+    public void shouldBuildMapperWithDuplicateSelectors() {
+        RecordMapper<String, GenericRecord> mapper = builder()
+                .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
+                .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
+                .build();
+
+        assertThat(mapper).isNotNull();
+        assertThat(mapper.selectorsSize()).isEqualTo(1);
+    }
+
+    @Tag("unit")
+    @Test
+    public void shouldBuildMapperWithDifferentSelectors() {
+        RecordMapper<String, GenericRecord> mapper = builder()
+                .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
+                .withSelectors(selectors("test2", Map.of("aKey", "PARTITION")))
+                .build();
+
+        assertThat(mapper).isNotNull();
+        assertThat(mapper.selectorsSize()).isEqualTo(2);
+    }
+
+    @Tag("integration")
+    @Test
+    public void shoulMapEmpty() {
+        RecordMapper<String, GenericRecord> mapper = builder().build();
+
+        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+
+        // No expected values because no selectors have been bound to the RecordMapper.
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(0);
+    }
+
+    @Tag("integration")
+    @Test
+    public void shoulMapWithValues() {
+        RecordMapper<String, GenericRecord> mapper = builder()
+                .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
+                .withSelectors(selectors("test2", Map.of("aKey", "TOPIC")))
+                .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
+                .build();
+
+        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
+    }
+
+    @Tag("integration")
+    @Test
+    public void shoulNotFilterDueToUnboundSelectors() {
+        RecordMapper<String, GenericRecord> mapper = builder()
+                .withSelectors(selectors("test", Map.of("name", "PARTITION")))
+                .build();
+
+        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
+        Selectors<String, GenericRecord> unbonudSelectors = selectors("test", Map.of("name", "VALUE.any"));
+        assertThat(mappedRecord.filter(unbonudSelectors)).isEmpty();
+    }
+
+    @Tag("integration")
+    @Test
+    public void shouldFilter() {
+        Selectors<String, GenericRecord> nameSelectors = selectors("test", Map.of("name", "VALUE.name"));
+
+        Selectors<String, GenericRecord> childSelectors1 = selectors("test",
+                Map.of("firstChildName", "VALUE.children[0].name"));
+
+        Selectors<String, GenericRecord> childSelectors2 = selectors("test",
                 Map.of("secondChildName", "VALUE.children[1].name",
                         "grandChildName", "VALUE.children[1].children[1].name"));
 
-        RecordMapper<String, GenericRecord> remapper = RecordMapper.<String, GenericRecord>builder()
-                .withSelectors(nameSelector)
-                .withSelectors(childSelector1)
-                .withSelectors(childSelector2)
+        RecordMapper<String, GenericRecord> mapper = builder()
+                .withSelectors(nameSelectors)
+                .withSelectors(childSelectors1)
+                .withSelectors(childSelectors2)
                 .build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("",
-                GenericRecordProvider.RECORD);
-        MappedRecord remap = remapper.map(kafkaRecord);
+        ConsumerRecord<String, GenericRecord> kafkaRecord = ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
 
-        Map<String, String> parentName = remap.filter(nameSelector.schema());
+        Map<String, String> parentName = mappedRecord.filter(nameSelectors);
         assertThat(parentName).containsExactly("name", "joe");
 
-        Map<String, String> firstChildName = remap.filter(childSelector1.schema());
+        Map<String, String> firstChildName = mappedRecord.filter(childSelectors1);
         assertThat(firstChildName).containsExactly("firstChildName", "alex");
 
-        Map<String, String> otherPeopleNames = remap.filter(childSelector2.schema());
+        Map<String, String> otherPeopleNames = mappedRecord.filter(childSelectors2);
         assertThat(otherPeopleNames).containsExactly("secondChildName", "anna", "grandChildName", "terence");
-
-        assertThat(remap.filter(Schema.of(SchemaName.of("test"), "nonExistingKey"))).isEmpty();
     }
 
 }
