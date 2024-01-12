@@ -141,10 +141,6 @@ public class Items {
             return topic;
         }
 
-        Schema schema() {
-            return schema;
-        }
-
         public boolean matches(Item item) {
             return schema.matches(item.schema()).matched();
         }
