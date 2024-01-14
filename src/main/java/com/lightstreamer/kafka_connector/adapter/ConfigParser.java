@@ -1,8 +1,8 @@
-package com.lightstreamer.kafka_connector.adapter.config;
+package com.lightstreamer.kafka_connector.adapter;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,16 +12,16 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
@@ -37,53 +37,29 @@ public class ConfigParser {
         ItemTemplates<K, V> itemTemplates();
     }
 
-    private static final ConfigSpec CONFIG_SPEC;
+    private static final Logger log = LoggerFactory.getLogger(ConfigParser.class);
 
-    static {
-        CONFIG_SPEC = new ConfigSpec()
-                .add("bootstrap-servers", true, false, new ListType<ConfType>(ConfType.Host))
-                .add("group-id", true, false, ConfType.Text)
-                .add("consumer", false, false, ConfType.Text)
-                .add("value.schema.file", false, false, ConfType.Text)
-                .add("value.consumer", true, false, ConfType.Text)
-                .add("key.schema.file", false, false, ConfType.Text)
-                .add("key.consumer", false, false, ConfType.Text)
-                .add("field.", true, true, ConfType.Text)
-                .add("map.", true, true, ConfType.Text);
-    }
+    private final File adapterDir;
 
-    private Logger log = LoggerFactory.getLogger(ConfigParser.class);
-
-    public ConfigParser() {
+    public ConfigParser(File adapterDir) {
+        this.adapterDir = adapterDir;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ValidateException {
-        Map<String, String> configuration = CONFIG_SPEC.parse(params);
+    public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ConfigException {
+        ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
+        Map<String, String> configuration = connectorConfig.configuration();
 
         // Process "map.<topic-name>.to"
-        List<TopicMapping> topicMappings = new ArrayList<>();
-        for (String paramKey : configuration.keySet()) {
-            if (paramKey.startsWith("map.")) {
-                String topic = paramKey.split("\\.")[1];
-                String[] itemTemplates = new String[] { configuration.get(paramKey) };// .split(",");
-                topicMappings.add(new TopicMapping(topic, Arrays.asList(itemTemplates)));
-            }
-        }
+        List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
+                e -> new TopicMapping(e.getKey(), Arrays.asList(new String[] { e.getValue() })));
 
-        // Process "field.<name>"
-        Map<String, String> fieldsMapping = new HashMap<>();
-        for (String paramKey : configuration.keySet()) {
-            if (paramKey.startsWith("field.")) {
-                String fieldName = paramKey.split("\\.")[1];
-                String mappingExpression = configuration.get(paramKey);
-                fieldsMapping.put(fieldName, mappingExpression);
-            }
-        }
+        // Process "field.<field-name>"
+        Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD);
 
         SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
-                makeKeySelectorSupplier(configuration.get("key.consumer")),
-                makeValueSelectorSupplier(configuration.get("value.consumer")));
+                makeKeySelectorSupplier(configuration.get(ConnectorConfig.KEY_CONSUMER)),
+                makeValueSelectorSupplier(configuration.get(ConnectorConfig.VALUE_CONSUMER)));
 
         Properties props = initProperties(configuration, selectorsSupplier);
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
@@ -99,17 +75,17 @@ public class ConfigParser {
 
     private ItemTemplates<?, ?> initItemTemplates(SelectorsSupplier<?, ?> selectorsSupplier,
             List<TopicMapping> topicMappings)
-            throws ValidateException {
+            throws ConfigException {
         return initItemTemplatesHelper(topicMappings, selectorsSupplier);
     }
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(List<TopicMapping> topicMappings,
             SelectorsSupplier<K, V> selectorsSupplier)
-            throws ValidateException {
+            throws ConfigException {
         try {
             return Items.templatesFrom(topicMappings, selectorsSupplier);
         } catch (ExpressionException e) {
-            throw new ValidateException(e.getMessage());
+            throw new ConfigException(e.getMessage());
         }
     }
 
@@ -128,8 +104,8 @@ public class ConfigParser {
                 .ifPresent(v -> properties.setProperty("key.schema.file", v));
         Optional.ofNullable(config.get("value.schema.file"))
                 .ifPresent(v -> properties.setProperty("value.schema.file", v));
-        selectorsSupplier.keySelectorSupplier().configKey(config, properties);
-        selectorsSupplier.valueSelectorSupplier().configValue(config, properties);
+        selectorsSupplier.keySelectorSupplier().config(config, properties);
+        selectorsSupplier.valueSelectorSupplier().config(config, properties);
         return properties;
     }
 

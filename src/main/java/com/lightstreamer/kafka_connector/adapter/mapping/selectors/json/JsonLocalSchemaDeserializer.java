@@ -17,11 +17,11 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 
 public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final KafkaJsonDeserializer<JsonNode> deserializer;
 
     private JsonSchema schema;
-
-    private KafkaJsonDeserializer<JsonNode> deserializer;
 
     public JsonLocalSchemaDeserializer() {
         deserializer = new KafkaJsonDeserializer<>();
@@ -39,8 +39,7 @@ public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
         }
         if (fileSchema instanceof String f) {
             try {
-                File file = Paths.get((String)configs.get("adapter.dir"), f).toFile();
-                System.out.println(file.getAbsolutePath());
+                File file = Paths.get((String) configs.get("adapter.dir"), f).toFile();
                 return new JsonSchema(objectMapper.readTree(file));
             } catch (IOException e) {
                 throw new SerializationException(e.getMessage());

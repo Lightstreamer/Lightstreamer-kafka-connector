@@ -17,14 +17,11 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigParser;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
-import com.lightstreamer.kafka_connector.adapter.config.ValidateException;
+import com.lightstreamer.kafka_connector.adapter.ConfigParser.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
-
-    private static final ConfigParser CONFIG_PARSER = new ConfigParser();
 
     private Logger log;
 
@@ -41,12 +38,11 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         Path path = Paths.get(configDir.getAbsolutePath(), "log4j.properties");
         PropertyConfigurator.configure(path.toString());
         log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
+        ConfigParser configParser = new ConfigParser(configDir);
         try {
-            Map<String, String> conf = new HashMap<>(params);
-            conf.put("adapter.dir", configDir.getAbsolutePath());
-            loopConfig = CONFIG_PARSER.parse(conf);
+            loopConfig = configParser.parse(params);
             log.info("Init completed");
-        } catch (ValidateException ve) {
+        } catch (ConfigException ve) {
             throw new DataProviderException(ve.getMessage());
         }
     }

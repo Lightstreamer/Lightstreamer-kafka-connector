@@ -7,7 +7,7 @@
         <!--<classloader>log-enabled</classloader>-->
     </metadata_provider>
 
-    <data_provider name="Demo">
+    <!-- <data_provider name="Demo">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user</param>
@@ -23,20 +23,20 @@
 
         <param name="map.new_orders.to">orders-${topic=TOPIC}</param>
         <param name="map.past_orders.to">orders-${topic=TOPIC}</param>
-    </data_provider>
+    </data_provider> -->
 
-      <!-- <data_provider name="Avro">
+    <data_provider name="Avro">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-user</param>-->
+        <param name="group-id">kafka-adapter-user</param>
 
 
         <!-- Map one topic to one item -->
-        <!-- <param name="map.topic-avro-local.to">topic-avro-local</param>
+        <param name="map.topic-avro-local.to">topic-avro-local</param>
         <param name="value.schema.file">user.avsc</param>
         <param name="value.consumer">AVRO</param>
         <param name="key.schema.file">user.avsc</param>
-        <param name="key.consumer">AVRO</param> -->
+        <param name="key.consumer">AVRO</param>
 
         <!-- <param name="schema.registry.url">http://localhost:8081</param> -->
 
@@ -61,7 +61,7 @@
         <param name="field.height">VALUE.User.info.height</param>
         <param name="field.zipcode1">VALUE.User.addresses[0].zipcode</param>
         <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param> -->
-    <!-- </data_provider> -->
+    </data_provider>
 
     <!-- <data_provider name="Suit">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>

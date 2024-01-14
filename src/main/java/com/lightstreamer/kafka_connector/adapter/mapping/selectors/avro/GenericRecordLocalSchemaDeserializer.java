@@ -21,6 +21,7 @@ public class GenericRecordLocalSchemaDeserializer implements Deserializer<Generi
 
     }
 
+    @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         schema = getFileSchema(isKey ? "key.schema.file" : "value.schema.file", configs);
     }

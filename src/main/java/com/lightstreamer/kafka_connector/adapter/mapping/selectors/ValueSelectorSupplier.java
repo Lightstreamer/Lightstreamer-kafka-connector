@@ -10,7 +10,8 @@ public interface ValueSelectorSupplier<V> extends SelectorSupplier<ValueSelector
 
     ValueSelector<V> newSelector(String name, String expression);
 
-    default void configValue(Map<String, String> configuration, Properties props) {
+    @Override
+    default void config(Map<String, String> configuration, Properties props) {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(props));
         props.put("adapter.dir", configuration.get("adapter.dir"));
     }

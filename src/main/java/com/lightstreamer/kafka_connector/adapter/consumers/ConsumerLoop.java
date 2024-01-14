@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigParser.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConfigParser.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;

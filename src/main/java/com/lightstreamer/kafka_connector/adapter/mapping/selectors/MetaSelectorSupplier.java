@@ -73,6 +73,7 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
     public boolean maySupply(String expression) {
         return Attribute.of(expression) != Attribute.NULL;
     }
+
 }
 
 class DefaultMetaSelector extends BaseSelector implements MetaSelector {

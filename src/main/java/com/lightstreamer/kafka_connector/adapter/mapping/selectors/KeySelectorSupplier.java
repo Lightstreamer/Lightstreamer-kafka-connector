@@ -10,7 +10,8 @@ public interface KeySelectorSupplier<V> extends SelectorSupplier<KeySelector<V>>
 
     KeySelector<V> newSelector(String name, String expression);
 
-    default void configKey(Map<String, String> configuration, Properties props) {
+    @Override
+    default void config(Map<String, String> configuration, Properties props) {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(props));
     }
 
