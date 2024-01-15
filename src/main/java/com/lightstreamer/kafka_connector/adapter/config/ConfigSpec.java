@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
+
 class ConfigSpec {
 
     interface Type {
@@ -40,7 +42,7 @@ class ConfigSpec {
 
     }
 
-    enum ConfType implements Type {
+    static enum ConfType implements Type {
 
         Text {
             public boolean isValid(String paramValue) {
@@ -98,8 +100,23 @@ class ConfigSpec {
 
     private Map<String, ConfParameter> paramSpec = new HashMap<>();
 
+    ConfigSpec add(String name, boolean required, boolean multiple, Type type, String defaultValue) {
+        paramSpec.put(name, new ConfParameter(name, required, multiple, type, defaultValue));
+        return this;
+    }
+
     ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
         paramSpec.put(name, new ConfParameter(name, required, multiple, type));
+        return this;
+    }
+
+    ConfigSpec add(String name, boolean required, Type type) {
+        paramSpec.put(name, new ConfParameter(name, required, false, type));
+        return this;
+    }
+
+    ConfigSpec add(String name, Type type) {
+        paramSpec.put(name, new ConfParameter(name, true, false, type));
         return this;
     }
 
@@ -117,7 +134,11 @@ class ConfigSpec {
     }
 }
 
-record ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type) {
+record ConfParameter(String name, boolean required, boolean multiple, Type type, String defaultValue) {
+
+    ConfParameter(String name, boolean required, boolean multiple, Type type) {
+        this(name, required, multiple, type, null);
+    }
 
     void validate(String paramName, String paramValue) throws ConfigException {
         if (required()) {

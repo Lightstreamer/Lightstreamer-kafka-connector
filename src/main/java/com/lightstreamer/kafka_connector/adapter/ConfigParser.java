@@ -61,7 +61,7 @@ public class ConfigParser {
                 makeKeySelectorSupplier(configuration.get(ConnectorConfig.KEY_CONSUMER)),
                 makeValueSelectorSupplier(configuration.get(ConnectorConfig.VALUE_CONSUMER)));
 
-        Properties props = initProperties(configuration, selectorsSupplier);
+        Properties props = initProperties(configuration, connectorConfig, selectorsSupplier);
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
         Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
@@ -89,17 +89,18 @@ public class ConfigParser {
         }
     }
 
-    private Properties initProperties(Map<String, String> config, SelectorsSupplier<?, ?> selectorsSupplier) {
-        return initPropertiesHelper(config, selectorsSupplier);
+    private Properties initProperties(Map<String, String> config, ConnectorConfig connectorConfig,
+            SelectorsSupplier<?, ?> selectorsSupplier) {
+        return initPropertiesHelper(config, connectorConfig, selectorsSupplier);
     }
 
-    private <K, V> Properties initPropertiesHelper(Map<String, String> config,
+    private <K, V> Properties initPropertiesHelper(Map<String, String> config, ConnectorConfig connectorConfig,
             SelectorsSupplier<K, V> selectorsSupplier) {
         Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.get("bootstrap-servers"));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, config.get("group-id"));
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, connectorConfig.getText(ConnectorConfig.BOOTSTRAP_SERVERS));
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, connectorConfig.getText(ConnectorConfig.GROUP_ID));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.setProperty("adapter.dir", config.get("adapter.dir"));
+        properties.setProperty("adapter.dir", connectorConfig.getText(ConnectorConfig.ADAPTER_DIR));
         Optional.ofNullable(config.get("key.schema.file"))
                 .ifPresent(v -> properties.setProperty("key.schema.file", v));
         Optional.ofNullable(config.get("value.schema.file"))

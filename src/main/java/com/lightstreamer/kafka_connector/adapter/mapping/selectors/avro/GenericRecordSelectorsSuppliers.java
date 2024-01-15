@@ -16,7 +16,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSu
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorSupplierConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;

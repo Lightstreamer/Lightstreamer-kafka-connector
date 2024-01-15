@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 
 public class ConnectorConfig {
@@ -38,15 +38,15 @@ public class ConnectorConfig {
 
     static {
         CONFIG_SPEC = new ConfigSpec()
-                .add(BOOTSTRAP_SERVERS, true, false, new ListType<ConfType>(ConfType.Host))
-                .add(GROUP_ID, true, false, ConfType.Text)
-                .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(VALUE_CONSUMER, true, false, ConfType.Text)
-                .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(KEY_CONSUMER, false, false, ConfType.Text)
-                .add(FIELD, true, true, ConfType.Text)
+                .add(ADAPTER_DIR, ConfType.Directory)
+                .add(BOOTSTRAP_SERVERS, new ListType<ConfType>(ConfType.Host))
+                .add(GROUP_ID, ConfType.Text)
                 .add(MAP, true, true, ConfType.Text)
-                .add(ADAPTER_DIR, true, false, ConfType.Directory);
+                .add(FIELD, true, true, ConfType.Text)
+                .add(KEY_CONSUMER, false, false, ConfType.Text, "RAW")
+                .add(KEY_SCHEMA_FILE, false, ConfType.Text)
+                .add(VALUE_CONSUMER, ConfType.Text)
+                .add(VALUE_SCHEMA_FILE, false, ConfType.Text);
     }
 
     private final ConfigSpec configSpec;
@@ -65,6 +65,35 @@ public class ConnectorConfig {
     public Map<String, String> configuration() {
         return this.configuration;
     }
+
+    static ConfigSpec configSpec() {
+        return CONFIG_SPEC;
+    }
+
+    private String get(String configKey, Type type) {
+        ConfParameter param = this.configSpec.getParameter(configKey);
+        if (param.type().equals(ConfType.Text)) {
+            if (!param.required()) {
+                return configuration.getOrDefault(configKey, param.defaultValue());
+            } else {
+                if (configuration.containsKey(configKey)) {
+                    return configuration.get(configKey);
+                }
+            }
+        }
+        throw new ConfigException(
+                "No parameter [%s] of %s type is present in the configuration".formatted(configKey, type));
+    }
+
+    public String getText(String configKey) {
+        return get(configKey, ConfType.Text);
+    }
+
+    public String getDirectory(String configKey) {
+        return get(configKey, ConfType.Directory);
+    }
+
+    // public
 
     public Map<String, String> getValues(String configKey) {
         ConfParameter param = this.configSpec.getParameter(configKey);
