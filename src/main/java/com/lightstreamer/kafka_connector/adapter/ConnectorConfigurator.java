@@ -1,11 +1,9 @@
 package com.lightstreamer.kafka_connector.adapter;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -26,7 +24,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericR
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
-public class ConfigParser {
+public class ConnectorConfigurator {
 
     public interface ConsumerLoopConfig<K, V> {
 
@@ -37,16 +35,15 @@ public class ConfigParser {
         ItemTemplates<K, V> itemTemplates();
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ConfigParser.class);
+    private static final Logger log = LoggerFactory.getLogger(ConnectorConfigurator.class);
 
     private final File adapterDir;
 
-    public ConfigParser(File adapterDir) {
+    public ConnectorConfigurator(File adapterDir) {
         this.adapterDir = adapterDir;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public ConsumerLoopConfig<?, ?> parse(Map<String, String> params) throws ConfigException {
+    public ConsumerLoopConfig<?, ?> configure(Map<String, String> params) throws ConfigException {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
         Map<String, String> configuration = connectorConfig.configuration();
 
@@ -61,7 +58,10 @@ public class ConfigParser {
                 makeKeySelectorSupplier(configuration.get(ConnectorConfig.KEY_CONSUMER)),
                 makeValueSelectorSupplier(configuration.get(ConnectorConfig.VALUE_CONSUMER)));
 
-        Properties props = initProperties(configuration, connectorConfig, selectorsSupplier);
+        Properties props = connectorConfig.baseConsumerProps();
+        selectorsSupplier.keySelectorSupplier().config(connectorConfig);
+        selectorsSupplier.valueSelectorSupplier().config(connectorConfig);
+
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
         Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
@@ -87,27 +87,6 @@ public class ConfigParser {
         } catch (ExpressionException e) {
             throw new ConfigException(e.getMessage());
         }
-    }
-
-    private Properties initProperties(Map<String, String> config, ConnectorConfig connectorConfig,
-            SelectorsSupplier<?, ?> selectorsSupplier) {
-        return initPropertiesHelper(config, connectorConfig, selectorsSupplier);
-    }
-
-    private <K, V> Properties initPropertiesHelper(Map<String, String> config, ConnectorConfig connectorConfig,
-            SelectorsSupplier<K, V> selectorsSupplier) {
-        Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, connectorConfig.getText(ConnectorConfig.BOOTSTRAP_SERVERS));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, connectorConfig.getText(ConnectorConfig.GROUP_ID));
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.setProperty("adapter.dir", connectorConfig.getText(ConnectorConfig.ADAPTER_DIR));
-        Optional.ofNullable(config.get("key.schema.file"))
-                .ifPresent(v -> properties.setProperty("key.schema.file", v));
-        Optional.ofNullable(config.get("value.schema.file"))
-                .ifPresent(v -> properties.setProperty("value.schema.file", v));
-        selectorsSupplier.keySelectorSupplier().config(config, properties);
-        selectorsSupplier.valueSelectorSupplier().config(config, properties);
-        return properties;
     }
 
     <K, V> ConsumerLoopConfig<K, V> loopConfig(Properties props, ItemTemplates<K, V> it, Selectors<K, V> f) {

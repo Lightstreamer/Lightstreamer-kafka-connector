@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
-import com.lightstreamer.kafka_connector.adapter.ConfigParser.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
@@ -29,7 +29,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 
 public class ConsumerLoop<K, V> implements Loop {
 
-    private final Properties properties;
+    private final Properties consumerProps;
 
     private final ItemEventListener eventListener;
 
@@ -48,7 +48,7 @@ public class ConsumerLoop<K, V> implements Loop {
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
     public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        this.properties = config.consumerProperties();
+        this.consumerProps = config.consumerProperties();
         this.itemTemplates = config.itemTemplates();
         this.fieldsSelectors = config.fieldsSelectors();
 
@@ -87,11 +87,11 @@ public class ConsumerLoop<K, V> implements Loop {
             return;
         }
         // Create consumer
-        log.info("Connecting to Kafka at {}", properties.getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG));
+        log.info("Connecting to Kafka at {}", consumerProps.getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG));
         barrier.reset();
 
         try {
-            KafkaConsumer<K, V> consumer = new KafkaConsumer<>(properties);
+            KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerProps);
             log.info("Connected to Kafka");
 
             List<String> topics = itemTemplates.topics().toList();

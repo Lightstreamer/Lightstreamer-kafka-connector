@@ -2,7 +2,6 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
@@ -109,8 +108,7 @@ public class JsonNodeSelectorsSuppliers {
     static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
 
         @Override
-        public void config(Map<String, String> conf, Properties props) {
-            KeySelectorSupplier.super.config(conf, props);
+        public void config(ConnectorConfig config) {
             props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
         }
 
@@ -120,8 +118,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public String deserializer(Properties props) {
-            if (props.get(ConnectorConfig.KEY_SCHEMA_FILE) != null) {
+        public String deserializer(ConnectorConfig config) {
+            if (config.hasKeySchemaFile()) {
                 return JsonLocalSchemaDeserializer.class.getName();
             }
             return KafkaJsonSchemaDeserializer.class.getName();
@@ -144,14 +142,13 @@ public class JsonNodeSelectorsSuppliers {
     static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
 
         @Override
-        public void config(Map<String, String> conf, Properties props) {
-            ValueSelectorSupplier.super.config(conf, props);
-            props.put(KafkaJsonDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+        public void config(ConnectorConfig config) {
+            consumerProps.put(KafkaJsonDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
         }
 
         @Override
-        public String deserializer(Properties props) {
-            if (props.get(ConnectorConfig.VALUE_SCHEMA_FILE) != null) {
+        public String deserializer(ConnectorConfig config) {
+            if (config.hasValueSchemaFile()) {
                 return JsonLocalSchemaDeserializer.class.getName();
             }
             return KafkaJsonSchemaDeserializer.class.getName();

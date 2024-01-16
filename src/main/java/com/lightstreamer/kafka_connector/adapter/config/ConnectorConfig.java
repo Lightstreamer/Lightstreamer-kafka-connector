@@ -6,8 +6,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
@@ -34,19 +37,22 @@ public class ConnectorConfig {
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap-servers";
 
+    public static final String SCHEMA_REGISTRY_URL = "schema.registry.url";
+
     public static final ConfigSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC = new ConfigSpec()
-                .add(ADAPTER_DIR, ConfType.Directory)
-                .add(BOOTSTRAP_SERVERS, new ListType<ConfType>(ConfType.Host))
-                .add(GROUP_ID, ConfType.Text)
+                .add(ADAPTER_DIR, true, false, ConfType.Directory)
+                .add(BOOTSTRAP_SERVERS, true, false, new ListType<ConfType>(ConfType.Host))
+                .add(GROUP_ID, true, false, ConfType.Text)
                 .add(MAP, true, true, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
+                .add(SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
                 .add(KEY_CONSUMER, false, false, ConfType.Text, "RAW")
-                .add(KEY_SCHEMA_FILE, false, ConfType.Text)
-                .add(VALUE_CONSUMER, ConfType.Text)
-                .add(VALUE_SCHEMA_FILE, false, ConfType.Text);
+                .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
+                .add(VALUE_CONSUMER, false, false, ConfType.Text, "RAW")
+                .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text);
     }
 
     private final ConfigSpec configSpec;
@@ -111,6 +117,30 @@ public class ConnectorConfig {
     public <T> List<T> getAsList(String configKey, Function<? super Map.Entry<String, String>, T> conv) {
         Map<String, String> values = getValues(configKey);
         return values.entrySet().stream().map(conv).toList();
+    }
+
+    public Properties baseConsumerProps() {
+        Properties properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getText(BOOTSTRAP_SERVERS));
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ADAPTER_DIR, getDirectory(ADAPTER_DIR));
+
+        String keySchemaFile = getText(ConnectorConfig.KEY_SCHEMA_FILE);
+        properties.setProperty(KEY_SCHEMA_FILE, keySchemaFile);
+        String valueSchemaFile = getText(ConnectorConfig.VALUE_SCHEMA_FILE);
+        if (valueSchemaFile != null) {
+            properties.setProperty(VALUE_SCHEMA_FILE, valueSchemaFile)
+        }
+        return properties;
+    }
+
+    public boolean hasKeySchemaFile() {
+        return getText(ConnectorConfig.KEY_SCHEMA_FILE) != null;
+    }
+
+    public boolean hasValueSchemaFile() {
+        return getText(ConnectorConfig.VALUE_SCHEMA_FILE) != null;
     }
 
     public static Map<String, String> appendAdapterDir(Map<String, String> config, File configDir) {

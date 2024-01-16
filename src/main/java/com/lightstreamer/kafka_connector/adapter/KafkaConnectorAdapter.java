@@ -17,7 +17,7 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.ConfigParser.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 
@@ -38,9 +38,9 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         Path path = Paths.get(configDir.getAbsolutePath(), "log4j.properties");
         PropertyConfigurator.configure(path.toString());
         log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
-        ConfigParser configParser = new ConfigParser(configDir);
+        ConnectorConfigurator configParser = new ConnectorConfigurator(configDir);
         try {
-            loopConfig = configParser.parse(params);
+            loopConfig = configParser.configure(params);
             log.info("Init completed");
         } catch (ConfigException ve) {
             throw new DataProviderException(ve.getMessage());

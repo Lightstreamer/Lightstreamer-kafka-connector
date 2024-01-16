@@ -2,20 +2,19 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.everit.json.schema.ValidationException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 
-public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
+public class JsonLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -27,25 +26,14 @@ public class JsonLocalSchemaDeserializer implements Deserializer<JsonNode> {
         deserializer = new KafkaJsonDeserializer<>();
     }
 
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        schema = getFileSchema(isKey ? "key.schema.file" : "value.schema.file", configs);
+    @Override
+    protected void doConfigure(Map<String, ?> configs, File schemaFile, boolean isKey) {
         deserializer.configure(configs, isKey);
-    }
-
-    private JsonSchema getFileSchema(String setting, Map<String, ?> configs) {
-        Object fileSchema = configs.get(setting);
-        if (fileSchema == null) {
-            throw new SerializationException(setting + " setting is mandatory");
+        try {
+            schema = new JsonSchema(objectMapper.readTree(schemaFile));
+        } catch (IOException e) {
+            throw new SerializationException(e.getMessage());
         }
-        if (fileSchema instanceof String f) {
-            try {
-                File file = Paths.get((String) configs.get("adapter.dir"), f).toFile();
-                return new JsonSchema(objectMapper.readTree(file));
-            } catch (IOException e) {
-                throw new SerializationException(e.getMessage());
-            }
-        }
-        throw new SerializationException("Unable to load schema file " + fileSchema);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -10,6 +9,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
@@ -123,13 +123,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public void config(Map<String, String> configuration, Properties props) {
-            props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer(props));
-        }
-
-        @Override
-        public String deserializer(Properties props) {
-            if (props.get("key.schema.file") != null) {
+        public String deserializer(ConnectorConfig config) {
+            if (config.hasKeySchemaFile()) {
                 return GenericRecordLocalSchemaDeserializer.class.getName();
             }
             return KafkaAvroDeserializer.class.getName();
@@ -151,25 +146,15 @@ public class GenericRecordSelectorsSuppliers {
 
     static class GenericRecordValueSelectorSupplier implements ValueSelectorSupplier<GenericRecord> {
 
-        private SelectorSupplierConfig config;
-
         GenericRecordValueSelectorSupplier() {
-            config = new SelectorSupplierConfig(KafkaAvroDeserializer.class,
-                    GenericRecordLocalSchemaDeserializer.class);
         }
 
         @Override
-        public void config(Map<String, String> configuration, Properties props) {
-            props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer(props));
-            props.put("adapter.dir", configuration.get("adapter.dir"));
-        }
-
-        @Override
-        public String deserializer(Properties props) {
-            if (props.get("value.schema.file") != null) {
-                return config.getLocalSchemaDeserializer().getName();
+        public String deserializer(ConnectorConfig config) {
+            if (config.hasValueSchemaFile()) {
+                return GenericRecordLocalSchemaDeserializer.class.getName();
             }
-            return config.getSchemaDeserializer().getName();
+            return KafkaAvroDeserializer.class.getName();
         }
 
         @Override

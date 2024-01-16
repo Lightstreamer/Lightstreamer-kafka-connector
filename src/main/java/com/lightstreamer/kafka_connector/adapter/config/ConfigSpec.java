@@ -167,7 +167,9 @@ record ConfParameter(String name, boolean required, boolean multiple, Type type,
         for (String key : keys) {
             String paramValue = source.get(key);
             validate(key, paramValue);
-            destination.put(key, type.getValue(paramValue));
+            if (paramValue != null) {
+                destination.put(key, type.getValue(paramValue));
+            }
         }
     }
 

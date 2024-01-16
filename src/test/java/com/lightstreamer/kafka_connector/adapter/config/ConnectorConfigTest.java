@@ -16,12 +16,11 @@ import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 
 public class ConnectorConfigTest {
 
-    private Path tempDirectory;
+    private Path adapterDir;
 
     @BeforeEach
     public void before() throws IOException {
-        tempDirectory = Files.createTempDirectory("adapter_dir");
-
+        adapterDir = Files.createTempDirectory("adapter_dir");
     }
 
     @Test
@@ -65,9 +64,9 @@ public class ConnectorConfigTest {
 
         ConfParameter valueConsumerParam = configSpec.getParameter(ConnectorConfig.VALUE_CONSUMER);
         assertThat(valueConsumerParam.name()).isEqualTo(ConnectorConfig.VALUE_CONSUMER);
-        assertThat(valueConsumerParam.required()).isTrue();
+        assertThat(valueConsumerParam.required()).isFalse();
         assertThat(valueConsumerParam.multiple()).isFalse();
-        assertThat(valueConsumerParam.defaultValue()).isNull();
+        assertThat(valueConsumerParam.defaultValue()).isEqualTo("RAW");
         assertThat(valueConsumerParam.type()).isInstanceOf(ConfType.Text.getClass());
 
         ConfParameter valueSchemaFile = configSpec.getParameter(ConnectorConfig.VALUE_SCHEMA_FILE);
@@ -91,11 +90,19 @@ public class ConnectorConfigTest {
         assertThat(fieldParam.defaultValue()).isNull();
         assertThat(fieldParam.type()).isInstanceOf(ConfType.Text.getClass());
 
+        ConfParameter schemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.SCHEMA_REGISTRY_URL);
+        assertThat(schemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.SCHEMA_REGISTRY_URL);
+        assertThat(schemaRegistryUrlParam.required()).isFalse();
+        assertThat(schemaRegistryUrlParam.multiple()).isFalse();
+        assertThat(schemaRegistryUrlParam.defaultValue()).isNull();
+        assertThat(schemaRegistryUrlParam.type()).isInstanceOf(ConfType.Host.getClass());
+
+
     }
 
     private Map<String, String> standardParameters() {
         Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.ADAPTER_DIR, tempDirectory.toString());
+        adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
         adapterParams.put(ConnectorConfig.VALUE_CONSUMER, "value-consumer");
@@ -124,10 +131,9 @@ public class ConnectorConfigTest {
 
     private Map<String, String> essentialParameters() {
         Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.ADAPTER_DIR, tempDirectory.toString());
+        adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
-        adapterParams.put(ConnectorConfig.VALUE_CONSUMER, "value-consumer");
         adapterParams.put("map.topic1.to", "item-template1");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;
@@ -136,7 +142,18 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultText() {
         ConnectorConfig config = new ConnectorConfig(essentialParameters());
+        assertThat(config.getText(ConnectorConfig.KEY_CONSUMER)).isNotNull();
         assertThat(config.getText(ConnectorConfig.KEY_CONSUMER)).isEqualTo("RAW");
+
+        assertThat(config.getText(ConnectorConfig.VALUE_CONSUMER)).isNotNull();
+        assertThat(config.getText(ConnectorConfig.VALUE_CONSUMER)).isEqualTo("RAW");
+        
+    }
+
+    public void shouldNotGetNonExistingNonRequiredText() {
+        ConnectorConfig config = new ConnectorConfig(essentialParameters());
+        assertThat(config.getText(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
+        assertThat(config.getText(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
     }
 
     public void shouldGetList() {
@@ -146,7 +163,7 @@ public class ConnectorConfigTest {
 
     public void shouldGetDirectory() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        assertThat(config.getDirectory(ConnectorConfig.ADAPTER_DIR)).isEqualTo(tempDirectory.toString());
+        assertThat(config.getDirectory(ConnectorConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
     }
 
 }

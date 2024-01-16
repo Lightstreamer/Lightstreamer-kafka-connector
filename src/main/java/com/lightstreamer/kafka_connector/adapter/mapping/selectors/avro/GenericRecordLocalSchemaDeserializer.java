@@ -11,9 +11,10 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.serialization.Deserializer;
 
-public class GenericRecordLocalSchemaDeserializer implements Deserializer<GenericRecord> {
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractLocalSchemaDeserializer;
+
+public class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {
 
     private Schema schema;
 
@@ -22,23 +23,12 @@ public class GenericRecordLocalSchemaDeserializer implements Deserializer<Generi
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        schema = getFileSchema(isKey ? "key.schema.file" : "value.schema.file", configs);
-    }
-
-    private Schema getFileSchema(String setting, Map<String, ?> configs) {
-        Object fileSchema = configs.get(setting);
-        if (fileSchema == null) {
-            throw new SerializationException(setting + " setting is mandatory");
+    protected void doConfigure(Map<String, ?> configs, File schemaFile, boolean isKey) {
+        try {
+            schema = new Schema.Parser().parse(schemaFile);
+        } catch (IOException e) {
+            throw new SerializationException(e.getMessage());
         }
-        if (fileSchema instanceof String f) {
-            try {
-                return new Schema.Parser().parse(new File(f));
-            } catch (IOException e) {
-                throw new SerializationException(e.getMessage());
-            }
-        }
-        throw new SerializationException("Unable to load schema file " + fileSchema);
     }
 
     @Override
