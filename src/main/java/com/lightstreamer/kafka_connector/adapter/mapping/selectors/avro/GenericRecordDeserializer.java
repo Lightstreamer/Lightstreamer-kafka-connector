@@ -2,6 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -11,10 +12,35 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractLocalSchemaDeserializer;
 
-public class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+
+public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
+
+    private Deserializer<?> deserializer;
+
+    GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
+        Map<String, String> props = new HashMap<>();
+        if (config.hasKeySchemaFile() || config.hasValueSchemaFile()) {
+            deserializer = new GenericRecordLocalSchemaDeserializer();
+        } else {
+            deserializer = new KafkaAvroDeserializer();
+        }
+        deserializer.configure(config.extendsonsumerProps(props), isKey);        
+       
+    }
+
+    @Override
+    public GenericRecord deserialize(String topic, byte[] data) {
+        return (GenericRecord) deserializer.deserialize(topic, data);
+    }
+}
+
+ class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {
 
     private Schema schema;
 

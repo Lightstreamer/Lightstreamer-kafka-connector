@@ -5,6 +5,7 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecor
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,13 +19,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
@@ -41,6 +40,8 @@ public class ItemTemplatesTest {
     // RecordInspector.builder()));
     // assertThat(exception.getMessage()).isEqualTo("Invalid item");
     // }
+
+    private static ConnectorConfig config = new ConnectorConfig(Collections.emptyMap());
 
     private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier,
             String... template) {
@@ -60,9 +61,7 @@ public class ItemTemplatesTest {
     }
 
     private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
-        return templates(SelectorsSupplier.wrap(
-                GenericRecordSelectorsSuppliers.keySelectorSupplier(),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier()), template);
+        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(), template);
     }
 
     @Test
@@ -74,13 +73,12 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSupplier.wrap(
-                StringSelectorSuppliers.keySelectorSupplier(),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue();
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("topic",
-                        List.of("family-${topic=TOPIC,info=PARTITION}", "relatives-${topic=TOPIC,info=TIMESTAMP}")));
+                        List.of("family-${topic=TOPIC,info=PARTITION}",
+                                "relatives-${topic=TOPIC,info=TIMESTAMP}")));
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(tp, suppliers);
 
@@ -91,9 +89,9 @@ public class ItemTemplatesTest {
         assertThat(templates.matches(subcribingItem2)).isTrue();
 
         RecordMapper<String, JsonNode> mapper = RecordMapper
-            .<String, JsonNode>builder()
-            .withSelectors(templates.selectors())
-            .build();
+                .<String, JsonNode>builder()
+                .withSelectors(templates.selectors())
+                .build();
 
         ConsumerRecord<String, JsonNode> record = record("topic", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(record);
@@ -114,9 +112,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSupplier.wrap(
-                StringSelectorSuppliers.keySelectorSupplier(),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue();
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("new_orders", List.of("orders-${topic=TOPIC}", "item-${topic=TOPIC}")),
@@ -149,7 +145,8 @@ public class ItemTemplatesTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
     public void shouldExpand(String template, String subscribingItem, boolean canSubscribe, boolean exandable) {
-        ItemTemplates<GenericRecord, GenericRecord> templates = getGenericRecordsGenericRecordTemplates(template);
+        ItemTemplates<GenericRecord, GenericRecord> templates = getGenericRecordsGenericRecordTemplates(
+                template);
         RecordMapper<GenericRecord, GenericRecord> mapper = RecordMapper
                 .<GenericRecord, GenericRecord>builder()
                 .withSelectors(templates.selectors())

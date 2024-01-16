@@ -37,7 +37,9 @@ public class ConnectorConfig {
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap-servers";
 
-    public static final String SCHEMA_REGISTRY_URL = "schema.registry.url";
+    public static final String KEY_SCHEMA_REGISTRY_URL = "key.schema.registry.url";
+
+    public static final String VALUE_SCHEMA_REGISTRY_URL = "value.schema.registry.url";
 
     public static final ConfigSpec CONFIG_SPEC;
 
@@ -48,7 +50,8 @@ public class ConnectorConfig {
                 .add(GROUP_ID, true, false, ConfType.Text)
                 .add(MAP, true, true, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
-                .add(SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
+                .add(KEY_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
+                .add(VALUE_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
                 .add(KEY_CONSUMER, false, false, ConfType.Text, "RAW")
                 .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
                 .add(VALUE_CONSUMER, false, false, ConfType.Text, "RAW")
@@ -76,30 +79,31 @@ public class ConnectorConfig {
         return CONFIG_SPEC;
     }
 
-    private String get(String configKey, Type type) {
-        ConfParameter param = this.configSpec.getParameter(configKey);
-        if (param.type().equals(ConfType.Text)) {
-            if (!param.required()) {
-                return configuration.getOrDefault(configKey, param.defaultValue());
+    private String get(String key, Type type) {
+        ConfParameter param = configSpec.getParameter(key);
+        if (param.type().equals(type)) {
+            if (param.required() && configuration.containsKey(key)) {
+                return configuration.get(key);
             } else {
-                if (configuration.containsKey(configKey)) {
-                    return configuration.get(configKey);
-                }
+                return configuration.getOrDefault(key, param.defaultValue());
             }
         }
         throw new ConfigException(
-                "No parameter [%s] of %s type is present in the configuration".formatted(configKey, type));
+                "No parameter [%s] of %s type is present in the configuration".formatted(key, type));
+
     }
 
     public String getText(String configKey) {
         return get(configKey, ConfType.Text);
     }
 
+    public String getHost(String configKey) {
+        return get(configKey, ConfType.Host);
+    }
+
     public String getDirectory(String configKey) {
         return get(configKey, ConfType.Directory);
     }
-
-    // public
 
     public Map<String, String> getValues(String configKey) {
         ConfParameter param = this.configSpec.getParameter(configKey);
@@ -107,9 +111,6 @@ public class ConnectorConfig {
             return configuration.entrySet().stream()
                     .filter(e -> e.getKey().startsWith(configKey))
                     .collect(Collectors.toMap(e -> e.getKey().split("\\.")[1], Map.Entry::getValue));
-            // .filter(e -> e.getKey().startsWith(configKey))
-            // .map(e -> confKey.split("\\.")[1])
-            // .toList();
         }
         return Collections.emptyMap();
     }
@@ -126,21 +127,32 @@ public class ConnectorConfig {
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.setProperty(ADAPTER_DIR, getDirectory(ADAPTER_DIR));
 
-        String keySchemaFile = getText(ConnectorConfig.KEY_SCHEMA_FILE);
-        properties.setProperty(KEY_SCHEMA_FILE, keySchemaFile);
-        String valueSchemaFile = getText(ConnectorConfig.VALUE_SCHEMA_FILE);
-        if (valueSchemaFile != null) {
-            properties.setProperty(VALUE_SCHEMA_FILE, valueSchemaFile)
+        String keySchemaFile = getText(KEY_SCHEMA_FILE);
+        if (keySchemaFile != null) {
+            properties.setProperty(KEY_SCHEMA_FILE, keySchemaFile);
         }
+
+        String valueSchemaFile = getText(VALUE_SCHEMA_FILE);
+        if (valueSchemaFile != null) {
+            properties.setProperty(VALUE_SCHEMA_FILE, valueSchemaFile);
+        }
+
         return properties;
     }
 
+    public Map<String, ?> extendsonsumerProps(Map<String, String> props) {
+        return baseConsumerProps()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
+    }
+
     public boolean hasKeySchemaFile() {
-        return getText(ConnectorConfig.KEY_SCHEMA_FILE) != null;
+        return getText(KEY_SCHEMA_FILE) != null;
     }
 
     public boolean hasValueSchemaFile() {
-        return getText(ConnectorConfig.VALUE_SCHEMA_FILE) != null;
+        return getText(VALUE_SCHEMA_FILE) != null;
     }
 
     public static Map<String, String> appendAdapterDir(Map<String, String> config, File configDir) {

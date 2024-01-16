@@ -90,13 +90,19 @@ public class ConnectorConfigTest {
         assertThat(fieldParam.defaultValue()).isNull();
         assertThat(fieldParam.type()).isInstanceOf(ConfType.Text.getClass());
 
-        ConfParameter schemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.SCHEMA_REGISTRY_URL);
-        assertThat(schemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.SCHEMA_REGISTRY_URL);
-        assertThat(schemaRegistryUrlParam.required()).isFalse();
-        assertThat(schemaRegistryUrlParam.multiple()).isFalse();
-        assertThat(schemaRegistryUrlParam.defaultValue()).isNull();
-        assertThat(schemaRegistryUrlParam.type()).isInstanceOf(ConfType.Host.getClass());
+        ConfParameter keySchemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL);
+        assertThat(keySchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL);
+        assertThat(keySchemaRegistryUrlParam.required()).isFalse();
+        assertThat(keySchemaRegistryUrlParam.multiple()).isFalse();
+        assertThat(keySchemaRegistryUrlParam.defaultValue()).isNull();
+        assertThat(keySchemaRegistryUrlParam.type()).isInstanceOf(ConfType.Host.getClass());
 
+        ConfParameter valueSchemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+        assertThat(valueSchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+        assertThat(valueSchemaRegistryUrlParam.required()).isFalse();
+        assertThat(valueSchemaRegistryUrlParam.multiple()).isFalse();
+        assertThat(valueSchemaRegistryUrlParam.defaultValue()).isNull();
+        assertThat(valueSchemaRegistryUrlParam.type()).isInstanceOf(ConfType.Host.getClass());
 
     }
 
@@ -109,6 +115,7 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.VALUE_SCHEMA_FILE, "value-schema-file");
         adapterParams.put(ConnectorConfig.KEY_CONSUMER, "key-consumer");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
+        adapterParams.put(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, "host:8080");
         adapterParams.put("map.topic1.to", "item-template1");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;
@@ -147,13 +154,20 @@ public class ConnectorConfigTest {
 
         assertThat(config.getText(ConnectorConfig.VALUE_CONSUMER)).isNotNull();
         assertThat(config.getText(ConnectorConfig.VALUE_CONSUMER)).isEqualTo("RAW");
-        
     }
 
+    @Test
     public void shouldNotGetNonExistingNonRequiredText() {
         ConnectorConfig config = new ConnectorConfig(essentialParameters());
         assertThat(config.getText(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
         assertThat(config.getText(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
+    }
+
+    @Test
+    public void shouldNotGetNonExistingNonRequiredHost() {
+        ConnectorConfig config = new ConnectorConfig(essentialParameters());
+        assertThat(config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)).isNull();
+        assertThat(config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL)).isNull();
     }
 
     public void shouldGetList() {

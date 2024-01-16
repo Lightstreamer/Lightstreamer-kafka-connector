@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +33,10 @@ public class ConnectorConfigurator {
         Selectors<K, V> fieldsSelectors();
 
         ItemTemplates<K, V> itemTemplates();
+
+        Deserializer<K> keyDeserializer();
+
+        Deserializer<V> valueDeserializer();
     }
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorConfigurator.class);
@@ -49,28 +53,29 @@ public class ConnectorConfigurator {
 
         // Process "map.<topic-name>.to"
         List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
-                e -> new TopicMapping(e.getKey(), Arrays.asList(new String[] { e.getValue() })));
+                e -> new TopicMapping(e.getKey(), Arrays.asList(e.getValue())));
 
         // Process "field.<field-name>"
         Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD);
 
         SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
-                makeKeySelectorSupplier(configuration.get(ConnectorConfig.KEY_CONSUMER)),
-                makeValueSelectorSupplier(configuration.get(ConnectorConfig.VALUE_CONSUMER)));
+                makeKeySelectorSupplier(connectorConfig),
+                makeValueSelectorSupplier(connectorConfig));
 
         Properties props = connectorConfig.baseConsumerProps();
-        selectorsSupplier.keySelectorSupplier().config(connectorConfig);
-        selectorsSupplier.valueSelectorSupplier().config(connectorConfig);
+        Deserializer<?> keyDeserializer = selectorsSupplier.keySelectorSupplier().deseralizer();
+        Deserializer<?> valueDeserializer = selectorsSupplier.valueSelectorSupplier().deseralizer();
 
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
         Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
-        return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors);
+        return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors, keyDeserializer, valueDeserializer);
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
             Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
-            Selectors<K, V> fieldsSelectors) implements ConsumerLoopConfig<K, V> {
+            Selectors<K, V> fieldsSelectors, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer)
+            implements ConsumerLoopConfig<K, V> {
     }
 
     private ItemTemplates<?, ?> initItemTemplates(SelectorsSupplier<?, ?> selectorsSupplier,
@@ -89,25 +94,23 @@ public class ConnectorConfigurator {
         }
     }
 
-    <K, V> ConsumerLoopConfig<K, V> loopConfig(Properties props, ItemTemplates<K, V> it, Selectors<K, V> f) {
-        return new DefaultConsumerLoopConfig<>(props, it, f);
-    }
-
-    private KeySelectorSupplier<?> makeKeySelectorSupplier(String consumerType) {
-        return switch (consumerType) {
-            case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier();
-            case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier();
+    private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {
+        String consumer = config.getText(ConnectorConfig.KEY_CONSUMER);
+        return switch (consumer) {
+            case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
+            case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
-            default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
+            default -> throw new RuntimeException("No available consumer %s".formatted(consumer));
         };
     }
 
-    private ValueSelectorSupplier<?> makeValueSelectorSupplier(String consumerType) {
-        return switch (consumerType) {
-            case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier();
-            case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier();
+    private ValueSelectorSupplier<?> makeValueSelectorSupplier(ConnectorConfig config) {
+        String consumer = config.getText(ConnectorConfig.KEY_CONSUMER);
+        return switch (consumer) {
+            case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
+            case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
-            default -> throw new RuntimeException("No available consumer %s".formatted(consumerType));
+            default -> throw new RuntimeException("No available consumer %s".formatted(consumer));
         };
     }
 

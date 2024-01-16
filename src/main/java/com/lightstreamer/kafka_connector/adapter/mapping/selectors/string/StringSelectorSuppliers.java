@@ -1,6 +1,8 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.string;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
@@ -26,6 +28,12 @@ public class StringSelectorSuppliers {
 
     private static class StringKeySelectorSupplier implements KeySelectorSupplier<String> {
 
+        private StringDeserializer deseralizer;
+
+        StringKeySelectorSupplier() {
+            this.deseralizer = new StringDeserializer();
+        }
+
         @Override
         public boolean maySupply(String expression) {
             return expectedRoot().equals(expression);
@@ -37,6 +45,11 @@ public class StringSelectorSuppliers {
                 ExpressionException.throwExpectedToken(expectedRoot());
             }
             return new StringKeySelector(name, expression);
+        }
+
+        @Override
+        public Deserializer<String> deseralizer() {
+            return deseralizer;
         }
     }
 
@@ -54,6 +67,12 @@ public class StringSelectorSuppliers {
 
     private static class StringValueSelectorSupplier implements ValueSelectorSupplier<String> {
 
+        private StringDeserializer deseralizer;
+
+        StringValueSelectorSupplier() {
+            this.deseralizer = new StringDeserializer();
+        }
+
         @Override
         public boolean maySupply(String expression) {
             return expression.equals(expectedRoot());
@@ -65,6 +84,11 @@ public class StringSelectorSuppliers {
                 ExpressionException.throwExpectedToken(expectedRoot());
             }
             return new StringValueSelector(name, expression);
+        }
+
+        @Override
+        public Deserializer<String> deseralizer() {
+            return deseralizer;
         }
     }
 

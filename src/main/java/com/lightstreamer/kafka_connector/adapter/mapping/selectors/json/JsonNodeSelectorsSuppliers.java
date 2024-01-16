@@ -1,9 +1,9 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
@@ -17,22 +17,14 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
-
 public class JsonNodeSelectorsSuppliers {
 
-    private static final JsonNodeKeySelectorSupplier KEY_SELECTOR_SUPPLIER = new JsonNodeKeySelectorSupplier();
-
-    private static final JsonNodeValueSelectorSupplier VALUE_SELECTOR_SUPPLIER = new JsonNodeValueSelectorSupplier();
-
-    public static KeySelectorSupplier<JsonNode> keySelectorSupplier() {
-        return KEY_SELECTOR_SUPPLIER;
+    public static KeySelectorSupplier<JsonNode> keySelectorSupplier(ConnectorConfig config) {
+        return new JsonNodeKeySelectorSupplier(config);
     }
 
-    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier() {
-        return VALUE_SELECTOR_SUPPLIER;
+    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
+        return new JsonNodeValueSelectorSupplier(config);
     }
 
     static abstract class JsonNodeBaseSelector extends BaseSelector {
@@ -107,9 +99,10 @@ public class JsonNodeSelectorsSuppliers {
 
     static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
 
-        @Override
-        public void config(ConnectorConfig config) {
-            props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+        private final ConnectorConfig config;
+
+        JsonNodeKeySelectorSupplier(ConnectorConfig config) {
+            this.config = config;
         }
 
         @Override
@@ -118,11 +111,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public String deserializer(ConnectorConfig config) {
-            if (config.hasKeySchemaFile()) {
-                return JsonLocalSchemaDeserializer.class.getName();
-            }
-            return KafkaJsonSchemaDeserializer.class.getName();
+        public Deserializer<JsonNode> deseralizer() {
+            return new JsonNodeDeserializer(config, true);
         }
 
     }
@@ -141,22 +131,20 @@ public class JsonNodeSelectorsSuppliers {
 
     static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
 
-        @Override
-        public void config(ConnectorConfig config) {
-            consumerProps.put(KafkaJsonDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
-        }
+        private final ConnectorConfig config;
 
-        @Override
-        public String deserializer(ConnectorConfig config) {
-            if (config.hasValueSchemaFile()) {
-                return JsonLocalSchemaDeserializer.class.getName();
-            }
-            return KafkaJsonSchemaDeserializer.class.getName();
+        JsonNodeValueSelectorSupplier(ConnectorConfig config) {
+            this.config = config;
         }
 
         @Override
         public ValueSelector<JsonNode> newSelector(String name, String expression) {
             return new JsonNodeValueSelector(name, expectedRoot(), expression);
+        }
+
+        @Override
+        public Deserializer<JsonNode> deseralizer() {
+            return new JsonNodeDeserializer(config, false);
         }
     }
 

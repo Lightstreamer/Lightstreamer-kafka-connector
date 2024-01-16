@@ -2,12 +2,11 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
@@ -24,16 +23,12 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
 public class GenericRecordSelectorsSuppliers {
 
-    private static final GenericRecordKeySelectorSupplier KEY_SELECTOR_SUPPLIER = new GenericRecordKeySelectorSupplier();
-
-    private static final GenericRecordValueSelectorSupplier VALUE_SELECTOR_SUPPLIER = new GenericRecordValueSelectorSupplier();
-
-    public static KeySelectorSupplier<GenericRecord> keySelectorSupplier() {
-        return KEY_SELECTOR_SUPPLIER;
+    public static KeySelectorSupplier<GenericRecord> keySelectorSupplier(ConnectorConfig config) {
+        return new GenericRecordKeySelectorSupplier(config);
     }
 
-    public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier() {
-        return VALUE_SELECTOR_SUPPLIER;
+    public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier(ConnectorConfig config) {
+        return new GenericRecordValueSelectorSupplier(config);
     }
 
     static class GenericRecordBaseSelector extends BaseSelector {
@@ -117,17 +112,28 @@ public class GenericRecordSelectorsSuppliers {
 
     static class GenericRecordKeySelectorSupplier implements KeySelectorSupplier<GenericRecord> {
 
+        private final GenericRecordDeserializer deserializer;
+
+        public GenericRecordKeySelectorSupplier(ConnectorConfig config) {
+            this.deserializer = new GenericRecordDeserializer(config, true);
+        }
+
         @Override
         public KeySelector<GenericRecord> newSelector(String name, String expression) {
             return new GenericRecordKeySelector(name, expectedRoot(), expression);
         }
 
+        // @Override
+        // public String deserializer(ConnectorConfig config) {
+        //     if (config.hasKeySchemaFile()) {
+        //         return GenericRecordLocalSchemaDeserializer.class.getName();
+        //     }
+        //     return KafkaAvroDeserializer.class.getName();
+        // }
+
         @Override
-        public String deserializer(ConnectorConfig config) {
-            if (config.hasKeySchemaFile()) {
-                return GenericRecordLocalSchemaDeserializer.class.getName();
-            }
-            return KafkaAvroDeserializer.class.getName();
+        public Deserializer<GenericRecord> deseralizer() {
+            return deserializer;
         }
     }
 
@@ -146,20 +152,28 @@ public class GenericRecordSelectorsSuppliers {
 
     static class GenericRecordValueSelectorSupplier implements ValueSelectorSupplier<GenericRecord> {
 
-        GenericRecordValueSelectorSupplier() {
+        private final GenericRecordDeserializer deseralizer;
+
+        GenericRecordValueSelectorSupplier(ConnectorConfig config) {
+            this.deseralizer = new GenericRecordDeserializer(config, false);
         }
 
-        @Override
-        public String deserializer(ConnectorConfig config) {
-            if (config.hasValueSchemaFile()) {
-                return GenericRecordLocalSchemaDeserializer.class.getName();
-            }
-            return KafkaAvroDeserializer.class.getName();
-        }
+        // @Override
+        // public String deserializer(ConnectorConfig config) {
+        //     if (config.hasValueSchemaFile()) {
+        //         return GenericRecordLocalSchemaDeserializer.class.getName();
+        //     }
+        //     return KafkaAvroDeserializer.class.getName();
+        // }
 
         @Override
         public ValueSelector<GenericRecord> newSelector(String name, String expression) {
             return new GenericRecordValueSelector(name, expectedRoot(), expression);
+        }
+
+        @Override
+        public Deserializer<GenericRecord> deseralizer() {
+            return deseralizer;
         }
     }
 

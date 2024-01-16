@@ -14,6 +14,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +46,18 @@ public class ConsumerLoop<K, V> implements Loop {
 
     private final ItemTemplates<K, V> itemTemplates;
 
+    private Deserializer<V> valueDeserializer;
+
+    private Deserializer<K> keyDeserializer;
+
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
     public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
         this.consumerProps = config.consumerProperties();
         this.itemTemplates = config.itemTemplates();
         this.fieldsSelectors = config.fieldsSelectors();
+        this.keyDeserializer = config.keyDeserializer();
+        this.valueDeserializer = config.valueDeserializer();
 
         recordRemapper = RecordMapper.<K, V>builder()
                 .withSelectors(itemTemplates.selectors())
@@ -91,7 +98,7 @@ public class ConsumerLoop<K, V> implements Loop {
         barrier.reset();
 
         try {
-            KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerProps);
+            KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerProps, keyDeserializer, valueDeserializer);
             log.info("Connected to Kafka");
 
             List<String> topics = itemTemplates.topics().toList();

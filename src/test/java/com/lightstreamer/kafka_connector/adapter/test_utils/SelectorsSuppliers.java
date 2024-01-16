@@ -21,8 +21,23 @@ public interface SelectorsSuppliers {
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier());
     }
 
+    public static SelectorsSupplier<String, GenericRecord> genericRecordValue() {
+        return wrap(StringSelectorSuppliers.keySelectorSupplier()
+                GenericRecordSelectorsSuppliers.valueSelectorSupplier());
+    }
+
+    public static SelectorsSupplier<GenericRecord, JsonNode> genericRecordKeyJsonNodeValue() {
+        return wrap(GenericRecordSelectorsSuppliers.keySelectorSupplier(),
+                GenericRecordSelectorsSuppliers.valueSelectorSupplier());
+    }
+
     public static SelectorsSupplier<JsonNode, JsonNode> jsonNode() {
         return wrap(JsonNodeSelectorsSuppliers.keySelectorSupplier(),
+                JsonNodeSelectorsSuppliers.valueSelectorSupplier());
+    }
+
+    public static SelectorsSupplier<String, JsonNode> jsonNodeValue() {
+        return wrap(StringSelectorSuppliers.keySelectorSupplier(),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier());
     }
 }

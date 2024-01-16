@@ -160,14 +160,23 @@ record ConfParameter(String name, boolean required, boolean multiple, Type type,
                     .filter(key -> key.startsWith(name()) && name().length() < key.length())
                     .toList();
             if (keys.isEmpty() && required()) {
-                throw new ConfigException(String.format("At least one param [%s<...>] is required", name));
+                // throw new ConfigException(String.format("At least one param [%s<...>] is
+                // required", name));
             }
         }
 
         for (String key : keys) {
-            String paramValue = source.get(key);
-            validate(key, paramValue);
-            if (paramValue != null) {
+            if (required()) {
+                if (!source.containsKey(key)) {
+                    throw new ConfigException(String.format("Param [%s] is required", key));
+                }
+            }
+
+            if (source.containsKey(key)) {
+                String paramValue = source.get(key);
+                if (paramValue == null || paramValue.isBlank()) {
+                    throw new ConfigException(String.format("You must specify a value for Param [%s]", key));
+                }
                 destination.put(key, type.getValue(paramValue));
             }
         }
