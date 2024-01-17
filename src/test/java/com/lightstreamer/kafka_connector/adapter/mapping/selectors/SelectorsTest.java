@@ -15,12 +15,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
 public class SelectorsTest {
+
+    static ConnectorConfig avroConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                Map.of(ConnectorConfig.ADAPTER_DIR, "src/test/resources",
+                        ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
+                        ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc"));
+    }
 
     static Stream<Arguments> stringSelectorsArguments() {
         return Stream.of(
@@ -82,7 +90,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSuppliers.genericRecord(ConnectorConfigProvider.minimal()),
+                () -> Selectors.from(SelectorsSuppliers.avro(avroConfig()),
                         "schema", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
@@ -92,7 +100,7 @@ public class SelectorsTest {
     @MethodSource("wrongArguments")
     public void shouldNotCreateJsonNodeSelectors(Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception = assertThrows(ExpressionException.class,
-                () -> Selectors.from(SelectorsSuppliers.jsonNode(ConnectorConfigProvider.minimal()), "schema",
+                () -> Selectors.from(SelectorsSuppliers.json(ConnectorConfigProvider.minimal()), "schema",
                         input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }

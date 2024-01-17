@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
@@ -17,10 +18,13 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
-public class RecordMapperTest {
+public class RecordMapperAvroTest {
 
     private static Selectors<String, GenericRecord> selectors(String schemaName, Map<String, String> entries) {
-        return Selectors.from(SelectorsSuppliers.genericRecordValue(ConnectorConfigProvider.minimal()), schemaName, entries);
+        return Selectors.from(
+                SelectorsSuppliers.avroValue(ConnectorConfigProvider.minimalWith(Map.of(ConnectorConfig.ADAPTER_DIR,
+                        "src/test/resources", ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc"))),
+                schemaName, entries);
     }
 
     private static Builder<String, GenericRecord> builder() {

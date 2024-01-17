@@ -17,27 +17,27 @@ public interface SelectorsSuppliers {
         return wrap(StringSelectorSuppliers.keySelectorSupplier(), StringSelectorSuppliers.valueSelectorSupplier());
     }
 
-    public static SelectorsSupplier<GenericRecord, GenericRecord> genericRecord(ConnectorConfig config) {
+    public static SelectorsSupplier<GenericRecord, GenericRecord> avro(ConnectorConfig config) {
         return wrap(GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static SelectorsSupplier<String, GenericRecord> genericRecordValue(ConnectorConfig config) {
+    public static SelectorsSupplier<String, GenericRecord> avroValue(ConnectorConfig config) {
         return wrap(StringSelectorSuppliers.keySelectorSupplier(),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static SelectorsSupplier<GenericRecord, JsonNode> genericRecordKeyJsonNodeValue(ConnectorConfig config) {
+    public static SelectorsSupplier<GenericRecord, JsonNode> avroKeyJsonValue(ConnectorConfig config) {
         return wrap(GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static SelectorsSupplier<JsonNode, JsonNode> jsonNode(ConnectorConfig config) {
+    public static SelectorsSupplier<JsonNode, JsonNode> json(ConnectorConfig config) {
         return wrap(JsonNodeSelectorsSuppliers.keySelectorSupplier(config),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static SelectorsSupplier<String, JsonNode> jsonNodeValue(ConnectorConfig config) {
+    public static SelectorsSupplier<String, JsonNode> jsonValue(ConnectorConfig config) {
         return wrap(StringSelectorSuppliers.keySelectorSupplier(),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }

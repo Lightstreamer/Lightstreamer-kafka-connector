@@ -31,7 +31,7 @@ public class GenericRecordSelectorTest {
     }
 
     static ValueSelector<GenericRecord> valueSelector(String expression) {
-        return SelectorsSuppliers.genericRecord(config())
+        return SelectorsSuppliers.avro(config())
                 .valueSelectorSupplier()
                 .newSelector("name", expression);
     }

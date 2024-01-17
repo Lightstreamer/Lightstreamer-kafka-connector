@@ -99,10 +99,10 @@ public class JsonNodeSelectorsSuppliers {
 
     static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
 
-        private final ConnectorConfig config;
+        private final JsonNodeDeserializer deseralizer;
 
         JsonNodeKeySelectorSupplier(ConnectorConfig config) {
-            this.config = config;
+            this.deseralizer = new JsonNodeDeserializer(config, false);
         }
 
         @Override
@@ -112,7 +112,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public Deserializer<JsonNode> deseralizer() {
-            return new JsonNodeDeserializer(config, true);
+            return deseralizer;
         }
 
     }
@@ -131,10 +131,10 @@ public class JsonNodeSelectorsSuppliers {
 
     static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
 
-        private final ConnectorConfig config;
+        private final JsonNodeDeserializer deseralizer;
 
         JsonNodeValueSelectorSupplier(ConnectorConfig config) {
-            this.config = config;
+            this.deseralizer = new JsonNodeDeserializer(config, false);
         }
 
         @Override
@@ -144,7 +144,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public Deserializer<JsonNode> deseralizer() {
-            return new JsonNodeDeserializer(config, false);
+            return deseralizer;
         }
     }
 

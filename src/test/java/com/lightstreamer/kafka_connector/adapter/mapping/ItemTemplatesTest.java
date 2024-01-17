@@ -5,7 +5,6 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecor
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,23 +47,32 @@ public class ItemTemplatesTest {
         return Items.templatesFrom(topicMappings, selectionsSupplier);
     }
 
-    private static <K, V> ItemTemplates<K, V> templates2(SelectorsSupplier<K, V> selectionsSupplier,
-            List<String> topics, String... template) {
-        List<TopicMapping> topicMappings = List.of(new TopicMapping("topic", Arrays.asList(template)));
-        return Items.templatesFrom(topicMappings, selectionsSupplier);
-    }
-
-    private static ItemTemplates<GenericRecord, GenericRecord> getGenericRecordsGenericRecordTemplates(
+    private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(
             String template) {
-        return templates(SelectorsSuppliers.genericRecord(), template);
+        return templates(SelectorsSuppliers.avro(avroAvroConfig()), template);
     }
 
-    private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
-        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(ConnectorConfigProvider.minimal()), template);
+    private static ItemTemplates<GenericRecord, JsonNode> getAvroJsonTemplates(String template) {
+        return templates(SelectorsSuppliers.avroKeyJsonValue(avroJsonConfig()), template);
+    }
+
+    private static ConnectorConfig avroJsonConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
+                        ConnectorConfig.ADAPTER_DIR,
+                        "src/test/resources"));
+    }
+
+    private static ConnectorConfig avroAvroConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
+                        ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc",
+                        ConnectorConfig.ADAPTER_DIR,
+                        "src/test/resources"));
     }
 
     @Test
-    public void shouldNotAllowDuplicatedKeysOnTheSameTemplat() {
+    public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
         ExpressionException e = assertThrows(ExpressionException.class,
                 () -> templates(SelectorsSuppliers.string(), "item-${name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage()).isEqualTo("No duplicated keys are allowed");
@@ -73,7 +81,7 @@ public class ItemTemplatesTest {
     @Test
     public void shouldOneToMany() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(config);
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("topic",
@@ -113,7 +121,7 @@ public class ItemTemplatesTest {
     @Test
     public void shouldManyToOne() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(config);
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("new_orders", List.of("orders-${topic=TOPIC}", "item-${topic=TOPIC}")),
@@ -146,7 +154,7 @@ public class ItemTemplatesTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
     public void shouldExpand(String template, String subscribingItem, boolean canSubscribe, boolean exandable) {
-        ItemTemplates<GenericRecord, GenericRecord> templates = getGenericRecordsGenericRecordTemplates(
+        ItemTemplates<GenericRecord, GenericRecord> templates = getAvroAvroTemplates(
                 template);
         RecordMapper<GenericRecord, GenericRecord> mapper = RecordMapper
                 .<GenericRecord, GenericRecord>builder()
@@ -173,7 +181,7 @@ public class ItemTemplatesTest {
     @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
     public void shouldExpandMixedKeyAndValueTypes(String template, String subscribingItem, boolean canSubscribe,
             boolean exandable) {
-        ItemTemplates<GenericRecord, JsonNode> templates = getGenericRecordJsonNodeTemplates(template);
+        ItemTemplates<GenericRecord, JsonNode> templates = getAvroJsonTemplates(template);
         RecordMapper<GenericRecord, JsonNode> mapper = RecordMapper
                 .<GenericRecord, JsonNode>builder()
                 .withSelectors(templates.selectors())
