@@ -2,6 +2,9 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -35,7 +38,7 @@ public class JsonNodeDeserializerTest {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
         }
 
-        // No specifi settins for the value deserializer, therefore the
+        // No specific settings for the value deserializer, therefore the
         // KafkaJsonDeserializer is expected here
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonDeserializer.class.getName());
@@ -51,7 +54,7 @@ public class JsonNodeDeserializerTest {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
         }
 
-        // No specific settins for the key deserializer, therefore the
+        // No specific settings for the key deserializer, therefore the
         // KafkaJsonDeserializer is expected here
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonDeserializer.class.getName());
@@ -75,20 +78,62 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchema() {
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "schema.json");
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigsWith(otherConfigs));
+    public void shouldDeserializeKeyWithLocalSchema() throws IOException {
+        Path adapterDir = Files.createTempDirectory("adapter_dir");
+        Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName());
+        ConnectorConfig config = new ConnectorConfig(
+                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
         }
 
-        // No specifi settins for the value deserializer, therefore the
+        // No specific settings for the value deserializer, therefore the
         // KafkaJsonDeserializer is expected here
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonDeserializer.class.getName());
         }
     }
 
+    @Test
+    public void shouldDeserializeValueWithLocalSchema() throws IOException {
+        Path adapterDir = Files.createTempDirectory("adapter_dir");
+        Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_FILE,
+                valueSchemaFile.toFile().getName());
+        ConnectorConfig config = new ConnectorConfig(
+                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+
+        try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
+            assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
+        }
+
+        // No specific settings for the key deserializer, therefore the
+        // KafkaJsonDeserializer is expected here
+        try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
+            assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonDeserializer.class.getName());
+        }
+    }
+
+    @Test
+    public void shouldDeserializeKeyAndValueWithLocalSchema() throws IOException {
+        Path adapterDir = Files.createTempDirectory("adapter_dir");
+        Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
+        Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
+        Map<String, String> otherConfigs = Map.of(
+                ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName(),
+                ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
+        ConnectorConfig config = new ConnectorConfig(
+                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+
+        try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
+            assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
+        }
+
+        try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
+            assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
+        }
+    }
 
 }

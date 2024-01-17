@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -164,6 +165,32 @@ public class ConnectorConfigTest {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         assertThat(config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)).isEqualTo("key-host:8080");
         assertThat(config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL)).isEqualTo("value_host:8080");
+    }
+
+    @Test
+    public void shouldGetRequiredHost() {
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        assertThat(config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, true)).isEqualTo("key-host:8080");
+        assertThat(config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, true)).isEqualTo("value_host:8080");
+    }
+
+    @Test
+    public void shouldNotGetRequiredHost() {
+        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+
+        String keySchemaRegistryUrl = config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, false);
+        assertThat(keySchemaRegistryUrl).isNull();
+
+        String valuechemaRegistryUrl = config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, false);
+        assertThat(valuechemaRegistryUrl).isNull();
+
+        ConfigException exception = assertThrows(ConfigException.class,
+                () -> config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, true));
+        assertThat(exception.getMessage()).isEqualTo("Missing required parameter [key.schema.registry.url]");
+
+        ConfigException exception2 = assertThrows(ConfigException.class,
+                () -> config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, true));
+        assertThat(exception2.getMessage()).isEqualTo("Missing required parameter [value.schema.registry.url]");
     }
 
     @Test

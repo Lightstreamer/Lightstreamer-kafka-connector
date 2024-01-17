@@ -13,15 +13,12 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
     protected final File schemaFile;
 
     protected AbstractLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
-        schemaFile = getFileSchema(isKey ? ConnectorConfig.KEY_SCHEMA_FILE : ConnectorConfig.VALUE_SCHEMA_FILE,
-                config);
-    }
-
-    private File getFileSchema(String schemaFileKey, ConnectorConfig config) {
+        String schemaFileKey = isKey ? ConnectorConfig.KEY_SCHEMA_FILE : ConnectorConfig.VALUE_SCHEMA_FILE;
         String fileSchema = config.getText(schemaFileKey);
         if (fileSchema == null) {
             throw new SerializationException(schemaFileKey + " setting is mandatory");
         }
-        return Paths.get((String) config.getDirectory(ConnectorConfig.ADAPTER_DIR), fileSchema).toFile();
+        schemaFile = Paths.get((String) config.getDirectory(ConnectorConfig.ADAPTER_DIR), fileSchema).toFile();
     }
+
 }

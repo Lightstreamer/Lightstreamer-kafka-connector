@@ -11,19 +11,23 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 
 @Tag("unit")
 public class JsonNodeSelectorTest {
 
+    static ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+
     static ValueSelector<JsonNode> valueSelector(String expression) {
-        return JsonNodeSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
+        return JsonNodeSelectorsSuppliers.valueSelectorSupplier(config).newSelector("name", expression);
     }
 
     static KeySelector<JsonNode> keySelector(String expression) {
-        return JsonNodeSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
+        return JsonNodeSelectorsSuppliers.keySelectorSupplier(config).newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

@@ -100,6 +100,15 @@ public class ConnectorConfig {
         return get(configKey, ConfType.Host);
     }
 
+    public String getHost(String configKey, boolean forceRequired) {
+        String value = get(configKey, ConfType.Host);
+        if (forceRequired && value == null) {
+            throw new ConfigException("Missing required parameter [%s]".formatted(configKey));
+        }
+        return value;
+    }
+
+
     public String getHostsList(String configKey) {
         return get(configKey, ConfType.HostsList);
     }

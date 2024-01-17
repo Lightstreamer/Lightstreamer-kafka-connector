@@ -1,6 +1,5 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,16 +26,19 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
     GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
         Map<String, String> props = new HashMap<>();
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            deserializer = new GenericRecordLocalSchemaDeserializer();
+            deserializer = new GenericRecordLocalSchemaDeserializer(config, isKey);
         } else {
-            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)
-                    : config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
-            if (schemaRegistryUrl != null) {
-                props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
-            }
+            String schemaRegistryKey = isKey ? ConnectorConfig.KEY_SCHEMA_REGISTRY_URL
+                    : ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL;
+            props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, config.getHost(schemaRegistryKey, true));
             deserializer = new KafkaAvroDeserializer();
+
         }
         deserializer.configure(config.extendsConsumerProps(props), isKey);
+    }
+
+    public String deserializerClassName() {
+        return deserializer.getClass().getName();
     }
 
     @Override
@@ -49,8 +51,8 @@ class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializ
 
     private Schema schema;
 
-    @Override
-    protected void doConfigure(Map<String, ?> configs, File schemaFile, boolean isKey) {
+    GenericRecordLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
+        super(config, isKey);
         try {
             schema = new Schema.Parser().parse(schemaFile);
         } catch (IOException e) {

@@ -28,6 +28,12 @@ public class ConnectorConfigProvider {
         return adapterParams;
     }
 
+    public static Map<String, String> essentialConfigsWith(Map<String, String> additionalConfigs, Path adapterDir) {
+        Map<String, String> essentialConfigs = essentialConfigs(adapterDir);
+        essentialConfigs.putAll(additionalConfigs);
+        return essentialConfigs;
+    }
+
     public static Map<String, String> essentialConfigsWith(Map<String, String> additionalConfigs) {
         Map<String, String> essentialConfigs = essentialConfigs();
         essentialConfigs.putAll(additionalConfigs);

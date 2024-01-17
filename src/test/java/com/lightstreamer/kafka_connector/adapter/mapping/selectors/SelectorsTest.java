@@ -15,7 +15,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
@@ -81,7 +83,7 @@ public class SelectorsTest {
 	@MethodSource("wrongArguments")
 	public void shouldNotCreateGenericRecordSelectors(Map<String, String> input, String expectedErrorMessage) {
 		ExpressionException exception = assertThrows(ExpressionException.class,
-				() -> Selectors.from(SelectorsSuppliers.genericRecord(), "schema", input));
+				() -> Selectors.from(SelectorsSuppliers.genericRecord(new ConnectorConfig(ConnectorConfigProvider.essentialConfigs())), "schema", input));
 		assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
 	}
 
@@ -90,7 +92,7 @@ public class SelectorsTest {
 	@MethodSource("wrongArguments")
 	public void shouldNotCreateJsonNodeSelectors(Map<String, String> input, String expectedErrorMessage) {
 		ExpressionException exception = assertThrows(ExpressionException.class,
-				() -> Selectors.from(SelectorsSuppliers.jsonNode(), "schema", input));
+				() -> Selectors.from(SelectorsSuppliers.jsonNode(new ConnectorConfig(ConnectorConfigProvider.essentialConfigs())), "schema", input));
 		assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
 	}
 

@@ -24,6 +24,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
@@ -40,8 +41,6 @@ public class ItemTemplatesTest {
     // RecordInspector.builder()));
     // assertThat(exception.getMessage()).isEqualTo("Invalid item");
     // }
-
-    private static ConnectorConfig config = new ConnectorConfig(Collections.emptyMap());
 
     private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier,
             String... template) {
@@ -61,7 +60,8 @@ public class ItemTemplatesTest {
     }
 
     private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
-        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(), template);
+        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(config), template);
     }
 
     @Test
@@ -73,7 +73,8 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue();
+        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("topic",
@@ -112,7 +113,8 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue();
+        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("new_orders", List.of("orders-${topic=TOPIC}", "item-${topic=TOPIC}")),
