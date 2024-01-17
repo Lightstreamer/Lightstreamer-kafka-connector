@@ -83,6 +83,7 @@ public class ConnectorConfigTest {
         assertThat(mapParam.name()).isEqualTo(ConnectorConfig.MAP);
         assertThat(mapParam.required()).isTrue();
         assertThat(mapParam.multiple()).isTrue();
+        assertThat(mapParam.suffix()).isEqualTo("to");
         assertThat(mapParam.defaultValue()).isNull();
         assertThat(mapParam.type()).isEqualTo(ConfType.Text);
 
@@ -90,6 +91,7 @@ public class ConnectorConfigTest {
         assertThat(fieldParam.name()).isEqualTo(ConnectorConfig.FIELD);
         assertThat(fieldParam.required()).isTrue();
         assertThat(fieldParam.multiple()).isTrue();
+        assertThat(fieldParam.suffix()).isNull();
         assertThat(fieldParam.defaultValue()).isNull();
         assertThat(fieldParam.type()).isEqualTo(ConfType.Text);
 
@@ -120,6 +122,7 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, "key-host:8080");
         adapterParams.put("map.topic1.to", "item-template1");
+        adapterParams.put("map.topic2.to", "item-template2");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;
     }
@@ -158,6 +161,14 @@ public class ConnectorConfigTest {
         assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
         assertThat(config.getText(ConnectorConfig.VALUE_CONSUMER)).isEqualTo("value-consumer");
         assertThat(config.getText(ConnectorConfig.KEY_CONSUMER)).isEqualTo("key-consumer");
+    }
+
+    @Test
+    public void shouldGetValues() {
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        Map<String, String> values = config.getValues(ConnectorConfig.MAP);
+        assertThat(values).containsExactly("topic1", "item-template-1", "topic2",
+                "item-template-2");
     }
 
     @Test

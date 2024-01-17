@@ -104,22 +104,27 @@ class ConfigSpec {
     private Map<String, ConfParameter> paramSpec = new HashMap<>();
 
     ConfigSpec add(String name, boolean required, boolean multiple, Type type, String defaultValue) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, type, defaultValue));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, defaultValue));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, type));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, null));
+        return this;
+    }
+
+    ConfigSpec add(String name, boolean required, boolean multiple, String suffix, Type type) {
+        paramSpec.put(name, new ConfParameter(name, required, multiple, suffix, type, null));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, false, type));
+        paramSpec.put(name, new ConfParameter(name, required, false, null, type, null));
         return this;
     }
 
     ConfigSpec add(String name, Type type) {
-        paramSpec.put(name, new ConfParameter(name, true, false, type));
+        paramSpec.put(name, new ConfParameter(name, true, false, null, type, null));
         return this;
     }
 
@@ -137,11 +142,8 @@ class ConfigSpec {
     }
 }
 
-record ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type, String defaultValue) {
-
-    ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type) {
-        this(name, required, multiple, type, null);
-    }
+record ConfParameter(String name, boolean required, boolean multiple, String suffix, ConfigSpec.Type type,
+        String defaultValue) {
 
     void validate(String paramName, String paramValue) throws ConfigException {
         if (required()) {
@@ -160,7 +162,11 @@ record ConfParameter(String name, boolean required, boolean multiple, ConfigSpec
         if (multiple()) {
             keys = source.keySet()
                     .stream()
-                    .filter(key -> key.startsWith(name()) && name().length() < key.length())
+                    .filter(key -> {
+                        String[] components = key.split("\\.");
+                        return components[0].equals(name())
+                                && (suffix != null ? components[components.length - 1].equals(suffix) : true);
+                    })
                     .toList();
             if (keys.isEmpty() && required()) {
                 throw new ConfigException(

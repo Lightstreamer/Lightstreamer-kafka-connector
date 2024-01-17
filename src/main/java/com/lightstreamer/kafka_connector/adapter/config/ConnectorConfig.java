@@ -20,9 +20,10 @@ public class ConnectorConfig {
 
     public static final String ADAPTER_DIR = "adapter.dir";
 
-    public static final String MAP = "map.";
+    public static final String MAP = "map";
+    private static final String MAP_SUFFIX = "to";
 
-    public static final String FIELD = "field.";
+    public static final String FIELD = "field";
 
     public static final String KEY_CONSUMER = "key.consumer";
 
@@ -47,7 +48,7 @@ public class ConnectorConfig {
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
                 .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
                 .add(GROUP_ID, true, false, ConfType.Text)
-                .add(MAP, true, true, ConfType.Text)
+                .add(MAP, true, true, MAP_SUFFIX, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
                 .add(KEY_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
                 .add(VALUE_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
@@ -108,7 +109,6 @@ public class ConnectorConfig {
         return value;
     }
 
-
     public String getHostsList(String configKey) {
         return get(configKey, ConfType.HostsList);
     }
@@ -120,9 +120,19 @@ public class ConnectorConfig {
     public Map<String, String> getValues(String configKey) {
         ConfParameter param = this.configSpec.getParameter(configKey);
         if (param.multiple()) {
-            return configuration.entrySet().stream()
-                    .filter(e -> e.getKey().startsWith(configKey))
-                    .collect(Collectors.toMap(e -> e.getKey().split("\\.")[1], Map.Entry::getValue));
+            return configuration.entrySet()
+                    .stream()
+                    .filter(e -> {
+                        boolean startsWith = e.getKey().startsWith(param.name() + ".");
+                        boolean endsWith = false;
+                        if (param.suffix() != null) {
+                            endsWith = e.getKey().endsWith("." + param.suffix());
+                        }
+                        return startsWith && endsWith;
+                    })
+
+                    .collect(Collectors.toMap(e -> e.getKey().replace(param.name() + ".", "")
+                            + e.getKey().replace("." + param.suffix(), ""), Map.Entry::getValue));
         }
         return Collections.emptyMap();
     }
@@ -172,8 +182,8 @@ public class ConnectorConfig {
         map.put(ConnectorConfig.KEY_CONSUMER, "consumer");
         map.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         map.put(ConnectorConfig.ADAPTER_DIR, "test");
-        map.put("map.topic1.to", "item-template1");
-        map.put("map.topic2.to", "item-template2");
+        map.put("map.topic1.a.to", "item-template1");
+        map.put("map.topic2.b.to", "item-template2");
         map.put("field.fieldName1", "bar");
         map.put("field.fieldName2", "bar");
         ConnectorConfig config = new ConnectorConfig(map);
