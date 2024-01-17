@@ -20,7 +20,7 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvi
 @Tag("unit")
 public class JsonNodeSelectorTest {
 
-    static ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+    static ConnectorConfig config = ConnectorConfigProvider.minimal();
 
     static ValueSelector<JsonNode> valueSelector(String expression) {
         return JsonNodeSelectorsSuppliers.valueSelectorSupplier(config).newSelector("name", expression);

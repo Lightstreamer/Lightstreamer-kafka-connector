@@ -176,7 +176,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldNotGetRequiredHost() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
 
         String keySchemaRegistryUrl = config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, false);
         assertThat(keySchemaRegistryUrl).isNull();
@@ -195,13 +195,13 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetHostLists() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getHostsList(ConnectorConfig.BOOTSTRAP_SERVERS)).isEqualTo("server:8080,server:8081");
     }
 
     @Test
     public void shouldGetDefaultText() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getText(ConnectorConfig.KEY_CONSUMER)).isNotNull();
         assertThat(config.getText(ConnectorConfig.KEY_CONSUMER)).isEqualTo("RAW");
 
@@ -211,21 +211,21 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldNotGetNonExistingNonRequiredText() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getText(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
         assertThat(config.getText(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
     }
 
     @Test
     public void shouldNotGetNonExistingNonRequiredHost() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)).isNull();
         assertThat(config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL)).isNull();
     }
 
     @Test
     public void shouldGetDirectory() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs(adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir);
         assertThat(config.getDirectory(ConnectorConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
     }
 

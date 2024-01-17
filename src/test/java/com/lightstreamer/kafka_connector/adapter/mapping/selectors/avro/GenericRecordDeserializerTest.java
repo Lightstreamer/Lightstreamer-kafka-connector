@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
@@ -16,11 +17,12 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvi
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
+@Tag("unit")
 public class GenericRecordDeserializerTest {
 
     @Test
     public void shouldNotDeserializeWithoutSchemaSettings() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThrows(ConfigException.class, () -> new GenericRecordDeserializer(config, true));
         assertThrows(ConfigException.class, () -> new GenericRecordDeserializer(config, false));
     }
@@ -30,7 +32,7 @@ public class GenericRecordDeserializerTest {
         Map<String, String> otherConfigs = Map.of(
                 ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, "host-key:8080",
                 ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, "host-value:8080");
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigsWith(otherConfigs));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaAvroDeserializer.class.getName());
@@ -46,8 +48,7 @@ public class GenericRecordDeserializerTest {
         Path adapterDir = Paths.get("src/test/resources");
 
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
-        ConnectorConfig config = new ConnectorConfig(
-                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
 
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
@@ -59,8 +60,7 @@ public class GenericRecordDeserializerTest {
         Path adapterDir = Paths.get("src/test/resources");
 
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc");
-        ConnectorConfig config = new ConnectorConfig(
-                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
 
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, false)) {
             assertThat(deser.deserializerClassName()).isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());

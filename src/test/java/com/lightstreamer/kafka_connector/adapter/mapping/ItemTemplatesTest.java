@@ -60,8 +60,7 @@ public class ItemTemplatesTest {
     }
 
     private static ItemTemplates<GenericRecord, JsonNode> getGenericRecordJsonNodeTemplates(String template) {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
-        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(config), template);
+        return templates(SelectorsSuppliers.genericRecordKeyJsonNodeValue(ConnectorConfigProvider.minimal()), template);
     }
 
     @Test
@@ -73,7 +72,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
 
         List<TopicMapping> tp = List.of(
@@ -113,7 +112,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonNodeValue(config);
 
         List<TopicMapping> tp = List.of(

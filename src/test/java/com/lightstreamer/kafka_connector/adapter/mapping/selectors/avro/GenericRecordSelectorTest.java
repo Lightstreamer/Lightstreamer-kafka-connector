@@ -6,24 +6,38 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecor
 import static com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider.RECORD;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Map;
+
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
 @Tag("unit")
 public class GenericRecordSelectorTest {
 
+    static ConnectorConfig config() {
+        return ConnectorConfigProvider.minimalWith(
+                Map.of(ConnectorConfig.ADAPTER_DIR, "src/test/resources",
+                        ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
+                        ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc"));
+    }
+
     static ValueSelector<GenericRecord> valueSelector(String expression) {
-        return GenericRecordSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
+        return SelectorsSuppliers.genericRecord(config())
+                .valueSelectorSupplier()
+                .newSelector("name", expression);
     }
 
     static KeySelector<GenericRecord> keySelector(String expression) {
-        return GenericRecordSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
+        return GenericRecordSelectorsSuppliers.keySelectorSupplier(config()).newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

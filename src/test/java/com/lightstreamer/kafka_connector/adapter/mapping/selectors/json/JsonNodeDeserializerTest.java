@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
@@ -15,11 +16,12 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvi
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
+@Tag("unit")
 public class JsonNodeDeserializerTest {
 
     @Test
     public void shouldDeserializeWithNoSchema() {
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigs());
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonDeserializer.class.getName());
         }
@@ -32,7 +34,7 @@ public class JsonNodeDeserializerTest {
     @Test
     public void shouldDeserializeKeyWithSchema() {
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, "host-key:8080");
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigsWith(otherConfigs));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
@@ -48,7 +50,7 @@ public class JsonNodeDeserializerTest {
     @Test
     public void shouldDeserializeValueWithSchema() {
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, "host-value:8080");
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigsWith(otherConfigs));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
@@ -66,7 +68,7 @@ public class JsonNodeDeserializerTest {
         Map<String, String> otherConfigs = Map.of(
                 ConnectorConfig.KEY_SCHEMA_REGISTRY_URL, "host-value:8080",
                 ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL, "host-value:8080");
-        ConnectorConfig config = new ConnectorConfig(ConnectorConfigProvider.essentialConfigsWith(otherConfigs));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
@@ -82,8 +84,7 @@ public class JsonNodeDeserializerTest {
         Path adapterDir = Files.createTempDirectory("adapter_dir");
         Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName());
-        ConnectorConfig config = new ConnectorConfig(
-                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
@@ -102,8 +103,7 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_FILE,
                 valueSchemaFile.toFile().getName());
-        ConnectorConfig config = new ConnectorConfig(
-                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());
@@ -124,8 +124,7 @@ public class JsonNodeDeserializerTest {
         Map<String, String> otherConfigs = Map.of(
                 ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName(),
                 ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
-        ConnectorConfig config = new ConnectorConfig(
-                ConnectorConfigProvider.essentialConfigsWith(otherConfigs, adapterDir));
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(JsonLocalSchemaDeserializer.class.getName());

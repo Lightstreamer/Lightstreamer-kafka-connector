@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
+import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
@@ -19,7 +20,7 @@ import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 public class RecordMapperTest {
 
     private static Selectors<String, GenericRecord> selectors(String schemaName, Map<String, String> entries) {
-        return Selectors.from(SelectorsSuppliers.genericRecordValue(), schemaName, entries);
+        return Selectors.from(SelectorsSuppliers.genericRecordValue(ConnectorConfigProvider.minimal()), schemaName, entries);
     }
 
     private static Builder<String, GenericRecord> builder() {
