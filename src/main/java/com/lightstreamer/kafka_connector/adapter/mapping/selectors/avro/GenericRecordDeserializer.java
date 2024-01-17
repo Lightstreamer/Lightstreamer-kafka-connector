@@ -17,6 +17,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractLocalSchemaDeserializer;
 
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
 public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
@@ -25,13 +26,17 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
 
     GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
         Map<String, String> props = new HashMap<>();
-        if (config.hasKeySchemaFile() || config.hasValueSchemaFile()) {
+        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new GenericRecordLocalSchemaDeserializer();
         } else {
+            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)
+                    : config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+            if (schemaRegistryUrl != null) {
+                props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+            }
             deserializer = new KafkaAvroDeserializer();
         }
-        deserializer.configure(config.extendsonsumerProps(props), isKey);        
-       
+        deserializer.configure(config.extendsConsumerProps(props), isKey);
     }
 
     @Override
@@ -40,13 +45,9 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
     }
 }
 
- class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {
+class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {
 
     private Schema schema;
-
-    public GenericRecordLocalSchemaDeserializer() {
-
-    }
 
     @Override
     protected void doConfigure(Map<String, ?> configs, File schemaFile, boolean isKey) {

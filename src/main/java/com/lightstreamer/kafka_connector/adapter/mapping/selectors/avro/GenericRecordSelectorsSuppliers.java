@@ -19,8 +19,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-
 public class GenericRecordSelectorsSuppliers {
 
     public static KeySelectorSupplier<GenericRecord> keySelectorSupplier(ConnectorConfig config) {
@@ -123,14 +121,6 @@ public class GenericRecordSelectorsSuppliers {
             return new GenericRecordKeySelector(name, expectedRoot(), expression);
         }
 
-        // @Override
-        // public String deserializer(ConnectorConfig config) {
-        //     if (config.hasKeySchemaFile()) {
-        //         return GenericRecordLocalSchemaDeserializer.class.getName();
-        //     }
-        //     return KafkaAvroDeserializer.class.getName();
-        // }
-
         @Override
         public Deserializer<GenericRecord> deseralizer() {
             return deserializer;
@@ -158,13 +148,6 @@ public class GenericRecordSelectorsSuppliers {
             this.deseralizer = new GenericRecordDeserializer(config, false);
         }
 
-        // @Override
-        // public String deserializer(ConnectorConfig config) {
-        //     if (config.hasValueSchemaFile()) {
-        //         return GenericRecordLocalSchemaDeserializer.class.getName();
-        //     }
-        //     return KafkaAvroDeserializer.class.getName();
-        // }
 
         @Override
         public ValueSelector<GenericRecord> newSelector(String name, String expression) {

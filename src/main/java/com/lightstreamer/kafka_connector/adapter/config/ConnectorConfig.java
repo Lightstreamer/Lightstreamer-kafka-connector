@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ListType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 
@@ -46,7 +45,7 @@ public class ConnectorConfig {
     static {
         CONFIG_SPEC = new ConfigSpec()
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
-                .add(BOOTSTRAP_SERVERS, true, false, new ListType<ConfType>(ConfType.Host))
+                .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
                 .add(GROUP_ID, true, false, ConfType.Text)
                 .add(MAP, true, true, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
@@ -101,6 +100,10 @@ public class ConnectorConfig {
         return get(configKey, ConfType.Host);
     }
 
+    public String getHostsList(String configKey) {
+        return get(configKey, ConfType.HostsList);
+    }
+
     public String getDirectory(String configKey) {
         return get(configKey, ConfType.Directory);
     }
@@ -122,29 +125,19 @@ public class ConnectorConfig {
 
     public Properties baseConsumerProps() {
         Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getText(BOOTSTRAP_SERVERS));
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.setProperty(ADAPTER_DIR, getDirectory(ADAPTER_DIR));
-
-        String keySchemaFile = getText(KEY_SCHEMA_FILE);
-        if (keySchemaFile != null) {
-            properties.setProperty(KEY_SCHEMA_FILE, keySchemaFile);
-        }
-
-        String valueSchemaFile = getText(VALUE_SCHEMA_FILE);
-        if (valueSchemaFile != null) {
-            properties.setProperty(VALUE_SCHEMA_FILE, valueSchemaFile);
-        }
-
         return properties;
     }
 
-    public Map<String, ?> extendsonsumerProps(Map<String, String> props) {
-        return baseConsumerProps()
+    public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
+        Map<String, String> extendedProps = new HashMap<>(baseConsumerProps()
                 .entrySet()
                 .stream()
-                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
+                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString())));
+        extendedProps.putAll(props);
+        return extendedProps;
     }
 
     public boolean hasKeySchemaFile() {
@@ -160,6 +153,8 @@ public class ConnectorConfig {
         updated.put(ADAPTER_DIR, configDir.getAbsolutePath());
         return updated;
     }
+
+    // public static Map<String, String> append(Map<String, String>)
 
     public static void main(String[] args) {
         Map<String, String> map = new HashMap<>();

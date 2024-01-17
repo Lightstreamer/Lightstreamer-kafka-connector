@@ -2,14 +2,14 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
 
 class ConfigSpec {
 
@@ -26,23 +26,7 @@ class ConfigSpec {
         }
     }
 
-    static class ListType<T extends Type> implements Type {
-
-        private final T type;
-
-        public ListType(T t) {
-            this.type = t;
-        }
-
-        @Override
-        public boolean isValid(String paramValue) {
-            String[] params = paramValue.split(",");
-            return Arrays.stream(params).allMatch(type::isValid);
-        }
-
-    }
-
-    static enum ConfType implements Type {
+    enum ConfType implements Type {
 
         Text {
             public boolean isValid(String paramValue) {
@@ -69,6 +53,15 @@ class ConfigSpec {
             }
         },
 
+        HostsList(Host) {
+
+            @Override
+            public boolean isValid(String param) {
+                String[] params = param.split(",");
+                return Arrays.stream(params).allMatch(embeddedTYpe::isValid);
+            }
+        },
+
         ItemSpec {
 
             private static Pattern ITEM_SEPC = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
@@ -82,7 +75,7 @@ class ConfigSpec {
         Directory {
 
             public boolean isValid(String param) {
-                return new File(param).isDirectory();
+                return Files.isDirectory(Paths.get(param));
             };
 
             @Override
@@ -94,6 +87,16 @@ class ConfigSpec {
             public String formatErrorMessage(String param, String paramValue) {
                 return String.format("Directory [%s] not found", paramValue);
             }
+        };
+
+        Type embeddedTYpe;
+
+        ConfType() {
+
+        }
+
+        ConfType(Type t) {
+            this.embeddedTYpe = t;
         }
 
     }
@@ -134,9 +137,9 @@ class ConfigSpec {
     }
 }
 
-record ConfParameter(String name, boolean required, boolean multiple, Type type, String defaultValue) {
+record ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type, String defaultValue) {
 
-    ConfParameter(String name, boolean required, boolean multiple, Type type) {
+    ConfParameter(String name, boolean required, boolean multiple, ConfigSpec.Type type) {
         this(name, required, multiple, type, null);
     }
 
@@ -160,8 +163,8 @@ record ConfParameter(String name, boolean required, boolean multiple, Type type,
                     .filter(key -> key.startsWith(name()) && name().length() < key.length())
                     .toList();
             if (keys.isEmpty() && required()) {
-                // throw new ConfigException(String.format("At least one param [%s<...>] is
-                // required", name));
+                throw new ConfigException(
+                        String.format("At least one param [%s<...>] is required", name));
             }
         }
 

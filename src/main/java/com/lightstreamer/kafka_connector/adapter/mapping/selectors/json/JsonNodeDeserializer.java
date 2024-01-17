@@ -15,6 +15,7 @@ import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
@@ -25,14 +26,26 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
 
     JsonNodeDeserializer(ConnectorConfig config, boolean isKey) {
         Map<String, String> props = new HashMap<>();
-        if (config.hasKeySchemaFile() || config.hasValueSchemaFile()) {
-            deserializer = new JsonLocalSchemaDeserializer();
+        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
+            deserializer = new JsonLocalSchemaDeserializer(config, isKey);
         } else {
-            deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
-            props.put(KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
-            props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)
+                    : config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+            if (schemaRegistryUrl != null) {
+                props.put(KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
+                props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+                props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+                deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
+            } else {
+                deserializer = new KafkaJsonDeserializer<>();
+            }
+
         }
-        deserializer.configure(config.extendsonsumerProps(props), isKey);
+        deserializer.configure(config.extendsConsumerProps(props), isKey);
+    }
+
+    public String deserializerClassName() {
+        return deserializer.getClass().getName();
     }
 
     @Override
@@ -50,12 +63,13 @@ class JsonLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNo
 
     private JsonSchema schema;
 
-    public JsonLocalSchemaDeserializer() {
+    public JsonLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
+        super(config, isKey);
         deserializer = new KafkaJsonDeserializer<>();
     }
 
     @Override
-    protected void doConfigure(Map<String, ?> configs, File schemaFile, boolean isKey) {
+    public void configure(Map<String, ?> configs, boolean isKey) {
         deserializer.configure(configs, isKey);
         try {
             schema = new JsonSchema(objectMapper.readTree(schemaFile));
