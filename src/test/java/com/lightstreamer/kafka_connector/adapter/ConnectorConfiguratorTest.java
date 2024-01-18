@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeDeserializer;
 
 public class ConnectorConfiguratorTest {
@@ -65,8 +65,8 @@ public class ConnectorConfiguratorTest {
                 ConsumerConfig.GROUP_ID_CONFIG, "group-id",
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        Selectors<?, ?> fieldsSelectors = loopConfig.fieldsSelectors();
-        Schema schema = fieldsSelectors.schema();
+        FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
+        Schema schema = fieldMappings.selectors().schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
 
@@ -99,14 +99,14 @@ public class ConnectorConfiguratorTest {
                 ConsumerConfig.GROUP_ID_CONFIG, "group-id",
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        Selectors<?, ?> fieldsSelectors = loopConfig.fieldsSelectors();
-        Schema schema = fieldsSelectors.schema();
+        FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
+        Schema schema = fieldMappings.selectors().schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1","topic2");
-        assertThat(itemTemplates.selectors().map(s -> s.schema().name())).containsExactly("item1","item2");
+        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2");
+        assertThat(itemTemplates.selectors().map(s -> s.schema().name())).containsExactly("item1", "item2");
 
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
         assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);

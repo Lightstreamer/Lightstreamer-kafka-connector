@@ -94,8 +94,8 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.Text);
 
-        ConfParameter mapParam = configSpec.getParameter(ConnectorConfig.MAP);
-        assertThat(mapParam.name()).isEqualTo(ConnectorConfig.MAP);
+        ConfParameter mapParam = configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING);
+        assertThat(mapParam.name()).isEqualTo(ConnectorConfig.TOPIC_MAPPING);
         assertThat(mapParam.required()).isTrue();
         assertThat(mapParam.multiple()).isTrue();
         assertThat(mapParam.suffix()).isEqualTo("to");
@@ -138,7 +138,7 @@ public class ConnectorConfigTest {
             """)
     public void shouldExtractInfixForMap(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
-        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.MAP), key);
+        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING), key);
         if (!expectedInfix.isBlank()) {
             assertThat(infix).hasValue(expectedInfix);
         } else {
@@ -291,7 +291,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetValues() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        Map<String, String> topics = config.getValues(ConnectorConfig.MAP, true);
+        Map<String, String> topics = config.getValues(ConnectorConfig.TOPIC_MAPPING, true);
         assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
 
         Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, true);
@@ -304,7 +304,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetAsList() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        List<String> values = config.getAsList(ConnectorConfig.MAP, e -> e.getKey() + "_" + e.getValue());
+        List<String> values = config.getAsList(ConnectorConfig.TOPIC_MAPPING, e -> e.getKey() + "_" + e.getValue());
         assertThat(values).containsExactly("topic1_template1", "topic2_template2");
     }
 

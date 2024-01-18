@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
@@ -18,7 +17,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.Sel
 
 public class Items {
 
-    public static interface Item {
+    public interface Item {
 
         Schema schema();
 
@@ -30,7 +29,7 @@ public class Items {
 
     }
 
-    public static interface ItemTemplates<K, V> {
+    public interface ItemTemplates<K, V> {
 
         Stream<Item> expand(MappedRecord record);
 

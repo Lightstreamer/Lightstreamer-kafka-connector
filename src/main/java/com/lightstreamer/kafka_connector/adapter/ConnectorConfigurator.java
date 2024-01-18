@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
+import com.lightstreamer.kafka_connector.adapter.mapping.Fields;
+import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
@@ -31,7 +33,7 @@ public class ConnectorConfigurator {
 
         Properties consumerProperties();
 
-        Selectors<K, V> fieldsSelectors();
+        FieldMappings<K, V> fieldMappings();
 
         ItemTemplates<K, V> itemTemplates();
 
@@ -51,17 +53,19 @@ public class ConnectorConfigurator {
     public ConsumerLoopConfig<?, ?> configure(Map<String, String> params) throws ConfigException {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
 
-        // Process "item.<template-name>"
+        // Process "item-template.<template-name>"
         Map<String, String> itemTemplateConfigs = connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
 
         // Process "map.<topic-name>.to"
-        List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
+        List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.TOPIC_MAPPING,
                 e -> {
                     String topic = e.getKey();
                     String[] itemTemplateRefs = e.getValue().split(",");
 
                     List<String> itemTemplates = Arrays.stream(itemTemplateRefs)
-                            .map(t -> Optional.ofNullable(itemTemplateConfigs.get(t)).orElseThrow(()->new ConfigException("No item template [%s] found".formatted(t))))
+                            .map(t -> Optional
+                                    .ofNullable(itemTemplateConfigs.get(t))
+                                    .orElseThrow(() -> new ConfigException("No item template [%s] found".formatted(t))))
                             .toList();
                     return new TopicMapping(topic, itemTemplates);
                 });
@@ -79,9 +83,10 @@ public class ConnectorConfigurator {
 
         try {
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
+            FieldMappings<?, ?> fieldMappings = initFieldMappings(selectorsSupplier, fieldsMapping);
             Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
-            return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors, keyDeserializer,
+            return new DefaultConsumerLoopConfig(props, itemTemplates, fieldMappings, keyDeserializer,
                     valueDeserializer);
         } catch (ExpressionException e) {
             throw new ConfigException(e.getMessage());
@@ -89,9 +94,19 @@ public class ConnectorConfigurator {
 
     }
 
+    private FieldMappings<?, ?> initFieldMappings(SelectorsSupplier<?, ?> selectorsSupplier,
+            Map<String, String> fieldsMapping) {
+        return initFieldMappingsHelper(selectorsSupplier, fieldsMapping);
+    }
+
+    private <K, V> FieldMappings<K, V> initFieldMappingsHelper(SelectorsSupplier<K, V> selectorsSupplier,
+            Map<String, String> fieldsMapping) {
+        return Fields.fieldMappingsFrom(fieldsMapping, selectorsSupplier);
+    }
+
     static record DefaultConsumerLoopConfig<K, V>(
             Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
-            Selectors<K, V> fieldsSelectors, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer)
+            FieldMappings<K, V> fieldMappings, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer)
             implements ConsumerLoopConfig<K, V> {
     }
 
