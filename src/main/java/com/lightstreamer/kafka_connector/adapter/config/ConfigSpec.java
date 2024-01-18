@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 class ConfigSpec {
@@ -101,7 +102,7 @@ class ConfigSpec {
 
     }
 
-    private Map<String, ConfParameter> paramSpec = new HashMap<>();
+    private final Map<String, ConfParameter> paramSpec = new HashMap<>();
 
     ConfigSpec add(String name, boolean required, boolean multiple, Type type, String defaultValue) {
         paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, defaultValue));
@@ -132,6 +133,29 @@ class ConfigSpec {
         return paramSpec.get(name);
     }
 
+    public static Optional<String> extractInfix(ConfParameter param, String value) {
+        if (!param.multiple()) {
+            return Optional.empty();
+        }
+
+        String infix = "";
+        String prefix = param.name() + ".";
+        boolean startsWith = value.startsWith(prefix);
+        if (!startsWith) {
+            return Optional.empty();
+        }
+
+        infix = value.substring(prefix.length());
+        if (param.suffix() != null) {
+            String suffix = "." + param.suffix();
+            if (!infix.endsWith(suffix)) {
+                return Optional.empty();
+            }
+            infix = infix.substring(0, infix.lastIndexOf(suffix));
+        }
+        return Optional.of(infix);
+    }
+
     Map<String, String> parse(Map<String, String> params) throws ConfigException {
         Map<String, String> parsedValues = new HashMap<>();
 
@@ -144,18 +168,6 @@ class ConfigSpec {
 
 record ConfParameter(String name, boolean required, boolean multiple, String suffix, ConfigSpec.Type type,
         String defaultValue) {
-
-    void validate(String paramName, String paramValue) throws ConfigException {
-        if (required()) {
-            if (paramValue == null || paramValue.isBlank()) {
-                throw new ConfigException(String.format("Param [%s] is required", paramName));
-            }
-        }
-
-        if (!type.isValid(paramValue)) {
-            throw new ConfigException(type.formatErrorMessage(paramName, paramValue));
-        }
-    }
 
     void populate(Map<String, String> source, Map<String, String> destination) throws ConfigException {
         List<String> keys = Collections.singletonList(name());

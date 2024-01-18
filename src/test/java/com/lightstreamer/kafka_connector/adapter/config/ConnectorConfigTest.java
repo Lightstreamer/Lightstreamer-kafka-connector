@@ -1,18 +1,23 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
@@ -110,6 +115,42 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaRegistryUrlParam.type()).isEqualTo(ConfType.Host);
     }
 
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            KEY                      | EXPECTED_INFIX
+            map.topic.to             | topic
+            map.topicprefix.topic.to | topicprefix.topic
+            map.topic                | ''
+            pam.topic.to             | ''
+            map.map.my.topic.to.to   | map.my.topic.to
+            """)
+    public void shouldExtractInfixForMap(String key, String expectedInfix) {
+        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.MAP), key);
+        if (!expectedInfix.isBlank()) {
+            assertThat(infix).hasValue(expectedInfix);
+        } else {
+            assertThat(infix).isEmpty();
+        }
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            KEY                      | EXPECTED_INFIX
+            field.name               | name
+            myfield.name             | ''
+            field.my.name            | my.name
+            """)
+    public void shouldGetInfixForField(String key, String expectedInfix) {
+        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.FIELD), key);
+        if (!expectedInfix.isBlank()) {
+            assertThat(infix).hasValue(expectedInfix);
+        } else {
+            assertThat(infix).isEmpty();
+        }
+    }
+
     private Map<String, String> standardParameters() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
@@ -167,8 +208,15 @@ public class ConnectorConfigTest {
     public void shouldGetValues() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         Map<String, String> values = config.getValues(ConnectorConfig.MAP);
-        assertThat(values).containsExactly("topic1", "item-template-1", "topic2",
-                "item-template-2");
+        assertThat(values).containsExactly("topic1", "item-template1", "topic2",
+                "item-template2");
+    }
+
+    @Test
+    public void shouldGetAsList() {
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        List<String> values = config.getAsList(ConnectorConfig.MAP, e -> e.getKey() + "_" + e.getValue());
+        assertThat(values).containsExactly("topic1_item-template1", "topic2_item-template2");
     }
 
     @Test

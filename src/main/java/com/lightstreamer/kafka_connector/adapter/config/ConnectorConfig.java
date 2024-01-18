@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public class ConnectorConfig {
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
         this.configSpec = spec;
-        this.configuration = this.configSpec.parse(configs);
+        this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -120,19 +121,14 @@ public class ConnectorConfig {
     public Map<String, String> getValues(String configKey) {
         ConfParameter param = this.configSpec.getParameter(configKey);
         if (param.multiple()) {
-            return configuration.entrySet()
-                    .stream()
-                    .filter(e -> {
-                        boolean startsWith = e.getKey().startsWith(param.name() + ".");
-                        boolean endsWith = false;
-                        if (param.suffix() != null) {
-                            endsWith = e.getKey().endsWith("." + param.suffix());
-                        }
-                        return startsWith && endsWith;
-                    })
-
-                    .collect(Collectors.toMap(e -> e.getKey().replace(param.name() + ".", "")
-                            + e.getKey().replace("." + param.suffix(), ""), Map.Entry::getValue));
+            Map<String, String> remap = new HashMap<>();
+            for (Map.Entry<String, String> e : configuration.entrySet()) {
+                Optional<String> infix = ConfigSpec.extractInfix(param, e.getKey());
+                if (infix.isPresent()) {
+                    remap.put(infix.get(), e.getValue());
+                }
+            }
+            return remap;
         }
         return Collections.emptyMap();
     }
