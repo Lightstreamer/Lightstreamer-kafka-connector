@@ -181,22 +181,23 @@ record ConfParameter(String name, boolean required, boolean multiple, String suf
                     })
                     .toList();
             if (keys.isEmpty() && required()) {
+                String templateReplacement = Optional.ofNullable(suffix()).map(s -> "." + s).orElse("");
                 throw new ConfigException(
-                        String.format("At least one param [%s<...>] is required", name));
+                        String.format("Specify at least one parameter [%s.<...>%s]", name, templateReplacement));
             }
         }
 
         for (String key : keys) {
             if (required()) {
                 if (!source.containsKey(key)) {
-                    throw new ConfigException(String.format("Param [%s] is required", key));
+                    throw new ConfigException(String.format("Missing required parameter [%s]", key));
                 }
             }
 
             if (source.containsKey(key)) {
                 String paramValue = source.get(key);
                 if (paramValue == null || paramValue.isBlank()) {
-                    throw new ConfigException(String.format("You must specify a value for Param [%s]", key));
+                    throw new ConfigException(String.format("Specify a valid value for parameter [%s]", key));
                 }
                 destination.put(key, type.getValue(paramValue));
             }

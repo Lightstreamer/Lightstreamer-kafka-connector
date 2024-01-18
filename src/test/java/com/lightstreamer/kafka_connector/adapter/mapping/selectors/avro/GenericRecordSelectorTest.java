@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -38,6 +39,15 @@ public class GenericRecordSelectorTest {
 
     static KeySelector<GenericRecord> keySelector(String expression) {
         return GenericRecordSelectorsSuppliers.keySelectorSupplier(config()).newSelector("name", expression);
+    }
+
+    @Test
+    public void shouldGetDeserializer() {
+        assertThat(GenericRecordSelectorsSuppliers.valueSelectorSupplier(config()).deseralizer())
+                .isInstanceOf(GenericRecordDeserializer.class);
+
+        assertThat(GenericRecordSelectorsSuppliers.keySelectorSupplier(config()).deseralizer())
+                .isInstanceOf(GenericRecordDeserializer.class);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

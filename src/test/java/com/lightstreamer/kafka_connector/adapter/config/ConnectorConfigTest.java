@@ -3,10 +3,12 @@ package com.lightstreamer.kafka_connector.adapter.config;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -163,10 +165,10 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-            KEY                      | EXPECTED_INFIX
-            item.template1           | template1
-            myitem.template1         | ''
-            item.my.template1        | my.template1
+            KEY                        | EXPECTED_INFIX
+            item-template.template1    | template1
+            myitem.template1           | ''
+            item-template.my.template1 | my.template1
             """)
     public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
@@ -189,12 +191,65 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "key-consumer");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "key-host:8080");
-        adapterParams.put("item.template1", "item1");
-        adapterParams.put("item.template2", "item2");
+        adapterParams.put("item-template.template1", "item1");
+        adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");
         adapterParams.put("map.topic2.to", "template2");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;
+    }
+
+    @Test
+    public void shouldSpecifyRequiredParams() {
+        ConfigException e = assertThrows(ConfigException.class, () -> new ConnectorConfig(Collections.emptyMap()));
+        assertThat(e.getMessage()).isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.GROUP_ID));
+
+        Map<String, String> params = new HashMap<>();
+        params.put(ConnectorConfig.GROUP_ID, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.GROUP_ID));
+
+        params.put(ConnectorConfig.GROUP_ID, "group-id");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
+
+        params.put("field.field1", "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [field.field1]");
+
+        params.put("field.field1", "VALUE");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+
+        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+
+        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [item-template.<...>]");
+
+        params.put("item-template.template1", "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [item-template.template1]");
+
+        params.put("item-template.template1", "template");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
+
+        params.put(ConnectorConfig.ADAPTER_DIR, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));     
+        
+        params.put(ConnectorConfig.ADAPTER_DIR, "adapter-dir");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
+
+        params.put("map.topic.to", "aTemplate");
+        assertDoesNotThrow(() -> new ConnectorConfig(params));
     }
 
     @Test
@@ -236,11 +291,14 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetValues() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        Map<String, String> topics = config.getValues(ConnectorConfig.MAP);
+        Map<String, String> topics = config.getValues(ConnectorConfig.MAP, true);
         assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
 
-        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE);
+        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, true);
         assertThat(itemTemplates).containsExactly("template1", "item1", "template2", "item2");
+
+        Map<String, String> noRemappledItemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
+        assertThat(noRemappledItemTemplates).containsExactly("item-template.template1", "item1", "item-template.template2", "item2");
     }
 
     @Test

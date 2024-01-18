@@ -183,7 +183,7 @@ public class Items {
 
         @Override
         public Stream<Selectors<K, V>> selectors() {
-            return templates.stream().map(ItemTemplate::selectors);
+            return templates.stream().map(ItemTemplate::selectors).distinct();
         }
 
         @Override

@@ -4,9 +4,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -53,19 +52,22 @@ public class ConnectorConfigurator {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
 
         // Process "item.<template-name>"
-        Map<String, String> itemTemplateConfigs = connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE);
+        Map<String, String> itemTemplateConfigs = connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
 
         // Process "map.<topic-name>.to"
         List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
                 e -> {
                     String topic = e.getKey();
                     String[] itemTemplateRefs = e.getValue().split(",");
-                    List<String> itemTemplates = Arrays.stream(itemTemplateRefs).map(itemTemplateConfigs::get).toList();
+
+                    List<String> itemTemplates = Arrays.stream(itemTemplateRefs)
+                            .map(t -> Optional.ofNullable(itemTemplateConfigs.get(t)).orElseThrow(()->new ConfigException("No item template [%s] found".formatted(t))))
+                            .toList();
                     return new TopicMapping(topic, itemTemplates);
                 });
 
         // Process "field.<field-name>"
-        Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD);
+        Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD, true);
 
         SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
                 makeKeySelectorSupplier(connectorConfig),

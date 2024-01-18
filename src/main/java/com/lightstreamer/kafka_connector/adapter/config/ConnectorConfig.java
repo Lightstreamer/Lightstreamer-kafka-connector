@@ -21,7 +21,7 @@ public class ConnectorConfig {
 
     public static final String ADAPTER_DIR = "adapter.dir";
 
-    public static final String ITEM_TEMPLATE = "item";
+    public static final String ITEM_TEMPLATE = "item-template";
 
     public static final String MAP = "map";
     private static final String MAP_SUFFIX = "to";
@@ -121,23 +121,30 @@ public class ConnectorConfig {
         return get(configKey, ConfType.Directory);
     }
 
-    public Map<String, String> getValues(String configKey) {
+    public Map<String, String> getValues(String configKey, boolean remap) {
         ConfParameter param = this.configSpec.getParameter(configKey);
         if (param.multiple()) {
-            Map<String, String> remap = new HashMap<>();
+            Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {
-                Optional<String> infix = ConfigSpec.extractInfix(param, e.getKey());
-                if (infix.isPresent()) {
-                    remap.put(infix.get(), e.getValue());
+                if (remap) {
+                    Optional<String> infix = ConfigSpec.extractInfix(param, e.getKey());
+                    if (infix.isPresent()) {
+                        newMap.put(infix.get(), e.getValue());
+                    }
+                } else {
+                    if (e.getKey().startsWith(configKey)) {
+                        newMap.put(e.getKey(), e.getValue());
+                    }
                 }
+
             }
-            return remap;
+            return newMap;
         }
         return Collections.emptyMap();
     }
 
     public <T> List<T> getAsList(String configKey, Function<? super Map.Entry<String, String>, T> conv) {
-        Map<String, String> values = getValues(configKey);
+        Map<String, String> values = getValues(configKey, true);
         return values.entrySet().stream().map(conv).toList();
     }
 
