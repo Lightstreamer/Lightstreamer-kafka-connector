@@ -84,6 +84,14 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.defaultValue()).isNull();
         assertThat(valueSchemaFile.type()).isEqualTo(ConfType.Text);
 
+        ConfParameter itemTemplate = configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE);
+        assertThat(itemTemplate.name()).isEqualTo(ConnectorConfig.ITEM_TEMPLATE);
+        assertThat(itemTemplate.required()).isTrue();
+        assertThat(itemTemplate.multiple()).isTrue();
+        assertThat(itemTemplate.suffix()).isNull();
+        assertThat(itemTemplate.defaultValue()).isNull();
+        assertThat(itemTemplate.type()).isEqualTo(ConfType.Text);
+
         ConfParameter mapParam = configSpec.getParameter(ConnectorConfig.MAP);
         assertThat(mapParam.name()).isEqualTo(ConnectorConfig.MAP);
         assertThat(mapParam.required()).isTrue();
@@ -100,14 +108,16 @@ public class ConnectorConfigTest {
         assertThat(fieldParam.defaultValue()).isNull();
         assertThat(fieldParam.type()).isEqualTo(ConfType.Text);
 
-        ConfParameter keySchemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
+        ConfParameter keySchemaRegistryUrlParam = configSpec
+                .getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
         assertThat(keySchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
         assertThat(keySchemaRegistryUrlParam.required()).isFalse();
         assertThat(keySchemaRegistryUrlParam.multiple()).isFalse();
         assertThat(keySchemaRegistryUrlParam.defaultValue()).isNull();
         assertThat(keySchemaRegistryUrlParam.type()).isEqualTo(ConfType.Host);
 
-        ConfParameter valueSchemaRegistryUrlParam = configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
+        ConfParameter valueSchemaRegistryUrlParam = configSpec
+                .getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
         assertThat(valueSchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
         assertThat(valueSchemaRegistryUrlParam.required()).isFalse();
         assertThat(valueSchemaRegistryUrlParam.multiple()).isFalse();
@@ -151,6 +161,23 @@ public class ConnectorConfigTest {
         }
     }
 
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            KEY                      | EXPECTED_INFIX
+            item.template1           | template1
+            myitem.template1         | ''
+            item.my.template1        | my.template1
+            """)
+    public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
+        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE), key);
+        if (!expectedInfix.isBlank()) {
+            assertThat(infix).hasValue(expectedInfix);
+        } else {
+            assertThat(infix).isEmpty();
+        }
+    }
+
     private Map<String, String> standardParameters() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
@@ -162,8 +189,10 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "key-consumer");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "key-host:8080");
-        adapterParams.put("map.topic1.to", "item-template1");
-        adapterParams.put("map.topic2.to", "item-template2");
+        adapterParams.put("item.template1", "item1");
+        adapterParams.put("item.template2", "item2");
+        adapterParams.put("map.topic1.to", "template1");
+        adapterParams.put("map.topic2.to", "template2");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;
     }
@@ -207,16 +236,25 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetValues() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        Map<String, String> values = config.getValues(ConnectorConfig.MAP);
-        assertThat(values).containsExactly("topic1", "item-template1", "topic2",
-                "item-template2");
+        Map<String, String> topics = config.getValues(ConnectorConfig.MAP);
+        assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
+
+        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE);
+        assertThat(itemTemplates).containsExactly("template1", "item1", "template2", "item2");
     }
 
     @Test
     public void shouldGetAsList() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         List<String> values = config.getAsList(ConnectorConfig.MAP, e -> e.getKey() + "_" + e.getValue());
-        assertThat(values).containsExactly("topic1_item-template1", "topic2_item-template2");
+        assertThat(values).containsExactly("topic1_template1", "topic2_template2");
+    }
+
+    @Test
+    public void shouldGetItemTemplateList() {
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        List<String> values = config.getAsList(ConnectorConfig.ITEM_TEMPLATE, e -> e.getKey() + "_" + e.getValue());
+        assertThat(values).containsExactly("template1_item1", "template2_item2");
     }
 
     @Test
@@ -230,7 +268,8 @@ public class ConnectorConfigTest {
     public void shouldGetRequiredHost() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         assertThat(config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true)).isEqualTo("key-host:8080");
-        assertThat(config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true)).isEqualTo("value_host:8080");
+        assertThat(config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
+                .isEqualTo("value_host:8080");
     }
 
     @Test
@@ -249,7 +288,8 @@ public class ConnectorConfigTest {
 
         ConfigException exception2 = assertThrows(ConfigException.class,
                 () -> config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true));
-        assertThat(exception2.getMessage()).isEqualTo("Missing required parameter [value.evaluator.schema.registry.url]");
+        assertThat(exception2.getMessage())
+                .isEqualTo("Missing required parameter [value.evaluator.schema.registry.url]");
     }
 
     @Test

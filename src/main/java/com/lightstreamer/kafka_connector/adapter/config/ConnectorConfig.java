@@ -21,6 +21,8 @@ public class ConnectorConfig {
 
     public static final String ADAPTER_DIR = "adapter.dir";
 
+    public static final String ITEM_TEMPLATE = "item";
+
     public static final String MAP = "map";
     private static final String MAP_SUFFIX = "to";
 
@@ -49,6 +51,7 @@ public class ConnectorConfig {
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
                 .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
                 .add(GROUP_ID, true, false, ConfType.Text)
+                .add(ITEM_TEMPLATE, true, true, ConfType.Text)
                 .add(MAP, true, true, MAP_SUFFIX, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
                 .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)

@@ -29,7 +29,9 @@ public class ConnectorConfiguratorTest {
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "RAW");
         adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
-        adapterParams.put("map.topic1.to", "item-template1");
+        adapterParams.put("item.item-template1", "item1");
+        adapterParams.put("item.item-template2", "item2");
+        adapterParams.put("map.topic1.to", "item-template1,item-template2");
         adapterParams.put("field.fieldName1", "VALUE.name");
         return adapterParams;
     }
@@ -53,7 +55,7 @@ public class ConnectorConfiguratorTest {
 
         ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
-        assertThat(itemTemplates.selectors().map(s -> s.schema().name())).containsExactly("item-template1");
+        assertThat(itemTemplates.selectors().map(s -> s.schema().name())).containsExactly("item-template1", "item-template2");
         
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
         assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);

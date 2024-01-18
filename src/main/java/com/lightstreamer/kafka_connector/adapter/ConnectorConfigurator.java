@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -50,9 +52,17 @@ public class ConnectorConfigurator {
     public ConsumerLoopConfig<?, ?> configure(Map<String, String> params) throws ConfigException {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
 
+        // Process "item.<template-name>"
+        Map<String, String> itemTemplateConfigs = connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE);
+
         // Process "map.<topic-name>.to"
         List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
-                e -> new TopicMapping(e.getKey(), Arrays.asList(e.getValue())));
+                e -> {
+                    String topic = e.getKey();
+                    String[] itemTemplateRefs = e.getValue().split(",");
+                    List<String> itemTemplates = Arrays.stream(itemTemplateRefs).map(itemTemplateConfigs::get).toList();
+                    return new TopicMapping(topic, itemTemplates);
+                });
 
         // Process "field.<field-name>"
         Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD);
@@ -65,8 +75,8 @@ public class ConnectorConfigurator {
         Deserializer<?> keyDeserializer = selectorsSupplier.keySelectorSupplier().deseralizer();
         Deserializer<?> valueDeserializer = selectorsSupplier.valueSelectorSupplier().deseralizer();
 
-        ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
         try {
+            ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
             Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
             return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors, keyDeserializer,
@@ -74,7 +84,7 @@ public class ConnectorConfigurator {
         } catch (ExpressionException e) {
             throw new ConfigException(e.getMessage());
         }
-        
+
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
@@ -84,19 +94,13 @@ public class ConnectorConfigurator {
     }
 
     private ItemTemplates<?, ?> initItemTemplates(SelectorsSupplier<?, ?> selectorsSupplier,
-            List<TopicMapping> topicMappings)
-            throws ConfigException {
+            List<TopicMapping> topicMappings) {
         return initItemTemplatesHelper(topicMappings, selectorsSupplier);
     }
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(List<TopicMapping> topicMappings,
-            SelectorsSupplier<K, V> selectorsSupplier)
-            throws ConfigException {
-        try {
-            return Items.templatesFrom(topicMappings, selectorsSupplier);
-        } catch (ExpressionException e) {
-            throw new ConfigException(e.getMessage());
-        }
+            SelectorsSupplier<K, V> selectorsSupplier) {
+        return Items.templatesFrom(topicMappings, selectorsSupplier);
     }
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {
@@ -105,7 +109,7 @@ public class ConnectorConfigurator {
             case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
             case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
-            default -> throw new ConfigException("No available consumer %s".formatted(consumer));
+            default -> throw new ConfigException("No available key evaluator %s".formatted(consumer));
         };
     }
 
@@ -115,7 +119,7 @@ public class ConnectorConfigurator {
             case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
             case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
-            default -> throw new ConfigException("No available consumer %s".formatted(consumer));
+            default -> throw new ConfigException("No available value consumer %s".formatted(consumer));
         };
     }
 

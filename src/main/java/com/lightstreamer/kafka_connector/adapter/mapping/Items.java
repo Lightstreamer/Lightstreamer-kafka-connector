@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
@@ -79,6 +80,23 @@ public class Items {
             this.valuesMap = values;
             this.itemHandle = itemHandle;
             this.schema = Schema.from(prefix, values.keySet());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemHandle, valuesMap, schema);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+
+            return obj instanceof Item other &&
+                    Objects.equals(itemHandle, other.itemHandle()) &&
+                    Objects.equals(valuesMap, other.values()) &&
+                    Objects.equals(schema, other.schema());
+
         }
 
         @Override
@@ -170,7 +188,7 @@ public class Items {
 
         @Override
         public Stream<String> topics() {
-            return templates.stream().map(ItemTemplate::topic);
+            return templates.stream().map(ItemTemplate::topic).distinct();
         }
 
         @Override

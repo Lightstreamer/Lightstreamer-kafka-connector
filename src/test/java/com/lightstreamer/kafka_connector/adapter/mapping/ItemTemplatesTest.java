@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.record;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -82,17 +83,19 @@ public class ItemTemplatesTest {
     public void shouldOneToMany() {
         SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal());
 
-        List<TopicMapping> tp = List.of(
+        // One topic mapping two templates.
+        List<TopicMapping> topicMappings = List.of(
                 new TopicMapping("topic",
-                        List.of("family-${topic=TOPIC,info=PARTITION}",
-                                "relatives-${topic=TOPIC,info=TIMESTAMP}")));
+                        List.of("template-family-${topic=TOPIC,info=PARTITION}",
+                                "template-relatives-${topic=TOPIC,info=TIMESTAMP}")));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(tp, suppliers);
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicMappings, suppliers);
+        assertThat(templates.topics()).containsExactly("topic");
 
-        Item subcribingItem1 = Items.itemFrom("family-<topic=topic>", "");
+        Item subcribingItem1 = Items.itemFrom("template-family-<topic=aSpecificTopic>", "");
         assertThat(templates.matches(subcribingItem1)).isTrue();
 
-        Item subcribingItem2 = Items.itemFrom("relatives-<topic=topic>", "");
+        Item subcribingItem2 = Items.itemFrom("template-relatives-<topic=anotherSpecificTopic>", "");
         assertThat(templates.matches(subcribingItem2)).isTrue();
 
         RecordMapper<String, JsonNode> mapper = RecordMapper
@@ -100,34 +103,32 @@ public class ItemTemplatesTest {
                 .withSelectors(templates.selectors())
                 .build();
 
-        ConsumerRecord<String, JsonNode> record = record("topic", "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord = mapper.map(record);
+        ConsumerRecord<String, JsonNode> kafkaRecord = record("topic", "key", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
-        List<Item> expandedItems = templates.expand(mappedRecord).toList();
-        assertThat(expandedItems).hasSize(2);
-
-        Map<String, String> valuesFamily = mappedRecord.filter(templates.selectorsByName("family").get());
-        assertThat(valuesFamily).containsExactly("topic", "topic", "info", "150");
-
-        // valuesFamily = mappedRecord.filter(Schema.of(SchemaName.of("family"),
-        // "info"));
-        // assertThat(valuesFamily).containsExactly("info", "150");
-
-        Map<String, String> valuesRelatived = mappedRecord.filter(templates.selectorsByName("relatives").get());
-        assertThat(valuesRelatived).containsExactly("topic", "topic", "info", "-1");
+        // Kafka records coming from same topic "topic" matches two different item templates.
+        Stream<Item> expandedItems = templates.expand(mappedRecord);
+        assertThat(expandedItems).containsExactly(
+                Items.itemFrom("", "template-family", Map.of("topic", "topic", "info", "150")),
+                Items.itemFrom("", "template-relatives", Map.of("topic", "topic", "info", "-1")));
     }
 
     @Test
     public void shouldManyToOne() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(config);
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal());
 
-        List<TopicMapping> tp = List.of(
-                new TopicMapping("new_orders", List.of("orders-${topic=TOPIC}", "item-${topic=TOPIC}")),
-                new TopicMapping("past_orders", List.of("orders-${topic=TOPIC}")));
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(tp, suppliers);
+        // One template.
+        String ordersTemplate = "template-orders-${topic=TOPIC}";
 
-        Item subcribingItem = Items.itemFrom("orders-<topic=new_orders>", "");
+        // Two topics mapping the template.
+        List<TopicMapping> topicMappings = List.of(
+                new TopicMapping("new_orders", List.of(ordersTemplate)),
+                new TopicMapping("past_orders", List.of(ordersTemplate)));
+
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicMappings, suppliers);
+        assertThat(templates.topics()).containsExactly("new_orders", "past_orders");
+
+        Item subcribingItem = Items.itemFrom("template-orders-<topic=aSpecifgicTopic>", "");
         assertThat(templates.matches(subcribingItem)).isTrue();
 
         RecordMapper<String, JsonNode> mapper = RecordMapper
@@ -135,18 +136,23 @@ public class ItemTemplatesTest {
                 .withSelectors(templates.selectors())
                 .build();
 
-        ConsumerRecord<String, JsonNode> record = record("new_orders", "key", JsonNodeProvider.RECORD);
-        MappedRecord map = mapper.map(record);
+        // Kafka Record coming from topic "new_orders"
+        ConsumerRecord<String, JsonNode> kafkaRecord1 = record("new_orders", "key", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
 
-        List<Item> expandedItems = templates.expand(map).toList();
-        assertThat(expandedItems).hasSize(2);
+        // Kafka Record coming from tpoic "past_orders"
+        ConsumerRecord<String, JsonNode> kafkaRecord2 = record("past_orders", "key", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
 
-        Map<String, String> newOrders = map.filter(templates.selectorsByName("orders").get());
-        assertThat(newOrders).containsExactly("topic", "new_orders");
+        // Kafka records coming from different topics ("new_orders" and "past_orders") match the same item template.
+        Stream<Item> expandedItems1 = templates.expand(mappedRecord1);
+        assertThat(expandedItems1).containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "new_orders")));
 
-        // Map<String, String> pastOrders =
-        // map.filter(Schema.of(SchemaName.of("past_orders"), "topic"));
-        // assertThat(pastOrders).isEmpty();
+        Stream<Item> expandedItems2 = templates.expand(mappedRecord2);
+        assertThat(expandedItems2).containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "past_orders")));
+
+        // Both records get
+
     }
 
     @Tag("integration")

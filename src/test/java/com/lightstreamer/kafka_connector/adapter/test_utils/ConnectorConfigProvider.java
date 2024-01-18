@@ -24,6 +24,7 @@ public class ConnectorConfigProvider {
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
+        adapterParams.put(ConnectorConfig.ITEM_TEMPLATE, "item.template1");
         adapterParams.put("map.topic1.to", "item-template1");
         adapterParams.put("field.fieldName1", "bar");
         return adapterParams;

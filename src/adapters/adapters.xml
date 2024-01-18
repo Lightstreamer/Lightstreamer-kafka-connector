@@ -38,6 +38,17 @@
         <param name="key.schema.file">user.avsc</param>
         <param name="key.consumer">AVRO</param>
 
+
+        <param name="item.template1">item-${...}</param>
+        <param name="item.template2">item-${...}</param>
+
+        <!-- Many topics to one template -->
+        <param name="map.topic1.to">itemTemplate1</param>
+        <param name="map.topic2.to">itemTemplate1</param>
+        <param name="map.topic3.to">itemTemplate1</param>
+
+
+        <param name="map.topic.to">itemTemplate1,itemplate2,itemTemplate3</param>
         <!-- <param name="schema.registry.url">http://localhost:8081</param> -->
 
         <!-- Map one topic to multimple items -->
