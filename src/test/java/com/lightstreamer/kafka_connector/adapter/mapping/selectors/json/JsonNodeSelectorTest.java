@@ -7,6 +7,7 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvi
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -28,6 +29,15 @@ public class JsonNodeSelectorTest {
 
     static KeySelector<JsonNode> keySelector(String expression) {
         return JsonNodeSelectorsSuppliers.keySelectorSupplier(config).newSelector("name", expression);
+    }
+
+    @Test
+    public void shouldGetDeserializer() {
+        assertThat(JsonNodeSelectorsSuppliers.valueSelectorSupplier(config).deseralizer())
+                .isInstanceOf(JsonNodeDeserializer.class);
+
+        assertThat(JsonNodeSelectorsSuppliers.keySelectorSupplier(config).deseralizer())
+                .isInstanceOf(JsonNodeDeserializer.class);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -64,7 +74,7 @@ public class JsonNodeSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
             invalidKey,                        Expected <KEY>
-            "",                                Expected <KEY>
+            '',                                Expected <KEY>
             KEY,                               Incomplete expression
             KEY.,                              Incomplete expression
             """)
@@ -77,7 +87,7 @@ public class JsonNodeSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
             invalidValue,                      Expected <VALUE>
-            "",                                Expected <VALUE>
+            '',                                Expected <VALUE>
             VALUE,                             Incomplete expression
             VALUE.,                            Incomplete expression
             VALUE..,                           Tokens cannot be blank

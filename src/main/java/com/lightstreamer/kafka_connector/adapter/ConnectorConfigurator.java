@@ -49,7 +49,6 @@ public class ConnectorConfigurator {
 
     public ConsumerLoopConfig<?, ?> configure(Map<String, String> params) throws ConfigException {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
-        Map<String, String> configuration = connectorConfig.configuration();
 
         // Process "map.<topic-name>.to"
         List<TopicMapping> topicMappings = connectorConfig.getAsList(ConnectorConfig.MAP,
@@ -67,9 +66,15 @@ public class ConnectorConfigurator {
         Deserializer<?> valueDeserializer = selectorsSupplier.valueSelectorSupplier().deseralizer();
 
         ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicMappings);
-        Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
+        try {
+            Selectors<?, ?> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", fieldsMapping);
 
-        return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors, keyDeserializer, valueDeserializer);
+            return new DefaultConsumerLoopConfig(props, itemTemplates, fieldsSelectors, keyDeserializer,
+                    valueDeserializer);
+        } catch (ExpressionException e) {
+            throw new ConfigException(e.getMessage());
+        }
+        
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
@@ -95,22 +100,22 @@ public class ConnectorConfigurator {
     }
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {
-        String consumer = config.getText(ConnectorConfig.KEY_CONSUMER);
+        String consumer = config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE);
         return switch (consumer) {
             case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
             case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
-            default -> throw new RuntimeException("No available consumer %s".formatted(consumer));
+            default -> throw new ConfigException("No available consumer %s".formatted(consumer));
         };
     }
 
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(ConnectorConfig config) {
-        String consumer = config.getText(ConnectorConfig.KEY_CONSUMER);
+        String consumer = config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE);
         return switch (consumer) {
             case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
             case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
             case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
-            default -> throw new RuntimeException("No available consumer %s".formatted(consumer));
+            default -> throw new ConfigException("No available consumer %s".formatted(consumer));
         };
     }
 

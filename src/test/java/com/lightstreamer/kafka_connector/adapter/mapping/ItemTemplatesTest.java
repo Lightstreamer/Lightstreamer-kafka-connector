@@ -80,8 +80,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(config);
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal());
 
         List<TopicMapping> tp = List.of(
                 new TopicMapping("topic",

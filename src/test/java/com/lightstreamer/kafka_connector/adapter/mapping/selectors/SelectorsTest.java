@@ -78,11 +78,12 @@ public class SelectorsTest {
         return Stream.of(
                 arguments(Map.of("name", "VALUE."), "Incomplete expression"),
                 arguments(Map.of("name", "VALUE.."), "Tokens cannot be blank"),
-                arguments(Map.of("name", "VALUE"), "Invalid expression"),
+                arguments(Map.of("name", "VALUE"), "Found the invalid expression [VALUE] while evaluating [name]"),
                 arguments(Map.of("name", "KEY."), "Incomplete expression"),
                 arguments(Map.of("name", "KEY.."), "Tokens cannot be blank"),
-                arguments(Map.of("name", "KEY"), "Invalid expression"),
-                arguments(Map.of("name", "wrong"), "Invalid expression"));
+                arguments(Map.of("name", "KEY"), "Found the invalid expression [KEY] while evaluating [name]"),
+                arguments(Map.of("name", "wrong"), "Found the invalid expression [wrong] while evaluating [name]")
+        );
     }
 
     @Tag("unit")
@@ -107,11 +108,11 @@ public class SelectorsTest {
 
     static Stream<Arguments> wrongArgumentsProviderForStringSelectors() {
         return Stream.of(
-                arguments(Map.of("name", "VALUE."), "Invalid expression"),
-                arguments(Map.of("name", "VALUE.."), "Invalid expression"),
-                arguments(Map.of("name", "KEY."), "Invalid expression"),
-                arguments(Map.of("name", "KEY.."), "Invalid expression"),
-                arguments(Map.of("name", "wrong"), "Invalid expression"));
+                arguments(Map.of("name", "VALUE."), "Found the invalid expression [VALUE.] while evaluating [name]"),
+                arguments(Map.of("name", "VALUE.."), "Found the invalid expression [VALUE..] while evaluating [name]"),
+                arguments(Map.of("name", "KEY."), "Found the invalid expression [KEY.] while evaluating [name]"),
+                arguments(Map.of("name", "KEY.."), "Found the invalid expression [KEY..] while evaluating [name]"),
+                arguments(Map.of("name", "wrong"), "Found the invalid expression [wrong] while evaluating [name]"));
     }
 
     @Tag("unit")

@@ -32,7 +32,7 @@ public interface Selectors<K, V> {
     Schema schema();
 
     static <K, V> Selectors<K, V> from(SelectorsSupplier<K, V> suppliers, String schemaName,
-            Map<String, String> entries) {
+            Map<String, String> entries) throws ExpressionException {
         return builder(suppliers)
                 .withMap(entries)
                 .withSchemaName(schemaName)
@@ -161,10 +161,10 @@ public interface Selectors<K, V> {
             return this;
         }
 
-        public Selectors<K, V> build() {
+        public Selectors<K, V> build() throws ExpressionException {
             entries.entrySet().stream().forEach(e -> {
                 if (!metaSelectorExprMgr.manage(e.getKey(), e.getValue())) {
-                    ExpressionException.throwInvalidExpression();
+                    ExpressionException.throwInvalidExpression(e.getKey(), e.getValue());
                 }
             });
 

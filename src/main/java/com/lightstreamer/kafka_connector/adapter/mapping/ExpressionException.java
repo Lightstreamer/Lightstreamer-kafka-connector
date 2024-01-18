@@ -20,8 +20,7 @@ public class ExpressionException extends RuntimeException {
         throw new ExpressionException("Expected <%s>".formatted(token));
     }
 
-    public static ExpressionException throwInvalidExpression() {
-        throw new ExpressionException("Invalid expression");
+    public static ExpressionException throwInvalidExpression(String name, String expression) {
+        throw new ExpressionException("Found the invalid expression [%s] while evaluating [%s]".formatted(expression, name));
     }
-
 }

@@ -29,8 +29,8 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new JsonLocalSchemaDeserializer(config, isKey);
         } else {
-            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)
-                    : config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL)
+                    : config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
             if (schemaRegistryUrl != null) {
                 props.put(KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
                 props.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());

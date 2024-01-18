@@ -26,21 +26,21 @@ public class ConnectorConfig {
 
     public static final String FIELD = "field";
 
-    public static final String KEY_CONSUMER = "key.consumer";
+    public static final String KEY_EVALUATOR_TYPE = "key-evaluator.type";
 
-    public static final String KEY_SCHEMA_FILE = "key.schema.file";
+    public static final String KEY_SCHEMA_FILE = "key.evaluator.schema.file";
 
-    public static final String VALUE_CONSUMER = "value.consumer";
+    public static final String VALUE_EVALUATOR_TYPE = "value.evaluator.type";
 
-    public static final String VALUE_SCHEMA_FILE = "value.schema.file";
+    public static final String VALUE_SCHEMA_FILE = "value.evaluator.schema.file";
 
     public static final String GROUP_ID = "group-id";
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap-servers";
 
-    public static final String KEY_SCHEMA_REGISTRY_URL = "key.schema.registry.url";
+    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_URL = "key.evaluator.schema.registry.url";
 
-    public static final String VALUE_SCHEMA_REGISTRY_URL = "value.schema.registry.url";
+    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_URL = "value.evaluator.schema.registry.url";
 
     public static final ConfigSpec CONFIG_SPEC;
 
@@ -51,11 +51,11 @@ public class ConnectorConfig {
                 .add(GROUP_ID, true, false, ConfType.Text)
                 .add(MAP, true, true, MAP_SUFFIX, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
-                .add(KEY_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
-                .add(VALUE_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
-                .add(KEY_CONSUMER, false, false, ConfType.Text, "RAW")
+                .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
+                .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
+                .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
                 .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(VALUE_CONSUMER, false, false, ConfType.Text, "RAW")
+                .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
                 .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text);
     }
 
@@ -174,8 +174,8 @@ public class ConnectorConfig {
     public static void main(String[] args) {
         Map<String, String> map = new HashMap<>();
         map.put(ConnectorConfig.GROUP_ID, "group-id");
-        map.put(ConnectorConfig.VALUE_CONSUMER, "consumer");
-        map.put(ConnectorConfig.KEY_CONSUMER, "consumer");
+        map.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "consumer");
+        map.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "consumer");
         map.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         map.put(ConnectorConfig.ADAPTER_DIR, "test");
         map.put("map.topic1.a.to", "item-template1");

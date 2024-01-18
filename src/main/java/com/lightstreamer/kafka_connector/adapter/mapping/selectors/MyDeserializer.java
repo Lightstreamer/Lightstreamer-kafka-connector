@@ -17,8 +17,8 @@ public class MyDeserializer {
         if (config.hasKeySchemaFile() || config.hasValueSchemaFile()) {
             // deserializer = new JsonLocalSchemaDeserializer();
         } else {
-            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_SCHEMA_REGISTRY_URL)
-                    : config.getHost(ConnectorConfig.VALUE_SCHEMA_REGISTRY_URL);
+            String schemaRegistryUrl = isKey ? config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL)
+                    : config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
             if (schemaRegistryUrl != null) {
                 props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
             }

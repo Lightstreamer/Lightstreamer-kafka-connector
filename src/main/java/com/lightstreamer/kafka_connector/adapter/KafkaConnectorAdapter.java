@@ -3,7 +3,6 @@ package com.lightstreamer.kafka_connector.adapter;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;

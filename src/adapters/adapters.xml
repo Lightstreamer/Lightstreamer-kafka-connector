@@ -12,8 +12,8 @@
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user</param>
 
-        <param name="key.consumer">RAW</param>
-        <param name="value.consumer">JSON</param>
+        <param name="key.evaluator.type">RAW</param>
+        <param name="value.evaluator.type">JSON</param>
         <param name="value.schema.file">flights.json</param>
 
         <param name="map.demo.to">flights-#{code=KEY}</param>

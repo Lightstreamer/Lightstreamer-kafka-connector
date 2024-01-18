@@ -11,7 +11,7 @@ import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 
 public class ConnectorConfigProvider {
 
-    private static Map<String, String> essentialsConfigParams() {
+    public static Map<String, String> minimalConfigParams() {
         try {
             return minimalConfigParams(Files.createTempDirectory("adapter_dir"));
         } catch (IOException e) {
@@ -19,7 +19,7 @@ public class ConnectorConfigProvider {
         }
     }
 
-    private static Map<String, String> minimalConfigParams(Path adapterDir) {
+    public static Map<String, String> minimalConfigParams(Path adapterDir) {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
@@ -36,7 +36,7 @@ public class ConnectorConfigProvider {
     }
 
     private static Map<String, String> minimalConfigParamsWith(Map<String, String> additionalConfigs) {
-        Map<String, String> essentialConfigs = essentialsConfigParams();
+        Map<String, String> essentialConfigs = minimalConfigParams();
         essentialConfigs.putAll(additionalConfigs);
         return essentialConfigs;
     }
