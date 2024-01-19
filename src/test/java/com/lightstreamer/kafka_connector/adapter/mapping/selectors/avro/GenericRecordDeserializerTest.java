@@ -30,8 +30,8 @@ public class GenericRecordDeserializerTest {
     @Test
     public void shouldDeserializeWithSchemaRegistry() {
         Map<String, String> otherConfigs = Map.of(
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "host-key:8080",
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "host-value:8080");
+                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-key:8080",
+                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-value:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, true)) {

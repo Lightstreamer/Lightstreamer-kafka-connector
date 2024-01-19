@@ -3,9 +3,12 @@ package com.lightstreamer.kafka_connector.adapter.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecords.record;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers.avro;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers.avroKeyJsonValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers.jsonValue;
+import static com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers.string;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,64 +32,46 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.Sel
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider;
-import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
 public class ItemTemplatesTest {
 
-    // @Tag("unit")
-    // @ParameterizedTest
-    // @EmptySource
-    // @ValueSource(strings = { "a,", ".", "|", "@" })
-    // public void shouldNotCreateDueToInvalidTemplate(String invalidTemplate) {
-    // RuntimeException exception = assertThrows(RuntimeException.class,
-    // () -> ItemTemplate.of("topic", invalidTemplate,
-    // RecordInspector.builder()));
-    // assertThat(exception.getMessage()).isEqualTo("Invalid item");
-    // }
-
-    private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier,
-            String template) {
-        ;
+    private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier, String template) {
         TopicsConfig topicsConfig = TopicsConfig.of(new TopicConfiguration("topic", "item-template", template));
         return Items.templatesFrom(topicsConfig, selectionsSupplier);
     }
 
     private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(String template) {
-        return templates(SelectorsSuppliers.avro(avroAvroConfig()), template);
+        return templates(avro(avroAvroConfig()), template);
     }
 
     private static ItemTemplates<GenericRecord, JsonNode> getAvroJsonTemplates(String template) {
-        return templates(SelectorsSuppliers.avroKeyJsonValue(avroJsonConfig()), template);
+        return templates(avroKeyJsonValue(avroJsonConfig()), template);
     }
 
     private static ConnectorConfig avroJsonConfig() {
         return ConnectorConfigProvider.minimalWith(
                 Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
-                        ConnectorConfig.ADAPTER_DIR,
-                        "src/test/resources"));
+                        ConnectorConfig.ADAPTER_DIR, "src/test/resources"));
     }
 
     private static ConnectorConfig avroAvroConfig() {
         return ConnectorConfigProvider.minimalWith(
                 Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc",
                         ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc",
-                        ConnectorConfig.ADAPTER_DIR,
-                        "src/test/resources"));
+                        ConnectorConfig.ADAPTER_DIR, "src/test/resources"));
     }
 
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
         ExpressionException e = assertThrows(ExpressionException.class,
-                () -> templates(SelectorsSuppliers.string(),
-                        "item-${name=VALUE,name=PARTITION}"));
+                () -> templates(string(), "item-${name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage()).isEqualTo(
                 "Found the invalid expression [item-${name=VALUE,name=PARTITION}] while evaluating [item-template]: <No duplicated keys are allowed>");
     }
 
     @Test
     public void shouldOneToMany() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers
-                .jsonValue(ConnectorConfigProvider.minimal());
+        SelectorsSupplier<String, JsonNode> suppliers = jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two templates.
         TopicsConfig topicsConfig = TopicsConfig.of(
@@ -120,8 +105,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers
-                .jsonValue(ConnectorConfigProvider.minimal());
+        SelectorsSupplier<String, JsonNode> suppliers = jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
         String ordersTemplate = "template-orders-${topic=TOPIC}";
@@ -159,17 +143,13 @@ public class ItemTemplatesTest {
         Stream<Item> expandedItems2 = templates.expand(mappedRecord2);
         assertThat(expandedItems2)
                 .containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "past_orders")));
-
-        // Both records get
-
     }
 
     @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(files = "src/test/resources/should-expand-items.csv", useHeadersInDisplayName = true, delimiter = '|')
     public void shouldExpand(String template, String subscribingItem, boolean canSubscribe, boolean exandable) {
-        ItemTemplates<GenericRecord, GenericRecord> templates = getAvroAvroTemplates(
-                template);
+        ItemTemplates<GenericRecord, GenericRecord> templates = getAvroAvroTemplates(template);
         RecordMapper<GenericRecord, GenericRecord> mapper = RecordMapper
                 .<GenericRecord, GenericRecord>builder()
                 .withSelectors(templates.selectors())
@@ -212,7 +192,6 @@ public class ItemTemplatesTest {
         Optional<Item> first = expandedItem.findFirst();
 
         assertThat(first.isPresent()).isTrue();
-
         assertThat(first.get().matches(subscribedItem)).isEqualTo(exandable);
     }
 }

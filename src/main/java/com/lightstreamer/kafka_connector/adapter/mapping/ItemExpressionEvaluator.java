@@ -25,7 +25,7 @@ public interface ItemExpressionEvaluator {
 
 enum ItemEvaluator implements ItemExpressionEvaluator {
 
-    TEMPLATE(Pattern.compile("([a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")?"),
+    TEMPLATE(Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")?$"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")),
 
     SUBSCRIBED(Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?"),

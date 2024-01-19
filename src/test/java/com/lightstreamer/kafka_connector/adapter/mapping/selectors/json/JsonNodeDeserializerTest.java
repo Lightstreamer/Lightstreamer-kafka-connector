@@ -33,7 +33,7 @@ public class JsonNodeDeserializerTest {
 
     @Test
     public void shouldDeserializeKeyWithSchema() {
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "host-key:8080");
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-key:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
@@ -49,7 +49,7 @@ public class JsonNodeDeserializerTest {
 
     @Test
     public void shouldDeserializeValueWithSchema() {
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "host-value:8080");
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-value:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
@@ -66,8 +66,8 @@ public class JsonNodeDeserializerTest {
     @Test
     public void shouldDeserializeKeyAndValueWithSchema() {
         Map<String, String> otherConfigs = Map.of(
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "host-value:8080",
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "host-value:8080");
+                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-value:8080",
+                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-value:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {

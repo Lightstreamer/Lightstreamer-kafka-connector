@@ -1,5 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
+import java.net.InetAddress;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +100,7 @@ public class ConsumerLoop<K, V> implements Loop {
         barrier.reset();
 
         try {
+            InetAddress.getByName(null)
             KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerProps, keyDeserializer, valueDeserializer);
             log.info("Connected to Kafka");
 

@@ -53,8 +53,8 @@ public class ConnectorConfig {
                 .add(ITEM_TEMPLATE, true, true, ConfType.Text)
                 .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
-                .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
-                .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.Host)
+                .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
+                .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
                 .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
                 .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
                 .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
@@ -82,13 +82,17 @@ public class ConnectorConfig {
         return CONFIG_SPEC;
     }
 
-    private String get(String key, Type type) {
+    private String get(String key, Type type, boolean forceRequired) {
         ConfParameter param = configSpec.getParameter(key);
         if (param.type().equals(type)) {
             if (param.required() && configuration.containsKey(key)) {
                 return configuration.get(key);
             } else {
-                return configuration.getOrDefault(key, param.defaultValue());
+                String value = configuration.getOrDefault(key, param.defaultValue());
+                if (forceRequired && value == null) {
+                    throw new ConfigException("Missing required parameter [%s]".formatted(key));
+                }
+                return value;
             }
         }
         throw new ConfigException(
@@ -97,27 +101,31 @@ public class ConnectorConfig {
     }
 
     public String getText(String configKey) {
-        return get(configKey, ConfType.Text);
+        return get(configKey, ConfType.Text, false);
     }
 
     public String getHost(String configKey) {
-        return get(configKey, ConfType.Host);
+        return get(configKey, ConfType.Host, false);
     }
 
     public String getHost(String configKey, boolean forceRequired) {
-        String value = get(configKey, ConfType.Host);
+        String value = get(configKey, ConfType.Host, false);
         if (forceRequired && value == null) {
             throw new ConfigException("Missing required parameter [%s]".formatted(configKey));
         }
         return value;
     }
 
+    public String getUrl(String configKey, boolean forceRequired) {
+        return get(configKey, ConfType.URL, forceRequired);
+    }
+
     public String getHostsList(String configKey) {
-        return get(configKey, ConfType.HostsList);
+        return get(configKey, ConfType.HostsList, false);
     }
 
     public String getDirectory(String configKey) {
-        return get(configKey, ConfType.Directory);
+        return get(configKey, ConfType.Directory, false);
     }
 
     public Map<String, String> getValues(String configKey, boolean remap) {

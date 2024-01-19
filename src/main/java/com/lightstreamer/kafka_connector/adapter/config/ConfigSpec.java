@@ -2,6 +2,7 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -30,12 +31,14 @@ class ConfigSpec {
     enum ConfType implements Type {
 
         Text {
+            @Override
             public boolean isValid(String paramValue) {
                 return true;
             }
         },
 
         Int {
+            @Override
             public boolean isValid(String param) {
                 try {
                     Integer.valueOf(param);
@@ -47,15 +50,27 @@ class ConfigSpec {
         },
 
         Host {
-            private static Pattern HOST = Pattern.compile("^[a-zA-Z-_]+:[1-9]\\d*$");
+            private static Pattern HOST = Pattern.compile("^([0-9a-zA-Z-.%_]+):([1-9]\\d*)$");
 
+            @Override
             public boolean isValid(String paramValue) {
                 return HOST.matcher(paramValue).matches();
             }
         },
 
-        HostsList(Host) {
+        URL {
+            @Override
+            public boolean isValid(String paramValue) {
+                try {
+                    URI uri = new URI(paramValue);
+                    return uri.getHost() != null;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        },
 
+        HostsList(Host) {
             @Override
             public boolean isValid(String param) {
                 String[] params = param.split(",");
@@ -64,9 +79,9 @@ class ConfigSpec {
         },
 
         ItemSpec {
-
             private static Pattern ITEM_SEPC = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
 
+            @Override
             public boolean isValid(String param) {
                 return ITEM_SEPC.matcher(param).matches();
             }
@@ -74,7 +89,7 @@ class ConfigSpec {
         },
 
         Directory {
-
+            @Override
             public boolean isValid(String param) {
                 return Files.isDirectory(Paths.get(param));
             };
@@ -196,12 +211,12 @@ record ConfParameter(String name, boolean required, boolean multiple, String suf
 
             if (source.containsKey(key)) {
                 String paramValue = source.get(key);
-                if (paramValue == null || paramValue.isBlank()) {
+                if ((paramValue != null && !type.isValid(paramValue)) || paramValue == null || paramValue.isBlank()) {
                     throw new ConfigException(String.format("Specify a valid value for parameter [%s]", key));
                 }
                 destination.put(key, type.getValue(paramValue));
             }
-        }
+        } 
     }
 
 }

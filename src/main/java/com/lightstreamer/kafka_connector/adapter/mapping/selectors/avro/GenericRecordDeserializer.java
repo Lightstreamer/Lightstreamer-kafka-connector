@@ -30,7 +30,7 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
         } else {
             String schemaRegistryKey = isKey ? ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL
                     : ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL;
-            props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, config.getHost(schemaRegistryKey, true));
+            props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, config.getUrl(schemaRegistryKey, true));
             deserializer = new KafkaAvroDeserializer();
 
         }

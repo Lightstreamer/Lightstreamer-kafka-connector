@@ -3,7 +3,9 @@ package com.lightstreamer.kafka_connector.adapter;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +17,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
@@ -46,6 +50,34 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
+    public void shouldNotConfigureAvroDueToMissingSchemaRegistry() {
+        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
+        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedParameters));
+        assertThat(e.getMessage()).isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
+    }
+
+    @Test
+    public void shouldConfigureAvroWithSchemaRegistry() {
+        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
+        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
+
+        assertDoesNotThrow(() -> configurator.configure(updatedParameters));
+    }
+
+    @Test
+    public void shouldConfigureAvroWithSchemaLocalFile() {
+        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
+        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedParameters.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+
+        ConnectorConfigurator configurator = new ConnectorConfigurator(new File("src/test/resources"));
+        assertDoesNotThrow(() -> configurator.configure(updatedParameters));
+    }
+
+    @Test
     public void shouldNotConfigureDueToInvalidTemplateReference() {
         Map<String, String> basicParameters = basicParameters();
         basicParameters.put("map.topic1.to", "no-valid-item-template");
@@ -60,16 +92,19 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", "VALUE");
 
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
-        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
+        assertThat(e.getMessage())
+                .isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
     }
 
-    @Test
-    public void shouldNotConfigureDueToInvalidItemTemplateExpression() {
+    @ParameterizedTest
+    @ValueSource(strings = { "a,", ".", "|", "@", "item-$", "item-${", "item-${}}" })
+    public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put("item-template.template1", "item1-${");
+        updatedConfigs.put("item-template.template1", expression);
 
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
-        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [item1-${] while evaluating [item-template.template1]: <Invalid item>");
+        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [" + expression
+                + "] while evaluating [item-template.template1]: <Invalid item>");
     }
 
     @Test
@@ -105,9 +140,8 @@ public class ConnectorConfiguratorTest {
         enhancedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
         enhancedConfig.put("field.fieldName1", "${VALUE.name}");
         enhancedConfig.put("field.fieldName2", "${VALUE.otherAttrib}");
-        // enhancedConfig.put(ConnectorConfig.KEY_SCHEMA_FILE, "AVRO");
-
         enhancedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
+
         ConsumerLoopConfig<?, ?> loopConfig = configurator.configure(enhancedConfig);
 
         Properties consumerProperties = loopConfig.consumerProperties();

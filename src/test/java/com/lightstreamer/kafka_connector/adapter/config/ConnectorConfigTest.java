@@ -116,7 +116,7 @@ public class ConnectorConfigTest {
         assertThat(keySchemaRegistryUrlParam.required()).isFalse();
         assertThat(keySchemaRegistryUrlParam.multiple()).isFalse();
         assertThat(keySchemaRegistryUrlParam.defaultValue()).isNull();
-        assertThat(keySchemaRegistryUrlParam.type()).isEqualTo(ConfType.Host);
+        assertThat(keySchemaRegistryUrlParam.type()).isEqualTo(ConfType.URL);
 
         ConfParameter valueSchemaRegistryUrlParam = configSpec
                 .getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
@@ -124,7 +124,7 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaRegistryUrlParam.required()).isFalse();
         assertThat(valueSchemaRegistryUrlParam.multiple()).isFalse();
         assertThat(valueSchemaRegistryUrlParam.defaultValue()).isNull();
-        assertThat(valueSchemaRegistryUrlParam.type()).isEqualTo(ConfType.Host);
+        assertThat(valueSchemaRegistryUrlParam.type()).isEqualTo(ConfType.URL);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -187,10 +187,10 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
         adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "value-consumer");
         adapterParams.put(ConnectorConfig.VALUE_SCHEMA_FILE, "value-schema-file");
-        adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "value_host:8080");
+        adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "http://value-host:8080/registry");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "key-consumer");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
-        adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "key-host:8080");
+        adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
         adapterParams.put("item-template.template1", "item1");
         adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");
@@ -226,7 +226,8 @@ public class ConnectorConfigTest {
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
@@ -242,9 +243,10 @@ public class ConnectorConfigTest {
 
         params.put(ConnectorConfig.ADAPTER_DIR, "");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));     
-        
-        params.put(ConnectorConfig.ADAPTER_DIR, "adapter-dir");
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
+
+        params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
 
@@ -298,7 +300,8 @@ public class ConnectorConfigTest {
         assertThat(itemTemplates).containsExactly("template1", "item1", "template2", "item2");
 
         Map<String, String> noRemappledItemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
-        assertThat(noRemappledItemTemplates).containsExactly("item-template.template1", "item1", "item-template.template2", "item2");
+        assertThat(noRemappledItemTemplates).containsExactly("item-template.template1", "item1",
+                "item-template.template2", "item2");
     }
 
     @Test
@@ -316,36 +319,40 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetHost() {
+    public void shouldGetUrl() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        assertThat(config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL)).isEqualTo("key-host:8080");
-        assertThat(config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL)).isEqualTo("value_host:8080");
+        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+                .isEqualTo("http://key-host:8080/registry");
+        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+                .isEqualTo("http://value-host:8080/registry");
     }
 
     @Test
-    public void shouldGetRequiredHost() {
+    public void shouldGetRequiredUrl() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        assertThat(config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true)).isEqualTo("key-host:8080");
-        assertThat(config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
-                .isEqualTo("value_host:8080");
+        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true))
+                .isEqualTo("http://key-host:8080/registry");
+        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
+                .isEqualTo("http://value-host:8080/registry");
+
     }
 
     @Test
     public void shouldNotGetRequiredHost() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
 
-        String keySchemaRegistryUrl = config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false);
+        String keySchemaRegistryUrl = config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false);
         assertThat(keySchemaRegistryUrl).isNull();
 
-        String valuechemaRegistryUrl = config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
+        String valuechemaRegistryUrl = config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
         assertThat(valuechemaRegistryUrl).isNull();
 
         ConfigException exception = assertThrows(ConfigException.class,
-                () -> config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true));
+                () -> config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true));
         assertThat(exception.getMessage()).isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
 
         ConfigException exception2 = assertThrows(ConfigException.class,
-                () -> config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true));
+                () -> config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true));
         assertThat(exception2.getMessage())
                 .isEqualTo("Missing required parameter [value.evaluator.schema.registry.url]");
     }
@@ -376,8 +383,8 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotGetNonExistingNonRequiredHost() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getHost(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL)).isNull();
-        assertThat(config.getHost(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL)).isNull();
+        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false)).isNull();
+        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false)).isNull();
     }
 
     @Test
