@@ -20,6 +20,8 @@ import org.junit.jupiter.params.provider.CsvFileSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
+import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
@@ -43,13 +45,13 @@ public class ItemTemplatesTest {
     // }
 
     private static <K, V> ItemTemplates<K, V> templates(SelectorsSupplier<K, V> selectionsSupplier,
-            String... template) {
-        List<TopicMapping> topicMappings = List.of(new TopicMapping("topic", Arrays.asList(template)));
-        return Items.templatesFrom(topicMappings, selectionsSupplier);
+            String template) {
+        ;
+        TopicsConfig topicsConfig = TopicsConfig.of(new TopicConfiguration("topic", "item-template", template));
+        return Items.templatesFrom(topicsConfig, selectionsSupplier);
     }
 
-    private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(
-            String template) {
+    private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(String template) {
         return templates(SelectorsSuppliers.avro(avroAvroConfig()), template);
     }
 
@@ -75,21 +77,23 @@ public class ItemTemplatesTest {
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
         ExpressionException e = assertThrows(ExpressionException.class,
-                () -> templates(SelectorsSuppliers.string(), "item-${name=VALUE,name=PARTITION}"));
-        assertThat(e.getMessage()).isEqualTo("No duplicated keys are allowed");
+                () -> templates(SelectorsSuppliers.string(),
+                        "item-${name=VALUE,name=PARTITION}"));
+        assertThat(e.getMessage()).isEqualTo(
+                "Found the invalid expression [item-${name=VALUE,name=PARTITION}] while evaluating [item-template]: <No duplicated keys are allowed>");
     }
 
     @Test
     public void shouldOneToMany() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers
+                .jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two templates.
-        List<TopicMapping> topicMappings = List.of(
-                new TopicMapping("topic",
-                        List.of("template-family-${topic=TOPIC,info=PARTITION}",
-                                "template-relatives-${topic=TOPIC,info=TIMESTAMP}")));
+        TopicsConfig topicsConfig = TopicsConfig.of(
+                new TopicConfiguration("topic", "template-family-${topic=TOPIC,info=PARTITION}"),
+                new TopicConfiguration("topic", "template-relatives-${topic=TOPIC,info=TIMESTAMP}"));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicMappings, suppliers);
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, suppliers);
         assertThat(templates.topics()).containsExactly("topic");
 
         Item subcribingItem1 = Items.itemFrom("template-family-<topic=aSpecificTopic>", "");
@@ -106,7 +110,8 @@ public class ItemTemplatesTest {
         ConsumerRecord<String, JsonNode> kafkaRecord = record("topic", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
-        // Kafka records coming from same topic "topic" matches two different item templates.
+        // Kafka records coming from same topic "topic" matches two different item
+        // templates.
         Stream<Item> expandedItems = templates.expand(mappedRecord);
         assertThat(expandedItems).containsExactly(
                 Items.itemFrom("", "template-family", Map.of("topic", "topic", "info", "150")),
@@ -115,17 +120,18 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal());
+        SelectorsSupplier<String, JsonNode> suppliers = SelectorsSuppliers
+                .jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
         String ordersTemplate = "template-orders-${topic=TOPIC}";
 
         // Two topics mapping the template.
-        List<TopicMapping> topicMappings = List.of(
-                new TopicMapping("new_orders", List.of(ordersTemplate)),
-                new TopicMapping("past_orders", List.of(ordersTemplate)));
+        TopicsConfig topicsConfig = TopicsConfig.of(
+                new TopicConfiguration("new_orders", ordersTemplate),
+                new TopicConfiguration("past_orders", ordersTemplate));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicMappings, suppliers);
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, suppliers);
         assertThat(templates.topics()).containsExactly("new_orders", "past_orders");
 
         Item subcribingItem = Items.itemFrom("template-orders-<topic=aSpecifgicTopic>", "");
@@ -144,12 +150,15 @@ public class ItemTemplatesTest {
         ConsumerRecord<String, JsonNode> kafkaRecord2 = record("past_orders", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
 
-        // Kafka records coming from different topics ("new_orders" and "past_orders") match the same item template.
+        // Kafka records coming from different topics ("new_orders" and "past_orders")
+        // match the same item template.
         Stream<Item> expandedItems1 = templates.expand(mappedRecord1);
-        assertThat(expandedItems1).containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "new_orders")));
+        assertThat(expandedItems1)
+                .containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "new_orders")));
 
         Stream<Item> expandedItems2 = templates.expand(mappedRecord2);
-        assertThat(expandedItems2).containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "past_orders")));
+        assertThat(expandedItems2)
+                .containsExactly(Items.itemFrom("", "template-orders", Map.of("topic", "past_orders")));
 
         // Both records get
 

@@ -7,6 +7,9 @@ import java.util.Map;
 public class TopicsConfig {
 
     public static record TopicConfiguration(String topic, String itemTemplateKey, String itemTemplateValue) {
+        public TopicConfiguration(String topic, String itemTemplateValue) {
+            this(topic, "", itemTemplateValue);
+        }
 
     }
 
@@ -16,6 +19,10 @@ public class TopicsConfig {
         this.topicConfigurations = initConfigurations(config);
     }
 
+    private TopicsConfig(TopicConfiguration... config) {
+        this.topicConfigurations = List.of(config);
+    }
+
     private List<TopicConfiguration> initConfigurations(ConnectorConfig config) {
         List<TopicConfiguration> configs = new ArrayList<>();
         Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
@@ -23,8 +30,8 @@ public class TopicsConfig {
 
         for (Map.Entry<String, String> topicMapping : topicMappings.entrySet()) {
             String topic = topicMapping.getKey();
-            String[] itemTemplateRefs = topicMapping.getValue().split(",");
-            for (String templateKey : itemTemplateRefs) {
+            String[] templateRefs = topicMapping.getValue().split(",");
+            for (String templateKey : templateRefs) {
                 if (!itemTemplates.containsKey(templateKey)) {
                     throw new ConfigException("No item template [%s] found".formatted(templateKey));
                 }
@@ -37,6 +44,10 @@ public class TopicsConfig {
 
     public List<TopicConfiguration> configurations() {
         return topicConfigurations;
+    }
+
+    public static TopicsConfig of(TopicConfiguration...config) {
+        return new TopicsConfig(config);
     }
 
     public static TopicsConfig of(ConnectorConfig connectorConfig) {

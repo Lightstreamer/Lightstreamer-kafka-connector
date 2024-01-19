@@ -69,7 +69,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("item-template.template1", "item1-${");
 
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
-        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [item1-${] while evaluating [item-template.template1]");
+        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [item1-${] while evaluating [item-template.template1]: <Invalid item>");
     }
 
     @Test

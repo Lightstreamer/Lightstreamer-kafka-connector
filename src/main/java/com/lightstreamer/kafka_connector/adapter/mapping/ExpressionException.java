@@ -8,6 +8,10 @@ public class ExpressionException extends RuntimeException {
         super(message);
     }
 
+    public ExpressionException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
     public static ExpressionException throwBlankToken() {
         throw new ExpressionException("Tokens cannot be blank");
     }
@@ -21,6 +25,13 @@ public class ExpressionException extends RuntimeException {
     }
 
     public static ExpressionException throwInvalidExpression(String name, String expression) {
-        throw new ExpressionException("Found the invalid expression [%s] while evaluating [%s]".formatted(expression, name));
+        throw new ExpressionException(
+                "Found the invalid expression [%s] while evaluating [%s]".formatted(expression, name));
+    }
+
+    public static ExpressionException reThrowInvalidExpression(ExpressionException cause, String name,
+            String expression) {
+        throw new ExpressionException("Found the invalid expression [%s] while evaluating [%s]: <%s>"
+                .formatted(expression, name, cause.getMessage()));
     }
 }

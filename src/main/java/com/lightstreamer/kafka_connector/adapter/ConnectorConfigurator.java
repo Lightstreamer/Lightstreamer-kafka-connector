@@ -1,10 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -19,7 +16,6 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Fields;
 import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
@@ -54,30 +50,6 @@ public class ConnectorConfigurator {
         ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
 
         TopicsConfig topicsConfig = TopicsConfig.of(connectorConfig);
-
-        // Retrieve "item-template.<template-name>"
-        // Map<String, String> itemTemplateConfigs =
-        // connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
-
-        // Retrieve "map.<topic-name>.to"
-        // Map<String, String> topicMappings =
-        // connectorConfig.getValues(ConnectorConfig.TOPIC_MAPPING, true);
-
-        // Process "map.<topic-name>.to"
-        // List<TopicMapping> topicMappings =
-        // connectorConfig.getAsList(ConnectorConfig.TOPIC_MAPPING,
-        // e -> {
-        // String topic = e.getKey();
-        // String[] itemTemplateRefs = e.getValue().split(",");
-
-        // List<String> itemTemplates = Arrays.stream(itemTemplateRefs)
-        // .map(t -> Optional
-        // .ofNullable(itemTemplateConfigs.get(t))
-        // .orElseThrow(() -> new ConfigException("No item template [%s]
-        // found".formatted(t))))
-        // .toList();
-        // return new TopicMapping(topic, itemTemplates);
-        // });
 
         // Process "field.<field-name>"
         Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD, false);

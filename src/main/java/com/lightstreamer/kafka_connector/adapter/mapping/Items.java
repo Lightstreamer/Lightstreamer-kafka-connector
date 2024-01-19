@@ -1,5 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.mapping;
 
+import static com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException.reThrowInvalidExpression;
 import static com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException.throwInvalidExpression;
 
 import java.util.ArrayList;
@@ -67,21 +68,7 @@ public class Items {
                 Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
                 templates.add(new ItemTemplate<>(config.topic(), selectors));
             } catch (ExpressionException e) {
-                throw throwInvalidExpression(config.itemTemplateKey(), config.itemTemplateValue());
-            }
-        }
-        return new DefaultItemTemplates<>(templates);
-    }
-
-    public static <K, V> ItemTemplates<K, V> templatesFrom(List<TopicMapping> topics,
-            SelectorsSupplier<K, V> selectorsSupplier)
-            throws ExpressionException {
-        List<ItemTemplate<K, V>> templates = new ArrayList<>();
-        for (TopicMapping topic : topics) {
-            for (String template : topic.itemTemplates()) {
-                Result result = ItemExpressionEvaluator.template().eval(template);
-                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
-                templates.add(new ItemTemplate<>(topic.topic(), selectors));
+                reThrowInvalidExpression(e, config.itemTemplateKey(), config.itemTemplateValue());
             }
         }
         return new DefaultItemTemplates<>(templates);
