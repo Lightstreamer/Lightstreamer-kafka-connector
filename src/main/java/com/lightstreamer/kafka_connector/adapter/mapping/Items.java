@@ -1,5 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping;
 
+import static com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException.throwInvalidExpression;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -8,6 +10,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
+import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
@@ -52,7 +57,22 @@ public class Items {
         return new DefaultItem(itemHandle, prefix, values);
     }
 
-    // Invocato in fase di inizializzazione della configurazione
+    public static <K, V> ItemTemplates<K, V> templatesFrom(TopicsConfig topcisConfig,
+            SelectorsSupplier<K, V> selectorsSupplier) {
+
+        List<ItemTemplate<K, V>> templates = new ArrayList<>();
+        for (TopicConfiguration config : topcisConfig.configurations()) {
+            try {
+                Result result = ItemExpressionEvaluator.template().eval(config.itemTemplateValue());
+                Selectors<K, V> selectors = Selectors.from(selectorsSupplier, result.prefix(), result.params());
+                templates.add(new ItemTemplate<>(config.topic(), selectors));
+            } catch (ExpressionException e) {
+                throw throwInvalidExpression(config.itemTemplateKey(), config.itemTemplateValue());
+            }
+        }
+        return new DefaultItemTemplates<>(templates);
+    }
+
     public static <K, V> ItemTemplates<K, V> templatesFrom(List<TopicMapping> topics,
             SelectorsSupplier<K, V> selectorsSupplier)
             throws ExpressionException {

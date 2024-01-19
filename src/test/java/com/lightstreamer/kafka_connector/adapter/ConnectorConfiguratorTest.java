@@ -39,9 +39,9 @@ public class ConnectorConfiguratorTest {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
-        adapterParams.put("item-template.template1", "item1-${@}");
+        adapterParams.put("item-template.template1", "item1-${}");
         adapterParams.put("map.topic1.to", "item-template.template1");
-        adapterParams.put("field.fieldName1", "VALUE");
+        adapterParams.put("field.fieldName1", "${VALUE}");
         return adapterParams;
     }
 
@@ -55,7 +55,24 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
+    public void shouldNotConfigureDueToInvalidFieldMappingExpression() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put("field.fieldName1", "VALUE");
 
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
+    }
+
+    @Test
+    public void shouldNotConfigureDueToInvalidItemTemplateExpression() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put("item-template.template1", "item1-${");
+
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        assertThat(e.getMessage()).isEqualTo("Found the invalid expression [item1-${] while evaluating [item-template.template1]");
+    }
+
+    @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
         ConsumerLoopConfig<?, ?> loopConfig = configurator.configure(basicParameters());
 
@@ -86,8 +103,8 @@ public class ConnectorConfiguratorTest {
         enhancedConfig.put("map.topic1.to", "item-template.template1,item-template.template2");
         enhancedConfig.put("map.topic2.to", "item-template.template1");
         enhancedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        enhancedConfig.put("field.fieldName1", "VALUE.name");
-        enhancedConfig.put("field.fieldName2", "VALUE.otherAttrib");
+        enhancedConfig.put("field.fieldName1", "${VALUE.name}");
+        enhancedConfig.put("field.fieldName2", "${VALUE.otherAttrib}");
         // enhancedConfig.put(ConnectorConfig.KEY_SCHEMA_FILE, "AVRO");
 
         enhancedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");

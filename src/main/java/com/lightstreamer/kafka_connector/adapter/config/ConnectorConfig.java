@@ -1,11 +1,11 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -15,7 +15,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
-import com.lightstreamer.kafka_connector.adapter.mapping.TopicMapping;
 
 public class ConnectorConfig {
 
@@ -143,7 +142,7 @@ public class ConnectorConfig {
         return Collections.emptyMap();
     }
 
-    public <T> List<T> getAsList(String configKey, Function<? super Map.Entry<String, String>, T> conv) {
+    public <T> List<T> getAsList(String configKey, Function<? super Entry<String, String>, T> conv) {
         Map<String, String> values = getValues(configKey, true);
         return values.entrySet().stream().map(conv).toList();
     }
@@ -178,30 +177,4 @@ public class ConnectorConfig {
         updated.put(ADAPTER_DIR, configDir.getAbsolutePath());
         return updated;
     }
-
-    // public static Map<String, String> append(Map<String, String>)
-
-    public static void main(String[] args) {
-        Map<String, String> map = new HashMap<>();
-        map.put(ConnectorConfig.GROUP_ID, "group-id");
-        map.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "consumer");
-        map.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "consumer");
-        map.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
-        map.put(ConnectorConfig.ADAPTER_DIR, "test");
-        map.put("map.topic1.a.to", "item-template1");
-        map.put("map.topic2.b.to", "item-template2");
-        map.put("field.fieldName1", "bar");
-        map.put("field.fieldName2", "bar");
-        ConnectorConfig config = new ConnectorConfig(map);
-        var conf = config.configuration();
-        System.out.println(conf);
-
-        System.out.println(config.getValues(ConnectorConfig.FIELD));
-        System.out.println(config.getValues(ConnectorConfig.TOPIC_MAPPING));
-        List<TopicMapping> topicMappings = config.getAsList(ConnectorConfig.TOPIC_MAPPING,
-                e -> new TopicMapping(e.getKey(), Arrays.asList(new String[] { e.getValue() })));
-        System.out.println(topicMappings);
-
-    }
-
 }

@@ -55,7 +55,7 @@ public class ConsumerLoop<K, V> implements Loop {
     public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
         this.consumerProps = config.consumerProperties();
         this.itemTemplates = config.itemTemplates();
-        this.fieldsSelectors = config.fieldMappings();
+        this.fieldsSelectors = config.fieldMappings().selectors();
         this.keyDeserializer = config.keyDeserializer();
         this.valueDeserializer = config.valueDeserializer();
 
