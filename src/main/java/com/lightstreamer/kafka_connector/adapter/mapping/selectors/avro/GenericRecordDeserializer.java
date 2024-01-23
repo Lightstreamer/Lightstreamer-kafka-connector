@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,19 +23,26 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
 
     private Deserializer<?> deserializer;
+    private final boolean isKey;
 
     GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
         Map<String, String> props = new HashMap<>();
+        this.isKey = isKey;
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new GenericRecordLocalSchemaDeserializer(config, isKey);
         } else {
             String schemaRegistryKey = isKey ? ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL
                     : ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL;
-            props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, config.getUrl(schemaRegistryKey, true));
+            props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+                    config.getUrl(schemaRegistryKey, true));
             deserializer = new KafkaAvroDeserializer();
 
         }
         deserializer.configure(config.extendsConsumerProps(props), isKey);
+    }
+
+    public boolean isKey() {
+        return isKey;
     }
 
     public String deserializerClassName() {
@@ -43,7 +51,9 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
 
     @Override
     public GenericRecord deserialize(String topic, byte[] data) {
-        return (GenericRecord) deserializer.deserialize(topic, data);
+        GenericRecord deserialize = (GenericRecord) deserializer.deserialize(topic, data);
+        System.out.println("Record" + deserialize.toString());
+        return deserialize;
     }
 }
 
@@ -63,6 +73,10 @@ class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializ
     @Override
     public GenericRecord deserialize(String topic, byte[] data) {
         DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
+        // ByteBuffer b = ByteBuffer.wrap(data);
+        // b.position(5);
+        // byte[] newBytes = new byte[data.length - 5];
+        // b.get(newBytes);
         BinaryDecoder binaryDecoder = DecoderFactory.get().binaryDecoder(data, null);
         try {
             return datumReader.read(null, binaryDecoder);

@@ -1,6 +1,8 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.kafka.common.errors.SerializationException;
@@ -18,7 +20,12 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
         if (fileSchema == null) {
             throw new SerializationException(schemaFileKey + " setting is mandatory");
         }
-        schemaFile = Paths.get((String) config.getDirectory(ConnectorConfig.ADAPTER_DIR), fileSchema).toFile();
+        Path path = Paths.get((String) config.getDirectory(ConnectorConfig.ADAPTER_DIR), fileSchema);
+        if (!Files.isRegularFile(path)) {
+            throw new SerializationException("File [%s] not found".formatted(path));
+        }
+        schemaFile = path.toFile();
+        
     }
 
 }

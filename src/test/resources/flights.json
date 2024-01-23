@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "airline": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string"
+    },
+    "departureTime": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "SCHEDULED_ON_TIME",
+        "SCHEDULED_DELAYED",
+        "EN_ROUTE_ON_TIME",
+        "EN_ROUTE_DELAYED",
+        "LANDED_ON_TIME",
+        "LANDED_DELAYED",
+        "CANCELLED",
+        "DELETED"
+      ],
+      "type": "string"
+    },
+    "terminal": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "terminal"
+  ],
+  "title": "Flight Record",
+  "type": "object"
+}

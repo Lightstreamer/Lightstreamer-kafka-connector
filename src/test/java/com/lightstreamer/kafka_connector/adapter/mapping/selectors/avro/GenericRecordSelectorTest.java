@@ -9,15 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Map;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
@@ -43,11 +46,15 @@ public class GenericRecordSelectorTest {
 
     @Test
     public void shouldGetDeserializer() {
-        assertThat(GenericRecordSelectorsSuppliers.valueSelectorSupplier(config()).deseralizer())
-                .isInstanceOf(GenericRecordDeserializer.class);
+        Deserializer<GenericRecord> keyDeserializer = GenericRecordSelectorsSuppliers.keySelectorSupplier(config())
+                .deseralizer();
+        assertThat(keyDeserializer).isInstanceOf(GenericRecordDeserializer.class);
+        assertThat(GenericRecordDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
-        assertThat(GenericRecordSelectorsSuppliers.keySelectorSupplier(config()).deseralizer())
-                .isInstanceOf(GenericRecordDeserializer.class);
+        Deserializer<GenericRecord> valueDeserializer = GenericRecordSelectorsSuppliers.valueSelectorSupplier(config())
+                .deseralizer();
+        assertThat(valueDeserializer).isInstanceOf(GenericRecordDeserializer.class);
+        assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

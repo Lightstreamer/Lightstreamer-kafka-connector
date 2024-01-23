@@ -1,6 +1,5 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,9 +22,12 @@ import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 public class JsonNodeDeserializer implements Deserializer<JsonNode> {
 
     private Deserializer<JsonNode> deserializer;
+    
+    private final  boolean isKey;
 
     JsonNodeDeserializer(ConnectorConfig config, boolean isKey) {
         Map<String, String> props = new HashMap<>();
+        this.isKey = isKey;
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new JsonLocalSchemaDeserializer(config, isKey);
         } else {
@@ -42,6 +44,10 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
 
         }
         deserializer.configure(config.extendsConsumerProps(props), isKey);
+    }
+
+    public boolean isKey() {
+        return isKey;
     }
 
     public String deserializerClassName() {

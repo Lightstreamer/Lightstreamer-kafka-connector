@@ -18,6 +18,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
@@ -51,30 +53,50 @@ public class ConnectorConfiguratorTest {
 
     @Test
     public void shouldNotConfigureAvroDueToMissingSchemaRegistry() {
-        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
-        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedParameters));
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
         assertThat(e.getMessage()).isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
     }
 
     @Test
     public void shouldConfigureAvroWithSchemaRegistry() {
-        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
-        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
 
-        assertDoesNotThrow(() -> configurator.configure(updatedParameters));
+        assertDoesNotThrow(() -> configurator.configure(updatedConfigs));
     }
 
     @Test
-    public void shouldConfigureAvroWithSchemaLocalFile() {
-        Map<String, String> updatedParameters = new HashMap<>(basicParameters());
-        updatedParameters.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedParameters.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+    public void shouldShouldNotConfigureAvroDueToMissingLocalSchemaFile() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        assertThat(e.getMessage()).isEqualTo("[%s/%s] is not a valid file".formatted(adapterDir, "value.avsc"));
+    }
+
+    @Test
+    public void shouldConfigureAvroWithLocalSchemaFile() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
         ConnectorConfigurator configurator = new ConnectorConfigurator(new File("src/test/resources"));
-        assertDoesNotThrow(() -> configurator.configure(updatedParameters));
+        assertDoesNotThrow(() -> configurator.configure(updatedConfigs));
+    }
+
+    @Test
+    public void shouldShouldNotConfigureJsonDueToMissingLocalSchemaFile() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
+
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        assertThat(e.getMessage()).isEqualTo("[%s/%s] is not a valid file".formatted(adapterDir, "flights.json"));
     }
 
     @Test
@@ -94,6 +116,20 @@ public class ConnectorConfiguratorTest {
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
         assertThat(e.getMessage())
                 .isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "VALUE", "${UNRECOGNIZED}" })
+    public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+        updatedConfigs.put("field.fieldName1", expression);
+
+        ConnectorConfigurator configurator = new ConnectorConfigurator(new File("src/test/resources"));
+        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        assertThat(e.getMessage())
+                .isEqualTo("Found the invalid expression [" + expression + "] while evaluating [field.fieldName1]");
     }
 
     @ParameterizedTest

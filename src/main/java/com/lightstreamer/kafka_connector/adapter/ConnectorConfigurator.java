@@ -54,21 +54,21 @@ public class ConnectorConfigurator {
         // Process "field.<field-name>"
         Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD, false);
 
-        SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
-                makeKeySelectorSupplier(connectorConfig),
-                makeValueSelectorSupplier(connectorConfig));
-
-        Properties props = connectorConfig.baseConsumerProps();
-        Deserializer<?> keyDeserializer = selectorsSupplier.keySelectorSupplier().deseralizer();
-        Deserializer<?> valueDeserializer = selectorsSupplier.valueSelectorSupplier().deseralizer();
-
         try {
+            SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(
+                    makeKeySelectorSupplier(connectorConfig),
+                    makeValueSelectorSupplier(connectorConfig));
+
+            Properties props = connectorConfig.baseConsumerProps();
+            Deserializer<?> keyDeserializer = selectorsSupplier.keySelectorSupplier().deseralizer();
+            Deserializer<?> valueDeserializer = selectorsSupplier.valueSelectorSupplier().deseralizer();
+
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicsConfig);
             FieldMappings<?, ?> fieldMappings = initFieldMappings(selectorsSupplier, fieldsMapping);
 
             return new DefaultConsumerLoopConfig(props, itemTemplates, fieldMappings, keyDeserializer,
                     valueDeserializer);
-        } catch (ExpressionException e) {
+        } catch (Exception e) {
             throw new ConfigException(e.getMessage());
         }
 

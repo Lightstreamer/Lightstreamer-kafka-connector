@@ -6,6 +6,7 @@ import static com.lightstreamer.kafka_connector.adapter.test_utils.ConsumerRecor
 import static com.lightstreamer.kafka_connector.adapter.test_utils.JsonNodeProvider.RECORD;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,11 +34,13 @@ public class JsonNodeSelectorTest {
 
     @Test
     public void shouldGetDeserializer() {
-        assertThat(JsonNodeSelectorsSuppliers.valueSelectorSupplier(config).deseralizer())
-                .isInstanceOf(JsonNodeDeserializer.class);
+        Deserializer<JsonNode> keyDeserializer = JsonNodeSelectorsSuppliers.keySelectorSupplier(config).deseralizer();
+        assertThat(keyDeserializer).isInstanceOf(JsonNodeDeserializer.class);
+        assertThat(JsonNodeDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
-        assertThat(JsonNodeSelectorsSuppliers.keySelectorSupplier(config).deseralizer())
-                .isInstanceOf(JsonNodeDeserializer.class);
+        Deserializer<JsonNode> valueDeserializer = JsonNodeSelectorsSuppliers.valueSelectorSupplier(config).deseralizer();
+        assertThat(valueDeserializer).isInstanceOf(JsonNodeDeserializer.class);
+        assertThat(JsonNodeDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

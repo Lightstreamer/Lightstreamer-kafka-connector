@@ -39,11 +39,11 @@ public interface Selectors<K, V> {
                 .build();
     }
 
-    private static <K, V> Builder<K, V> builder(SelectorsSupplier<K, V> selectorsSupplier) {
+    public static <K, V> Builder<K, V> builder(SelectorsSupplier<K, V> selectorsSupplier) {
         return new Builder<>(selectorsSupplier.keySelectorSupplier(), selectorsSupplier.valueSelectorSupplier());
     }
 
-    static class Builder<K, V> {
+    public static class Builder<K, V> {
 
         private final ValueSelectorSupplier<V> valueSupplier;
 
@@ -57,7 +57,7 @@ public interface Selectors<K, V> {
 
         private final MetaSelectorSupplier metaSelectorSupplier;
 
-        private final Map<String, String> entries = new HashMap<>();
+        private final Map<EntryName, EntryValue> entries = new HashMap<>();
 
         String schemaName;
 
@@ -66,6 +66,16 @@ public interface Selectors<K, V> {
         final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
 
         final Set<MetaSelector> metaSelectors = new HashSet<>();
+
+        private static record EntryName(String originalName, String name) {
+
+            
+        }
+
+        private static record EntryValue(String originalValue, String value) {
+
+            
+        }
 
         private Builder(KeySelectorSupplier<K> ks, ValueSelectorSupplier<V> vs) {
             this.keySupplier = Objects.requireNonNull(ks);
@@ -144,16 +154,21 @@ public interface Selectors<K, V> {
             return this;
         }
 
-        Builder<K, V> withEntry(Map.Entry<String, String> entry) {
+        public Builder<K, V> withEntry(Map.Entry<String, String> entry) {
             withEntry(entry.getKey(), entry.getValue());
             return this;
         }
 
         public Builder<K, V> withEntry(String name, String expression) {
-            if (entries.put(name, expression) != null) {
-                throw new ExpressionException("Key \"" + name + "\" already present");
+            return withEntry(name, name, expression, expression);
+        }
+
+        public Builder<K,V> withEntry(String originalName, String name, String originalExpression, String expression) {
+            if (entries.put(new EntryName(originalName, name), new EntryValue(originalExpression, expression)) != null) {
+                throw new ExpressionException("Key \"" + originalName + "\" already present");
             }
             return this;
+
         }
 
         public Builder<K, V> withSchemaName(String schemaName) {
@@ -163,8 +178,10 @@ public interface Selectors<K, V> {
 
         public Selectors<K, V> build() throws ExpressionException {
             entries.entrySet().stream().forEach(e -> {
-                if (!metaSelectorExprMgr.manage(e.getKey(), e.getValue())) {
-                    ExpressionException.throwInvalidExpression(e.getKey(), e.getValue());
+                EntryName key = e.getKey();
+                EntryValue value = e.getValue();
+                if (!metaSelectorExprMgr.manage(key.name(), value.value())) {
+                    ExpressionException.throwInvalidExpression(key.originalName(), value.originalValue());
                 }
             });
 

@@ -17,7 +17,6 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
@@ -34,16 +33,17 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
-        Path path = Paths.get(configDir.getAbsolutePath(), "log4j.properties");
-        PropertyConfigurator.configure(path.toString());
-        log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
+        configureLogging(configDir);
+
         ConnectorConfigurator configParser = new ConnectorConfigurator(configDir);
-        try {
-            loopConfig = configParser.configure(params);
-            log.info("Init completed");
-        } catch (ConfigException ve) {
-            throw new DataProviderException(ve.getMessage());
-        }
+        log.info("Configuring Kafka Connector");
+        this.loopConfig = configParser.configure(params);
+        log.info("Configuration complete");
+    }
+
+    private void configureLogging(File configDir) {
+        PropertyConfigurator.configure(Paths.get(configDir.getAbsolutePath(), "log4j.properties").toString());
+        this.log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     @Override
     public void unsubscribe(@Nonnull String itemName) throws SubscriptionException, FailureException {
-        log.info("Unsibscribing from item [{}]", itemName);
+        log.info("Unsubscribing from item [{}]", itemName);
         loop.unsubscribe(itemName);
     }
 }

@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +54,30 @@ public class GenericRecordDeserializerTest {
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, true)) {
             assertThat(deser.deserializerClassName()).isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
         }
+    }
+
+    @Test
+    public void shouldNotDeserializeKeyDueToMissingLocalSchema() throws IOException {
+        Path adapterDir = Paths.get("src/test/resources");
+
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "no-file.avsc");
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
+
+        SerializationException e = assertThrows(SerializationException.class,
+                () -> new GenericRecordDeserializer(config, true));
+        assertThat(e.getMessage()).isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.avsc] not found");
+    }
+
+    @Test
+    public void shouldNotDeserializeValueDueToMissingLocalSchema() throws IOException {
+        Path adapterDir = Paths.get("src/test/resources");
+
+        Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, "no-file.avsc");
+        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
+
+        SerializationException e = assertThrows(SerializationException.class,
+                () -> new GenericRecordDeserializer(config, false));
+        assertThat(e.getMessage()).isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.avsc] not found");
     }
 
     @Test

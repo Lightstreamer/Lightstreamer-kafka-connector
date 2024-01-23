@@ -27,7 +27,7 @@ public class ConnectorConfig {
 
     public static final String FIELD = "field";
 
-    public static final String KEY_EVALUATOR_TYPE = "key-evaluator.type";
+    public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
 
     public static final String KEY_SCHEMA_FILE = "key.evaluator.schema.file";
 
@@ -43,7 +43,7 @@ public class ConnectorConfig {
 
     public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_URL = "value.evaluator.schema.registry.url";
 
-    public static final ConfigSpec CONFIG_SPEC;
+    private static final ConfigSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC = new ConfigSpec()

@@ -28,28 +28,24 @@
     <data_provider name="Avro">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
         <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-user</param>
-
+        <param name="group-id">kafka-adapter-user-21412</param>
 
         <!-- Map one topic to one item -->
-        <param name="map.topic-avro-local.to">topic-avro-local</param>
-        <param name="value.schema.file">user.avsc</param>
-        <param name="value.consumer">AVRO</param>
-        <param name="key.schema.file">user.avsc</param>
-        <param name="key.consumer">AVRO</param>
+        <param name="item-template.user">user</param>
+        <param name="map.topic-avro-one-to-one.to">item-template.user</param>
+        <param name="value.evaluator.type">AVRO</param>
+        <param name="value.evaluator.schema.file">user-value.avsc</param>
+        <param name="key.evaluator.type">AVRO</param>
+        <param name="key.evaluator.schema.file">user-key.avsc</param>
+        <!-- <param name="key.evaluator.schema.registry.url">http://schema-registry:8081</param>
+        <param name="value.evaluator.schema.registry.url">http://schema-registry:8081</param>         -->
 
+        <param name="field.key-name">${KEY.name}</param>
+        <param name="field.age">${VALUE.info.age}</param>
+        <param name="field.height">${VALUE.info.height}</param>
+        <param name="field.zipcode1">${VALUE.addresses[0].zipcode}</param>
+        <param name="field.zipcode2">${VALUE.addresses[1].zipcode}</param>
 
-        <param name="item.template1">item-${...}</param>
-        <param name="item.template2">item-${...}</param>
-
-        <!-- Many topics to one template -->
-        <param name="map.topic1.to">itemTemplate1</param>
-        <param name="map.topic2.to">itemTemplate1</param>
-        <param name="map.topic3.to">itemTemplate1</param>
-
-
-        <param name="map.topic.to">itemTemplate1,itemplate2,itemTemplate3</param>
-        <!-- <param name="schema.registry.url">http://localhost:8081</param> -->
 
         <!-- Map one topic to multimple items -->
         <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-${name=User.name,friend=User.friends}</param>-->

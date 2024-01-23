@@ -102,7 +102,7 @@ public class JsonNodeSelectorsSuppliers {
         private final JsonNodeDeserializer deseralizer;
 
         JsonNodeKeySelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = new JsonNodeDeserializer(config, false);
+            this.deseralizer = new JsonNodeDeserializer(config, true);
         }
 
         @Override

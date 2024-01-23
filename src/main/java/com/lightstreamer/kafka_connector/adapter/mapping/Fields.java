@@ -4,11 +4,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.Builder;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors.SelectorsSupplier;
 
 public class Fields {
@@ -24,15 +24,16 @@ public class Fields {
 
             private static Pattern FIELD_MAPPING = Pattern.compile(SelectorExpressionParser.SELECTION_REGEX);
 
-            static String parseEntry(Entry<String, String> configEntry) {
+            static String parseEntryValue(Entry<String, String> configEntry) {
                 Matcher matcher = FIELD_MAPPING.matcher(configEntry.getValue());
                 if (!matcher.matches()) {
                     ExpressionException.throwInvalidExpression(configEntry.getKey(), configEntry.getValue());
                 }
+
                 return matcher.group(1);
             }
 
-            static String removePrefix(Entry<String, String> configEntry) {
+            static String removePrefixFromEntryKey(Entry<String, String> configEntry) {
                 String prefix = ConnectorConfig.FIELD + ".";
                 String fieldConfigKey = configEntry.getKey();
                 if (!fieldConfigKey.startsWith(prefix)) {
@@ -41,13 +42,18 @@ public class Fields {
                 }
                 return fieldConfigKey.substring(prefix.length());
             }
+
+            static <K, V> void fill(Builder<K, V> builder, Entry<String, String> configEntry) {
+                builder.withEntry(configEntry.getKey(), removePrefixFromEntryKey(configEntry), configEntry.getValue(),
+                        parseEntryValue(configEntry));
+            }
         }
 
-        Map<String, String> remapped = fieldsMapping.entrySet()
+        Builder<K, V> builder = Selectors.builder(selectorsSupplier).withSchemaName("fields");
+        fieldsMapping.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Support::removePrefix, Support::parseEntry));
-        Selectors<K, V> fieldsSelectors = Selectors.from(selectorsSupplier, "fields", remapped);
-        return new DefaultFieldMappings<>(fieldsSelectors);
+                .forEach(e -> Support.fill(builder, e));
+        return new DefaultFieldMappings<>(builder.build());
 
     }
 
