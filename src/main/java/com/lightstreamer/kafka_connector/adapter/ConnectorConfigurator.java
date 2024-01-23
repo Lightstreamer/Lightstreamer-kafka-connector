@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
-import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.Fields;
 import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;

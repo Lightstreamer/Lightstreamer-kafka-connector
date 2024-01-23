@@ -148,7 +148,7 @@ public class JsonNodeDeserializerTest {
 
         SerializationException e = assertThrows(SerializationException.class,
                 () -> new JsonNodeDeserializer(config, true));
-        assertThat(e.getMessage()).isEqualTo("[" + adapterDir.toAbsolutePath() + "/no-file.json] is not a valid file");
+        assertThat(e.getMessage()).isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.json] not found");
     }
 
     @Test
@@ -160,6 +160,6 @@ public class JsonNodeDeserializerTest {
 
         SerializationException e = assertThrows(SerializationException.class,
                 () -> new JsonNodeDeserializer(config, false));
-        assertThat(e.getMessage()).isEqualTo("[" + adapterDir.toAbsolutePath() + "/no-file.json] is not a valid file");
+        assertThat(e.getMessage()).isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.json] not found");
     }
 }

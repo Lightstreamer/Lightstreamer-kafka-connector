@@ -73,7 +73,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     public void subscribe(@Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
         log.info("Trying subscription to item [{}]", itemName);
-        loop.trySubscribe(itemName, itemHandle);
+        loop.subscribe(itemName, itemHandle);
     }
 
     @Override

@@ -18,8 +18,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
@@ -45,9 +43,9 @@ public class ConnectorConfiguratorTest {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
-        adapterParams.put("item-template.template1", "item1-${}");
+        adapterParams.put("item-template.template1", "item1-#{}");
         adapterParams.put("map.topic1.to", "item-template.template1");
-        adapterParams.put("field.fieldName1", "${VALUE}");
+        adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
     }
 
@@ -76,7 +74,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
-        assertThat(e.getMessage()).isEqualTo("[%s/%s] is not a valid file".formatted(adapterDir, "value.avsc"));
+        assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "value.avsc"));
     }
 
     @Test
@@ -96,7 +94,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
 
         ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
-        assertThat(e.getMessage()).isEqualTo("[%s/%s] is not a valid file".formatted(adapterDir, "flights.json"));
+        assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "flights.json"));
     }
 
     @Test

@@ -52,7 +52,6 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
     @Override
     public GenericRecord deserialize(String topic, byte[] data) {
         GenericRecord deserialize = (GenericRecord) deserializer.deserialize(topic, data);
-        System.out.println("Record" + deserialize.toString());
         return deserialize;
     }
 }

@@ -12,7 +12,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 
 public class SelectorExpressionParser<K, V> {
 
-    public static String SELECTION_REGEX = "\\$\\{(.*)\\}";
+    public static String SELECTION_REGEX = "\\#\\{(.*)\\}";
 
     private static Pattern SELECTOR_PATTERN = Pattern.compile(SELECTION_REGEX);
 

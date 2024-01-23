@@ -1643,7 +1643,7 @@
          other version were involved, the session would be closed immediately.
          A 0 value also prevents any accumulation of memory.
          Default: 0. -->
-    <session_recovery_millis>13000</session_recovery_millis>
+    <session_recovery_millis>0</session_recovery_millis>
 
     <!-- Optional. Maximum number of bytes of streaming data, already sent
          or being sent to the Client, that should be kept, in order to allow
@@ -1684,7 +1684,7 @@
          the accomplished wait is considered as valid also for the
          subscription wait purpose.
          Default: the time configured for "session_timeout_millis". -->
-    <subscription_timeout_millis>5000</subscription_timeout_millis>
+    <subscription_timeout_millis>0</subscription_timeout_millis>
 
     <!-- Optional. Timeout used to ensure the proper ordering of client-sent
          messages, within the specified message sequence, before sending them

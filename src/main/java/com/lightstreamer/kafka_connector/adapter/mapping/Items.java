@@ -1,7 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.mapping;
 
 import static com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException.reThrowInvalidExpression;
-import static com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException.throwInvalidExpression;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +10,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapter.mapping.ItemExpressionEvaluator.Result;

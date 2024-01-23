@@ -64,9 +64,9 @@ public class ItemTemplatesTest {
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
         ExpressionException e = assertThrows(ExpressionException.class,
-                () -> templates(string(), "item-${name=VALUE,name=PARTITION}"));
+                () -> templates(string(), "item-#{name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage()).isEqualTo(
-                "Found the invalid expression [item-${name=VALUE,name=PARTITION}] while evaluating [item-template]: <No duplicated keys are allowed>");
+                "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while evaluating [item-template]: <No duplicated keys are allowed>");
     }
 
     @Test
@@ -75,8 +75,8 @@ public class ItemTemplatesTest {
 
         // One topic mapping two templates.
         TopicsConfig topicsConfig = TopicsConfig.of(
-                new TopicConfiguration("topic", "template-family-${topic=TOPIC,info=PARTITION}"),
-                new TopicConfiguration("topic", "template-relatives-${topic=TOPIC,info=TIMESTAMP}"));
+                new TopicConfiguration("topic", "template-family-#{topic=TOPIC,info=PARTITION}"),
+                new TopicConfiguration("topic", "template-relatives-#{topic=TOPIC,info=TIMESTAMP}"));
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, suppliers);
         assertThat(templates.topics()).containsExactly("topic");
@@ -108,7 +108,7 @@ public class ItemTemplatesTest {
         SelectorsSupplier<String, JsonNode> suppliers = jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
-        String ordersTemplate = "template-orders-${topic=TOPIC}";
+        String ordersTemplate = "template-orders-#{topic=TOPIC}";
 
         // Two topics mapping the template.
         TopicsConfig topicsConfig = TopicsConfig.of(
