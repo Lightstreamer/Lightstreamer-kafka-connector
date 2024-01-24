@@ -25,6 +25,13 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
             }
         },
 
+        OFFSET {
+            @Override
+            String value(ConsumerRecord<?, ?> record) {
+                return String.valueOf(record.offset());
+            }
+        },
+
         TOPIC {
             @Override
             String value(ConsumerRecord<?, ?> record) {

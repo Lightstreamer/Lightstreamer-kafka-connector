@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -17,6 +18,7 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
@@ -33,7 +35,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
-        configureLogging(configDir);
+        configureLogging(params, configDir);
 
         ConnectorConfigurator configParser = new ConnectorConfigurator(configDir);
         log.info("Configuring Kafka Connector");
@@ -41,8 +43,12 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
         log.info("Configuration complete");
     }
 
-    private void configureLogging(File configDir) {
-        PropertyConfigurator.configure(Paths.get(configDir.getAbsolutePath(), "log4j.properties").toString());
+    private void configureLogging(Map<String, String> params, File configDir) {
+        Path logFilePath = Paths.get(configDir.getAbsolutePath(), params.get("logging.configuration.file"));
+        if (!Files.isRegularFile(logFilePath)) {
+            throw new ConfigException("Logging configuration file [%s] not found".formatted(logFilePath));
+        }
+        PropertyConfigurator.configure(logFilePath.toString());
         this.log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
     }
 

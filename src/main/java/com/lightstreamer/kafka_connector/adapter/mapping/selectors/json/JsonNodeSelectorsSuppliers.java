@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -14,6 +15,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpre
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 
@@ -40,7 +42,7 @@ public class JsonNodeSelectorsSuppliers {
             @Override
             public JsonNode get(JsonNode node) {
                 if (!node.has(name)) {
-                    throw new RuntimeException("No field <" + name + "> exists!");
+                    ValueException.throwFieldNotFound(name);
                 }
                 return node.get(name);
             }
@@ -55,8 +57,8 @@ public class JsonNodeSelectorsSuppliers {
             private final List<Integer> indexes;
 
             ArrayGetter(String fieldName, List<Integer> indexes) {
-                this.name = fieldName;
-                this.indexes = indexes;
+                this.name = Objects.requireNonNull(fieldName);
+                this.indexes = Objects.requireNonNull(indexes);
                 this.getter = new PropertyGetter(name);
             }
 
@@ -64,11 +66,10 @@ public class JsonNodeSelectorsSuppliers {
             public JsonNode get(JsonNode node) {
                 JsonNode value = getter.get(node);
                 for (int i : indexes) {
-                    if (value.isArray()) {
-                        value = value.get(i);
-                    } else {
-                        throw new RuntimeException("Current evaluated field is not an Array");
+                    if (!value.isArray()) {
+                        ValueException.throwNoIndexedField();
                     }
+                    value = value.get(i);
                 }
                 return value;
             }

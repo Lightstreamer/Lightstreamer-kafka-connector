@@ -23,6 +23,7 @@ public class MetaSelectorTest {
                 TOPIC,          record-topic
                 PARTITION,      150
                 TIMESTAMP,      -1
+                OFFSET,         120
             """)
     public void shouldExtractAttribute(String expression, String expectedValue) {
         MetaSelector selector = metaSelector(expression);

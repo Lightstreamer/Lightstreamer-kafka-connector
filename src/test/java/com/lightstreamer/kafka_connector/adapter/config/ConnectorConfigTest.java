@@ -268,7 +268,8 @@ public class ConnectorConfigTest {
         assertThat(baseConsumerProps).containsExactly(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
                 ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
     }
 
     @Test
@@ -279,6 +280,7 @@ public class ConnectorConfigTest {
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
                 ConsumerConfig.GROUP_ID_CONFIG, "group-id",
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false",
                 "new.key", "new.value");
     }
 

@@ -24,6 +24,14 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
         super(config);
     }
 
+    @Override
+    void startConsuming() {
+    }
+
+    @Override
+    void stopConsuming() {
+    }
+
 }
 
 class TestLoopConfig implements ConsumerLoopConfig<String, String> {

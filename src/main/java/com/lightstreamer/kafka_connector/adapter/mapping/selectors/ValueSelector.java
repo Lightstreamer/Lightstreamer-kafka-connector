@@ -4,6 +4,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public interface ValueSelector<V> extends Selector {
 
-    Value extract(ConsumerRecord<?, V> record);
+    Value extract(ConsumerRecord<?, V> record) throws ValueException;
 
 }

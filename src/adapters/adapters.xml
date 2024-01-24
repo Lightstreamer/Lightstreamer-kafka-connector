@@ -27,6 +27,8 @@
 
     <data_provider name="Avro">
         <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
+        <param name="logging.configuration.file">log4j.properties</param>
+
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-user-21412</param>
 
@@ -43,7 +45,7 @@
         <param name="field.key-name">#{KEY.name}</param>
         <param name="field.age">#{VALUE.info.age}</param>
         <param name="field.height">#{VALUE.info.height}</param>
-        <param name="field.zipcode1">#{VALUE.addresses[0].zipcode}</param>
+        <param name="field.zipcode1">#{VALUE.addresses[0].zipcode1}</param>
         <param name="field.zipcode2">#{VALUE.addresses[1].zipcode}</param>
 
 

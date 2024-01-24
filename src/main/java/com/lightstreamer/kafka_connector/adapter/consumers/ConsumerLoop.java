@@ -3,16 +3,14 @@ package com.lightstreamer.kafka_connector.adapter.consumers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,11 +26,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
     private final ItemEventListener eventListener;
-    private final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
     private final RecordMapper<K, V> recordRemapper;
     private final Selectors<K, V> fieldsSelectors;
-    private final Consumer consumer;
-    private final AtomicInteger itemsCounter = new AtomicInteger(0);
+    private final ReentrantLock consumerLock = new ReentrantLock();
+    private volatile ConsumerWrapper consumer;
 
     public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
         super(config);
@@ -44,36 +41,64 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 .build();
 
         this.eventListener = eventListener;
-        this.consumer = new Consumer();
-        Executors.newSingleThreadExecutor().submit(consumer);
     }
 
-    private class Consumer implements Runnable {
+    @Override
+    void startConsuming() {
+        consumerLock.lock();
+        try {
+            consumer = new ConsumerWrapper();
+            new Thread(consumer).start();
+        } finally {
+            consumerLock.unlock();
+        }
+    }
 
-        private volatile KafkaConsumer<K, V> consumer;
+    @Override
+    void stopConsuming() {
+        consumerLock.lock();
+        try {
+            if (consumer != null) {
+                consumer.close();
+            }
+        } finally {
+            consumerLock.unlock();
+        }
+
+    }
+
+    private class ConsumerWrapper implements Runnable {
+
+        private static AtomicInteger COUNTER = new AtomicInteger(0);
+
+        private final KafkaConsumer<K, V> consumer;
         private final CountDownLatch latch = new CountDownLatch(1);
-        private final Logger log = LoggerFactory.getLogger(Consumer.class);
+        private final Logger log = LoggerFactory.getLogger(ConsumerWrapper.class);
+        private int counter;
+        private Thread hook;
 
-        Consumer() {
-            log.atInfo().log("Connecting to Kafka at {}",
-                    config.consumerProperties().getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG));
+        ConsumerWrapper() {
+            this.counter = COUNTER.incrementAndGet();
+            String bootStrapServers = config.consumerProperties()
+                    .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+            log.atInfo().log("Starting connection to Kafka at {}",
+                    bootStrapServers);
             consumer = new KafkaConsumer<>(config.consumerProperties(), config.keyDeserializer(),
                     config.valueDeserializer());
-            log.atInfo().log("Connected to Kafka broker");
+            log.atInfo().log("Established connection to Kafka broker at {}", bootStrapServers);
 
             setShutdownHook();
             log.atDebug().log("Shutdown Hook set");
         }
 
         private void setShutdownHook() {
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                public void run() {
-                    try {
-                        shutdown();
-                    } catch (InterruptedException e) {
-                    }
-                }
-            });
+            Runnable shutdownTask = () -> {
+                log.atInfo().log("Hook shutdown for consumer %d".formatted(counter));
+                shutdown();
+            };
+
+            this.hook = new Thread(shutdownTask);
+            Runtime.getRuntime().addShutdownHook(hook);
         }
 
         @Override
@@ -82,36 +107,46 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 List<String> topics = config.itemTemplates().topics().toList();
                 log.atDebug().log("Subscring to {}", topics);
                 consumer.subscribe(topics);
-                log.atDebug().log("Subscribed to {}", topics);
+                log.atInfo().log("Subscribed to {}", topics);
 
                 while (true) {
                     log.atDebug().log("Polling records");
                     ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-                    if (itemsCounter.get() > 0) {
-                        log.atDebug().log("Received records");
+                    log.atDebug().log("Received records");
+                    try {
                         records.forEach(this::consume);
-                    } else {
-                        log.atDebug().log("Record received but skipped as there is no subscribed item");
+                    } catch (RuntimeException re) {
+
                     }
+                    consumer.commitAsync();
                 }
             } catch (WakeupException e) {
                 log.atDebug().log("Kafka Consumer woken up");
             } finally {
                 log.atDebug().log("Start closing Kafka Consumer");
-                consumer.close();
-                latch.countDown();
-                log.atDebug().log("Kafka Consumer closed");
+                try {
+                    consumer.commitSync();
+                } catch (CommitFailedException e) {
+                    log.atWarn().setCause(e).log();
+                } finally {
+                    consumer.close();
+                    latch.countDown();
+                    log.atDebug().log("Kafka Consumer closed");
+                }
             }
         }
 
         protected void consume(ConsumerRecord<K, V> record) {
             MappedRecord remappedRecord = recordRemapper.map(record);
+            log.atDebug().log("Mapped record to {}", remappedRecord);
             config.itemTemplates()
                     .expand(remappedRecord)
                     .forEach(expandedItem -> processItem(remappedRecord, expandedItem));
         }
 
         private void processItem(MappedRecord record, Item expandedItem) {
+            log.atDebug().log("Processing expanded item {} against {} subscribed items", expandedItem,
+                    subscribedItems.size());
             for (Item subscribedItem : subscribedItems.values()) {
                 if (!expandedItem.matches(subscribedItem)) {
                     log.warn("Expanded item <{}> does not match subscribed item <{}>", expandedItem, subscribedItem);
@@ -125,10 +160,19 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
-        void shutdown() throws InterruptedException {
+        void close() {
+            shutdown();
+            Runtime.getRuntime().removeShutdownHook(this.hook);
+        }
+
+        private void shutdown() {
             log.atInfo().log("Shutting down Kafka consumer");
             consumer.wakeup();
-            latch.await();
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                // Ignore
+            }
             log.atInfo().log("Kafka consumer shut down");
         }
     }

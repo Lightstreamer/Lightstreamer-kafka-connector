@@ -19,7 +19,7 @@ public class SelectorExpressionParser<K, V> {
     private static Pattern INDEXES = Pattern.compile("\\[(\\d*)\\]");
 
     public interface NodeEvaluator<K, V> {
-        V get(K k);
+        V get(K k) throws ValueException;
     }
 
     public static class LinkedNode<T> {

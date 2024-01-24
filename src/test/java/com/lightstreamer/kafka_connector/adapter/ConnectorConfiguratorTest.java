@@ -117,7 +117,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "VALUE", "${UNRECOGNIZED}" })
+    @ValueSource(strings = { "VALUE", "#{UNRECOGNIZED}" })
     public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
@@ -131,7 +131,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "a,", ".", "|", "@", "item-$", "item-${", "item-${}}" })
+    @ValueSource(strings = { "a,", ".", "|", "@", "item-$", "item-#{", "item-#{}}" })
     public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template1", expression);
@@ -149,7 +149,8 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties).containsExactly(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
                 ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();
@@ -172,17 +173,11 @@ public class ConnectorConfiguratorTest {
         enhancedConfig.put("map.topic1.to", "item-template.template1,item-template.template2");
         enhancedConfig.put("map.topic2.to", "item-template.template1");
         enhancedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        enhancedConfig.put("field.fieldName1", "${VALUE.name}");
-        enhancedConfig.put("field.fieldName2", "${VALUE.otherAttrib}");
+        enhancedConfig.put("field.fieldName1", "#{VALUE.name}");
+        enhancedConfig.put("field.fieldName2", "#{VALUE.otherAttrib}");
         enhancedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
 
         ConsumerLoopConfig<?, ?> loopConfig = configurator.configure(enhancedConfig);
-
-        Properties consumerProperties = loopConfig.consumerProperties();
-        assertThat(consumerProperties).containsExactly(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();

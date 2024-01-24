@@ -12,25 +12,25 @@ public class ExpressionException extends RuntimeException {
         super(message, cause);
     }
 
-    public static ExpressionException throwBlankToken() {
+    public static void throwBlankToken() throws ExpressionException {
         throw new ExpressionException("Tokens cannot be blank");
     }
 
-    public static ExpressionException throwIncompleteExpression() {
+    public static void throwIncompleteExpression() throws ExpressionException {
         throw new ExpressionException("Incomplete expression");
     }
 
-    public static ExpressionException throwExpectedToken(String token) {
+    public static void throwExpectedToken(String token) throws ExpressionException {
         throw new ExpressionException("Expected <%s>".formatted(token));
     }
 
-    public static ExpressionException throwInvalidExpression(String name, String expression) {
+    public static void throwInvalidExpression(String name, String expression) throws ExpressionException {
         throw new ExpressionException(
                 "Found the invalid expression [%s] while evaluating [%s]".formatted(expression, name));
     }
 
-    public static ExpressionException reThrowInvalidExpression(ExpressionException cause, String name,
-            String expression) {
+    public static void reThrowInvalidExpression(ExpressionException cause, String name,
+            String expression) throws ExpressionException {
         throw new ExpressionException("Found the invalid expression [%s] while evaluating [%s]: <%s>"
                 .formatted(expression, name, cause.getMessage()));
     }

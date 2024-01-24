@@ -12,13 +12,13 @@ import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 
-public class AbstractConsumerLoop<K, V> implements Loop {
+public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
     protected static Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
 
     protected final ConsumerLoopConfig<K, V> config;
     protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
-    protected final AtomicInteger itemsCounter = new AtomicInteger(0);
+    private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
     protected AbstractConsumerLoop(ConsumerLoopConfig<K, V> config) {
         this.config = config;
@@ -38,9 +38,13 @@ public class AbstractConsumerLoop<K, V> implements Loop {
         }
 
         subscribedItems.put(item, newItem);
-        itemsCounter.addAndGet(1);
+        if (itemsCounter.addAndGet(1) == 1) {
+            startConsuming();
+        }
         return newItem;
     }
+
+    abstract void startConsuming();
 
     @Override
     public final Item unsubscribe(String item) throws SubscriptionException {
@@ -48,10 +52,12 @@ public class AbstractConsumerLoop<K, V> implements Loop {
         if (removedItem == null) {
             throw new SubscriptionException("Unsubscribing unexpected item [%s]".formatted(item));
         }
-        int currentSubscribed = itemsCounter.decrementAndGet();
-        if (currentSubscribed == 0) {
+        if (itemsCounter.decrementAndGet() == 0) {
             log.atDebug().log("No more subscribed items");
+            stopConsuming();
         }
         return removedItem;
     }
+
+    abstract void stopConsuming();
 }

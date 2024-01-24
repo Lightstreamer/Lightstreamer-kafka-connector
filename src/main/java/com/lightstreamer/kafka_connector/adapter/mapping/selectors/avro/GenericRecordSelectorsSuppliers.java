@@ -16,6 +16,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpre
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelectorSupplier;
 
@@ -42,7 +43,7 @@ public class GenericRecordSelectorsSuppliers {
             @Override
             public Object get(GenericRecord record) {
                 if (!record.hasField(name)) {
-                    throw new RuntimeException("No field <" + name + "> exists!");
+                    ValueException.throwFieldNotFound(name);
                 }
                 return record.get(name);
             }
@@ -70,7 +71,7 @@ public class GenericRecordSelectorsSuppliers {
                     if (value instanceof GenericData.Array<?> array) {
                         value = array.get(i);
                     } else {
-                        throw new RuntimeException("Current evaluated field is not an Array");
+                        ValueException.throwNoIndexedField();
                     }
                 }
                 return value;
@@ -96,12 +97,12 @@ public class GenericRecordSelectorsSuppliers {
             while (currentLinkedNode != null) {
                 if (value instanceof GenericRecord genericRecord) {
                     currentRecord = genericRecord;
-                } else {
-                    throw new RuntimeException("Conversion error");
+                    NodeEvaluator<GenericRecord, Object> evaluator = currentLinkedNode.value();
+                    value = evaluator.get(currentRecord);
+                    currentLinkedNode = currentLinkedNode.next();
+                    continue;
                 }
-                NodeEvaluator<GenericRecord, Object> evaluator = currentLinkedNode.value();
-                value = evaluator.get(currentRecord);
-                currentLinkedNode = currentLinkedNode.next();
+                ValueException.throwConversionError("GenericRecord");
             }
 
             return Value.of(name(), value.toString());
@@ -147,7 +148,6 @@ public class GenericRecordSelectorsSuppliers {
         GenericRecordValueSelectorSupplier(ConnectorConfig config) {
             this.deseralizer = new GenericRecordDeserializer(config, false);
         }
-
 
         @Override
         public ValueSelector<GenericRecord> newSelector(String name, String expression) {

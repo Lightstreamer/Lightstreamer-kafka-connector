@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 
@@ -60,6 +61,20 @@ public class JsonNodeSelectorTest {
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            EXPRESSION,                         EXPECTED_ERROR_MESSAGE
+            VALUE.no_attrib,                    Field [no_attrib] not found
+            VALUE.children[0].no_attrib,        Field [no_attrib] not found    
+            VALUE.no_children[0],               Field [no_children] not found
+            VALUE.name[0],                      Current field is not indexed
+            """)
+    public void shouldNotExtractValue(String expression, String errorMessage) {
+        ValueSelector<JsonNode> selector = valueSelector(expression);
+        ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromValue(RECORD)).text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_VALUE
             KEY.name,                          joe
             KEY.children[0].name,              alex
@@ -71,6 +86,20 @@ public class JsonNodeSelectorTest {
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<JsonNode> selector = keySelector(expression);
         assertThat(selector.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            EXPRESSION,                       EXPECTED_ERROR_MESSAGE
+            KEY.no_attrib,                    Field [no_attrib] not found
+            KEY.children[0].no_attrib,        Field [no_attrib] not found    
+            KEY.no_children[0],               Field [no_children] not found
+            KEY.name[0],                      Current field is not indexed
+            """)
+    public void shouldNotExtractKey(String expression, String errorMessage) {
+        KeySelector<JsonNode> selector = keySelector(expression);
+        ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromKey(RECORD)).text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
