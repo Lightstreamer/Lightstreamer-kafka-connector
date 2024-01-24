@@ -26,8 +26,8 @@ dependencies {
     // Use JUnit Jupiter for testing.
    	testImplementation(platform('org.junit:junit-bom:5.10.0'))
 	  testImplementation('org.junit.jupiter:junit-jupiter')
-    testImplementation "com.google.truth:truth:1.1.4"
-    testImplementation "com.google.truth.extensions:truth-java8-extension:1.1.4"
+    testImplementation "com.google.truth:truth:1.2.0"
+    testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
@@ -50,7 +50,7 @@ dependencies {
 // Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(20)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
