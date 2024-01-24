@@ -160,6 +160,8 @@ public class ConnectorConfig {
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "0");
+        properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");
         return properties;
     }
 

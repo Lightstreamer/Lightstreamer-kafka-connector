@@ -21,8 +21,8 @@
         <param name="field.departure">#{VALUE.departureTime}</param>
         <param name="field.status">#{VALUE.status}</param>
 
-        <param name="map.new_orders.to">orders-${topic=TOPIC}</param>
-        <param name="map.past_orders.to">orders-${topic=TOPIC}</param>
+        <param name="map.new_orders.to">orders-#{topic=TOPIC}</param>
+        <param name="map.past_orders.to">orders-#{topic=TOPIC}</param>
     </data_provider> -->
 
     <data_provider name="Avro">
@@ -40,25 +40,25 @@
         <!-- <param name="key.evaluator.schema.registry.url">http://schema-registry:8081</param>
         <param name="value.evaluator.schema.registry.url">http://schema-registry:8081</param>         -->
 
-        <param name="field.key-name">${KEY.name}</param>
-        <param name="field.age">${VALUE.info.age}</param>
-        <param name="field.height">${VALUE.info.height}</param>
-        <param name="field.zipcode1">${VALUE.addresses[0].zipcode}</param>
-        <param name="field.zipcode2">${VALUE.addresses[1].zipcode}</param>
+        <param name="field.key-name">#{KEY.name}</param>
+        <param name="field.age">#{VALUE.info.age}</param>
+        <param name="field.height">#{VALUE.info.height}</param>
+        <param name="field.zipcode1">#{VALUE.addresses[0].zipcode}</param>
+        <param name="field.zipcode2">#{VALUE.addresses[1].zipcode}</param>
 
 
         <!-- Map one topic to multimple items -->
-        <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-${name=User.name,friend=User.friends}</param>-->
+        <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-#{name=User.name,friend=User.friends}</param>-->
         <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-item2</param> -->
 
         <!-- Map many topics to one item -->
         <!-- <param name="map.topic-avro-many-to-one-2.to">kafka-avro-many-topics</param> -->
 
         <!-- Map one topic to one item template -->
-        <!-- <param name="map.topic-avro.to">kafka-user-${name=User.name,age=User.info.age}</param> -->
+        <!-- <param name="map.topic-avro.to">kafka-user-#{name=User.name,age=User.info.age}</param> -->
         
         <!-- Map one topic to many item templates -->
-        <!--<param name="map.topic-avro.to">kafka-user-${name=User.name},kafka-user-${age=User.info.age}</param>-->
+        <!--<param name="map.topic-avro.to">kafka-user-#{name=User.name},kafka-user-#{age=User.info.age}</param>-->
         
         <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
 
@@ -87,11 +87,11 @@
         <param name="group-id">kafka-adapter-json</param>
 
         <param name="topics">topic-json</param>
-        <param name="mapped_item">kafka-user-${name=firtName}</param>
+        <param name="mapped_item">kafka-user-#{name=firtName}</param>
 
         <param name="consumer">JsonConsumer</param>
-        <param name="field.firstname">${VALUE.firstName}</param>
-        <param name="field.lastname">${VALUE.lastName}</param>
+        <param name="field.firstname">#{VALUE.firstName}</param>
+        <param name="field.lastname">#{VALUE.lastName}</param>
     </data_provider> -->
 
     <!-- <data_provider name="Raw">
@@ -99,7 +99,7 @@
         <param name="bootstrap-servers">broker:29092</param>
         <param name="group-id">kafka-adapter-json</param>
 
-        <param name="map.topic-raw.to">topic-raw-${key=KEY}</param>
+        <param name="map.topic-raw.to">topic-raw-#{key=KEY}</param>
 
         <param name="consumer">RawConsumer</param>
         <param name="field.key">KEY</param>

@@ -69,7 +69,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
                     try {
-                        Consumer.this.shutdown();
+                        shutdown();
                     } catch (InterruptedException e) {
                     }
                 }
