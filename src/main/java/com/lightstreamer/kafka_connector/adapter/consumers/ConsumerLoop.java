@@ -7,10 +7,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Selectors;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 
 public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
@@ -115,10 +118,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     log.atDebug().log("Received records");
                     try {
                         records.forEach(this::consume);
-                    } catch (RuntimeException re) {
-
+                        consumer.commitAsync();
+                    } catch (ValueException re) {
+                        log.atInfo().setCause(re).log();
                     }
-                    consumer.commitAsync();
                 }
             } catch (WakeupException e) {
                 log.atDebug().log("Kafka Consumer woken up");

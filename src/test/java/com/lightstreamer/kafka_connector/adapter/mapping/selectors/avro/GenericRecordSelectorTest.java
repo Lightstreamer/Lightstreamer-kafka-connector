@@ -15,13 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
@@ -77,15 +75,15 @@ public class GenericRecordSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                         EXPECTED_ERROR_MESSAGE
             VALUE.no_attrib,                    Field [no_attrib] not found
-            VALUE.children[0].no_attrib,        Field [no_attrib] not found    
+            VALUE.children[0].no_attrib,        Field [no_attrib] not found
             VALUE.no_children[0],               Field [no_children] not found
             VALUE.name[0],                      Current field is not indexed
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
-        ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromValue(RECORD)).text());
+        ValueException ve = assertThrows(ValueException.class, () -> selector.extract(fromValue(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }    
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
@@ -106,23 +104,30 @@ public class GenericRecordSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                       EXPECTED_ERROR_MESSAGE
             KEY.no_attrib,                    Field [no_attrib] not found
-            KEY.children[0].no_attrib,        Field [no_attrib] not found    
+            KEY.children[0].no_attrib,        Field [no_attrib] not found
             KEY.no_children[0],               Field [no_children] not found
             KEY.name[0],                      Current field is not indexed
             """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         KeySelector<GenericRecord> selector = keySelector(expression);
-        ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromKey(RECORD)).text());
+        ValueException ve = assertThrows(ValueException.class, () -> selector.extract(fromKey(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-            invalidKey,                        Expected <KEY>
-            "",                                Expected <KEY>
-            KEY,                               Incomplete expression
-            KEY.,                              Incomplete expression
+            '',                                Expected the root token [KEY] while evaluating [name]
+            invalidKey,                        Expected the root token [KEY] while evaluating [name]
+            KEY,                               Found the invalid expression [KEY] while evaluating [name]
+            KEY.,                              Found the invalid expression [KEY.] while evaluating [name]
+            KEY..,                             Found the invalid expression [KEY..] with missing tokens while evaluating [name]
+            KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+            KEY.attrib[0]xsd,                  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+            KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+            KEY.attrib[a],                     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+            KEY.attrib[a].,                    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
+            KEY.attrib[0].,                    Found the invalid indexed expression [KEY.attrib[0].] while evaluating [name]
             """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> keySelector(expression));
@@ -132,12 +137,17 @@ public class GenericRecordSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-            invalidValue,                      Expected <VALUE>
-            "",                                Expected <VALUE>
-            VALUE,                             Incomplete expression
-            VALUE.,                            Incomplete expression
-            VALUE..,                           Tokens cannot be blank
-            """)
+            '',                                Expected the root token [VALUE] while evaluating [name]
+            invalidValue,                      Expected the root token [VALUE] while evaluating [name]
+            VALUE,                             Found the invalid expression [VALUE] while evaluating [name]
+            VALUE.,                            Found the invalid expression [VALUE.] while evaluating [name]
+            VALUE..,                           Found the invalid expression [VALUE..] with missing tokens while evaluating [name]
+            VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+            VALUE.attrib[0]xsd,                Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+            VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+            VALUE.attrib[a],                   Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+            VALUE.attrib[a].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
+                """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);

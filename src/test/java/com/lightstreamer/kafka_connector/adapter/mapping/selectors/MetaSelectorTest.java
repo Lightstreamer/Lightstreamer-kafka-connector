@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 
@@ -32,15 +35,13 @@ public class MetaSelectorTest {
         assertThat(value.text()).isEqualTo(expectedValue);
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
-                EXPRESSION               |   EXPECTED_ERROR_MESSAGE
-                NOT-EXISTING-ATTRIBUTE   |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
-                ""                       |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
-                PARTITION.               |   Expected <on of [TIMESTAMP, PARTITION, TOPIC]>
-            """)
-    public void shouldNotCreate(String expression, String expectedErrorMessage) {
+    @ParameterizedTest(name="[{argumentsWithNames}]")
+    @EmptySource
+    @NullSource
+    @ValueSource(strings = { "NOT-EXISTING-ATTRIBUTE", "PARTITION." })
+    public void shouldNotCreate(String expression) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> metaSelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ee.getMessage())
+                .isEqualTo("Expected the root token [TIMESTAMP|PARTITION|TOPIC|OFFSET] while evaluating [field_name]");
     }
 }

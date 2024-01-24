@@ -82,9 +82,9 @@ public class JsonNodeSelectorsSuppliers {
                 .withArrayEvaluator(ArrayGetter::new)
                 .build();
 
-        private JsonNodeBaseSelector(String name, String expectedRoot, String expression) {
+        private JsonNodeBaseSelector(String name, String expression, String expectedRoot) {
             super(name, expression);
-            this.rootNode = PARSER.parse(expectedRoot, expression);
+            this.rootNode = PARSER.parse(name, expression, expectedRoot);
         }
 
         Value eval(JsonNode node) {
@@ -108,7 +108,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public KeySelector<JsonNode> newSelector(String name, String expression) {
-            return new JsonNodeKeySelector(name, expectedRoot(), expression);
+            return new JsonNodeKeySelector(name, expression, expectedRoot());
         }
 
         @Override
@@ -120,8 +120,8 @@ public class JsonNodeSelectorsSuppliers {
 
     static final class JsonNodeKeySelector extends JsonNodeBaseSelector implements KeySelector<JsonNode> {
 
-        JsonNodeKeySelector(String name, String expectedRoot, String expression) {
-            super(name, expectedRoot, expression);
+        JsonNodeKeySelector(String name, String expression, String expectedRoot) {
+            super(name, expression, expectedRoot);
         }
 
         @Override
@@ -140,7 +140,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public ValueSelector<JsonNode> newSelector(String name, String expression) {
-            return new JsonNodeValueSelector(name, expectedRoot(), expression);
+            return new JsonNodeValueSelector(name, expression, expectedRoot());
         }
 
         @Override
@@ -151,8 +151,8 @@ public class JsonNodeSelectorsSuppliers {
 
     static final class JsonNodeValueSelector extends JsonNodeBaseSelector implements ValueSelector<JsonNode> {
 
-        protected JsonNodeValueSelector(String name, String expectedRoot, String expression) {
-            super(name, expectedRoot, expression);
+        protected JsonNodeValueSelector(String name, String expression, String expectedRoot) {
+            super(name, expression, expectedRoot);
         }
 
         @Override

@@ -16,7 +16,7 @@ public class SelectorExpressionParser<K, V> {
 
     private static Pattern SELECTOR_PATTERN = Pattern.compile(SELECTION_REGEX);
 
-    private static Pattern INDEXES = Pattern.compile("\\[(\\d*)\\]");
+    private static Pattern INDEXES = Pattern.compile("\\[(\\d+)\\]$");
 
     public interface NodeEvaluator<K, V> {
         V get(K k) throws ValueException;
@@ -67,6 +67,10 @@ public class SelectorExpressionParser<K, V> {
         }
     }
 
+    record ParsingContext(String name, String expression, String expectedRoot) {
+
+    }
+
     private Function<String, NodeEvaluator<K, V>> fieldEvaluatorFactory;
 
     private BiFunction<String, List<Integer>, NodeEvaluator<K, V>> arrayEvaluatorFactory;
@@ -77,42 +81,37 @@ public class SelectorExpressionParser<K, V> {
         this.arrayEvaluatorFactory = ae;
     }
 
-    public LinkedNode<NodeEvaluator<K, V>> parse(String expectedRoot, String expression) {
-        // Matcher matcher = SELECTOR_PATTERN.matcher(expression);
-        // if (!matcher.matches()) {
-        // throw new ParseException("Invalid selector expression:
-        // \"%s\"".formatted(expression));
-        // }
-        // try (Scanner scanner = new Scanner(matcher.group(1)).useDelimiter("\\.")) {
-        // parseRoot(scanner, expectedRoot);
-        // return parseTokens(scanner);
-        // }
+    public LinkedNode<NodeEvaluator<K, V>> parse(String name, String expression, String expectedRoot) throws ExpressionException {
+        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
         try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
-            parseRoot(scanner, expectedRoot);
-            return parseTokens(scanner);
+            parseRoot(scanner, ctx);
+            return parseTokens(scanner, ctx);
         }
     }
 
-    private void parseRoot(Scanner scanner, String expectedRoot) {
+    private void parseRoot(Scanner scanner, ParsingContext ctx) {
         if (!scanner.hasNext()) {
-            ExpressionException.throwExpectedToken(expectedRoot);
+            ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
-        if (!expectedRoot.equals(scanner.next())) {
-            ExpressionException.throwExpectedToken(expectedRoot);
+        if (!ctx.expectedRoot().equals(scanner.next())) {
+            ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
     }
 
-    private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner) {
+    private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner, ParsingContext ctx) {
         LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
         while (scanner.hasNext()) {
             String fieldName = scanner.next();
             if (fieldName.isBlank()) {
-                ExpressionException.throwBlankToken();
+                ExpressionException.throwBlankToken(ctx.name(), ctx.expression());
             }
             int lbracket = fieldName.indexOf('[');
             NodeEvaluator<K, V> node;
             if (lbracket != -1) {
                 List<Integer> parseIndexes = parseIndexes(fieldName.substring(lbracket));
+                if (parseIndexes.isEmpty()) {
+                    ExpressionException.throwInvalidIndexedExpression(ctx.name(), ctx.expression());
+                }
                 String field = fieldName.substring(0, lbracket);
                 node = arrayEvaluatorFactory.apply(field, parseIndexes);
             } else {
@@ -128,7 +127,7 @@ public class SelectorExpressionParser<K, V> {
             }
         }
         if (head == null) {
-            ExpressionException.throwIncompleteExpression();
+            ExpressionException.throwInvalidExpression(ctx.name(), ctx.expression());
         }
         return head;
     }

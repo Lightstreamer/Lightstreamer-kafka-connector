@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
@@ -73,6 +74,15 @@ public class JsonNodeSelectorTest {
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
+    @Test
+    public void shouldExtract() {
+        ValueSelector<JsonNode> selector = valueSelector("VALUE.children[0]");
+        // ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromValue(RECORD)).text());
+        // assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        Value value = selector.extract(fromValue(RECORD));
+        System.out.println(value);
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_VALUE
@@ -105,10 +115,17 @@ public class JsonNodeSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-            invalidKey,                        Expected <KEY>
-            '',                                Expected <KEY>
-            KEY,                               Incomplete expression
-            KEY.,                              Incomplete expression
+            '',                                Expected the root token [KEY] while evaluating [name]
+            invalidKey,                        Expected the root token [KEY] while evaluating [name]
+            KEY,                               Found the invalid expression [KEY] while evaluating [name]
+            KEY.,                              Found the invalid expression [KEY.] while evaluating [name]
+            KEY..,                             Found the invalid expression [KEY..] with missing tokens while evaluating [name]
+            KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+            KEY.attrib[0]xsd,                  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+            KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+            KEY.attrib[a],                     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+            KEY.attrib[a].,                    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
+            KEY.attrib[0].,                    Found the invalid indexed expression [KEY.attrib[0].] while evaluating [name]
             """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> keySelector(expression));
@@ -118,11 +135,16 @@ public class JsonNodeSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-            invalidValue,                      Expected <VALUE>
-            '',                                Expected <VALUE>
-            VALUE,                             Incomplete expression
-            VALUE.,                            Incomplete expression
-            VALUE..,                           Tokens cannot be blank
+            '',                                Expected the root token [VALUE] while evaluating [name]
+            invalidValue,                      Expected the root token [VALUE] while evaluating [name]
+            VALUE,                             Found the invalid expression [VALUE] while evaluating [name]
+            VALUE.,                            Found the invalid expression [VALUE.] while evaluating [name]
+            VALUE..,                           Found the invalid expression [VALUE..] with missing tokens while evaluating [name]
+            VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+            VALUE.attrib[0]xsd,                Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+            VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+            VALUE.attrib[a],                   Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+            VALUE.attrib[a].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
             """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));

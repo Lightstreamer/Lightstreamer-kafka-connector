@@ -44,7 +44,7 @@
 
         <param name="field.key-name">#{KEY.name}</param>
         <param name="field.age">#{VALUE.info.age}</param>
-        <param name="field.height">#{VALUE.info.height}</param>
+        <param name="field.height">#{VALUE.info1.height}</param>
         <param name="field.zipcode1">#{VALUE.addresses[0].zipcode1}</param>
         <param name="field.zipcode2">#{VALUE.addresses[1].zipcode}</param>
 

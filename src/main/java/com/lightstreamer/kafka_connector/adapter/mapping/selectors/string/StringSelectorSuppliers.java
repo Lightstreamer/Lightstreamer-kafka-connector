@@ -42,7 +42,7 @@ public class StringSelectorSuppliers {
         @Override
         public KeySelector<String> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
-                ExpressionException.throwExpectedToken(expectedRoot());
+                ExpressionException.throwExpectedRootToken(name, expectedRoot());
             }
             return new StringKeySelector(name, expression);
         }
@@ -81,7 +81,7 @@ public class StringSelectorSuppliers {
         @Override
         public ValueSelector<String> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
-                ExpressionException.throwExpectedToken(expectedRoot());
+                ExpressionException.throwExpectedRootToken(name, expectedRoot());
             }
             return new StringValueSelector(name, expression);
         }

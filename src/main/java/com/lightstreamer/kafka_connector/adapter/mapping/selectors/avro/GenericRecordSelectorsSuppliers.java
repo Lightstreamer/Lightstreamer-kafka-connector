@@ -85,9 +85,9 @@ public class GenericRecordSelectorsSuppliers {
                 .withArrayEvaluator(ArrayGetter::new)
                 .build();
 
-        public GenericRecordBaseSelector(String name, String expectedRoot, String expression) {
+        public GenericRecordBaseSelector(String name, String expression, String expectedRoot) {
             super(name, expression);
-            this.linkedNode = PARSER.parse(expectedRoot, expression);
+            this.linkedNode = PARSER.parse(name, expression, expectedRoot);
         }
 
         protected Value eval(GenericRecord record) {
@@ -119,7 +119,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public KeySelector<GenericRecord> newSelector(String name, String expression) {
-            return new GenericRecordKeySelector(name, expectedRoot(), expression);
+            return new GenericRecordKeySelector(name, expression, expectedRoot());
         }
 
         @Override
@@ -131,8 +131,8 @@ public class GenericRecordSelectorsSuppliers {
     static final class GenericRecordKeySelector extends GenericRecordBaseSelector
             implements KeySelector<GenericRecord> {
 
-        GenericRecordKeySelector(String name, String expectedRoot, String expression) {
-            super(name, expectedRoot, expression);
+        GenericRecordKeySelector(String name, String expression, String expectedRoot) {
+            super(name, expression, expectedRoot);
         }
 
         @Override
@@ -151,7 +151,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public ValueSelector<GenericRecord> newSelector(String name, String expression) {
-            return new GenericRecordValueSelector(name, expectedRoot(), expression);
+            return new GenericRecordValueSelector(name, expression, expectedRoot());
         }
 
         @Override
@@ -163,8 +163,8 @@ public class GenericRecordSelectorsSuppliers {
     static final class GenericRecordValueSelector extends GenericRecordBaseSelector
             implements ValueSelector<GenericRecord> {
 
-        public GenericRecordValueSelector(String name, String expectedRoot, String expression) {
-            super(name, expectedRoot, expression);
+        public GenericRecordValueSelector(String name, String expression, String expectedRoot) {
+            super(name, expression, expectedRoot);
         }
 
         @Override

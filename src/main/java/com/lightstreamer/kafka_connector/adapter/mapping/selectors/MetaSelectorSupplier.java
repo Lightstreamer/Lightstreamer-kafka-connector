@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
         abstract String value(ConsumerRecord<?, ?> record);
 
         static List<Attribute> validAttributes() {
-            return List.of(TIMESTAMP, PARTITION, TOPIC);
+            return List.of(TIMESTAMP, PARTITION, TOPIC, OFFSET);
 
         }
     }
@@ -71,7 +72,8 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
     @Override
     public MetaSelector newSelector(String name, String expression) {
         if (!maySupply(expression)) {
-            ExpressionException.throwExpectedToken("on of " + Attribute.validAttributes());
+            ExpressionException.throwExpectedRootToken(name,
+                    Attribute.validAttributes().stream().map(a -> a.toString()).collect(Collectors.joining("|")));
         }
         return new DefaultMetaSelector(name, expression);
     }
