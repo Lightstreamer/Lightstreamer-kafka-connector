@@ -94,6 +94,9 @@ public class JsonNodeSelectorsSuppliers {
                 node = nodeEvaluator.get(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
+            if (node.isObject()) {
+                ValueException.throwNonComplexObjectRequired(expression());
+            }
             return Value.of(name(), node.asText());
         }
     }

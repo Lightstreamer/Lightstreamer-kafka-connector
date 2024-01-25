@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
@@ -30,6 +31,14 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
 
     @Override
     void stopConsuming() {
+    }
+
+    @Override
+    public void subscribeInfoItem(InfoItem itemHandle) {
+    }
+
+    @Override
+    public void unsubscribeInfoItem() {
     }
 
 }

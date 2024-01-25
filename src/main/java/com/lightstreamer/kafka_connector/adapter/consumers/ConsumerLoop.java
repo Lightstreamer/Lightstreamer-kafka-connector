@@ -3,7 +3,9 @@ package com.lightstreamer.kafka_connector.adapter.consumers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper.MappedRecord;
@@ -26,6 +29,12 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueExceptio
 
 public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
+    enum ValueExceptionStrategy {
+        COMMIT_ANYWAY,
+
+        TERMINATE;
+    }
+
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
 
     private final ItemEventListener eventListener;
@@ -33,6 +42,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     private final Selectors<K, V> fieldsSelectors;
     private final ReentrantLock consumerLock = new ReentrantLock();
     private volatile ConsumerWrapper consumer;
+    private AtomicBoolean infoLock = new AtomicBoolean(false);
+
+    private volatile InfoItem infoItem;
 
     public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
         super(config);
@@ -50,7 +62,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     void startConsuming() {
         consumerLock.lock();
         try {
-            consumer = new ConsumerWrapper();
+            consumer = new ConsumerWrapper(ValueExceptionStrategy.COMMIT_ANYWAY);
             new Thread(consumer).start();
         } finally {
             consumerLock.unlock();
@@ -80,7 +92,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private int counter;
         private Thread hook;
 
-        ConsumerWrapper() {
+        private ValueExceptionStrategy st;
+        private volatile boolean enableFinalCommit = true;
+
+        ConsumerWrapper(ValueExceptionStrategy st) {
+            this.st = st;
             this.counter = COUNTER.incrementAndGet();
             String bootStrapServers = config.consumerProperties()
                     .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
@@ -108,9 +124,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         public void run() {
             try {
                 List<String> topics = config.itemTemplates().topics().toList();
-                log.atDebug().log("Subscring to {}", topics);
+                log.atDebug().log("Subscring to topics [{}]", topics);
                 consumer.subscribe(topics);
-                log.atInfo().log("Subscribed to {}", topics);
+                log.atInfo().log("Subscribed to topics [{}]", topics);
 
                 while (true) {
                     log.atDebug().log("Polling records");
@@ -120,7 +136,21 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         records.forEach(this::consume);
                         consumer.commitAsync();
                     } catch (ValueException re) {
-                        log.atInfo().setCause(re).log();
+                        log.atWarn().log("An error occured while extracting values from the record: {}",
+                                re.getMessage());
+                        notifyException(re);
+
+                        switch (st) {
+                            case COMMIT_ANYWAY -> {
+                                log.atWarn().log("Commiting anyway");
+                                consumer.commitAsync();
+                            }
+
+                            case TERMINATE -> {
+                                log.atWarn().log("Terminating");
+                                CompletableFuture.runAsync(() -> closeAndExit(re));
+                            }
+                        }
                     }
                 }
             } catch (WakeupException e) {
@@ -128,7 +158,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             } finally {
                 log.atDebug().log("Start closing Kafka Consumer");
                 try {
-                    consumer.commitSync();
+                    if (enableFinalCommit) {
+                        consumer.commitSync();
+                    }
                 } catch (CommitFailedException e) {
                     log.atWarn().setCause(e).log();
                 } finally {
@@ -163,20 +195,55 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
+        private void notifyException(ValueException re) {
+            infoLock.set(true);
+            try {
+                if (infoItem == null) {
+                    return;
+                }
+                eventListener.smartUpdate(infoItem.itemHandle(), infoItem.mkEvent(re.getMessage()), false);
+            } finally {
+                infoLock.set(false);
+            }
+        }
+
         void close() {
             shutdown();
             Runtime.getRuntime().removeShutdownHook(this.hook);
         }
 
+        private void closeAndExit(Throwable cause) {
+            enableFinalCommit = false;
+            close();
+            eventListener.failure(cause);
+        }
+
         private void shutdown() {
             log.atInfo().log("Shutting down Kafka consumer");
+            log.atDebug().log("Waking up consumer");
             consumer.wakeup();
+            log.atDebug().log("Consumer woken up");
             try {
+                log.atDebug().log("Waiting for graceful thread completion");
                 latch.await();
+                log.atDebug().log("Thread completed");
             } catch (InterruptedException e) {
                 // Ignore
             }
             log.atInfo().log("Kafka consumer shut down");
         }
     }
+
+    @Override
+    public void subscribeInfoItem(InfoItem itemHandle) {
+        this.infoItem = itemHandle;
+    }
+
+    @Override
+    public void unsubscribeInfoItem() {
+        while (!infoLock.compareAndSet(false, true)) {
+            this.infoItemhande = null;
+        }
+    }
+
 }

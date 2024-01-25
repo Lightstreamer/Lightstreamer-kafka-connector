@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -30,13 +29,15 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNode
 
 public class ConnectorConfiguratorTest {
 
-    private Path adapterDir;
-    private ConnectorConfigurator configurator;
+    private static File adapterDir;
 
     @BeforeEach
     void before() throws IOException {
-        adapterDir = Files.createTempDirectory("adapter_dir");
-        configurator = new ConnectorConfigurator(adapterDir.toFile());
+        adapterDir = Files.createTempDirectory("adapter_dir").toFile();
+    }
+
+    static ConnectorConfig mkConfig(Map<String, String> params) {
+        return ConnectorConfig.newConfig(adapterDir, params);
     }
 
     private Map<String, String> basicParameters() {
@@ -54,7 +55,8 @@ public class ConnectorConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
     }
 
@@ -64,7 +66,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
 
-        assertDoesNotThrow(() -> configurator.configure(updatedConfigs));
+        assertDoesNotThrow(() -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
     }
 
     @Test
@@ -73,7 +75,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "value.avsc"));
     }
 
@@ -83,8 +86,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
-        ConnectorConfigurator configurator = new ConnectorConfigurator(new File("src/test/resources"));
-        assertDoesNotThrow(() -> configurator.configure(updatedConfigs));
+        ConnectorConfig cfg = ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
+        assertDoesNotThrow(() -> ConnectorConfigurator.configure(cfg));
     }
 
     @Test
@@ -93,16 +96,18 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "flights.json"));
     }
 
     @Test
     public void shouldNotConfigureDueToInvalidTemplateReference() {
-        Map<String, String> basicParameters = basicParameters();
-        basicParameters.put("map.topic1.to", "no-valid-item-template");
+        Map<String, String> updatedConfigs = basicParameters();
+        updatedConfigs.put("map.topic1.to", "no-valid-item-template");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(basicParameters));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("No item template [no-valid-item-template] found");
     }
 
@@ -111,7 +116,8 @@ public class ConnectorConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("field.fieldName1", "VALUE");
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage())
                 .isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
     }
@@ -124,8 +130,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
         updatedConfigs.put("field.fieldName1", expression);
 
-        ConnectorConfigurator configurator = new ConnectorConfigurator(new File("src/test/resources"));
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConnectorConfig cfg = ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
+        ConfigException e = assertThrows(ConfigException.class, () -> ConnectorConfigurator.configure(cfg));
         assertThat(e.getMessage())
                 .isEqualTo("Found the invalid expression [" + expression + "] while evaluating [field.fieldName1]");
     }
@@ -136,14 +142,15 @@ public class ConnectorConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template1", expression);
 
-        ConfigException e = assertThrows(ConfigException.class, () -> configurator.configure(updatedConfigs));
+        ConfigException e = assertThrows(ConfigException.class,
+                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("Found the invalid expression [" + expression
                 + "] while evaluating [item-template.template1]: <Invalid item>");
     }
 
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
-        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure(basicParameters());
+        ConsumerLoopConfig<?, ?> loopConfig = ConnectorConfigurator.configure(mkConfig(basicParameters()));
 
         Properties consumerProperties = loopConfig.consumerProperties();
         assertThat(consumerProperties).containsExactly(
@@ -168,16 +175,16 @@ public class ConnectorConfiguratorTest {
 
     @Test
     public void shouldConfigureWithComplexParameters() throws IOException {
-        Map<String, String> enhancedConfig = new HashMap<>(basicParameters());
-        enhancedConfig.put("item-template.template2", "item2");
-        enhancedConfig.put("map.topic1.to", "item-template.template1,item-template.template2");
-        enhancedConfig.put("map.topic2.to", "item-template.template1");
-        enhancedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        enhancedConfig.put("field.fieldName1", "#{VALUE.name}");
-        enhancedConfig.put("field.fieldName2", "#{VALUE.otherAttrib}");
-        enhancedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put("item-template.template2", "item2");
+        updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
+        updatedConfigs.put("map.topic2.to", "item-template.template1");
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
+        updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
 
-        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure(enhancedConfig);
+        ConsumerLoopConfig<?, ?> loopConfig = ConnectorConfigurator.configure(mkConfig(updatedConfigs));
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();

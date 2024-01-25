@@ -125,6 +125,22 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaRegistryUrlParam.multiple()).isFalse();
         assertThat(valueSchemaRegistryUrlParam.defaultValue()).isNull();
         assertThat(valueSchemaRegistryUrlParam.type()).isEqualTo(ConfType.URL);
+
+        ConfParameter infoItemName = configSpec
+                .getParameter(ConnectorConfig.ITEM_INFO_NAME);
+        assertThat(infoItemName.name()).isEqualTo(ConnectorConfig.ITEM_INFO_NAME);
+        assertThat(infoItemName.required()).isFalse();
+        assertThat(infoItemName.multiple()).isFalse();
+        assertThat(infoItemName.defaultValue()).isEqualTo("INFO");
+        assertThat(infoItemName.type()).isEqualTo(ConfType.Text);
+
+        ConfParameter infoItemFieldParameter = configSpec
+                .getParameter(ConnectorConfig.ITEM_INFO_FIELD);
+        assertThat(infoItemFieldParameter.name()).isEqualTo(ConnectorConfig.ITEM_INFO_FIELD);
+        assertThat(infoItemFieldParameter.required()).isFalse();
+        assertThat(infoItemFieldParameter.multiple()).isFalse();
+        assertThat(infoItemFieldParameter.defaultValue()).isEqualTo("MSG");
+        assertThat(infoItemFieldParameter.type()).isEqualTo(ConfType.Text);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -191,6 +207,8 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "key-consumer");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
+        adapterParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
+        adapterParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         adapterParams.put("item-template.template1", "item1");
         adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");
@@ -290,6 +308,8 @@ public class ConnectorConfigTest {
         assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("value-consumer");
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("key-consumer");
+        assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
+        assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("INFO_FIELD");
     }
 
     @Test
@@ -336,7 +356,6 @@ public class ConnectorConfigTest {
                 .isEqualTo("http://key-host:8080/registry");
         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
                 .isEqualTo("http://value-host:8080/registry");
-
     }
 
     @Test
@@ -368,11 +387,10 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultText() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isNotNull();
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("RAW");
-
-        assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isNotNull();
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("RAW");
+        assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO");
+        assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("MSG");
     }
 
     @Test

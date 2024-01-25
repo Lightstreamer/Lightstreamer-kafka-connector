@@ -1,6 +1,5 @@
 package com.lightstreamer.kafka_connector.adapter;
 
-import java.io.File;
 import java.util.Map;
 import java.util.Properties;
 
@@ -39,15 +38,17 @@ public class ConnectorConfigurator {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorConfigurator.class);
 
-    private final File adapterDir;
+    private final ConnectorConfig connectorConfig;
 
-    public ConnectorConfigurator(File adapterDir) {
-        this.adapterDir = adapterDir;
+    private ConnectorConfigurator(ConnectorConfig config) {
+        this.connectorConfig = config;
     }
 
-    public ConsumerLoopConfig<?, ?> configure(Map<String, String> params) throws ConfigException {
-        ConnectorConfig connectorConfig = new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
+    public static ConsumerLoopConfig<?,?> configure(ConnectorConfig config) {
+        return new ConnectorConfigurator(config).configure();
+    }
 
+    private ConsumerLoopConfig<?, ?> configure() throws ConfigException {
         TopicsConfig topicsConfig = TopicsConfig.of(connectorConfig);
 
         // Process "field.<field-name>"

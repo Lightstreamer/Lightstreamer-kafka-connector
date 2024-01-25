@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,6 +43,10 @@ public class ConnectorConfig {
 
     public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_URL = "value.evaluator.schema.registry.url";
 
+    public static final String ITEM_INFO_NAME = "info.item";
+
+    public static final String ITEM_INFO_FIELD = "info.field";
+
     private static final ConfigSpec CONFIG_SPEC;
 
     static {
@@ -59,7 +62,10 @@ public class ConnectorConfig {
                 .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
                 .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
                 .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
-                .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text);
+                .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text)
+                .add(ITEM_INFO_NAME, false, false, ConfType.Text, "INFO")
+                .add(ITEM_INFO_FIELD, false, false, ConfType.Text, "MSG");
+
     }
 
     private final ConfigSpec configSpec;
@@ -81,6 +87,10 @@ public class ConnectorConfig {
 
     static ConfigSpec configSpec() {
         return CONFIG_SPEC;
+    }
+
+    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
+        return new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
     }
 
     private String get(String key, Type type, boolean forceRequired) {

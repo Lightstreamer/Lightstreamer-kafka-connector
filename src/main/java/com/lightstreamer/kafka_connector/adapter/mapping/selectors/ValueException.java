@@ -18,6 +18,10 @@ public class ValueException extends RuntimeException {
         throwException(mkException("Current field is not of type [%s]", type));
     }
 
+    public static void throwNonComplexObjectRequired(String expression) {
+        throwException(mkException("The expression [%s] must evaluate to a non-complex object", expression));
+    }
+
     private static void throwException(ValueException ve) throws ValueException {
         throw ve;
     }
@@ -25,5 +29,6 @@ public class ValueException extends RuntimeException {
     private static ValueException mkException(String message, Object... args) {
         return new ValueException(message.formatted(args));
     }
+
 
 }

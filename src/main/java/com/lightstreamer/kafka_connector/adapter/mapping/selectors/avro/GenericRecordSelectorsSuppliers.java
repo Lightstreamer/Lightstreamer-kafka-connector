@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
@@ -90,6 +91,10 @@ public class GenericRecordSelectorsSuppliers {
             this.linkedNode = PARSER.parse(name, expression, expectedRoot);
         }
 
+        private boolean isScalar(Object value) {
+            return !(value instanceof GenericRecord);
+        }
+
         protected Value eval(GenericRecord record) {
             Object value = record;
             GenericRecord currentRecord = record;
@@ -103,6 +108,10 @@ public class GenericRecordSelectorsSuppliers {
                     continue;
                 }
                 ValueException.throwConversionError("GenericRecord");
+            }
+
+            if (!isScalar(value)) {
+                ValueException.throwNonComplexObjectRequired(expression());
             }
 
             return Value.of(name(), value.toString());

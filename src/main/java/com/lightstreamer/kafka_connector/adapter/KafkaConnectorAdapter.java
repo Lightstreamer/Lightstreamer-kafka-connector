@@ -19,6 +19,8 @@ import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.consumers.ConsumerLoop;
 
 public class KafkaConnectorAdapter implements SmartDataProvider {
@@ -29,6 +31,8 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
 
     private ConsumerLoopConfig<?, ?> loopConfig;
 
+    private ConnectorConfig connectorConfig;
+
     public KafkaConnectorAdapter() {
     }
 
@@ -37,9 +41,10 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         configureLogging(params, configDir);
 
-        ConnectorConfigurator configParser = new ConnectorConfigurator(configDir);
+        this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
+
         log.info("Configuring Kafka Connector");
-        this.loopConfig = configParser.configure(params);
+        this.loopConfig = ConnectorConfigurator.configure(connectorConfig);
         log.info("Configuration complete");
     }
 
@@ -78,12 +83,22 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     @Override
     public void subscribe(@Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
+        if (itemName.equals(connectorConfig.getText(ConnectorConfig.ITEM_INFO_NAME))) {
+            log.atInfo().log("Subscribing to the special INFO item");
+            loop.subscribeInfoItem(new InfoItem(itemHandle, connectorConfig.getText(ConnectorConfig.ITEM_INFO_FIELD)));
+            return;
+        }
         log.info("Trying subscription to item [{}]", itemName);
         loop.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName) throws SubscriptionException, FailureException {
+        if (itemName.equals(connectorConfig.getText(ConnectorConfig.ITEM_INFO_NAME))) {
+            log.atInfo().log("Unsubscribing from the special INFO item");
+            loop.unsubscribeInfoItem();
+            return;
+        }
         log.info("Unsubscribing from item [{}]", itemName);
         loop.unsubscribe(itemName);
     }
