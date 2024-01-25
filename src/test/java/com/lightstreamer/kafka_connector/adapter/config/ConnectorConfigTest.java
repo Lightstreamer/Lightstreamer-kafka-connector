@@ -338,24 +338,25 @@ public class ConnectorConfigTest {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
-        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("KAFKA-CONNECTOR");
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("value-consumer");
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("key-consumer");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("INFO_FIELD");
+
+        String groupId = config.getText(ConnectorConfig.GROUP_ID);
+        assertThat(groupId).startsWith("KAFKA-CONNECTOR-");
+        assertThat(groupId.length()).isGreaterThan("KAFKA-CONNECTOR-".length());
     }
 
     @Test
-    public void shouldGetTextWithRandomSuffix() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
-        String groupId = config.getTextWithRandomSuffix(ConnectorConfig.GROUP_ID);
-        assertThat(groupId).startsWith("KAFKA-CONNECTOR-");
-        assertThat(groupId.length()).isGreaterThan("KAFKA-CONNECTOR-".length());
+    public void shouldGetOverridenGroupId() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.GROUP_ID, "group-id");
+        ConnectorConfig config = new ConnectorConfig(updatedConfig);
 
-        String groupId2 = config.getTextWithRandomSuffix(ConnectorConfig.GROUP_ID);
-        assertThat(groupId2).isNotEqualTo(groupId);
-
+        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
     }
+
 
     @Test
     public void shouldGetValues() {
@@ -432,7 +433,8 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultText() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("KAFKA-CONNECTOR");
+        assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
+        assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("RAW");
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("RAW");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO");

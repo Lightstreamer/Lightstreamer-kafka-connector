@@ -59,8 +59,13 @@ public class ConnectorConfig {
         CONFIG_SPEC = new ConfigSpec()
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
                 .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
-                .add(GROUP_ID, false, false, ConfType.Text,  DefaultHolder.defaultValue(params -> {
-                    return "%s-%s".formatted(params.get(ADAPTERS_CONF_ID), params.get(DATA_ADAPTER_NAME));
+                .add(GROUP_ID, false, false, ConfType.Text, DefaultHolder.defaultValue(params -> {
+                    String suffix = new SecureRandom()
+                            .ints(20, 48, 122)
+                            .mapToObj(Character::toString)
+                            .collect(Collectors.joining());
+                    return "%s-%s-%s".formatted(params.get(ADAPTERS_CONF_ID), params.get(DATA_ADAPTER_NAME), suffix);
+
                 }))
                 .add(ADAPTERS_CONF_ID, true, false, ConfType.Text)
                 .add(DATA_ADAPTER_NAME, true, false, ConfType.Text)
@@ -125,15 +130,6 @@ public class ConnectorConfig {
         return get(configKey, ConfType.Text, false);
     }
 
-    public String getTextWithRandomSuffix(String configKey) {
-        String txt = getText(configKey);
-        if (txt != null) {
-            String suffix = new SecureRandom().ints(20, 48,122).mapToObj(Character::toString).collect(Collectors.joining());
-            return "%s-%s".formatted(txt, suffix);
-        }
-        return null;
-    }
-
     public String getHost(String configKey) {
         return get(configKey, ConfType.Host, false);
     }
@@ -188,7 +184,7 @@ public class ConnectorConfig {
     public Properties baseConsumerProps() {
         Properties properties = new Properties();
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getTextWithRandomSuffix(GROUP_ID));
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "0");
