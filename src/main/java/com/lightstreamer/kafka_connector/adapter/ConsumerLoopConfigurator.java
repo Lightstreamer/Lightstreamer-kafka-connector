@@ -21,7 +21,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericR
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.string.StringSelectorSuppliers;
 
-public class ConnectorConfigurator {
+public class ConsumerLoopConfigurator {
 
     public interface ConsumerLoopConfig<K, V> {
 
@@ -36,16 +36,16 @@ public class ConnectorConfigurator {
         Deserializer<V> valueDeserializer();
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ConnectorConfigurator.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsumerLoopConfigurator.class);
 
     private final ConnectorConfig connectorConfig;
 
-    private ConnectorConfigurator(ConnectorConfig config) {
+    private ConsumerLoopConfigurator(ConnectorConfig config) {
         this.connectorConfig = config;
     }
 
     public static ConsumerLoopConfig<?,?> configure(ConnectorConfig config) {
-        return new ConnectorConfigurator(config).configure();
+        return new ConsumerLoopConfigurator(config).configure();
     }
 
     private ConsumerLoopConfig<?, ?> configure() throws ConfigException {

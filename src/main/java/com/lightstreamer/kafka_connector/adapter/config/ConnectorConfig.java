@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import java.io.File;
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -14,9 +15,14 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.DefaultHolder;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
 
 public class ConnectorConfig {
+
+    public static final String DATA_ADAPTER_NAME = "data_provider.name";
+
+    public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
 
     public static final String ADAPTER_DIR = "adapter.dir";
 
@@ -53,18 +59,22 @@ public class ConnectorConfig {
         CONFIG_SPEC = new ConfigSpec()
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
                 .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
-                .add(GROUP_ID, true, false, ConfType.Text)
+                .add(GROUP_ID, false, false, ConfType.Text,  DefaultHolder.defaultValue(params -> {
+                    return "%s-%s".formatted(params.get(ADAPTERS_CONF_ID), params.get(DATA_ADAPTER_NAME));
+                }))
+                .add(ADAPTERS_CONF_ID, true, false, ConfType.Text)
+                .add(DATA_ADAPTER_NAME, true, false, ConfType.Text)
                 .add(ITEM_TEMPLATE, true, true, ConfType.Text)
                 .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, ConfType.Text)
                 .add(FIELD, true, true, ConfType.Text)
                 .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
                 .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
-                .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
+                .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, DefaultHolder.defaultValue("RAW"))
                 .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, "RAW")
+                .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, DefaultHolder.defaultValue("RAW"))
                 .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(ITEM_INFO_NAME, false, false, ConfType.Text, "INFO")
-                .add(ITEM_INFO_FIELD, false, false, ConfType.Text, "MSG");
+                .add(ITEM_INFO_NAME, false, false, ConfType.Text, DefaultHolder.defaultValue("INFO"))
+                .add(ITEM_INFO_FIELD, false, false, ConfType.Text, DefaultHolder.defaultValue("MSG"));
 
     }
 
@@ -99,7 +109,7 @@ public class ConnectorConfig {
             if (param.required() && configuration.containsKey(key)) {
                 return configuration.get(key);
             } else {
-                String value = configuration.getOrDefault(key, param.defaultValue());
+                String value = configuration.getOrDefault(key, param.defaultHolder().value(configuration));
                 if (forceRequired && value == null) {
                     throw new ConfigException("Missing required parameter [%s]".formatted(key));
                 }
@@ -113,6 +123,15 @@ public class ConnectorConfig {
 
     public String getText(String configKey) {
         return get(configKey, ConfType.Text, false);
+    }
+
+    public String getTextWithRandomSuffix(String configKey) {
+        String txt = getText(configKey);
+        if (txt != null) {
+            String suffix = new SecureRandom().ints(20, 48,122).mapToObj(Character::toString).collect(Collectors.joining());
+            return "%s-%s".formatted(txt, suffix);
+        }
+        return null;
     }
 
     public String getHost(String configKey) {
@@ -169,8 +188,8 @@ public class ConnectorConfig {
     public Properties baseConsumerProps() {
         Properties properties = new Properties();
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getTextWithRandomSuffix(GROUP_ID));
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "0");
         // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");

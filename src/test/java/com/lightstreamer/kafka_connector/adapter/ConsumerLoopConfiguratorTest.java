@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.Fields.FieldMappings;
@@ -27,7 +27,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.json.JsonNodeDeserializer;
 
-public class ConnectorConfiguratorTest {
+public class ConsumerLoopConfiguratorTest {
 
     private static File adapterDir;
 
@@ -36,14 +36,15 @@ public class ConnectorConfiguratorTest {
         adapterDir = Files.createTempDirectory("adapter_dir").toFile();
     }
 
-    static ConnectorConfig mkConfig(Map<String, String> params) {
+    static ConnectorConfig cgf(Map<String, String> params) {
         return ConnectorConfig.newConfig(adapterDir, params);
     }
 
     private Map<String, String> basicParameters() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
+        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put("item-template.template1", "item1-#{}");
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
@@ -56,7 +57,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
     }
 
@@ -66,7 +67,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
 
-        assertDoesNotThrow(() -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
     }
 
     @Test
@@ -76,7 +77,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "value.avsc"));
     }
 
@@ -87,7 +88,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
         ConnectorConfig cfg = ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
-        assertDoesNotThrow(() -> ConnectorConfigurator.configure(cfg));
+        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(cfg));
     }
 
     @Test
@@ -97,7 +98,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("File [%s/%s] not found".formatted(adapterDir, "flights.json"));
     }
 
@@ -107,7 +108,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic1.to", "no-valid-item-template");
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("No item template [no-valid-item-template] found");
     }
 
@@ -117,7 +118,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", "VALUE");
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage())
                 .isEqualTo("Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
     }
@@ -131,7 +132,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", expression);
 
         ConnectorConfig cfg = ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
-        ConfigException e = assertThrows(ConfigException.class, () -> ConnectorConfigurator.configure(cfg));
+        ConfigException e = assertThrows(ConfigException.class, () -> ConsumerLoopConfigurator.configure(cfg));
         assertThat(e.getMessage())
                 .isEqualTo("Found the invalid expression [" + expression + "] while evaluating [field.fieldName1]");
     }
@@ -143,21 +144,21 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("item-template.template1", expression);
 
         ConfigException e = assertThrows(ConfigException.class,
-                () -> ConnectorConfigurator.configure(mkConfig(updatedConfigs)));
+                () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage()).isEqualTo("Found the invalid expression [" + expression
                 + "] while evaluating [item-template.template1]: <Invalid item>");
     }
 
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
-        ConsumerLoopConfig<?, ?> loopConfig = ConnectorConfigurator.configure(mkConfig(basicParameters()));
+        ConsumerLoopConfig<?, ?> loopConfig = ConsumerLoopConfigurator.configure(cgf(basicParameters()));
 
         Properties consumerProperties = loopConfig.consumerProperties();
-        assertThat(consumerProperties).containsExactly(
+        assertThat(consumerProperties).containsAtLeast(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
                 ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG)).startsWith("KAFKA-CONNECTOR-");
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();
@@ -184,7 +185,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
 
-        ConsumerLoopConfig<?, ?> loopConfig = ConnectorConfigurator.configure(mkConfig(updatedConfigs));
+        ConsumerLoopConfig<?, ?> loopConfig = ConsumerLoopConfigurator.configure(cgf(updatedConfigs));
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();

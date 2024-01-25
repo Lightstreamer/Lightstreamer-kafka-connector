@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;

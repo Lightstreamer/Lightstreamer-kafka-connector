@@ -44,6 +44,20 @@ public class ConnectorConfigTest {
         assertThat(adapterDirParam.defaultValue()).isNull();
         assertThat(adapterDirParam.type()).isEqualTo(ConfType.Directory);
 
+        ConfParameter adapterConfId = configSpec.getParameter(ConnectorConfig.ADAPTERS_CONF_ID);
+        assertThat(adapterConfId.name()).isEqualTo(ConnectorConfig.ADAPTERS_CONF_ID);
+        assertThat(adapterConfId.required()).isTrue();
+        assertThat(adapterConfId.multiple()).isFalse();
+        assertThat(adapterConfId.defaultValue()).isNull();
+        assertThat(adapterConfId.type()).isEqualTo(ConfType.Text);
+
+        ConfParameter dataAdapterName = configSpec.getParameter(ConnectorConfig.DATA_ADAPTER_NAME);
+        assertThat(dataAdapterName.name()).isEqualTo(ConnectorConfig.DATA_ADAPTER_NAME);
+        assertThat(dataAdapterName.required()).isTrue();
+        assertThat(dataAdapterName.multiple()).isFalse();
+        assertThat(dataAdapterName.defaultValue()).isNull();
+        assertThat(dataAdapterName.type()).isEqualTo(ConfType.Text);
+
         ConfParameter bootStrapServersParam = configSpec.getParameter(ConnectorConfig.BOOTSTRAP_SERVERS);
         assertThat(bootStrapServersParam.name()).isEqualTo(ConnectorConfig.BOOTSTRAP_SERVERS);
         assertThat(bootStrapServersParam.required()).isTrue();
@@ -53,9 +67,9 @@ public class ConnectorConfigTest {
 
         ConfParameter groupIdParam = configSpec.getParameter(ConnectorConfig.GROUP_ID);
         assertThat(groupIdParam.name()).isEqualTo(ConnectorConfig.GROUP_ID);
-        assertThat(groupIdParam.required()).isTrue();
+        assertThat(groupIdParam.required()).isFalse();
         assertThat(groupIdParam.multiple()).isFalse();
-        assertThat(groupIdParam.defaultValue()).isNull();
+        assertThat(groupIdParam.defaultValue()).isNotNull();
         assertThat(groupIdParam.type()).isEqualTo(ConfType.Text);
 
         ConfParameter keyConsumerParam = configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_TYPE);
@@ -200,7 +214,6 @@ public class ConnectorConfigTest {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        adapterParams.put(ConnectorConfig.GROUP_ID, "group-id");
         adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "value-consumer");
         adapterParams.put(ConnectorConfig.VALUE_SCHEMA_FILE, "value-schema-file");
         adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, "http://value-host:8080/registry");
@@ -209,6 +222,8 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
         adapterParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
         adapterParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
+        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put("item-template.template1", "item1");
         adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");
@@ -220,24 +235,26 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyRequiredParams() {
         ConfigException e = assertThrows(ConfigException.class, () -> new ConnectorConfig(Collections.emptyMap()));
-        assertThat(e.getMessage()).isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.GROUP_ID));
+        assertThat(e.getMessage())
+                .isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
         Map<String, String> params = new HashMap<>();
-        params.put(ConnectorConfig.GROUP_ID, "");
+        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage())
-                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.GROUP_ID));
+                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
-        params.put(ConnectorConfig.GROUP_ID, "group-id");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
-
-        params.put("field.field1", "");
+        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "data_provider_name");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage())
-                .isEqualTo("Specify a valid value for parameter [field.field1]");
+                .isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTERS_CONF_ID));
 
-        params.put("field.field1", "VALUE");
+        params.put(ConnectorConfig.ADAPTERS_CONF_ID, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ConnectorConfig.ADAPTERS_CONF_ID));
+
+        params.put(ConnectorConfig.ADAPTERS_CONF_ID, "adapters_conf_id");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage())
                 .isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
@@ -257,6 +274,15 @@ public class ConnectorConfigTest {
 
         params.put("item-template.template1", "template");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
+
+        params.put("field.field1", "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [field.field1]");
+
+        params.put("field.field1", "VALUE");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage()).isEqualTo("Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
 
         params.put(ConnectorConfig.ADAPTER_DIR, "");
@@ -267,6 +293,11 @@ public class ConnectorConfigTest {
         params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
+
+        params.put("map.topic.to", "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         params.put("map.topic.to", "aTemplate");
         assertDoesNotThrow(() -> new ConnectorConfig(params));
@@ -283,33 +314,47 @@ public class ConnectorConfigTest {
     public void shouldRetrieveBaseConsumerProperties() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         Properties baseConsumerProps = config.baseConsumerProps();
-        assertThat(baseConsumerProps).containsExactly(
+        assertThat(baseConsumerProps).containsAtLeast(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
                 ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG)).startsWith("KAFKA-CONNECTOR-");
     }
 
     @Test
     public void shouldExtendBaseConsumerProperties() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         Map<String, ?> extendedProps = config.extendsConsumerProps(Map.of("new.key", "new.value"));
-        assertThat(extendedProps).containsExactly(
+        assertThat(extendedProps).containsAtLeast(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                ConsumerConfig.GROUP_ID_CONFIG, "group-id",
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
                 ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false",
                 "new.key", "new.value");
+        assertThat(extendedProps.get(ConsumerConfig.GROUP_ID_CONFIG).toString()).startsWith("KAFKA-CONNECTOR-");
     }
 
     @Test
     public void shouldGetText() {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
-        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
+        assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
+        assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
+        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("KAFKA-CONNECTOR");
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("value-consumer");
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("key-consumer");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("INFO_FIELD");
+    }
+
+    @Test
+    public void shouldGetTextWithRandomSuffix() {
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        String groupId = config.getTextWithRandomSuffix(ConnectorConfig.GROUP_ID);
+        assertThat(groupId).startsWith("KAFKA-CONNECTOR-");
+        assertThat(groupId.length()).isGreaterThan("KAFKA-CONNECTOR-".length());
+
+        String groupId2 = config.getTextWithRandomSuffix(ConnectorConfig.GROUP_ID);
+        assertThat(groupId2).isNotEqualTo(groupId);
+
     }
 
     @Test
@@ -387,6 +432,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultText() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("KAFKA-CONNECTOR");
         assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("RAW");
         assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("RAW");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO");

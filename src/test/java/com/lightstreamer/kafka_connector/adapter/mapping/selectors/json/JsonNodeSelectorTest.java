@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueException;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
@@ -73,15 +72,6 @@ public class JsonNodeSelectorTest {
         ValueSelector<JsonNode> selector = valueSelector(expression);
         ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromValue(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
-
-    @Test
-    public void shouldExtract() {
-        ValueSelector<JsonNode> selector = valueSelector("VALUE.children[0]");
-        // ValueException ve = assertThrows(ValueException.class, () ->selector.extract(fromValue(RECORD)).text());
-        // assertThat(ve.getMessage()).isEqualTo(errorMessage);
-        Value value = selector.extract(fromValue(RECORD));
-        System.out.println(value);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

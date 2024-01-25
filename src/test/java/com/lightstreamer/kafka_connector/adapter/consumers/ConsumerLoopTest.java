@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;

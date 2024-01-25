@@ -17,7 +17,7 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka_connector.adapter.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
@@ -39,12 +39,13 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
+        System.out.println(params);
         configureLogging(params, configDir);
 
         this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
 
         log.info("Configuring Kafka Connector");
-        this.loopConfig = ConnectorConfigurator.configure(connectorConfig);
+        this.loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
         log.info("Configuration complete");
     }
 

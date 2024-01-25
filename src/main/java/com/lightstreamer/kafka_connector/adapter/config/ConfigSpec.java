@@ -11,7 +11,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
+import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.DefaultHolder;
 
 class ConfigSpec {
 
@@ -108,7 +112,6 @@ class ConfigSpec {
         Type embeddedTYpe;
 
         ConfType() {
-
         }
 
         ConfType(Type t) {
@@ -117,30 +120,120 @@ class ConfigSpec {
 
     }
 
+    static class Either<Left, Right> {
+
+        private final Left left;
+
+        private final Right right;
+
+        private Either(Left left, Right right) {
+            if (left != null & right == null) {
+                this.left = left;
+                this.right = null;
+                return;
+            }
+            if (left == null && right != null) {
+                this.left = null;
+                this.right = right;
+                return;
+            }
+            throw new IllegalArgumentException("Only one parameter can be specified");
+        }
+
+        public Left getLeft() {
+            return left;
+        }
+
+        public Right getRight() {
+            return right;
+        }
+
+        public boolean isLeft() {
+            return left != null;
+        }
+
+        public boolean isRight() {
+            return right != null;
+        }
+
+        static <Left, Right> Either<Left, Right> left(Left left) {
+            return new Either<>(left, null);
+        }
+
+        static <Left, Right> Either<Left, Right> right(Right right) {
+            return new Either<>(null, right);
+        }
+    }
+
+    static class DefaultHolder<T> {
+
+        Either<Supplier<T>, Function<Map<String, String>, T>> either;
+
+        private DefaultHolder(Supplier<T> supplier) {
+            this.either = Either.left(supplier);
+        }
+
+        private DefaultHolder(T value) {
+            this(() -> value);
+        }
+
+        private DefaultHolder(Function<Map<String, String>, T> function) {
+            this.either = Either.right(function);
+        }
+
+        public T value(Map<String, String> config) {
+            if (either.isLeft()) {
+                return either.getLeft().get();
+            }
+            return either.getRight().apply(config);
+        }
+
+        public T value() {
+            return value(Collections.emptyMap());
+        }
+
+        static <T> DefaultHolder<T> defaultValue(T value) {
+            return new DefaultHolder<>(value);
+        }
+
+        static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
+            return new DefaultHolder<>(supplier);
+        }
+
+        static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
+            return new DefaultHolder<>(function);
+        }
+
+        static <T> DefaultHolder<T> defaultNull() {
+            return new DefaultHolder<>(() -> null);
+        }
+    }
+
     private final Map<String, ConfParameter> paramSpec = new HashMap<>();
 
-    ConfigSpec add(String name, boolean required, boolean multiple, Type type, String defaultValue) {
+    ConfigSpec add(String name, boolean required, boolean multiple, Type type,
+            DefaultHolder<String> defaultValue) {
         paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, defaultValue));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, null));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, boolean multiple, String suffix, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, suffix, type, null));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, suffix, type, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, false, null, type, null));
+        paramSpec.put(name, new ConfParameter(name, required, false, null, type, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, Type type) {
-        paramSpec.put(name, new ConfParameter(name, true, false, null, type, null));
+        paramSpec.put(name, new ConfParameter(name, true, false, null, type, DefaultHolder.defaultNull()));
         return this;
     }
 
@@ -182,7 +275,11 @@ class ConfigSpec {
 }
 
 record ConfParameter(String name, boolean required, boolean multiple, String suffix, ConfigSpec.Type type,
-        String defaultValue) {
+        DefaultHolder<String> defaultHolder) {
+
+    String defaultValue() {
+        return defaultHolder().value();
+    }
 
     void populate(Map<String, String> source, Map<String, String> destination) throws ConfigException {
         List<String> keys = Collections.singletonList(name());
@@ -216,7 +313,7 @@ record ConfParameter(String name, boolean required, boolean multiple, String suf
                 }
                 destination.put(key, type.getValue(paramValue));
             }
-        } 
+        }
     }
 
 }
