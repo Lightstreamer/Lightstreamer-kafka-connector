@@ -1,5 +1,12 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.URL;
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.DefaultHolder.defaultValue;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
+
 import java.io.File;
 import java.security.SecureRandom;
 import java.util.Collections;
@@ -15,7 +22,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.DefaultHolder;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
 
 public class ConnectorConfig {
@@ -31,7 +37,7 @@ public class ConnectorConfig {
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
 
-    public static final String FIELD = "field";
+    public static final String FIELD_MAPPING = "field";
 
     public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
 
@@ -53,33 +59,39 @@ public class ConnectorConfig {
 
     public static final String ITEM_INFO_FIELD = "info.field";
 
+    // Kafka consumer specific settings
+    public static final String CONSUMER_AUTO_OFFSET_RESET_CONFIG = "consumer." + AUTO_OFFSET_RESET_CONFIG;
+
+    public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG = "consumer." + ENABLE_AUTO_COMMIT_CONFIG;
+
     private static final ConfigSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC = new ConfigSpec()
                 .add(ADAPTER_DIR, true, false, ConfType.Directory)
                 .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
-                .add(GROUP_ID, false, false, ConfType.Text, DefaultHolder.defaultValue(params -> {
+                .add(GROUP_ID, false, false, TEXT, defaultValue(params -> {
                     String suffix = new SecureRandom()
                             .ints(20, 48, 122)
                             .mapToObj(Character::toString)
                             .collect(Collectors.joining());
                     return "%s-%s-%s".formatted(params.get(ADAPTERS_CONF_ID), params.get(DATA_ADAPTER_NAME), suffix);
-
                 }))
-                .add(ADAPTERS_CONF_ID, true, false, ConfType.Text)
-                .add(DATA_ADAPTER_NAME, true, false, ConfType.Text)
-                .add(ITEM_TEMPLATE, true, true, ConfType.Text)
-                .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, ConfType.Text)
-                .add(FIELD, true, true, ConfType.Text)
-                .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
-                .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, ConfType.URL)
-                .add(KEY_EVALUATOR_TYPE, false, false, ConfType.Text, DefaultHolder.defaultValue("RAW"))
-                .add(KEY_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(VALUE_EVALUATOR_TYPE, false, false, ConfType.Text, DefaultHolder.defaultValue("RAW"))
-                .add(VALUE_SCHEMA_FILE, false, false, ConfType.Text)
-                .add(ITEM_INFO_NAME, false, false, ConfType.Text, DefaultHolder.defaultValue("INFO"))
-                .add(ITEM_INFO_FIELD, false, false, ConfType.Text, DefaultHolder.defaultValue("MSG"));
+                .add(ADAPTERS_CONF_ID, true, false, TEXT)
+                .add(DATA_ADAPTER_NAME, true, false, TEXT)
+                .add(ITEM_TEMPLATE, true, true, TEXT)
+                .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
+                .add(FIELD_MAPPING, true, true, TEXT)
+                .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
+                .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
+                .add(KEY_EVALUATOR_TYPE, false, false, TEXT, defaultValue("RAW"))
+                .add(KEY_SCHEMA_FILE, false, false, TEXT)
+                .add(VALUE_EVALUATOR_TYPE, false, false, TEXT, defaultValue("RAW"))
+                .add(VALUE_SCHEMA_FILE, false, false, TEXT)
+                .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
+                .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
+                .add(CONSUMER_AUTO_OFFSET_RESET_CONFIG, false, false, TEXT, defaultValue("latest"))
+                .add(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, false, false, BOOL, false, defaultValue("false"));
 
     }
 
@@ -127,7 +139,11 @@ public class ConnectorConfig {
     }
 
     public String getText(String configKey) {
-        return get(configKey, ConfType.Text, false);
+        return get(configKey, TEXT, false);
+    }
+
+    public String getBoolean(String configKey) {
+        return get(configKey, BOOL, false);
     }
 
     public String getHost(String configKey) {
@@ -143,7 +159,7 @@ public class ConnectorConfig {
     }
 
     public String getUrl(String configKey, boolean forceRequired) {
-        return get(configKey, ConfType.URL, forceRequired);
+        return get(configKey, URL, forceRequired);
     }
 
     public String getHostsList(String configKey) {
@@ -185,8 +201,8 @@ public class ConnectorConfig {
         Properties properties = new Properties();
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
+        properties.setProperty(ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
         // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "0");
         // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");
         return properties;

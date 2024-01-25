@@ -37,124 +37,158 @@ public class ConnectorConfigTest {
     public void shouldCreateConfigSpec() {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
 
-        ConfParameter adapterDirParam = configSpec.getParameter(ConnectorConfig.ADAPTER_DIR);
-        assertThat(adapterDirParam.name()).isEqualTo(ConnectorConfig.ADAPTER_DIR);
-        assertThat(adapterDirParam.required()).isTrue();
-        assertThat(adapterDirParam.multiple()).isFalse();
-        assertThat(adapterDirParam.defaultValue()).isNull();
-        assertThat(adapterDirParam.type()).isEqualTo(ConfType.Directory);
+        ConfParameter adapterDir = configSpec.getParameter(ConnectorConfig.ADAPTER_DIR);
+        assertThat(adapterDir.name()).isEqualTo(ConnectorConfig.ADAPTER_DIR);
+        assertThat(adapterDir.required()).isTrue();
+        assertThat(adapterDir.multiple()).isFalse();
+        assertThat(adapterDir.mutable()).isTrue();
+        assertThat(adapterDir.defaultValue()).isNull();
+        assertThat(adapterDir.type()).isEqualTo(ConfType.Directory);
 
         ConfParameter adapterConfId = configSpec.getParameter(ConnectorConfig.ADAPTERS_CONF_ID);
         assertThat(adapterConfId.name()).isEqualTo(ConnectorConfig.ADAPTERS_CONF_ID);
         assertThat(adapterConfId.required()).isTrue();
         assertThat(adapterConfId.multiple()).isFalse();
+        assertThat(adapterConfId.mutable()).isTrue();
         assertThat(adapterConfId.defaultValue()).isNull();
-        assertThat(adapterConfId.type()).isEqualTo(ConfType.Text);
+        assertThat(adapterConfId.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter dataAdapterName = configSpec.getParameter(ConnectorConfig.DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.name()).isEqualTo(ConnectorConfig.DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.required()).isTrue();
         assertThat(dataAdapterName.multiple()).isFalse();
+        assertThat(dataAdapterName.mutable()).isTrue();
         assertThat(dataAdapterName.defaultValue()).isNull();
-        assertThat(dataAdapterName.type()).isEqualTo(ConfType.Text);
+        assertThat(dataAdapterName.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter bootStrapServersParam = configSpec.getParameter(ConnectorConfig.BOOTSTRAP_SERVERS);
-        assertThat(bootStrapServersParam.name()).isEqualTo(ConnectorConfig.BOOTSTRAP_SERVERS);
-        assertThat(bootStrapServersParam.required()).isTrue();
-        assertThat(bootStrapServersParam.multiple()).isFalse();
-        assertThat(bootStrapServersParam.defaultValue()).isNull();
-        assertThat(bootStrapServersParam.type()).isEqualTo(ConfType.HostsList);
+        ConfParameter bootStrapServers = configSpec.getParameter(ConnectorConfig.BOOTSTRAP_SERVERS);
+        assertThat(bootStrapServers.name()).isEqualTo(ConnectorConfig.BOOTSTRAP_SERVERS);
+        assertThat(bootStrapServers.required()).isTrue();
+        assertThat(bootStrapServers.multiple()).isFalse();
+        assertThat(bootStrapServers.mutable()).isTrue();
+        assertThat(bootStrapServers.defaultValue()).isNull();
+        assertThat(bootStrapServers.type()).isEqualTo(ConfType.HostsList);
 
-        ConfParameter groupIdParam = configSpec.getParameter(ConnectorConfig.GROUP_ID);
-        assertThat(groupIdParam.name()).isEqualTo(ConnectorConfig.GROUP_ID);
-        assertThat(groupIdParam.required()).isFalse();
-        assertThat(groupIdParam.multiple()).isFalse();
-        assertThat(groupIdParam.defaultValue()).isNotNull();
-        assertThat(groupIdParam.type()).isEqualTo(ConfType.Text);
+        ConfParameter groupId = configSpec.getParameter(ConnectorConfig.GROUP_ID);
+        assertThat(groupId.name()).isEqualTo(ConnectorConfig.GROUP_ID);
+        assertThat(groupId.required()).isFalse();
+        assertThat(groupId.multiple()).isFalse();
+        assertThat(groupId.mutable()).isTrue();
+        assertThat(groupId.defaultValue()).isNotNull();
+        assertThat(groupId.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter keyConsumerParam = configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_TYPE);
-        assertThat(keyConsumerParam.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_TYPE);
-        assertThat(keyConsumerParam.required()).isFalse();
-        assertThat(keyConsumerParam.multiple()).isFalse();
-        assertThat(keyConsumerParam.defaultValue()).isEqualTo("RAW");
-        assertThat(keyConsumerParam.type()).isEqualTo(ConfType.Text);
+        ConfParameter keyEvaluatorType = configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_TYPE);
+        assertThat(keyEvaluatorType.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_TYPE);
+        assertThat(keyEvaluatorType.required()).isFalse();
+        assertThat(keyEvaluatorType.multiple()).isFalse();
+        assertThat(keyEvaluatorType.mutable()).isTrue();
+        assertThat(keyEvaluatorType.defaultValue()).isEqualTo("RAW");
+        assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter keySchemaFile = configSpec.getParameter(ConnectorConfig.KEY_SCHEMA_FILE);
         assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.KEY_SCHEMA_FILE);
         assertThat(keySchemaFile.required()).isFalse();
         assertThat(keySchemaFile.multiple()).isFalse();
+        assertThat(keySchemaFile.mutable()).isTrue();
         assertThat(keySchemaFile.defaultValue()).isNull();
-        assertThat(keySchemaFile.type()).isEqualTo(ConfType.Text);
+        assertThat(keySchemaFile.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter valueConsumerParam = configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_TYPE);
-        assertThat(valueConsumerParam.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_TYPE);
-        assertThat(valueConsumerParam.required()).isFalse();
-        assertThat(valueConsumerParam.multiple()).isFalse();
-        assertThat(valueConsumerParam.defaultValue()).isEqualTo("RAW");
-        assertThat(valueConsumerParam.type()).isEqualTo(ConfType.Text);
+        ConfParameter valueEvaluatorType = configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_TYPE);
+        assertThat(valueEvaluatorType.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_TYPE);
+        assertThat(valueEvaluatorType.required()).isFalse();
+        assertThat(valueEvaluatorType.multiple()).isFalse();
+        assertThat(valueEvaluatorType.mutable()).isTrue();
+        assertThat(valueEvaluatorType.defaultValue()).isEqualTo("RAW");
+        assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter valueSchemaFile = configSpec.getParameter(ConnectorConfig.VALUE_SCHEMA_FILE);
         assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.VALUE_SCHEMA_FILE);
         assertThat(valueSchemaFile.required()).isFalse();
         assertThat(valueSchemaFile.multiple()).isFalse();
+        assertThat(valueSchemaFile.mutable()).isTrue();
         assertThat(valueSchemaFile.defaultValue()).isNull();
-        assertThat(valueSchemaFile.type()).isEqualTo(ConfType.Text);
+        assertThat(valueSchemaFile.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter itemTemplate = configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplate.name()).isEqualTo(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplate.required()).isTrue();
         assertThat(itemTemplate.multiple()).isTrue();
         assertThat(itemTemplate.suffix()).isNull();
+        assertThat(itemTemplate.mutable()).isTrue();;
         assertThat(itemTemplate.defaultValue()).isNull();
-        assertThat(itemTemplate.type()).isEqualTo(ConfType.Text);
+        assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter mapParam = configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING);
-        assertThat(mapParam.name()).isEqualTo(ConnectorConfig.TOPIC_MAPPING);
-        assertThat(mapParam.required()).isTrue();
-        assertThat(mapParam.multiple()).isTrue();
-        assertThat(mapParam.suffix()).isEqualTo("to");
-        assertThat(mapParam.defaultValue()).isNull();
-        assertThat(mapParam.type()).isEqualTo(ConfType.Text);
+        ConfParameter topicMapping = configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING);
+        assertThat(topicMapping.name()).isEqualTo(ConnectorConfig.TOPIC_MAPPING);
+        assertThat(topicMapping.required()).isTrue();
+        assertThat(topicMapping.multiple()).isTrue();
+        assertThat(topicMapping.suffix()).isEqualTo("to");
+        assertThat(topicMapping.mutable()).isTrue();
+        assertThat(topicMapping.defaultValue()).isNull();
+        assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter fieldParam = configSpec.getParameter(ConnectorConfig.FIELD);
-        assertThat(fieldParam.name()).isEqualTo(ConnectorConfig.FIELD);
-        assertThat(fieldParam.required()).isTrue();
-        assertThat(fieldParam.multiple()).isTrue();
-        assertThat(fieldParam.suffix()).isNull();
-        assertThat(fieldParam.defaultValue()).isNull();
-        assertThat(fieldParam.type()).isEqualTo(ConfType.Text);
+        ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
+        assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
+        assertThat(fieldMapping.required()).isTrue();
+        assertThat(fieldMapping.multiple()).isTrue();
+        assertThat(fieldMapping.suffix()).isNull();
+        assertThat(fieldMapping.mutable()).isTrue();
+        assertThat(fieldMapping.defaultValue()).isNull();
+        assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter keySchemaRegistryUrlParam = configSpec
+        ConfParameter keyEvaluatorSchemaRegistryUrl = configSpec
                 .getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(keySchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(keySchemaRegistryUrlParam.required()).isFalse();
-        assertThat(keySchemaRegistryUrlParam.multiple()).isFalse();
-        assertThat(keySchemaRegistryUrlParam.defaultValue()).isNull();
-        assertThat(keySchemaRegistryUrlParam.type()).isEqualTo(ConfType.URL);
+        assertThat(keyEvaluatorSchemaRegistryUrl.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
+        assertThat(keyEvaluatorSchemaRegistryUrl.required()).isFalse();
+        assertThat(keyEvaluatorSchemaRegistryUrl.multiple()).isFalse();
+        assertThat(keyEvaluatorSchemaRegistryUrl.mutable()).isTrue();
+        assertThat(keyEvaluatorSchemaRegistryUrl.defaultValue()).isNull();
+        assertThat(keyEvaluatorSchemaRegistryUrl.type()).isEqualTo(ConfType.URL);
 
-        ConfParameter valueSchemaRegistryUrlParam = configSpec
+        ConfParameter valueEvaluatorSchemaRegistryUrl = configSpec
                 .getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(valueSchemaRegistryUrlParam.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(valueSchemaRegistryUrlParam.required()).isFalse();
-        assertThat(valueSchemaRegistryUrlParam.multiple()).isFalse();
-        assertThat(valueSchemaRegistryUrlParam.defaultValue()).isNull();
-        assertThat(valueSchemaRegistryUrlParam.type()).isEqualTo(ConfType.URL);
+        assertThat(valueEvaluatorSchemaRegistryUrl.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
+        assertThat(valueEvaluatorSchemaRegistryUrl.required()).isFalse();
+        assertThat(valueEvaluatorSchemaRegistryUrl.multiple()).isFalse();
+        assertThat(valueEvaluatorSchemaRegistryUrl.mutable()).isTrue();
+        assertThat(valueEvaluatorSchemaRegistryUrl.defaultValue()).isNull();
+        assertThat(valueEvaluatorSchemaRegistryUrl.type()).isEqualTo(ConfType.URL);
 
-        ConfParameter infoItemName = configSpec
+        ConfParameter itemInfoName = configSpec
                 .getParameter(ConnectorConfig.ITEM_INFO_NAME);
-        assertThat(infoItemName.name()).isEqualTo(ConnectorConfig.ITEM_INFO_NAME);
-        assertThat(infoItemName.required()).isFalse();
-        assertThat(infoItemName.multiple()).isFalse();
-        assertThat(infoItemName.defaultValue()).isEqualTo("INFO");
-        assertThat(infoItemName.type()).isEqualTo(ConfType.Text);
+        assertThat(itemInfoName.name()).isEqualTo(ConnectorConfig.ITEM_INFO_NAME);
+        assertThat(itemInfoName.required()).isFalse();
+        assertThat(itemInfoName.multiple()).isFalse();
+        assertThat(itemInfoName.mutable()).isTrue();
+        assertThat(itemInfoName.defaultValue()).isEqualTo("INFO");
+        assertThat(itemInfoName.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter infoItemFieldParameter = configSpec
+        ConfParameter itemInfoField = configSpec
                 .getParameter(ConnectorConfig.ITEM_INFO_FIELD);
-        assertThat(infoItemFieldParameter.name()).isEqualTo(ConnectorConfig.ITEM_INFO_FIELD);
-        assertThat(infoItemFieldParameter.required()).isFalse();
-        assertThat(infoItemFieldParameter.multiple()).isFalse();
-        assertThat(infoItemFieldParameter.defaultValue()).isEqualTo("MSG");
-        assertThat(infoItemFieldParameter.type()).isEqualTo(ConfType.Text);
+        assertThat(itemInfoField.name()).isEqualTo(ConnectorConfig.ITEM_INFO_FIELD);
+        assertThat(itemInfoField.required()).isFalse();
+        assertThat(itemInfoField.multiple()).isFalse();
+        assertThat(itemInfoField.mutable()).isTrue();
+        assertThat(itemInfoField.defaultValue()).isEqualTo("MSG");
+        assertThat(itemInfoField.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter enableAutoCommit = configSpec
+                .getParameter(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+        assertThat(enableAutoCommit.name()).isEqualTo(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+        assertThat(enableAutoCommit.required()).isFalse();
+        assertThat(enableAutoCommit.multiple()).isFalse();
+        assertThat(enableAutoCommit.mutable()).isFalse();
+        assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
+        assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter autoOffsetReset = configSpec
+                .getParameter(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG);
+        assertThat(autoOffsetReset.name()).isEqualTo(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG);
+        assertThat(autoOffsetReset.required()).isFalse();
+        assertThat(autoOffsetReset.multiple()).isFalse();
+        assertThat(autoOffsetReset.mutable()).isTrue();
+        assertThat(autoOffsetReset.defaultValue()).isEqualTo("latest");
+        assertThat(autoOffsetReset.type()).isEqualTo(ConfType.TEXT);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -185,7 +219,7 @@ public class ConnectorConfigTest {
             """)
     public void shouldGetInfixForField(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
-        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.FIELD), key);
+        Optional<String> infix = ConfigSpec.extractInfix(configSpec.getParameter(ConnectorConfig.FIELD_MAPPING), key);
         if (!expectedInfix.isBlank()) {
             assertThat(infix).hasValue(expectedInfix);
         } else {
@@ -331,6 +365,14 @@ public class ConnectorConfigTest {
                 ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false",
                 "new.key", "new.value");
         assertThat(extendedProps.get(ConsumerConfig.GROUP_ID_CONFIG).toString()).startsWith("KAFKA-CONNECTOR-");
+    }
+
+    @Test
+    public void shouldNotModifyEnableAutoCommitConfig() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        assertThat(config.getBoolean(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG)).isEqualTo("false");
     }
 
     @Test

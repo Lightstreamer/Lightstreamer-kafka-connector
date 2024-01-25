@@ -30,7 +30,7 @@
         <param name="logging.configuration.file">log4j.properties</param>
 
         <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-user-21412</param>
+        <!-- <param name="group-id">kafka-adapter-user-NEW</param> -->
         
         <!-- Sepcial item for communication about issue in event consuming process-->
         <param name="info.item">info</param>

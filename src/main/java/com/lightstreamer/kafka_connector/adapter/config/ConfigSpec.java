@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -32,9 +33,28 @@ class ConfigSpec {
         }
     }
 
+    static class Choices implements Type {
+
+        private Set<String> choiches;
+
+        Choices(String... choiches) {
+            this.choiches = Set.copyOf(List.of(choiches));
+        }
+
+        @Override
+        public boolean isValid(String param) {
+            return choiches.contains(param);
+        }
+
+        static Choices booleans() {
+            return new Choices("true", "false");
+        }
+
+    }
+
     enum ConfType implements Type {
 
-        Text {
+        TEXT {
             @Override
             public boolean isValid(String paramValue) {
                 return true;
@@ -62,6 +82,15 @@ class ConfigSpec {
             }
         },
 
+        BOOL(Choices.booleans()) {
+
+            @Override
+            public boolean isValid(String param) {
+                return embeddedType.isValid(param);
+            }
+
+        },
+
         URL {
             @Override
             public boolean isValid(String paramValue) {
@@ -78,7 +107,7 @@ class ConfigSpec {
             @Override
             public boolean isValid(String param) {
                 String[] params = param.split(",");
-                return Arrays.stream(params).allMatch(embeddedTYpe::isValid);
+                return Arrays.stream(params).allMatch(embeddedType::isValid);
             }
         },
 
@@ -109,13 +138,13 @@ class ConfigSpec {
             }
         };
 
-        Type embeddedTYpe;
+        Type embeddedType;
 
         ConfType() {
         }
 
         ConfType(Type t) {
-            this.embeddedTYpe = t;
+            this.embeddedType = t;
         }
 
     }
@@ -211,29 +240,36 @@ class ConfigSpec {
 
     private final Map<String, ConfParameter> paramSpec = new HashMap<>();
 
+    ConfigSpec add(String name, boolean required, boolean multiple, Type type, boolean mutable,
+            DefaultHolder<String> defaultValue) {
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, mutable, defaultValue));
+        return this;
+    }
+
     ConfigSpec add(String name, boolean required, boolean multiple, Type type,
             DefaultHolder<String> defaultValue) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, defaultValue));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, true, defaultValue));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, DefaultHolder.defaultNull()));
+        paramSpec.put(name, new ConfParameter(name, required, multiple, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, boolean multiple, String suffix, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, multiple, suffix, type, DefaultHolder.defaultNull()));
+        paramSpec.put(name,
+                new ConfParameter(name, required, multiple, suffix, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, boolean required, Type type) {
-        paramSpec.put(name, new ConfParameter(name, required, false, null, type, DefaultHolder.defaultNull()));
+        paramSpec.put(name, new ConfParameter(name, required, false, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
     ConfigSpec add(String name, Type type) {
-        paramSpec.put(name, new ConfParameter(name, true, false, null, type, DefaultHolder.defaultNull()));
+        paramSpec.put(name, new ConfParameter(name, true, false, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
@@ -264,17 +300,20 @@ class ConfigSpec {
         return Optional.of(infix);
     }
 
-    Map<String, String> parse(Map<String, String> params) throws ConfigException {
+    Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         Map<String, String> parsedValues = new HashMap<>();
 
-        for (ConfParameter parameter : paramSpec.values()) {
-            parameter.populate(params, parsedValues);
-        }
+        paramSpec.values()
+                .stream()
+                .filter(c -> c.mutable())
+                .forEach(c -> c.populate(originals, parsedValues));
+
         return parsedValues;
     }
 }
 
 record ConfParameter(String name, boolean required, boolean multiple, String suffix, ConfigSpec.Type type,
+        boolean mutable,
         DefaultHolder<String> defaultHolder) {
 
     String defaultValue() {
@@ -282,6 +321,9 @@ record ConfParameter(String name, boolean required, boolean multiple, String suf
     }
 
     void populate(Map<String, String> source, Map<String, String> destination) throws ConfigException {
+        // if (!mutable()) {
+        // throw new ConfigException("Cannot modify parameter [%s]".formatted(name()));
+        // }
         List<String> keys = Collections.singletonList(name());
         if (multiple()) {
             keys = source.keySet()

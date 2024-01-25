@@ -52,7 +52,7 @@ public class ConsumerLoopConfigurator {
         TopicsConfig topicsConfig = TopicsConfig.of(connectorConfig);
 
         // Process "field.<field-name>"
-        Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD, false);
+        Map<String, String> fieldsMapping = connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, false);
 
         try {
             SelectorsSupplier<?, ?> selectorsSupplier = SelectorsSupplier.wrap(

@@ -34,7 +34,7 @@ public class Fields {
             }
 
             static String removePrefixFromEntryKey(Entry<String, String> configEntry) {
-                String prefix = ConnectorConfig.FIELD + ".";
+                String prefix = ConnectorConfig.FIELD_MAPPING + ".";
                 String fieldConfigKey = configEntry.getKey();
                 if (!fieldConfigKey.startsWith(prefix)) {
                     throw new RuntimeException(
