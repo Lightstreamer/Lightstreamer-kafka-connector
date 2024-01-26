@@ -8,6 +8,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.avro.util.Utf8;
+
 import com.lightstreamer.kafka_connector.adapter.commons.Either;
 import com.lightstreamer.kafka_connector.adapter.mapping.ExpressionException;
 
@@ -23,7 +25,7 @@ public class SelectorExpressionParser<K, V> {
 
     private static Pattern INDEXES = Pattern.compile("\\[(?:'([^']*)'|(\\d+))\\]");
 
-    //Pattern.compile("\\['([^']*)'\\]");
+    // Pattern.compile("\\['([^']*)'\\]");
 
     public interface NodeEvaluator<K, V> {
         V get(K k) throws ValueException;
@@ -52,19 +54,60 @@ public class SelectorExpressionParser<K, V> {
         }
     }
 
+    public static class GeneralizedKey {
+
+        private Either<Utf8, Integer> genericKey;
+
+        GeneralizedKey(Utf8 key) {
+            genericKey = Either.left(key);
+        }
+
+        GeneralizedKey(int index) {
+            genericKey = Either.right(index);
+        }
+
+        static GeneralizedKey index(int index) {
+            return new GeneralizedKey(index);
+        }
+
+        static GeneralizedKey key(String key) {
+            return new GeneralizedKey(new Utf8(key));
+        }
+
+        public boolean isKey() {
+            return genericKey.isLeft();
+        }
+
+        public Utf8 key() {
+            return genericKey.getLeft();
+        }
+
+        public boolean isIndex() {
+            return genericKey.isRight();
+        }
+
+        public int index() {
+            return genericKey.getRight();
+        }
+
+        public String toString() {
+            return isKey() ? "Key = [%s]".formatted(key()) : "Index = [%d]".formatted(index());
+        }
+    }
+
     public static class Builder<K, V> {
 
         private Function<String, NodeEvaluator<K, V>> fieldEvaluator;
 
-        private BiFunction<String, List<Either<String,Integer>>, NodeEvaluator<K, V>> arrayEvaluator;
+        private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluator;
 
         public Builder<K, V> withFieldEvaluator(Function<String, NodeEvaluator<K, V>> fieldEvaluator) {
             this.fieldEvaluator = fieldEvaluator;
             return this;
         }
 
-        public Builder<K, V> withArrayEvaluator(
-                BiFunction<String, List<Either<String,Integer>>, NodeEvaluator<K, V>> arrayEvaluator) {
+        public Builder<K, V> withGenericIndexedEvaluator(
+                BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluator) {
             this.arrayEvaluator = arrayEvaluator;
             return this;
         }
@@ -80,7 +123,7 @@ public class SelectorExpressionParser<K, V> {
 
     private Function<String, NodeEvaluator<K, V>> fieldEvaluatorFactory;
 
-    private BiFunction<String, List<Either<String,Integer>>, NodeEvaluator<K, V>> arrayEvaluatorFactory;
+    private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluatorFactory;
 
     SelectorExpressionParser(Builder<K, V> builder) {
         this.fieldEvaluatorFactory = builder.fieldEvaluator;
@@ -115,7 +158,7 @@ public class SelectorExpressionParser<K, V> {
             int lbracket = fieldName.indexOf('[');
             NodeEvaluator<K, V> node;
             if (lbracket != -1) {
-                List<Either<String,Integer>> indexes = parseIndexes(fieldName.substring(lbracket));
+                List<GeneralizedKey> indexes = parseIndexes(fieldName.substring(lbracket));
                 String field = fieldName.substring(0, lbracket);
                 if (indexes.isEmpty()) {
                     ExpressionException.throwInvalidIndexedExpression(ctx.name(), ctx.expression());
@@ -139,8 +182,8 @@ public class SelectorExpressionParser<K, V> {
         return head;
     }
 
-    private static List<Either<String,Integer>> parseIndexes(String indexedExpression) {
-        List<Either<String,Integer>> indexes = new ArrayList<>();
+    private static List<GeneralizedKey> parseIndexes(String indexedExpression) {
+        List<GeneralizedKey> indexes = new ArrayList<>();
         Matcher matcher = INDEXES.matcher(indexedExpression);
         int previousEnd = 0;
         while (matcher.find()) {
@@ -153,12 +196,13 @@ public class SelectorExpressionParser<K, V> {
             String key = matcher.group(1);
             String index = matcher.group(2);
             if (key != null) {
-                indexes.add(Either.left(key));
+                indexes.add(GeneralizedKey.key(key));
             } else if (index != null) {
-                indexes.add(Either.right(Integer.valueOf(index)));
+                indexes.add(GeneralizedKey.index(Integer.valueOf(index)));
             }
-                
+
         }
         return indexes;
     }
+
 }

@@ -1,13 +1,17 @@
 package com.lightstreamer.kafka_connector.adapter.test_utils;
 
+import static org.junit.jupiter.api.DynamicTest.stream;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordSelectorTest;
 
@@ -33,11 +37,15 @@ public class GenericRecordProvider {
 
     public static GenericRecord RECORD = PROVIDER.newGenericRecord();
 
-
     private GenericRecord newGenericRecord() {
         GenericRecord parentJoe = new GenericData.Record(valueSchema);
         parentJoe.put("name", "joe");
-        parentJoe.put("preferences", Map.of("pref1", "pref_value1", "pref2", "pref_Value2"));
+        parentJoe.put("preferences", Map.of(new Utf8("pref1"), "pref_value1", new Utf8("pref2"), "pref_value2"));
+
+        // GenericRecord documentRecord = new GenericData.Record(valueSchema);
+        // documentRecord.put("doc_id", "ID123");
+        // documentRecord.put("doc_type", "ID");
+        // parentJoe.put("documents", Map.of("id", documentRecord));
 
         GenericRecord childAlex = new GenericData.Record(valueSchema);
         childAlex.put("name", "alex");
@@ -59,5 +67,10 @@ public class GenericRecordProvider {
         joeChildren.add(null);
         parentJoe.put("children", new GenericData.Array<>(childrenSchema, joeChildren));
         return parentJoe;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(RECORD);
+
     }
 }

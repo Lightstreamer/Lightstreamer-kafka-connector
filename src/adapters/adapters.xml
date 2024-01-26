@@ -30,7 +30,7 @@
         <param name="logging.configuration.file">log4j.properties</param>
 
         <param name="bootstrap-servers">broker:29092</param>
-        <!-- <param name="group-id">kafka-adapter-user-NEW</param> -->
+        <param name="group-id">kafka-adapter-user-NEW</param>
         
         <!-- Sepcial item for communication about issue in event consuming process-->
         <param name="info.item">info</param>
@@ -51,6 +51,9 @@
         <param name="field.height">#{VALUE.info.height}</param>
         <param name="field.zipcode1">#{VALUE.addresses[0].zipcode}</param>
         <param name="field.zipcode2">#{VALUE.addresses[1].zipcode}</param>
+        <param name="field.docid">#{VALUE.documents['doc_id']['doc_id']}</param>
+        <param name="field.doc_type">#{VALUE.documents['doc_id'].doc_type}</param>
+        <param name="field.pref1">#{VALUE.preferences['pref1']}</param>
 
 
         <!-- Map one topic to multimple items -->

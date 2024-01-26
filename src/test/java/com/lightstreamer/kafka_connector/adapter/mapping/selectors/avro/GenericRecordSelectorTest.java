@@ -60,6 +60,9 @@ public class GenericRecordSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                         EXPECTED
             VALUE.name,                            joe
+            VALUE.preferences['pref1'],            pref_value1
+            VALUE.preferences['pref2'],            pref_value2
+#            VALUE.documents['id'].doc_id,             ID123
             VALUE.children[0].name,                alex
             VALUE.children[0]['name'],             alex
             VALUE.children[1].name,                anna
@@ -80,10 +83,12 @@ public class GenericRecordSelectorTest {
             VALUE.children[0].no_attrib,        Field [no_attrib] not found    
             VALUE.no_children[0],               Field [no_children] not found
             VALUE.name[0],                      Current field is not indexed
+            VALUE.preferences,                  The expression [VALUE.preferences] must evaluate to a non-complex object
+            VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
             VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
             VALUE.children[3].name,             Field not found at index [3]
-            VALUE.children[3],                 Field not found at index [3]
+            VALUE.children[3],                  Field not found at index [3]
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
@@ -115,6 +120,8 @@ public class GenericRecordSelectorTest {
             KEY.children[0].no_attrib,        Field [no_attrib] not found    
             KEY.no_children[0],               Field [no_children] not found
             KEY.name[0],                      Current field is not indexed
+            KEY.preferences,                  The expression [KEY.preferences] must evaluate to a non-complex object
+            KEY.children,                     The expression [KEY.children] must evaluate to a non-complex object
             KEY.children[0]['no_key'],        Field [no_key] not found
             KEY.children[0],                  The expression [KEY.children[0]] must evaluate to a non-complex object
             KEY.children[3].name,             Field not found at index [3]

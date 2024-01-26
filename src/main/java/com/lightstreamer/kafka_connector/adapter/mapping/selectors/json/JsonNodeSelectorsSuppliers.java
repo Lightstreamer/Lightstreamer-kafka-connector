@@ -3,17 +3,16 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 import java.util.List;
 import java.util.Objects;
 
-import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka_connector.adapter.commons.Either;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
@@ -60,9 +59,9 @@ public class JsonNodeSelectorsSuppliers {
 
             private final PropertyGetter getter;
 
-            private final List<Either<String, Integer>> indexes;
+            private final List<GeneralizedKey> indexes;
 
-            ArrayGetter(String fieldName, List<Either<String, Integer>> indexes) {
+            ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
                 this.name = Objects.requireNonNull(fieldName);
                 this.indexes = Objects.requireNonNull(indexes);
                 this.getter = new PropertyGetter(name);
@@ -85,11 +84,11 @@ public class JsonNodeSelectorsSuppliers {
             @Override
             public JsonNode get(JsonNode node) {
                 JsonNode value = getter.get(node);
-                for (Either<String, Integer> i : indexes) {
-                    if (i.isRight()) {
-                        value = get(i.getRight(), value);
+                for (GeneralizedKey i : indexes) {
+                    if (i.isIndex()) {
+                        value = get(i.index(), value);
                     } else {
-                        value = PropertyGetter.get(i.getLeft(), value);
+                        value = PropertyGetter.get(i.key().toString(), value);
                     }
                 }
                 return value;
@@ -100,7 +99,7 @@ public class JsonNodeSelectorsSuppliers {
 
         private static final SelectorExpressionParser<JsonNode, JsonNode> PARSER = new SelectorExpressionParser.Builder<JsonNode, JsonNode>()
                 .withFieldEvaluator(PropertyGetter::new)
-                .withArrayEvaluator(ArrayGetter::new)
+                .withGenericIndexedEvaluator(ArrayGetter::new)
                 .build();
 
         private JsonNodeBaseSelector(String name, String expression, String expectedRoot) {
@@ -115,7 +114,7 @@ public class JsonNodeSelectorsSuppliers {
                 node = nodeEvaluator.get(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
-            if (node.isObject()) {
+            if (node.isContainerNode()) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
             return Value.of(name(), node.asText());

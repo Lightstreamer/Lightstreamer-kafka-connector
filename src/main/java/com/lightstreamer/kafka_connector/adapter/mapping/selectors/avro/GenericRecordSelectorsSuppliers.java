@@ -1,20 +1,25 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.lightstreamer.kafka_connector.adapter.commons.Either;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser;
+import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.Value;
@@ -31,6 +36,8 @@ public class GenericRecordSelectorsSuppliers {
     public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier(ConnectorConfig config) {
         return new GenericRecordValueSelectorSupplier(config);
     }
+
+    private static Logger log = LoggerFactory.getLogger("AvroSupplier");
 
     static class GenericRecordBaseSelector extends BaseSelector {
 
@@ -62,9 +69,9 @@ public class GenericRecordSelectorsSuppliers {
 
             private final FieldGetter getter;
 
-            private final List<Either<String, Integer>> indexes;
+            private final List<GeneralizedKey> indexes;
 
-            ArrayGetter(String fieldName, List<Either<String, Integer>> indexes) {
+            ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
                 this.name = Objects.requireNonNull(fieldName);
                 this.indexes = Objects.requireNonNull(indexes);
                 this.getter = new FieldGetter(name);
@@ -90,18 +97,21 @@ public class GenericRecordSelectorsSuppliers {
 
             @Override
             public Object get(GenericRecord record) {
+                log.atDebug().log("Evaluating record {}", record);
                 Object value = getter.get(record);
-                for (Either<String, Integer> i : indexes) {
-                    if (i.isRight()) {
-                        value = get(i.getRight(), value);
+                log.atDebug().log("Extracted value: {} of type {}", value, value.getClass());
+                for (GeneralizedKey i : indexes) {
+                    log.atDebug().log("Handling key {}", i);
+                    if (i.isIndex()) {
+                        value = get(i.index(), value);
                     } else {
                         if (value instanceof Map map) {
-                            value = map.get(i.getLeft());
+                            value = map.get(i.key());
                         } else if (value instanceof GenericRecord gr) {
-                            value = FieldGetter.get(i.getLeft(), gr);
+                            value = FieldGetter.get(i.key().toString(), gr);
                         }
                         if (value == null) {
-                            ValueException.throwNoKeyFound(i.getLeft());
+                            ValueException.throwNoKeyFound(i.key().toString());
                         }
                     }
 
@@ -114,7 +124,7 @@ public class GenericRecordSelectorsSuppliers {
 
         private static final SelectorExpressionParser<GenericRecord, Object> PARSER = new SelectorExpressionParser.Builder<GenericRecord, Object>()
                 .withFieldEvaluator(FieldGetter::new)
-                .withArrayEvaluator(ArrayGetter::new)
+                .withGenericIndexedEvaluator(ArrayGetter::new)
                 .build();
 
         public GenericRecordBaseSelector(String name, String expression, String expectedRoot) {
@@ -123,7 +133,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         private boolean isScalar(Object value) {
-            return !(value instanceof GenericRecord);
+            return !(value instanceof GenericContainer ||
+                    value instanceof Map);
         }
 
         protected Value eval(GenericRecord record) {

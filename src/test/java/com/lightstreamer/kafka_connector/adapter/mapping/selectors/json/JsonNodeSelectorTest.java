@@ -68,6 +68,7 @@ public class JsonNodeSelectorTest {
             VALUE.children[0].no_attrib,        Field [no_attrib] not found    
             VALUE.no_children[0],               Field [no_children] not found
             VALUE.name[0],                      Current field is not indexed
+            VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
             VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
             VALUE.children[3].name,             Field not found at index [3]

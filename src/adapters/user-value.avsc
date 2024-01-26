@@ -32,6 +32,33 @@
             }
         },
         {
+            "name": "documents",
+            "type": {
+                "type": "map",
+                "values": {
+                    "type": "record",
+                    "name": "Document",
+                    "fields": [
+                        {
+                            "name": "doc_id",
+                            "type": "string"
+                        },
+                        {
+                            "name": "doc_type",
+                            "type": "string"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "preferences",
+            "type": {
+                "type": "map",
+                "values": "string"
+            }
+        },
+        {
             "name": "addresses",
             "type": {
                 "type": "array",
@@ -39,10 +66,12 @@
                     "type": "record",
                     "name": "Address",
                     "fields": [
-                        { "name":"zipcode", "type": "string"}
+                        {
+                            "name": "zipcode",
+                            "type": "string"
+                        }
                     ]
                 }
-
             }
         },
         {

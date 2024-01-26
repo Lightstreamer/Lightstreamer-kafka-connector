@@ -62,7 +62,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     void startConsuming() {
         consumerLock.lock();
         try {
-            consumer = new ConsumerWrapper(ValueExceptionStrategy.COMMIT_ANYWAY);
+            consumer = new ConsumerWrapper(ValueExceptionStrategy.TERMINATE);
             new Thread(consumer).start();
         } finally {
             consumerLock.unlock();

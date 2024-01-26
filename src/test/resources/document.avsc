@@ -1,0 +1,9 @@
+{
+    "namespace": "com.lightstreamer.kafka_connector.avro",
+    "type": "record",
+    "name": "Document",
+    "fields": [
+        { "name": "doc_id", "type": "string"},
+        { "name": "doc_type", "type": "string"}
+    ]
+}

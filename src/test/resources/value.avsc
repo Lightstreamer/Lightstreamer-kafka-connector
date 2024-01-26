@@ -8,6 +8,17 @@
             "type": "string"
         },
         {
+            "name": "main_document",
+            "type": {
+                "type": "record",
+                "name": "Document",
+                "fields": [
+                    { "name": "doc_id", "type": "string"},
+                    { "name": "doc_type", "type": "string"}
+                ]
+            }
+        },
+        {
             "name": "children",
             "type": {
                 "type": "array",
@@ -32,6 +43,15 @@
             "type": {
                 "type": "map",
                 "values": "string"
+            }
+        },
+        {
+            "name": "documents",
+            "type":  {
+                "type": "map",
+                "values": {
+                    "type": "com.lightstreamer.kafka_connector.avro.Document"
+                }
             }
         }
     ]
