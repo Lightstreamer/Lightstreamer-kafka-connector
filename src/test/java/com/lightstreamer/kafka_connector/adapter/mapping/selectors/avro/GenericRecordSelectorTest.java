@@ -59,12 +59,14 @@ public class GenericRecordSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                         EXPECTED
-            VALUE.name,                         joe
-            VALUE.children[0].name,             alex
-            VALUE.children[1].name,             anna
-            VALUE.children[2].name,             serena
-            VALUE.children[1].children[0].name, gloria
-            VALUE.children[1].children[1].name, terence
+            VALUE.name,                            joe
+            VALUE.children[0].name,                alex
+            VALUE.children[0]['name'],             alex
+            VALUE.children[1].name,                anna
+            VALUE.children[2].name,                serena
+            VALUE.children[1].children[0].name,    gloria
+            VALUE.children[1].children[1].name,    terence
+            VALUE.children[1].children[1]['name'], terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
@@ -75,10 +77,12 @@ public class GenericRecordSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                         EXPECTED_ERROR_MESSAGE
             VALUE.no_attrib,                    Field [no_attrib] not found
-            VALUE.children[0].no_attrib,        Field [no_attrib] not found
+            VALUE.children[0].no_attrib,        Field [no_attrib] not found    
             VALUE.no_children[0],               Field [no_children] not found
             VALUE.name[0],                      Current field is not indexed
+            VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
+            VALUE.children[3].name,             Field not found at index [3]
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
@@ -89,12 +93,14 @@ public class GenericRecordSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                       EXPECTED
-            KEY.name,                         joe
-            KEY.children[0].name,             alex
-            KEY.children[1].name,             anna
-            KEY.children[2].name,             serena
-            KEY.children[1].children[0].name, gloria
-            KEY.children[1].children[1].name, terence
+            KEY.name,                             joe
+            KEY.children[0].name,                 alex
+            KEY.children[0]['name'],              alex
+            KEY.children[1].name,                 anna
+            KEY.children[2].name,                 serena
+            KEY.children[1].children[0].name,     gloria
+            KEY.children[1].children[1].name,     terence
+            KEY.children[1].children[1]['name'],  terence
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<GenericRecord> selector = keySelector(expression);
@@ -105,9 +111,12 @@ public class GenericRecordSelectorTest {
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             EXPRESSION,                       EXPECTED_ERROR_MESSAGE
             KEY.no_attrib,                    Field [no_attrib] not found
-            KEY.children[0].no_attrib,        Field [no_attrib] not found
+            KEY.children[0].no_attrib,        Field [no_attrib] not found    
             KEY.no_children[0],               Field [no_children] not found
             KEY.name[0],                      Current field is not indexed
+            KEY.children[0]['no_key'],        Field [no_key] not found
+            KEY.children[0],                  The expression [KEY.children[0]] must evaluate to a non-complex object
+            KEY.children[3].name,             Field not found at index [3]
             """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         KeySelector<GenericRecord> selector = keySelector(expression);

@@ -1,14 +1,15 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 import org.apache.kafka.common.serialization.Deserializer;
 
+import com.lightstreamer.kafka_connector.adapter.commons.Either;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
@@ -43,6 +44,10 @@ public class GenericRecordSelectorsSuppliers {
 
             @Override
             public Object get(GenericRecord record) {
+                return get(name, record);
+            }
+
+            public static Object get(String name, GenericRecord record) {
                 if (!record.hasField(name)) {
                     ValueException.throwFieldNotFound(name);
                 }
@@ -57,9 +62,9 @@ public class GenericRecordSelectorsSuppliers {
 
             private final FieldGetter getter;
 
-            private final List<Integer> indexes;
+            private final List<Either<String, Integer>> indexes;
 
-            ArrayGetter(String fieldName, List<Integer> indexes) {
+            ArrayGetter(String fieldName, List<Either<String, Integer>> indexes) {
                 this.name = Objects.requireNonNull(fieldName);
                 this.indexes = Objects.requireNonNull(indexes);
                 this.getter = new FieldGetter(name);
@@ -68,12 +73,28 @@ public class GenericRecordSelectorsSuppliers {
             @Override
             public Object get(GenericRecord record) {
                 Object value = getter.get(record);
-                for (int i : indexes) {
-                    if (value instanceof GenericData.Array<?> array) {
-                        value = array.get(i);
+                for (Either<String, Integer> i : indexes) {
+                    if (i.isRight()) {
+                        if (value instanceof GenericData.Array<?> array) {
+                            try {
+                                value = array.get(i.getRight());
+                            } catch (IndexOutOfBoundsException ie) {
+                                ValueException.throwIndexOfOutBoundex(i.getRight());
+                            }
+                        } else {
+                            ValueException.throwNoIndexedField();
+                        }
                     } else {
-                        ValueException.throwNoIndexedField();
+                        if (value instanceof Map map) {
+                            value = map.get(i.getLeft());
+                        } else if (value instanceof GenericRecord gr) {
+                            value = FieldGetter.get(i.getLeft(), gr);
+                        }
+                        if (value == null) {
+                            ValueException.throwNoKeyFound(i.getLeft());
+                        }
                     }
+
                 }
                 return value;
             }

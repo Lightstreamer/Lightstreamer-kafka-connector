@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
-import com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro.GenericRecordDeserializer;
 import com.lightstreamer.kafka_connector.adapter.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;

@@ -26,6 +26,13 @@
                     "items": "string"
                 }
             }
+        },
+        {
+            "name": "preferences",
+            "type": {
+                "type": "map",
+                "values": "string"
+            }
         }
     ]
 }

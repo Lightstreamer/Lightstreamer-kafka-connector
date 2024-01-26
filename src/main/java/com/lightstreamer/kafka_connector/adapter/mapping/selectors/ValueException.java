@@ -10,8 +10,16 @@ public class ValueException extends RuntimeException {
         throwException(mkException("Field [%s] not found", field));
     }
 
+    public static void throwIndexOfOutBoundex(int index) throws ValueException {
+        throwException(mkException("Field not found at index [%d]", index));
+    }
+
     public static void throwNoIndexedField() throws ValueException {
         throwException(mkException("Current field is not indexed"));
+    }
+
+    public static void throwNoKeyFound(String key) {
+        throwException(mkException("Field not found at key ['%s']", key));
     }
 
     public static void throwConversionError(String type) throws ValueException {
@@ -29,6 +37,7 @@ public class ValueException extends RuntimeException {
     private static ValueException mkException(String message, Object... args) {
         return new ValueException(message.formatted(args));
     }
+
 
 
 }

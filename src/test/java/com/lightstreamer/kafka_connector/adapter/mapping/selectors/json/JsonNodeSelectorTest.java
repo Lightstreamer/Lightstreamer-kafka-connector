@@ -46,13 +46,15 @@ public class JsonNodeSelectorTest {
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
-            EXPRESSION,                         EXPECTED_VALUE
-            VALUE.name,                         joe
-            VALUE.children[0].name,             alex
-            VALUE.children[1].name,             anna
-            VALUE.children[2].name,             serena
-            VALUE.children[1].children[0].name, gloria
-            VALUE.children[1].children[1].name, terence
+            EXPRESSION,                            EXPECTED_VALUE
+            VALUE.name,                            joe
+            VALUE.children[0].name,                alex
+            VALUE.children[0]['name'],             alex
+            VALUE.children[1].name,                anna
+            VALUE.children[2].name,                serena
+            VALUE.children[1].children[0].name,    gloria
+            VALUE.children[1].children[1].name,    terence
+            VALUE.children[1].children[1]['name'], terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<JsonNode> selector = valueSelector(expression);
@@ -66,7 +68,9 @@ public class JsonNodeSelectorTest {
             VALUE.children[0].no_attrib,        Field [no_attrib] not found    
             VALUE.no_children[0],               Field [no_children] not found
             VALUE.name[0],                      Current field is not indexed
+            VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
+            VALUE.children[3].name,             Field not found at index [3]
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<JsonNode> selector = valueSelector(expression);
@@ -77,12 +81,14 @@ public class JsonNodeSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
             ESPRESSION,                        EXPECTED_VALUE
-            KEY.name,                          joe
-            KEY.children[0].name,              alex
-            KEY.children[1].name,              anna
-            KEY.children[2].name,              serena
-            KEY.children[1].children[0].name,  gloria
-            KEY.children[1].children[1].name,  terence
+            KEY.name,                             joe
+            KEY.children[0].name,                 alex
+            KEY.children[0]['name'],              alex
+            KEY.children[1].name,                 anna
+            KEY.children[2].name,                 serena
+            KEY.children[1].children[0].name,     gloria
+            KEY.children[1].children[1].name,     terence
+            KEY.children[1].children[1]['name'],  terence
             """)
     public void shouldExtractKey(String expression, String expectedValue) {
         KeySelector<JsonNode> selector = keySelector(expression);
@@ -96,6 +102,9 @@ public class JsonNodeSelectorTest {
             KEY.children[0].no_attrib,        Field [no_attrib] not found    
             KEY.no_children[0],               Field [no_children] not found
             KEY.name[0],                      Current field is not indexed
+            KEY.children[0]['no_key'],        Field [no_key] not found
+            KEY.children[0],                  The expression [KEY.children[0]] must evaluate to a non-complex object
+            KEY.children[3].name,             Field not found at index [3]
             """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         KeySelector<JsonNode> selector = keySelector(expression);
@@ -136,6 +145,7 @@ public class JsonNodeSelectorTest {
             VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
             VALUE.attrib[a],                   Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
             VALUE.attrib[a].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
+            VALUE.attrib[0].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
             """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> valueSelector(expression));

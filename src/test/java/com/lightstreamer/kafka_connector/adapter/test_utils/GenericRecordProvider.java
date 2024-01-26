@@ -2,6 +2,7 @@ package com.lightstreamer.kafka_connector.adapter.test_utils;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -35,6 +36,7 @@ public class GenericRecordProvider {
     private GenericRecord newGenericRecord() {
         GenericRecord parentJoe = new GenericData.Record(valueSchema);
         parentJoe.put("name", "joe");
+        parentJoe.put("preferences", Map.of("pref1", "pref_value1", "pref2", "pref_Value2"));
 
         GenericRecord childAlex = new GenericData.Record(valueSchema);
         childAlex.put("name", "alex");

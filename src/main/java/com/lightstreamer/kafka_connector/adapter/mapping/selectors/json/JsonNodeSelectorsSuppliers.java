@@ -3,10 +3,12 @@ package com.lightstreamer.kafka_connector.adapter.mapping.selectors.json;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapter.commons.Either;
 import com.lightstreamer.kafka_connector.adapter.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka_connector.adapter.mapping.selectors.KeySelector;
@@ -41,6 +43,10 @@ public class JsonNodeSelectorsSuppliers {
 
             @Override
             public JsonNode get(JsonNode node) {
+                return get(name, node);
+            }
+
+            public static JsonNode get(String name, JsonNode node) {
                 if (!node.has(name)) {
                     ValueException.throwFieldNotFound(name);
                 }
@@ -54,22 +60,37 @@ public class JsonNodeSelectorsSuppliers {
 
             private final PropertyGetter getter;
 
-            private final List<Integer> indexes;
+            private final List<Either<String, Integer>> indexes;
 
-            ArrayGetter(String fieldName, List<Integer> indexes) {
+            ArrayGetter(String fieldName, List<Either<String, Integer>> indexes) {
                 this.name = Objects.requireNonNull(fieldName);
                 this.indexes = Objects.requireNonNull(indexes);
                 this.getter = new PropertyGetter(name);
             }
 
+            static JsonNode get(int index, JsonNode node) {
+                if (node.isArray()) {
+                    JsonNode value = node.get(index);
+                    if (value == null) {
+                        ValueException.throwIndexOfOutBoundex(index);
+                    }
+                    return value;
+                } else {
+                    ValueException.throwNoIndexedField();
+                    // Actually unreachable code
+                    return null;
+                }
+            }
+
             @Override
             public JsonNode get(JsonNode node) {
                 JsonNode value = getter.get(node);
-                for (int i : indexes) {
-                    if (!value.isArray()) {
-                        ValueException.throwNoIndexedField();
+                for (Either<String, Integer> i : indexes) {
+                    if (i.isRight()) {
+                        value = get(i.getRight(), value);
+                    } else {
+                        value = PropertyGetter.get(i.getLeft(), value);
                     }
-                    value = value.get(i);
                 }
                 return value;
             }
