@@ -1,6 +1,7 @@
 package com.lightstreamer.kafka_connector.adapter.test_utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,9 @@ public class GenericRecordProvider {
         childTerence.put("name", "terence");
         childAnna.put("children", new GenericData.Array<>(childrenSchema, List.of(childGloria, childTerence)));
 
-        parentJoe.put("children", new GenericData.Array<>(childrenSchema, List.of(childAlex, childAnna, childSerena)));
+        ArrayList<GenericRecord> joeChildren = new ArrayList<>(List.of(childAlex, childAnna, childSerena));
+        joeChildren.add(null);
+        parentJoe.put("children", new GenericData.Array<>(childrenSchema, joeChildren));
         return parentJoe;
     }
 }

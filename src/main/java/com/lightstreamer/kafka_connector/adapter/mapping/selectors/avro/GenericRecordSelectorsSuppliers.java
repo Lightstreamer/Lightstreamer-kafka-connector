@@ -70,20 +70,30 @@ public class GenericRecordSelectorsSuppliers {
                 this.getter = new FieldGetter(name);
             }
 
+            static Object get(int index, Object value) {
+                if (value instanceof GenericData.Array<?> array) {
+                    try {
+                        value = array.get(index);
+                        if (value == null) {
+                            throw new IndexOutOfBoundsException();
+                        }
+                        return value;
+                    } catch (IndexOutOfBoundsException ie) {
+                        ValueException.throwIndexOfOutBoundex(index);
+                    }
+                } else {
+                    ValueException.throwNoIndexedField();
+                }
+                // Actually unreachable code
+                return null;
+            }
+
             @Override
             public Object get(GenericRecord record) {
                 Object value = getter.get(record);
                 for (Either<String, Integer> i : indexes) {
                     if (i.isRight()) {
-                        if (value instanceof GenericData.Array<?> array) {
-                            try {
-                                value = array.get(i.getRight());
-                            } catch (IndexOutOfBoundsException ie) {
-                                ValueException.throwIndexOfOutBoundex(i.getRight());
-                            }
-                        } else {
-                            ValueException.throwNoIndexedField();
-                        }
+                        value = get(i.getRight(), value);
                     } else {
                         if (value instanceof Map map) {
                             value = map.get(i.getLeft());

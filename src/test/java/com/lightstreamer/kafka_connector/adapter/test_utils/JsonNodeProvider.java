@@ -1,5 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.test_utils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,16 +12,17 @@ public class JsonNodeProvider {
     private JsonNodeProvider() {
     }
 
-    private static JsonNodeProvider PROVIDER = new JsonNodeProvider();
+    public static JsonNode RECORD = new JsonNodeProvider().newNode();
 
-    public static JsonNode RECORD = PROVIDER.newGenericRecord();
-
-    private ObjectNode newGenericRecord() {
-        Value value = new Value("joe",
+    private ObjectNode newNode() {
+        List<Value> parentJoeChildren = new ArrayList<>(
                 List.of(new Value("alex"),
                         new Value("anna",
                                 List.of(new Value("gloria"), new Value("terence"))),
                         new Value("serena")));
+        parentJoeChildren.add(null);
+
+        Value value = new Value("joe", parentJoeChildren);
 
         ObjectNode node = new ObjectMapper().valueToTree(value);
         return node;
@@ -43,7 +45,7 @@ class Value {
 
     public Value(String name, List<Value> children) {
         this(name);
-        this.children = List.copyOf(children);
+        this.children = children;
     }
 
     public Value(String name, Value[][] family) {

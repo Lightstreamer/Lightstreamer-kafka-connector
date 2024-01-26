@@ -71,7 +71,7 @@ public class JsonNodeSelectorsSuppliers {
             static JsonNode get(int index, JsonNode node) {
                 if (node.isArray()) {
                     JsonNode value = node.get(index);
-                    if (value == null) {
+                    if (value.isNull()) {
                         ValueException.throwIndexOfOutBoundex(index);
                     }
                     return value;
