@@ -1,14 +1,11 @@
 package com.lightstreamer.kafka_connector.adapter.test_utils;
 
-import static org.junit.jupiter.api.DynamicTest.stream;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
@@ -27,7 +24,8 @@ public class GenericRecordProvider {
 
         try {
             valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
-            childrenSchema = parser.parse(classLoader.getResourceAsStream("array.avsc"));
+            childrenSchema = valueSchema.getField("children").schema();
+            
         } catch (IOException io) {
             throw new RuntimeException(io);
         }
@@ -41,11 +39,15 @@ public class GenericRecordProvider {
         GenericRecord parentJoe = new GenericData.Record(valueSchema);
         parentJoe.put("name", "joe");
         parentJoe.put("preferences", Map.of(new Utf8("pref1"), "pref_value1", new Utf8("pref2"), "pref_value2"));
+        Schema enumSchema = valueSchema.getField("type").schema();
+        parentJoe.put("type", new GenericData.EnumSymbol(enumSchema, "TYPE1"));
 
-        // GenericRecord documentRecord = new GenericData.Record(valueSchema);
-        // documentRecord.put("doc_id", "ID123");
-        // documentRecord.put("doc_type", "ID");
-        // parentJoe.put("documents", Map.of("id", documentRecord));
+        parentJoe.put("signature", new GenericData.Fixed(valueSchema.getField("signature").schema(), "abcd".getBytes()));
+
+        GenericRecord documentRecord = new GenericData.Record(valueSchema.getField("main_document").schema());
+        documentRecord.put("doc_id", "ID123");
+        documentRecord.put("doc_type", "ID");
+        parentJoe.put("documents", Map.of(new Utf8("id"), documentRecord));
 
         GenericRecord childAlex = new GenericData.Record(valueSchema);
         childAlex.put("name", "alex");

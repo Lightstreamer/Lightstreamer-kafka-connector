@@ -23,6 +23,7 @@ public class JsonNodeProvider {
         parentJoeChildren.add(null);
 
         Value value = new Value("joe", parentJoeChildren);
+        value.signature = new byte[]{97, 98, 99, 100};
 
         ObjectNode node = new ObjectMapper().valueToTree(value);
         return node;
@@ -36,6 +37,8 @@ class Value {
     public Value child;
 
     public List<Value> children;
+
+    public byte[] signature;
 
     public Value[][] family;
 

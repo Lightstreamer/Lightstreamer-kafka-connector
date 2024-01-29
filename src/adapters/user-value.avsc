@@ -15,6 +15,31 @@
             ]
         },
         {
+            "name": "signature",
+            "type": {
+                "type": "fixed",
+                "name": "Signature",
+                "size": 4
+            }
+        },
+        {
+            "name": "type",
+            "type": {
+                "type": "enum",
+                "name": "Type",
+                "symbols": [
+                    "type1",
+                    "type2",
+                    "type3"
+                ]
+            }
+        },
+        {
+            "name": "union",
+            "type": ["string", "long"]
+        },
+
+        {
             "name": "info",
             "type": {
                 "type": "record",

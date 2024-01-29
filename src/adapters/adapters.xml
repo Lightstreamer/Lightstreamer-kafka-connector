@@ -54,6 +54,9 @@
         <param name="field.docid">#{VALUE.documents['doc_id']['doc_id']}</param>
         <param name="field.doc_type">#{VALUE.documents['doc_id'].doc_type}</param>
         <param name="field.pref1">#{VALUE.preferences['pref1']}</param>
+        <param name="field.type">#{VALUE.type}</param>
+        <param name="field.signature">#{VALUE.signature}</param>
+        <param name="field.union">#{VALUE.union}</param>
 
 
         <!-- Map one topic to multimple items -->

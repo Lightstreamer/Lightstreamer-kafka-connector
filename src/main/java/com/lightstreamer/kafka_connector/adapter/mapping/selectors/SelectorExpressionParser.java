@@ -24,12 +24,15 @@ public class SelectorExpressionParser<K, V> {
     // Pattern.compile("\\['([^']*)'\\]");
 
     public interface NodeEvaluator<K, V> {
+        String name();
         V get(K k) throws ValueException;
     }
 
     public static class LinkedNode<T> {
 
         private LinkedNode<T> next;
+
+        private LinkedNode<T> prev;
 
         private final T value;
 
@@ -47,6 +50,10 @@ public class SelectorExpressionParser<K, V> {
 
         public LinkedNode<T> next() {
             return next;
+        }
+
+        public LinkedNode<T> previous() {
+            return prev;
         }
     }
 
@@ -170,6 +177,7 @@ public class SelectorExpressionParser<K, V> {
                 head = linkedNode;
             } else {
                 current.next = linkedNode;
+                linkedNode.prev = current;
                 current = linkedNode;
             }
         }

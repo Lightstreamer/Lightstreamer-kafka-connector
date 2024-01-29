@@ -45,16 +45,19 @@ public class JsonNodeSelectorTest {
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(useHeadersInDisplayName = true, textBlock = """
-            EXPRESSION,                            EXPECTED_VALUE
-            VALUE.name,                            joe
-            VALUE.children[0].name,                alex
-            VALUE.children[0]['name'],             alex
-            VALUE.children[1].name,                anna
-            VALUE.children[2].name,                serena
-            VALUE.children[1].children[0].name,    gloria
-            VALUE.children[1].children[1].name,    terence
-            VALUE.children[1].children[1]['name'], terence
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            EXPRESSION                            | EXPECTED_VALUE
+            VALUE.name                            | joe
+            VALUE.signature                       | YWJjZA==
+            VALUE.children[0].name                | alex
+            VALUE.children[0]['name']             | alex
+            VALUE.children[0].signature           | NULL
+            VALUE.children[1].name                | anna
+            VALUE.children[2].name                | serena
+            VALUE.children[3]                     | NULL
+            VALUE.children[1].children[0].name    | gloria
+            VALUE.children[1].children[1].name    | terence
+            VALUE.children[1].children[1]['name'] | terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<JsonNode> selector = valueSelector(expression);
@@ -71,8 +74,9 @@ public class JsonNodeSelectorTest {
             VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
             VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
-            VALUE.children[3].name,             Field not found at index [3]
-            VALUE.children[3],                  Field not found at index [3]
+            VALUE.children[3].name,             Current fieldField not found at index [3]
+            VALUE.children[4],                  Field not found at index [4]
+            VALUE.children[4].name,             Field not found at index [4]
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<JsonNode> selector = valueSelector(expression);

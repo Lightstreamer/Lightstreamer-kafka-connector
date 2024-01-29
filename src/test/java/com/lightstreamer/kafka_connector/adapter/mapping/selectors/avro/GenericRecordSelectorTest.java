@@ -57,19 +57,24 @@ public class GenericRecordSelectorTest {
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(useHeadersInDisplayName = true, textBlock = """
-            EXPRESSION,                         EXPECTED
-            VALUE.name,                            joe
-            VALUE.preferences['pref1'],            pref_value1
-            VALUE.preferences['pref2'],            pref_value2
-#            VALUE.documents['id'].doc_id,             ID123
-            VALUE.children[0].name,                alex
-            VALUE.children[0]['name'],             alex
-            VALUE.children[1].name,                anna
-            VALUE.children[2].name,                serena
-            VALUE.children[1].children[0].name,    gloria
-            VALUE.children[1].children[1].name,    terence
-            VALUE.children[1].children[1]['name'], terence
+    @CsvSource(useHeadersInDisplayName = true, delimiter = '|', textBlock = """
+            EXPRESSION                             |  EXPECTED
+            VALUE.name                             |  joe
+            VALUE.preferences['pref1']             |  pref_value1
+            VALUE.preferences['pref2']             |  pref_value2
+            VALUE.documents['id'].doc_id           |  ID123
+            VALUE.documents['id'].doc_type         |  ID
+            VALUE.type                             |  TYPE1
+            VALUE.signature                        |  [97, 98, 99, 100]
+            VALUE.children[0].name                 |  alex
+            VALUE.children[0]['name']              |  alex
+            VALUE.children[0].signature            |  NULL
+            VALUE.children[1].name                 |  anna
+            VALUE.children[2].name                 |  serena
+            VALUE.children[3]                      |  NULL
+            VALUE.children[1].children[0].name     |  gloria
+            VALUE.children[1].children[1].name     |  terence
+            VALUE.children[1].children[1]['name']  |  terence
             """)
     public void shouldExtractValue(String expression, String expectedValue) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);
@@ -87,8 +92,10 @@ public class GenericRecordSelectorTest {
             VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
             VALUE.children[0]['no_key'],        Field [no_key] not found
             VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
-            VALUE.children[3].name,             Field not found at index [3]
-            VALUE.children[3],                  Field not found at index [3]
+            VALUE.children[3].name,             Current fieldField not found at index [3]
+            VALUE.children[4],                  Field not found at index [4]
+            VALUE.children[4].name,             Field not found at index [4]
+            VALUE.type.attrib,                  Current field [EnumSymbol] is a terminal object
             """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueSelector<GenericRecord> selector = valueSelector(expression);

@@ -8,13 +8,39 @@
             "type": "string"
         },
         {
+            "name": "type",
+            "type": {
+                "name": "Type",
+                "type": "enum",
+                "symbols": [
+                    "TYPE1",
+                    "TYPE2",
+                    "TYPE3"
+                ]
+            }
+        },
+        {
+            "name": "signature",
+            "type": {
+                "type": "fixed",
+                "name": "Signature",
+                "size": 4
+            }
+        },
+        {
             "name": "main_document",
             "type": {
                 "type": "record",
                 "name": "Document",
                 "fields": [
-                    { "name": "doc_id", "type": "string"},
-                    { "name": "doc_type", "type": "string"}
+                    {
+                        "name": "doc_id",
+                        "type": "string"
+                    },
+                    {
+                        "name": "doc_type",
+                        "type": "string"
+                    }
                 ]
             }
         },
@@ -47,7 +73,7 @@
         },
         {
             "name": "documents",
-            "type":  {
+            "type": {
                 "type": "map",
                 "values": {
                     "type": "com.lightstreamer.kafka_connector.avro.Document"

@@ -4,9 +4,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -50,6 +52,11 @@ public class GenericRecordSelectorsSuppliers {
             }
 
             @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
             public Object get(GenericRecord record) {
                 return get(name, record);
             }
@@ -77,11 +84,17 @@ public class GenericRecordSelectorsSuppliers {
                 this.getter = new FieldGetter(name);
             }
 
+            @Override
+            public String name() {
+                return name;
+            }
+
             static Object get(int index, Object value) {
                 if (value instanceof GenericData.Array<?> array) {
                     try {
-                        value = array.get(index);
-                        if (value == null) {
+                        if (index < array.size()) {
+                            value = array.get(index);
+                        } else {
                             throw new IndexOutOfBoundsException();
                         }
                         return value;
@@ -133,30 +146,35 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         private boolean isScalar(Object value) {
-            return !(value instanceof GenericContainer ||
+            return !(value instanceof GenericData.Record ||
+                    value instanceof GenericData.Array ||
                     value instanceof Map);
         }
 
         protected Value eval(GenericRecord record) {
             Object value = record;
             GenericRecord currentRecord = record;
-            LinkedNode<NodeEvaluator<GenericRecord, Object>> currentLinkedNode = linkedNode;
-            while (currentLinkedNode != null) {
-                if (value instanceof GenericRecord genericRecord) {
-                    currentRecord = genericRecord;
-                    NodeEvaluator<GenericRecord, Object> evaluator = currentLinkedNode.value();
-                    value = evaluator.get(currentRecord);
-                    currentLinkedNode = currentLinkedNode.next();
+            LinkedNode<NodeEvaluator<GenericRecord, Object>> currentNode = linkedNode;
+            while (currentNode != null) {
+                if (value == null) {
+                    ValueException.throwNullObject(currentNode.previous().value().name());
                     continue;
                 }
-                ValueException.throwConversionError("GenericRecord");
+                if (value instanceof GenericRecord genericRecord) {
+                    currentRecord = genericRecord;
+                    value = currentNode.value().get(currentRecord);
+                    currentNode = currentNode.next();
+                    continue;
+                }
+                ValueException.throwConversionError(value.getClass().getSimpleName());
             }
 
             if (!isScalar(value)) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            return Value.of(name(), value.toString());
+            String text = value != null ? value.toString() : "NULL";
+            return Value.of(name(), text);
         }
     }
 

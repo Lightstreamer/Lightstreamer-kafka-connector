@@ -41,6 +41,11 @@ public class JsonNodeSelectorsSuppliers {
             }
 
             @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
             public JsonNode get(JsonNode node) {
                 return get(name, node);
             }
@@ -67,13 +72,20 @@ public class JsonNodeSelectorsSuppliers {
                 this.getter = new PropertyGetter(name);
             }
 
+            @Override
+            public String name() {
+                return name;
+            }
+
             static JsonNode get(int index, JsonNode node) {
                 if (node.isArray()) {
-                    JsonNode value = node.get(index);
-                    if (value.isNull()) {
+                    if (index < node.size()) {
+                        return node.get(index);
+                    } else {
                         ValueException.throwIndexOfOutBoundex(index);
+                        // Actually unreachable code
+                        return null;
                     }
-                    return value;
                 } else {
                     ValueException.throwNoIndexedField();
                     // Actually unreachable code
@@ -117,7 +129,9 @@ public class JsonNodeSelectorsSuppliers {
             if (node.isContainerNode()) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
-            return Value.of(name(), node.asText());
+
+            String text = !node.isNull() ? node.asText() : "NULL";
+            return Value.of(name(), text);
         }
     }
 

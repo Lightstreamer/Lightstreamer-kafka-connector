@@ -6,6 +6,10 @@ public class ValueException extends RuntimeException {
         super(message);
     }
 
+    public static void throwNullObject(String field) throws ValueException {
+        throwException(mkException("Field [%s] is NULL", field));
+    }
+
     public static void throwFieldNotFound(String field) throws ValueException {
         throwException(mkException("Field [%s] not found", field));
     }
@@ -23,7 +27,7 @@ public class ValueException extends RuntimeException {
     }
 
     public static void throwConversionError(String type) throws ValueException {
-        throwException(mkException("Current field is not of type [%s]", type));
+        throwException(mkException("Current field [%s] is a terminal object", type));
     }
 
     public static void throwNonComplexObjectRequired(String expression) {
