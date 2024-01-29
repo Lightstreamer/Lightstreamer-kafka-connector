@@ -19,10 +19,6 @@ public class SelectorExpressionParser<K, V> {
 
     private static Pattern SELECTOR_PATTERN = Pattern.compile(SELECTION_REGEX);
 
-    // private static Pattern INDEXES = Pattern.compile("\\[(\\d+)\\]$");
-
-    private static Pattern KEYS = Pattern.compile("\\['(.*)'\\]$");
-
     private static Pattern INDEXES = Pattern.compile("\\[(?:'([^']*)'|(\\d+))\\]");
 
     // Pattern.compile("\\['([^']*)'\\]");
@@ -150,22 +146,23 @@ public class SelectorExpressionParser<K, V> {
 
     private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner, ParsingContext ctx) {
         LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
-        while (scanner.hasNext()) {
-            String fieldName = scanner.next();
-            if (fieldName.isBlank()) {
+        while(scanner.hasNext()) {
+            String token = scanner.next();
+            if (token.isBlank()) {
                 ExpressionException.throwBlankToken(ctx.name(), ctx.expression());
             }
-            int lbracket = fieldName.indexOf('[');
+            int lbracket = token.indexOf('[');
             NodeEvaluator<K, V> node;
             if (lbracket != -1) {
-                List<GeneralizedKey> indexes = parseIndexes(fieldName.substring(lbracket));
-                String field = fieldName.substring(0, lbracket);
+                String indexedExpression = token.substring(lbracket);
+                List<GeneralizedKey> indexes = parseIndexes(ctx, indexedExpression);
                 if (indexes.isEmpty()) {
                     ExpressionException.throwInvalidIndexedExpression(ctx.name(), ctx.expression());
                 }
+                String field = token.substring(0, lbracket);
                 node = arrayEvaluatorFactory.apply(field, indexes);
             } else {
-                node = fieldEvaluatorFactory.apply(fieldName);
+                node = fieldEvaluatorFactory.apply(token);
             }
             LinkedNode<NodeEvaluator<K, V>> linkedNode = new LinkedNode<>(node);
             if (current == null) {
@@ -182,25 +179,23 @@ public class SelectorExpressionParser<K, V> {
         return head;
     }
 
-    private static List<GeneralizedKey> parseIndexes(String indexedExpression) {
+    private static List<GeneralizedKey> parseIndexes(ParsingContext ctx, String indexedExpression) {
         List<GeneralizedKey> indexes = new ArrayList<>();
         Matcher matcher = INDEXES.matcher(indexedExpression);
         int previousEnd = 0;
         while (matcher.find()) {
             int currentStart = matcher.start();
             if (currentStart != previousEnd) {
-                String invalidTerm = indexedExpression.substring(previousEnd, currentStart);
-                throw new RuntimeException("No valid expression: " + invalidTerm);
+                ExpressionException.throwInvalidIndexedExpression(ctx.name(), ctx.expression());
             }
             previousEnd = matcher.end();
             String key = matcher.group(1);
             String index = matcher.group(2);
-            if (key != null) {
-                indexes.add(GeneralizedKey.key(key));
-            } else if (index != null) {
-                indexes.add(GeneralizedKey.index(Integer.valueOf(index)));
-            }
-
+            GeneralizedKey gk = key != null ? GeneralizedKey.key(key) : GeneralizedKey.index(Integer.valueOf(index));
+            indexes.add(gk);
+        }
+        if (previousEnd < indexedExpression.length()) {
+            ExpressionException.throwInvalidIndexedExpression(ctx.name(), ctx.expression());
         }
         return indexes;
     }
