@@ -114,7 +114,8 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.required()).isTrue();
         assertThat(itemTemplate.multiple()).isTrue();
         assertThat(itemTemplate.suffix()).isNull();
-        assertThat(itemTemplate.mutable()).isTrue();;
+        assertThat(itemTemplate.mutable()).isTrue();
+        ;
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
@@ -147,7 +148,8 @@ public class ConnectorConfigTest {
 
         ConfParameter valueEvaluatorSchemaRegistryUrl = configSpec
                 .getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(valueEvaluatorSchemaRegistryUrl.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
+        assertThat(valueEvaluatorSchemaRegistryUrl.name())
+                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
         assertThat(valueEvaluatorSchemaRegistryUrl.required()).isFalse();
         assertThat(valueEvaluatorSchemaRegistryUrl.multiple()).isFalse();
         assertThat(valueEvaluatorSchemaRegistryUrl.mutable()).isTrue();
@@ -258,6 +260,14 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
+        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
+        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
+        adapterParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
+        adapterParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
+        adapterParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
+        adapterParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
+        adapterParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
         adapterParams.put("item-template.template1", "item1");
         adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");
@@ -351,7 +361,15 @@ public class ConnectorConfigTest {
         assertThat(baseConsumerProps).containsAtLeast(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
-                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false",
+                ConsumerConfig.FETCH_MAX_BYTES_CONFIG, "100",
+                ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, "200",
+                ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "300",
+                ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "400",
+                ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "500",
+                ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "600",
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "700",
+                ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "800");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG)).startsWith("KAFKA-CONNECTOR-");
     }
 
@@ -398,7 +416,6 @@ public class ConnectorConfigTest {
 
         assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
     }
-
 
     @Test
     public void shouldGetValues() {
@@ -501,6 +518,19 @@ public class ConnectorConfigTest {
     public void shouldGetDirectory() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir);
         assertThat(config.getDirectory(ConnectorConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
+    }
+
+    @Test
+    public void shouldNoGetNonExistinggNonRequiredInt() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS)).isNull();
+        assertThat(config.getInt(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS)).isNull();
     }
 
 }

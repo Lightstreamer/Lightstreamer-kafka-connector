@@ -57,6 +57,7 @@
         <param name="field.type">#{VALUE.type}</param>
         <param name="field.signature">#{VALUE.signature}</param>
         <param name="field.union">#{VALUE.union}</param>
+        <param name="field.partition">#{PARTITION}</param>
 
 
         <!-- Map one topic to multimple items -->

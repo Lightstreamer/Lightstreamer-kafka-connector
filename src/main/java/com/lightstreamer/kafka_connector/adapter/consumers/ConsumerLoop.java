@@ -1,19 +1,25 @@
 package com.lightstreamer.kafka_connector.adapter.consumers;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +95,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private final KafkaConsumer<K, V> consumer;
         private final CountDownLatch latch = new CountDownLatch(1);
         private final Logger log = LoggerFactory.getLogger(ConsumerWrapper.class);
+        private Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+
         private int counter;
         private Thread hook;
 
@@ -125,7 +133,24 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             try {
                 List<String> topics = config.itemTemplates().topics().toList();
                 log.atDebug().log("Subscring to topics [{}]", topics);
-                consumer.subscribe(topics);
+                consumer.subscribe(topics, new ConsumerRebalanceListener() {
+
+                    @Override
+                    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                        log.atWarn().log("Partions revoked, committing offsets {}" + currentOffsets);
+                        try {
+                            consumer.commitSync(currentOffsets);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                        log.atDebug().log("Assigned partiions {}", partitions);
+                    }
+
+                });
                 log.atInfo().log("Subscribed to topics [{}]", topics);
 
                 while (true) {
@@ -135,6 +160,14 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     try {
                         records.forEach(this::consume);
                         consumer.commitAsync();
+                        try {
+                            TimeUnit.SECONDS.sleep(1);
+                        } catch (InterruptedException e) {
+
+                        }
+                        if (true) {
+                            throw new RuntimeException("Test error");
+                        }
                     } catch (ValueException re) {
                         log.atWarn().log("An error occured while extracting values from the record: {}",
                                 re.getMessage());
@@ -177,6 +210,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             config.itemTemplates()
                     .expand(remappedRecord)
                     .forEach(expandedItem -> processItem(remappedRecord, expandedItem));
+            currentOffsets.put(new TopicPartition(record.topic(), record.partition()),
+                    new OffsetAndMetadata(record.offset() + 1, null));
         }
 
         private void processItem(MappedRecord record, Item expandedItem) {

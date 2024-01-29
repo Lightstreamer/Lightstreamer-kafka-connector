@@ -1,11 +1,24 @@
 package com.lightstreamer.kafka_connector.adapter.config;
 
 import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.HOST;
+import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType.URL;
 import static com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.DefaultHolder.defaultValue;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_BYTES_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import java.io.File;
 import java.security.SecureRandom;
@@ -18,8 +31,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapter.config.ConfigSpec.Type;
@@ -60,9 +71,18 @@ public class ConnectorConfig {
     public static final String ITEM_INFO_FIELD = "info.field";
 
     // Kafka consumer specific settings
-    public static final String CONSUMER_AUTO_OFFSET_RESET_CONFIG = "consumer." + AUTO_OFFSET_RESET_CONFIG;
-
-    public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG = "consumer." + ENABLE_AUTO_COMMIT_CONFIG;
+    private static final String CONNECTOR_PREFIX = "consumer.";
+    public static final String CONSUMER_AUTO_OFFSET_RESET_CONFIG = CONNECTOR_PREFIX + AUTO_OFFSET_RESET_CONFIG;
+    public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG = CONNECTOR_PREFIX + ENABLE_AUTO_COMMIT_CONFIG;
+    public static final String CONSUMER_FETCH_MIN_BYTES_CONFIG = CONNECTOR_PREFIX + FETCH_MIN_BYTES_CONFIG;
+    public static final String CONSUMER_FETCH_MAX_BYTES_CONFIG = CONNECTOR_PREFIX + FETCH_MAX_BYTES_CONFIG;
+    public static final String CONSUMER_FETCH_MAX_WAIT_MS_CONFIG = CONNECTOR_PREFIX + FETCH_MAX_WAIT_MS_CONFIG;
+    public static final String CONSUMER_MAX_POLL_RECORDS = CONNECTOR_PREFIX + MAX_POLL_RECORDS_CONFIG;
+    public static final String CONSUMER_RECONNECT_BACKOFF_MS_CONFIG = CONNECTOR_PREFIX + RECONNECT_BACKOFF_MS_CONFIG;
+    public static final String CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG = CONNECTOR_PREFIX
+            + RECONNECT_BACKOFF_MAX_MS_CONFIG;
+    public static final String CONSUMER_HEARTBEAT_INTERVAL_MS = CONNECTOR_PREFIX + HEARTBEAT_INTERVAL_MS_CONFIG;
+    public static final String CONSUMER_SESSION_TIMEOUT_MS = CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
 
     private static final ConfigSpec CONFIG_SPEC;
 
@@ -91,7 +111,16 @@ public class ConnectorConfig {
                 .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                 .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                 .add(CONSUMER_AUTO_OFFSET_RESET_CONFIG, false, false, TEXT, defaultValue("latest"))
-                .add(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, false, false, BOOL, false, defaultValue("false"));
+                .add(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, false, false, BOOL, false, defaultValue("false"))
+                .add(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, false, false, INT)
+                .add(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, false, false, INT)
+                .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
+                .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
+                .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
+                .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
+                .add(CONSUMER_MAX_POLL_RECORDS, false, false, INT)
+                .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
+                .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT);
 
     }
 
@@ -138,6 +167,10 @@ public class ConnectorConfig {
 
     }
 
+    public String getInt(String configKey) {
+        return get(configKey, INT, false);
+    }
+
     public String getText(String configKey) {
         return get(configKey, TEXT, false);
     }
@@ -147,11 +180,11 @@ public class ConnectorConfig {
     }
 
     public String getHost(String configKey) {
-        return get(configKey, ConfType.Host, false);
+        return get(configKey, HOST, false);
     }
 
     public String getHost(String configKey, boolean forceRequired) {
-        String value = get(configKey, ConfType.Host, false);
+        String value = get(configKey, HOST, false);
         if (forceRequired && value == null) {
             throw new ConfigException("Missing required parameter [%s]".formatted(configKey));
         }
@@ -199,13 +232,27 @@ public class ConnectorConfig {
 
     public Properties baseConsumerProps() {
         Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, getText(GROUP_ID));
-        properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
-        properties.setProperty(ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
-        // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "0");
-        // properties.setProperty(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");
+        properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
+        properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
+        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, "5000");
+        copySetting(properties, AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
+        copySetting(properties, ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
+        copySetting(properties, FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
+        copySetting(properties, FETCH_MAX_BYTES_CONFIG, getInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
+        copySetting(properties, FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
+        copySetting(properties, HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
+        copySetting(properties, MAX_POLL_RECORDS_CONFIG, getInt(CONSUMER_MAX_POLL_RECORDS));
+        copySetting(properties, RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
+        copySetting(properties, RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
+        copySetting(properties, SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
         return properties;
+    }
+
+    private void copySetting(Properties properties, String toKey, String value) {
+        if (value != null) {
+            properties.setProperty(toKey, value);
+        }
+
     }
 
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {

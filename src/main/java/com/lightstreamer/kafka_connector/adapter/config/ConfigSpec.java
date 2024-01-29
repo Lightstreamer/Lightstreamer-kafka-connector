@@ -62,7 +62,7 @@ class ConfigSpec {
             }
         },
 
-        Int {
+        INT {
             @Override
             public boolean isValid(String param) {
                 try {
@@ -74,7 +74,7 @@ class ConfigSpec {
             }
         },
 
-        Host {
+        HOST {
             private static Pattern HOST = Pattern.compile("^([0-9a-zA-Z-.%_]+):([1-9]\\d*)$");
 
             @Override
@@ -104,7 +104,7 @@ class ConfigSpec {
             }
         },
 
-        HostsList(Host) {
+        HostsList(HOST) {
             @Override
             public boolean isValid(String param) {
                 String[] params = param.split(",");
