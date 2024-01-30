@@ -1429,7 +1429,7 @@
          of the <env_prefix> element cited there (note that setting an empty
          attribute value corresponds to not setting the attribute at all).
          Default: N -->
-    <enable_expansion_for_adapters_config env_prefix="">N</enable_expansion_for_adapters_config>
+    <enable_expansion_for_adapters_config env_prefix="">Y</enable_expansion_for_adapters_config>
 
     <!-- Optional. Path of the file system directory that contains the Java
          classes and JAR files shared by the Adapters; they must be placed

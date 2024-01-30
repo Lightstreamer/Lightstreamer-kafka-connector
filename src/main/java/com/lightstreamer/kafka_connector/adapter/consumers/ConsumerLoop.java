@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.RecordMapper;
@@ -38,7 +40,7 @@ import com.lightstreamer.kafka_connector.adapter.mapping.selectors.ValueExceptio
 public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
     enum ValueExceptionStrategy {
-        COMMIT_ANYWAY,
+        IGNORE_AND_CONTINUE,
 
         TERMINATE;
     }
@@ -54,8 +56,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
     private volatile InfoItem infoItem;
 
-    public ConsumerLoop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        super(config);
+    private final ExecutorService pool;
+
+    public ConsumerLoop(ConsumerLoopConfig<K, V> config, MetadataListener metadataListener, ItemEventListener eventListener) {
+        super(config, metadataListener);
         this.fieldsSelectors = config.fieldMappings().selectors();
 
         this.recordRemapper = RecordMapper.<K, V>builder()
@@ -64,39 +68,44 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 .build();
 
         this.eventListener = eventListener;
+        this.pool = Executors.newFixedThreadPool(2);
     }
 
     @Override
     void startConsuming(String item) throws SubscriptionException {
-        if (itemsCounter.addAndGet(1) == 1) {
-            consumerLock.lock();
-            try {
-                consumer = new ConsumerWrapper(ValueExceptionStrategy.COMMIT_ANYWAY);
-                CompletableFuture.runAsync(consumer);
-            } catch (KafkaException ke) {
-                log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
-                SubscriptionException subscriptionException = new SubscriptionException(
-                        "Unable to start consuming from the Kafka brokers");
-                notifyException(subscriptionException);
-                unsubscribe(item);
-                throw subscriptionException;
-            } finally {
-                consumerLock.unlock();
-            }
+        log.atDebug().log("START CONSUMER: Acquiring consumer lock...");
+        consumerLock.lock();
+        log.atDebug().log("START CONSUMER: Lock acquired...");
+        try {
+            consumer = new ConsumerWrapper(ValueExceptionStrategy.valueOf(config.recordErrorHandlingStrategy()));
+            CompletableFuture.runAsync(consumer, pool);
+        } catch (KafkaException ke) {
+            log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
+            metadataListener.forceUnsubscription(item);
+        } finally {
+            log.atDebug().log("START CONSUMER: Releasing consumer lock...");
+            consumerLock.unlock();
         }
     }
 
     @Override
     void stopConsuming() {
+        log.atDebug().log("No more subscribed items");
+        log.atTrace().log("Acquiring consumer lock to stop consuming...");
         consumerLock.lock();
+        log.atTrace().log("Lock acquired to stop consuming...");
         try {
             if (consumer != null) {
+                log.atDebug().log("Stopping consumer...");
                 consumer.close();
+                log.atDebug().log("Stopped consumer");
+            } else {
+                log.atDebug().log("Consumer not yet started");
             }
         } finally {
+            log.atTrace().log("Releasing consumer lock to stop consuming...");
             consumerLock.unlock();
         }
-
     }
 
     private class ConsumerWrapper implements Runnable {
@@ -146,11 +155,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                 @Override
                 public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    log.atWarn().log("Partions revoked, committing offsets {}" + currentOffsets);
+                    log.atWarn().log("Partions revoked, committing offsets {}", currentOffsets);
                     try {
                         consumer.commitSync(currentOffsets);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.atError().setCause(e).log(
+                                "An error occured while committing current offsets during after partitions have been revoked");
                     }
                 }
 
@@ -170,20 +180,14 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         log.atDebug().log("Received records");
                         records.forEach(this::consume);
                         consumer.commitAsync();
-                        // try {
-                        //     TimeUnit.SECONDS.sleep(1);
-                        // } catch (InterruptedException e) {
 
-                        // }
-                    } catch (WakeupException w) {
-                        throw w;
                     } catch (ValueException ve) {
                         log.atWarn().log("An error occured while extracting values from the record: {}",
                                 ve.getMessage());
                         notifyException(ve);
 
                         switch (st) {
-                            case COMMIT_ANYWAY -> {
+                            case IGNORE_AND_CONTINUE -> {
                                 log.atWarn().log("Commiting anyway");
                                 consumer.commitAsync();
                             }
@@ -191,13 +195,18 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             case TERMINATE -> {
                                 log.atWarn().log("Terminating");
                                 loop = false;
-                                CompletableFuture.runAsync(() -> closeAndExit(ve));
+                                // CompletableFuture.runAsync(() -> closeAndExit(ve), pool);
+                                
                             }
                         }
+                    } catch (WakeupException we) {
+                        // We need to catch and rethrow the Exception here, due to the next catched
+                        // KafkaException
+                        throw we;
                     } catch (KafkaException ke) {
-                        log.atWarn().log("Unrecoverable exception, terminating");
+                        log.atWarn().setCause(ke).log("Unrecoverable exception, terminating");
                         loop = false;
-                        CompletableFuture.runAsync(() -> closeAndExit(ke));
+                        CompletableFuture.runAsync(() -> closeAndExit(ke), pool);
                     }
                 }
             } catch (WakeupException e) {

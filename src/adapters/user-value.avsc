@@ -14,7 +14,14 @@
                 "null"
             ]
         },
-
+        {
+            "name": "signature",
+            "type": {
+                "type": "fixed",
+                "name": "Signature",
+                "size": 4
+            }
+        },
         {
             "name": "type",
             "type": {

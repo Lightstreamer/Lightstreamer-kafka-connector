@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapter.Loop;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
@@ -21,8 +22,11 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
     protected final AtomicInteger itemsCounter = new AtomicInteger(0);
     protected Object infoItemhande;
 
-    protected AbstractConsumerLoop(ConsumerLoopConfig<K, V> config) {
+    protected final MetadataListener metadataListener;
+
+    protected AbstractConsumerLoop(ConsumerLoopConfig<K, V> config, MetadataListener metadataListener) {
         this.config = config;
+        this.metadataListener = metadataListener;
     }
 
     public final int getItemsCounter() {
@@ -39,7 +43,9 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
         }
 
         subscribedItems.put(item, newItem);
-        startConsuming(item);
+        if (itemsCounter.addAndGet(1) == 1) {
+            startConsuming(item);
+        }
         return newItem;
     }
 
@@ -51,8 +57,8 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
         if (removedItem == null) {
             throw new SubscriptionException("Unsubscribing unexpected item [%s]".formatted(item));
         }
+
         if (itemsCounter.decrementAndGet() == 0) {
-            log.atDebug().log("No more subscribed items");
             stopConsuming();
         }
         return removedItem;

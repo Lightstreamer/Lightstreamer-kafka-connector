@@ -34,6 +34,8 @@ public class ConsumerLoopConfigurator {
         Deserializer<K> keyDeserializer();
 
         Deserializer<V> valueDeserializer();
+
+        String recordErrorHandlingStrategy();
     }
 
     private static final Logger log = LoggerFactory.getLogger(ConsumerLoopConfigurator.class);
@@ -67,7 +69,7 @@ public class ConsumerLoopConfigurator {
             FieldMappings<?, ?> fieldMappings = initFieldMappings(selectorsSupplier, fieldsMapping);
 
             return new DefaultConsumerLoopConfig(props, itemTemplates, fieldMappings, keyDeserializer,
-                    valueDeserializer);
+                    valueDeserializer, "IGNORE_AND_CONTINUE");
         } catch (Exception e) {
             throw new ConfigException(e.getMessage());
         }
@@ -86,7 +88,7 @@ public class ConsumerLoopConfigurator {
 
     static record DefaultConsumerLoopConfig<K, V>(
             Properties consumerProperties, ItemTemplates<K, V> itemTemplates,
-            FieldMappings<K, V> fieldMappings, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer)
+            FieldMappings<K, V> fieldMappings, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, String recordErrorHandlingStrategy)
             implements ConsumerLoopConfig<K, V> {
     }
 

@@ -25,9 +25,6 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
         super(config);
     }
 
-    @Override
-    void startConsuming() {
-    }
 
     @Override
     void stopConsuming() {
@@ -39,6 +36,10 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
 
     @Override
     public void unsubscribeInfoItem() {
+    }
+
+    @Override
+    void startConsuming(String item) throws SubscriptionException {
     }
 
 }

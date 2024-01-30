@@ -3,7 +3,7 @@
 <adapters_conf id="KAFKA">
     <metadata_adapter_initialised_first>N</metadata_adapter_initialised_first>
     <metadata_provider>
-        <adapter_class>com.lightstreamer.adapters.metadata.LiteralBasedProvider</adapter_class>
+        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaMetadataAdapter</adapter_class>
         <!--<classloader>log-enabled</classloader>-->
     </metadata_provider>
 
@@ -35,6 +35,9 @@
         <!-- Sepcial item for communication about issue in event consuming process-->
         <param name="info.item">info</param>
         <param name="info.field">message</param>
+
+        <param name="record.extraction.hanbling.error.strategy">IGNORE_AND_CONTINUE</param>
+        <!-- <param name="record.extraction.hanbling.error.strategy">TERMINATE</param> -->
 
         <!-- Map one topic to one item -->
         <param name="item-template.user">user</param>

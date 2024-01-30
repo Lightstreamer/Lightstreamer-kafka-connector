@@ -16,6 +16,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
@@ -83,6 +84,8 @@ public class ConnectorConfig {
             + RECONNECT_BACKOFF_MAX_MS_CONFIG;
     public static final String CONSUMER_HEARTBEAT_INTERVAL_MS = CONNECTOR_PREFIX + HEARTBEAT_INTERVAL_MS_CONFIG;
     public static final String CONSUMER_SESSION_TIMEOUT_MS = CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
+    public static final String CONSUMER_MAX_POLL_INTERVAL_MS = CONNECTOR_PREFIX + MAX_POLL_INTERVAL_MS_CONFIG;
+    public static final String CONSUMER_METADATA_MAX_AGE_CONFIGS = CONNECTOR_PREFIX + METADATA_MAX_AGE_CONFIG;
 
     private static final ConfigSpec CONFIG_SPEC;
 
@@ -120,7 +123,9 @@ public class ConnectorConfig {
                 .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
                 .add(CONSUMER_MAX_POLL_RECORDS, false, false, INT)
                 .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
-                .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT);
+                .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
+                .add(CONSUMER_MAX_POLL_INTERVAL_MS, false, false, INT, false, defaultValue("5000"))
+                .add(CONSUMER_METADATA_MAX_AGE_CONFIGS, false, false, INT, false, defaultValue("250"));
 
     }
 
@@ -234,7 +239,7 @@ public class ConnectorConfig {
         Properties properties = new Properties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
-        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, "5000");
+        copySetting(properties, METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIGS));
         copySetting(properties, AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
         copySetting(properties, ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
         copySetting(properties, FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
@@ -245,6 +250,8 @@ public class ConnectorConfig {
         copySetting(properties, RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         copySetting(properties, RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
         copySetting(properties, SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
+        copySetting(properties, MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+
         return properties;
     }
 
