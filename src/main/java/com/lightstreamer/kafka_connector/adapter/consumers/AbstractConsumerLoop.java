@@ -18,7 +18,7 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
     protected final ConsumerLoopConfig<K, V> config;
     protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
-    private final AtomicInteger itemsCounter = new AtomicInteger(0);
+    protected final AtomicInteger itemsCounter = new AtomicInteger(0);
     protected Object infoItemhande;
 
     protected AbstractConsumerLoop(ConsumerLoopConfig<K, V> config) {
@@ -31,7 +31,6 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
     @Override
     public final Item subscribe(String item, Object itemHandle) throws SubscriptionException {
-
         Item newItem = Items.itemFrom(item, itemHandle);
         if (config.itemTemplates().matches(newItem)) {
             log.atInfo().log("Subscribed to {}", item);
@@ -40,13 +39,11 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
         }
 
         subscribedItems.put(item, newItem);
-        if (itemsCounter.addAndGet(1) == 1) {
-            startConsuming();
-        }
+        startConsuming(item);
         return newItem;
     }
 
-    abstract void startConsuming();
+    abstract void startConsuming(String item) throws SubscriptionException;
 
     @Override
     public final Item unsubscribe(String item) throws SubscriptionException {

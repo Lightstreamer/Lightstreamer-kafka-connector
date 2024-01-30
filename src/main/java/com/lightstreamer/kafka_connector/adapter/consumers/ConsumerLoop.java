@@ -19,12 +19,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
@@ -65,13 +67,22 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     }
 
     @Override
-    void startConsuming() {
-        consumerLock.lock();
-        try {
-            consumer = new ConsumerWrapper(ValueExceptionStrategy.TERMINATE);
-            new Thread(consumer).start();
-        } finally {
-            consumerLock.unlock();
+    void startConsuming(String item) throws SubscriptionException {
+        if (itemsCounter.addAndGet(1) == 1) {
+            consumerLock.lock();
+            try {
+                consumer = new ConsumerWrapper(ValueExceptionStrategy.COMMIT_ANYWAY);
+                CompletableFuture.runAsync(consumer);
+            } catch (KafkaException ke) {
+                log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
+                SubscriptionException subscriptionException = new SubscriptionException(
+                        "Unable to start consuming from the Kafka brokers");
+                notifyException(subscriptionException);
+                unsubscribe(item);
+                throw subscriptionException;
+            } finally {
+                consumerLock.unlock();
+            }
         }
     }
 
@@ -103,13 +114,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private ValueExceptionStrategy st;
         private volatile boolean enableFinalCommit = true;
 
-        ConsumerWrapper(ValueExceptionStrategy st) {
+        ConsumerWrapper(ValueExceptionStrategy st) throws KafkaException {
             this.st = st;
             this.counter = COUNTER.incrementAndGet();
             String bootStrapServers = config.consumerProperties()
                     .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
-            log.atInfo().log("Starting connection to Kafka at {}",
-                    bootStrapServers);
+            log.atInfo().log("Starting connection to Kafka at {}", bootStrapServers);
             consumer = new KafkaConsumer<>(config.consumerProperties(), config.keyDeserializer(),
                     config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker at {}", bootStrapServers);
@@ -130,48 +140,47 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         @Override
         public void run() {
-            try {
-                List<String> topics = config.itemTemplates().topics().toList();
-                log.atDebug().log("Subscring to topics [{}]", topics);
-                consumer.subscribe(topics, new ConsumerRebalanceListener() {
+            List<String> topics = config.itemTemplates().topics().toList();
+            log.atDebug().log("Subscring to topics [{}]", topics);
+            consumer.subscribe(topics, new ConsumerRebalanceListener() {
 
-                    @Override
-                    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                        log.atWarn().log("Partions revoked, committing offsets {}" + currentOffsets);
-                        try {
-                            consumer.commitSync(currentOffsets);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    @Override
-                    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                        log.atDebug().log("Assigned partiions {}", partitions);
-                    }
-
-                });
-                log.atInfo().log("Subscribed to topics [{}]", topics);
-
-                while (true) {
-                    log.atDebug().log("Polling records");
-                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-                    log.atDebug().log("Received records");
+                @Override
+                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                    log.atWarn().log("Partions revoked, committing offsets {}" + currentOffsets);
                     try {
+                        consumer.commitSync(currentOffsets);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                    log.atDebug().log("Assigned partiions {}", partitions);
+                }
+
+            });
+            log.atInfo().log("Subscribed to topics [{}]", topics);
+            try {
+                boolean loop = true;
+                while (loop) {
+                    log.atDebug().log("Polling records");
+                    try {
+                        ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+                        log.atDebug().log("Received records");
                         records.forEach(this::consume);
                         consumer.commitAsync();
-                        try {
-                            TimeUnit.SECONDS.sleep(1);
-                        } catch (InterruptedException e) {
+                        // try {
+                        //     TimeUnit.SECONDS.sleep(1);
+                        // } catch (InterruptedException e) {
 
-                        }
-                        if (true) {
-                            throw new RuntimeException("Test error");
-                        }
-                    } catch (ValueException re) {
+                        // }
+                    } catch (WakeupException w) {
+                        throw w;
+                    } catch (ValueException ve) {
                         log.atWarn().log("An error occured while extracting values from the record: {}",
-                                re.getMessage());
-                        notifyException(re);
+                                ve.getMessage());
+                        notifyException(ve);
 
                         switch (st) {
                             case COMMIT_ANYWAY -> {
@@ -181,9 +190,14 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                             case TERMINATE -> {
                                 log.atWarn().log("Terminating");
-                                CompletableFuture.runAsync(() -> closeAndExit(re));
+                                loop = false;
+                                CompletableFuture.runAsync(() -> closeAndExit(ve));
                             }
                         }
+                    } catch (KafkaException ke) {
+                        log.atWarn().log("Unrecoverable exception, terminating");
+                        loop = false;
+                        CompletableFuture.runAsync(() -> closeAndExit(ke));
                     }
                 }
             } catch (WakeupException e) {
@@ -198,6 +212,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     log.atWarn().setCause(e).log();
                 } finally {
                     consumer.close();
+                    log.atDebug().log("Closed Kafka Consumer");
                     latch.countDown();
                     log.atDebug().log("Kafka Consumer closed");
                 }
@@ -230,27 +245,15 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
-        private void notifyException(ValueException re) {
-            infoLock.set(true);
-            try {
-                if (infoItem == null) {
-                    return;
-                }
-                eventListener.smartUpdate(infoItem.itemHandle(), infoItem.mkEvent(re.getMessage()), false);
-            } finally {
-                infoLock.set(false);
-            }
+        private void closeAndExit(Throwable cause) {
+            enableFinalCommit = false;
+            close();
+            eventListener.failure(cause);
         }
 
         void close() {
             shutdown();
             Runtime.getRuntime().removeShutdownHook(this.hook);
-        }
-
-        private void closeAndExit(Throwable cause) {
-            enableFinalCommit = false;
-            close();
-            eventListener.failure(cause);
         }
 
         private void shutdown() {
@@ -278,6 +281,18 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     public void unsubscribeInfoItem() {
         while (!infoLock.compareAndSet(false, true)) {
             this.infoItemhande = null;
+        }
+    }
+
+    private void notifyException(Throwable re) {
+        infoLock.set(true);
+        try {
+            if (infoItem == null) {
+                return;
+            }
+            eventListener.smartUpdate(infoItem.itemHandle(), infoItem.mkEvent(re.getMessage()), false);
+        } finally {
+            infoLock.set(false);
         }
     }
 
