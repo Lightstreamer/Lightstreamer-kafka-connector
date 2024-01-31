@@ -9,6 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
@@ -16,13 +19,13 @@ import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka_connector.adapter.commons.MetadataListener;
 
-public class KafkaMetadataAdapter extends LiteralBasedProvider {
+public final class KafkaMetadataAdapter extends LiteralBasedProvider {
 
+    private static Logger log = LoggerFactory.getLogger(KafkaMetadataAdapter.class);
     private static KafkaMetadataAdapter METADATA_ADAPTER;
 
     private Set<String> disabledDataProviders = ConcurrentHashMap.newKeySet();
-
-    private Map<String, Map<String, TableInfo>> tableInfos = new ConcurrentHashMap<>();
+    private Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
 
     @Override
     public void init(Map params, File configDir) throws MetadataProviderException {
@@ -34,19 +37,24 @@ public class KafkaMetadataAdapter extends LiteralBasedProvider {
         return new MetadataListenterImpl(METADATA_ADAPTER, dataProviderName);
     }
 
-    void disableDataProvider(String dataProviderName) {
-        disabledDataProviders.add(dataProviderName);
+    void disableDataProvider(String dataAdapter) {
+        disabledDataProviders.add(dataAdapter);
     }
 
-    void forceUnsubscription(String item) {
-        Map<String, TableInfo> tables = tableInfos.get(item);
-        for (TableInfo tableInfo : tables.values()) {
-            System.out.format("Forcing unsubscription from item [%s]%n", tableInfo);
-            tableInfo.forceUnsubscription()
-                    .toCompletableFuture()
-                    .thenRun(() -> System.out.format("Forced unsubscription from item [%s]%n", item));
-        }
+    private void forceUnsubscriptionAll(String dataAdapterName) {
+        log.atDebug().log("Forcing unsubscription from all active items of data adapter {}", dataAdapterName);
+        tablesBySession.values()
+                .stream().flatMap(m -> m.values().stream())
+                .filter(t -> t.getDataAdapter().equals(dataAdapterName))
+                .forEach(this::forceUnsubscription);
+    }
 
+    private void forceUnsubscription(TableInfo tableInfo) {
+        String items = Arrays.toString(tableInfo.getSubscribedItems());
+        log.atDebug().log("Forcing unsubscription from items {}", items);
+        tableInfo.forceUnsubscription()
+                .toCompletableFuture()
+                .thenRun(() -> log.atDebug().log("Forced unsubscription from item {}", items));
     }
 
     @Override
@@ -69,9 +77,10 @@ public class KafkaMetadataAdapter extends LiteralBasedProvider {
 
         String[] items = table.getSubscribedItems();
         for (String item : items) {
-            Map<String, TableInfo> infos = tableInfos.computeIfAbsent(item, id -> new ConcurrentHashMap<>());
-            infos.put(sessionID, table);
-            System.out.format("Notifyed table [%s]%n", item);
+            Map<String, TableInfo> tablesByItem = tablesBySession.computeIfAbsent(sessionID,
+                    id -> new ConcurrentHashMap<>());
+            tablesByItem.put(item, table);
+            log.atDebug().log("Added subscription <{}> to session <{}>", item, sessionID);
         }
     }
 
@@ -83,34 +92,36 @@ public class KafkaMetadataAdapter extends LiteralBasedProvider {
 
         TableInfo table = tables[0];
         String[] items = table.getSubscribedItems();
+        Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
         for (String item : items) {
-            Map<String, TableInfo> infos = tableInfos.get(item);
-            if (infos != null) {
-                infos.remove(sessionID);
-                System.out.format("Removed table [%s] from session [%s]%n", item, sessionID);
-            }
+            tablesByItem.remove(item);
+            log.atDebug().log("Removed subscription <{}> from session {}", item, sessionID);
         }
 
     }
 
     static class MetadataListenterImpl implements MetadataListener {
 
-        private final String dataProviderName;
+        private final String dataAdapter;
         private KafkaMetadataAdapter metadataAdapter;
 
-        private MetadataListenterImpl(KafkaMetadataAdapter metadataAdapter, String dataProviderName) {
+        private MetadataListenterImpl(KafkaMetadataAdapter metadataAdapter, String dataAdapter) {
             this.metadataAdapter = metadataAdapter;
-            this.dataProviderName = dataProviderName;
+            this.dataAdapter = dataAdapter;
         }
 
         @Override
         public void disableAdapter() {
-            metadataAdapter.disableDataProvider(dataProviderName);
+            metadataAdapter.disableDataProvider(dataAdapter);
         }
 
         @Override
         public void forceUnsubscription(String item) {
-            metadataAdapter.forceUnsubscription(item);
+        }
+
+        @Override
+        public void forceUnsubscriptionAll() {
+            metadataAdapter.forceUnsubscriptionAll(dataAdapter);
         }
 
     }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapter.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapter.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapter.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapter.config.TopicsConfig.TopicConfiguration;
@@ -19,10 +20,25 @@ import com.lightstreamer.kafka_connector.adapter.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapter.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapter.test_utils.SelectorsSuppliers;
 
+class TestMetadataListener implements MetadataListener {
+
+    @Override
+    public void disableAdapter() {
+    }
+
+    @Override
+    public void forceUnsubscription(String item) {
+    }
+
+    @Override
+    public void forceUnsubscriptionAll() {
+    }
+
+}
 class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
 
     TestConsumerLoopTest(ConsumerLoopConfig<String, String> config) {
-        super(config);
+        super(config, new TestMetadataListener());
     }
 
 
@@ -39,7 +55,7 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
     }
 
     @Override
-    void startConsuming(String item) throws SubscriptionException {
+    void startConsuming() throws SubscriptionException {
     }
 
 }
@@ -75,6 +91,12 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     @Override
     public Deserializer<String> valueDeserializer() {
         throw new UnsupportedOperationException("Unimplemented method 'valueDeserializer'");
+    }
+
+    @Override
+    public String recordErrorHandlingStrategy() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'recordErrorHandlingStrategy'");
     }
 
 }

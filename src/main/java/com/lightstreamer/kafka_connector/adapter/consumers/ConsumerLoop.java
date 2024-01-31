@@ -42,7 +42,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     enum ValueExceptionStrategy {
         IGNORE_AND_CONTINUE,
 
-        TERMINATE;
+        FORCE_UNSUBSCRIPTION;
     }
 
     protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
@@ -58,7 +58,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
     private final ExecutorService pool;
 
-    public ConsumerLoop(ConsumerLoopConfig<K, V> config, MetadataListener metadataListener, ItemEventListener eventListener) {
+    public ConsumerLoop(ConsumerLoopConfig<K, V> config, MetadataListener metadataListener,
+            ItemEventListener eventListener) {
         super(config, metadataListener);
         this.fieldsSelectors = config.fieldMappings().selectors();
 
@@ -72,7 +73,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     }
 
     @Override
-    void startConsuming(String item) throws SubscriptionException {
+    void startConsuming() throws SubscriptionException {
         log.atDebug().log("START CONSUMER: Acquiring consumer lock...");
         consumerLock.lock();
         log.atDebug().log("START CONSUMER: Lock acquired...");
@@ -81,10 +82,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
-            metadataListener.forceUnsubscription(item);
+            metadataListener.forceUnsubscriptionAll();
         } finally {
             log.atDebug().log("START CONSUMER: Releasing consumer lock...");
             consumerLock.unlock();
+            log.atDebug().log("START CONSUMER: Released consumer");
         }
     }
 
@@ -117,8 +119,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private final Logger log = LoggerFactory.getLogger(ConsumerWrapper.class);
         private Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
-        private int counter;
-        private Thread hook;
+        private final int counter;
+        private final Thread hook;
 
         private ValueExceptionStrategy st;
         private volatile boolean enableFinalCommit = true;
@@ -133,18 +135,19 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker at {}", bootStrapServers);
 
-            setShutdownHook();
+            this.hook = setShutdownHook();
             log.atDebug().log("Shutdown Hook set");
         }
 
-        private void setShutdownHook() {
+        private Thread setShutdownHook() {
             Runnable shutdownTask = () -> {
                 log.atInfo().log("Hook shutdown for consumer %d".formatted(counter));
                 shutdown();
             };
 
-            this.hook = new Thread(shutdownTask);
+            Thread hook = new Thread(shutdownTask);
             Runtime.getRuntime().addShutdownHook(hook);
+            return hook;
         }
 
         @Override
@@ -172,8 +175,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             });
             log.atInfo().log("Subscribed to topics [{}]", topics);
             try {
-                boolean loop = true;
-                while (loop) {
+                while (true) {
                     log.atDebug().log("Polling records");
                     try {
                         ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
@@ -192,21 +194,19 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                                 consumer.commitAsync();
                             }
 
-                            case TERMINATE -> {
-                                log.atWarn().log("Terminating");
-                                loop = false;
-                                // CompletableFuture.runAsync(() -> closeAndExit(ve), pool);
-                                
+                            case FORCE_UNSUBSCRIPTION -> {
+                                log.atWarn().log("Forcing unsubscription");
+                                enableFinalCommit = false;
+                                metadataListener.forceUnsubscriptionAll();
+
                             }
                         }
                     } catch (WakeupException we) {
-                        // We need to catch and rethrow the Exception here, due to the next catched
-                        // KafkaException
+                        // Catch and rethrow the Exception here because of the next KafkaException
                         throw we;
                     } catch (KafkaException ke) {
-                        log.atWarn().setCause(ke).log("Unrecoverable exception, terminating");
-                        loop = false;
-                        CompletableFuture.runAsync(() -> closeAndExit(ke), pool);
+                        log.atError().setCause(ke).log("Unrecoverable Kafka exception");
+                        metadataListener.forceUnsubscriptionAll();
                     }
                 }
             } catch (WakeupException e) {

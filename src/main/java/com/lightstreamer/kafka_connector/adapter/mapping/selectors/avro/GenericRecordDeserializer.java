@@ -1,7 +1,6 @@
 package com.lightstreamer.kafka_connector.adapter.mapping.selectors.avro;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 

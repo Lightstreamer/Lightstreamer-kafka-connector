@@ -44,12 +44,12 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
         subscribedItems.put(item, newItem);
         if (itemsCounter.addAndGet(1) == 1) {
-            startConsuming(item);
+            startConsuming();
         }
         return newItem;
     }
 
-    abstract void startConsuming(String item) throws SubscriptionException;
+    abstract void startConsuming() throws SubscriptionException;
 
     @Override
     public final Item unsubscribe(String item) throws SubscriptionException {

@@ -5,5 +5,7 @@ public interface MetadataListener {
     void disableAdapter();
 
     void forceUnsubscription(String item);
-    
+
+    void forceUnsubscriptionAll();
+
 }
