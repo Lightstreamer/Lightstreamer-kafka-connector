@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 
 <!--
-    This is a generic template for the configuration file of the Lightstreamer KAfka Connector
-    pluggable into Lightstreamer Server.
+    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
+
 
     A very simple variable-expansion feature is available; see
     <enable_expansion_for_adapters_config> in the Server's main configuration file.
@@ -21,7 +21,7 @@
          in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
          
          At least one connection configuration must be provided.
-         Every configuration is distinguished throug the "name" attribute, which is "DEFAuLT" if not provided,
+         Every configuration is distinguished throug the "name" attribute, which is "DFAULT" if not provided,
          but only one "DEFAULT" configuration is allowed. -->
     <data_provider name="CONNECTION">
 
