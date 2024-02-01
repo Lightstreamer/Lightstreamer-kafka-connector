@@ -77,7 +77,7 @@ public class ConnectorConfig {
 
     public static final String GROUP_ID = "group-id";
 
-    public static final String BOOTSTRAP_SERVERS = "bootstrap-servers";
+    public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
 
     public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_URL =
             "key.evaluator.schema.registry.url";

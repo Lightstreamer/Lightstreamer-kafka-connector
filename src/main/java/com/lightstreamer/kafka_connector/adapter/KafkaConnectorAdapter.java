@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,7 @@ public class KafkaConnectorAdapter implements SmartDataProvider {
             throw new ConfigException(
                     "Logging configuration file [%s] not found".formatted(logFilePath));
         }
+        BasicConfigurator.configure();
         PropertyConfigurator.configure(logFilePath.toString());
         this.log = LoggerFactory.getLogger(KafkaConnectorAdapter.class);
     }

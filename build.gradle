@@ -1,123 +1,126 @@
 plugins {
-    id 'java-library'
-    id 'eclipse'
-    id 'distribution'
-    id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
-    // id 'com.github.sherter.google-java-format' version '0.9'
+	id 'java-library'
+	id 'eclipse'
+	id 'distribution'
+	id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
+	id("com.diffplug.spotless") version "6.25.0"
+}
+
+spotless {
+	groovyGradle {
+		target '*.gradle'
+		greclipse()
+	}
+
+	java {
+		importOrder()
+		removeUnusedImports()
+		googleJavaFormat().aosp()
+		formatAnnotations()
+		licenseHeader '''
+/*
+ * Copyright (C) $YEAR Lightstreamer Srl
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+'''
+	}
 }
 
 version = '0.1.0'
 
 repositories {
-    mavenCentral()
-
-    maven {
-      url "https://packages.confluent.io/maven"
-    }
+	mavenCentral()
+	maven {
+		url "https://packages.confluent.io/maven"
+	}
 }
 
 dependencies {
-    // Use JUnit Jupiter for testing.
-   	testImplementation(platform('org.junit:junit-bom:5.10.0'))
-	  testImplementation('org.junit.jupiter:junit-jupiter')
-    testImplementation "com.google.truth:truth:1.2.0"
-    testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
+	testImplementation(platform('org.junit:junit-bom:5.10.0'))
+	testImplementation('org.junit.jupiter:junit-jupiter')
+	testImplementation "com.google.truth:truth:1.2.0"
+	testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
 
-    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
-    implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
-    implementation 'org.slf4j:slf4j-api:2.0.9'
-    implementation 'org.slf4j:slf4j-reload4j:2.0.9'
-    implementation 'ch.qos.reload4j:reload4j:1.2.25'
-    implementation 'com.google.code.gson:gson:2.10.1'
+	implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
+	implementation 'org.slf4j:slf4j-api:2.0.9'
+	implementation 'org.slf4j:slf4j-reload4j:2.0.9'
+	implementation 'ch.qos.reload4j:reload4j:1.2.25'
+	implementation 'com.google.code.gson:gson:2.10.1'
 
-    implementation group:'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-    implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-    implementation group:'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-    implementation group:'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
-
+	implementation group:'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
+	implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
+	implementation group:'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
+	implementation group:'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 }
 
-// googleJavaFormat {
-//   toolVersion = '1.17.0'
-// }
-
-
-
-// Apply a specific Java toolchain to ease working on different environments.
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+	useJUnitPlatform()
 }
 
 task deployAdapters(type: Copy) {
-  dependsOn 'cleanDeploy'
+	dependsOn 'cleanDeploy'
 
-  into "deploy"
+	into "deploy"
 
-  from (jar) {
-    into "connector/lib"
-  }
+	from (jar) {
+		into "connector/lib"
+	}
 
-  from (configurations.runtimeClasspath) {
-    into "connector/lib"
-    exclude "ls-adapter-inprocess*"
-    exclude "jsr305*"
-  }
+	from (configurations.runtimeClasspath) {
+		into "connector/lib"
+		exclude "ls-adapter-inprocess*"
+		exclude "jsr305*"
+	}
 
-  from ("examples/quickstart") {
-    into "connector"
-  }
-
+	from ("examples/quickstart") {
+		into "connector"
+	}
 }
 
 task deploy(type: Copy) {
-  dependsOn 'deployAdapters'
-  into "deploy/conf"
-  from ("examples/conf")
+	dependsOn 'deployAdapters'
+	into "deploy/conf"
+	from ("examples/conf")
 }
 
 task cleanDeploy(type: Delete) {
-  delete "deploy"
+	delete "deploy"
 }
 
-// task zip(type: Zip) {
-//     into "deploy"
-
-//   from (jar) {
-//     into "connector/lib"
-//   }
-
-//   from (configurations.runtimeClasspath) {
-//     into "connector/lib"
-//     exclude "ls-adapter-inprocess*"
-//     exclude "jsr305*"
-//   }
-
-//   from ("deploy-template") {
-//     into "connector"
-//   }
-  
-// }
 
 distributions {
-  connector {
-    distributionBaseName = rootProject.name
-      
-    contents {
-        from(jar) {
-          into "lib"
-        }
-        
-        from (configurations.runtimeClasspath) {
-          into "lib"
-          exclude "ls-adapter-inprocess*"
-          exclude "jsr305*"
-        }
-      }
-    }
+	connector {
+		distributionBaseName =  rootProject.name
+
+		contents {
+			from(jar) {
+				into "lib"
+			}
+
+			from (configurations.runtimeClasspath) {
+				into "lib"
+				exclude "ls-adapter-inprocess*"
+				exclude "jsr305*"
+			}
+		}
+	}
 }
+
