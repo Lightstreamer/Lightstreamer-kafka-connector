@@ -60,7 +60,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
     /**
      * @throws ExpressionException
      */
-    public Result eval(String expression) {
+    public Result eval(String expression) throws ExpressionException {
         Matcher matcher = gobal.matcher(expression);
         if (!matcher.matches()) {
             throw new ExpressionException("Invalid item");
@@ -83,7 +83,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
                 previousEnd = m.end();
             }
             if (previousEnd < queryString.length()) {
-                throw new ExpressionException("Invalid query parameter");
+                throw new ExpressionException("Invalid item");
             }
         }
 

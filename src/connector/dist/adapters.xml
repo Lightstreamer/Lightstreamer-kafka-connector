@@ -12,13 +12,14 @@
 <adapters_conf id="KAFKA">
     <metadata_provider>
         <!-- Java class name of the Kafka Connector Metadata Adapter. DO NOT EDIT IT. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaMetadataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter</adapter_class>
     </metadata_provider>
 
     <!-- The Lightstreamer Kafka Connector allows to configure indipendent connections to different Kakfa clusters.
          Every single connection is configured via the definition of a specific Lightstreamer Data Adapter.
-         Since the Connector manages the physical connection to Kafka by wrapping internal Kafka Consumer, many configuration settings
-         in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
+         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many 
+         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
+         configuration.
          
          At least one connection configuration must be provided.
          Every configuration is distinguished throug the "name" attribute, which is "DFAULT" if not provided,
@@ -26,7 +27,7 @@
     <data_provider name="CONNECTION">
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
         
         <!-- Mandatory. Path of the configuration file for the log4j-based logging system. 
              The file path is relative to the Kafka Connector deployment directory. 
@@ -45,7 +46,7 @@
              If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
              combining the adapter set, the connector name, and a randomly generated suffix. -->
         <!--
-        param name="group-id">kafka-adapter-user-NEW</param>
+        param name="group.id">kafka-adapter-user-NEW</param>
         -->
         
         <!-- Lightstreamer Clients can subscribe to a special "service" item through which the Kafka Connector can
@@ -87,6 +88,12 @@
         <param name="field.signature">#{VALUE.signature}</param>
         <param name="field.union">#{VALUE.union}</param>
         <param name="field.partition">#{PARTITION}</param>
+
+        <param name="field.key">#{KEY}</param>
+        <param name="field.value">#{VALUE}</param>
+        <param name="field.partition">#{PARTITION}</param>
+        <param name="field.timestamp">#{TIMESTAMP}</param>
+
 
 
         <!-- Map one topic to multimple items -->

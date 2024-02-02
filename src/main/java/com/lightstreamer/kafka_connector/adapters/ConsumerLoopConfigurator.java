@@ -19,6 +19,7 @@ package com.lightstreamer.kafka_connector.adapters;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapters.config.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.Fields;
 import com.lightstreamer.kafka_connector.adapters.mapping.Fields.FieldMappings;
@@ -54,7 +55,6 @@ public class ConsumerLoopConfigurator {
     }
 
     private static final Logger log = LoggerFactory.getLogger(ConsumerLoopConfigurator.class);
-
     private final ConnectorConfig connectorConfig;
 
     private ConsumerLoopConfigurator(ConnectorConfig config) {
@@ -128,24 +128,20 @@ public class ConsumerLoopConfigurator {
     }
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {
-        String consumer = config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE);
-        return switch (consumer) {
-            case "AVRO" -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
-            case "JSON" -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
-            case "RAW" -> StringSelectorSuppliers.keySelectorSupplier();
-            default ->
-                    throw new ConfigException("No available key evaluator %s".formatted(consumer));
+        EvaluatorType evaluator = config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE);
+        return switch (evaluator) {
+            case AVRO -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
+            case JSON -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
+            case STRING -> StringSelectorSuppliers.keySelectorSupplier();
         };
     }
 
     private ValueSelectorSupplier<?> makeValueSelectorSupplier(ConnectorConfig config) {
-        String consumer = config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE);
-        return switch (consumer) {
-            case "AVRO" -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
-            case "JSON" -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
-            case "RAW" -> StringSelectorSuppliers.valueSelectorSupplier();
-            default ->
-                    throw new ConfigException("No available value consumer %s".formatted(consumer));
+        EvaluatorType evaluatorType = config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE);
+        return switch (evaluatorType) {
+            case AVRO -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
+            case JSON -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
+            case STRING -> StringSelectorSuppliers.valueSelectorSupplier();
         };
     }
 }

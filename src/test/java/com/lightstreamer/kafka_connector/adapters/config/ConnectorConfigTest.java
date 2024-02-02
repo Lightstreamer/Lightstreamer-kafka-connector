@@ -38,6 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class ConnectorConfigTest {
 
@@ -82,7 +83,7 @@ public class ConnectorConfigTest {
         assertThat(bootStrapServers.multiple()).isFalse();
         assertThat(bootStrapServers.mutable()).isTrue();
         assertThat(bootStrapServers.defaultValue()).isNull();
-        assertThat(bootStrapServers.type()).isEqualTo(ConfType.HostsList);
+        assertThat(bootStrapServers.type()).isEqualTo(ConfType.HOST_LIST);
 
         ConfParameter groupId = configSpec.getParameter(ConnectorConfig.GROUP_ID);
         assertThat(groupId.name()).isEqualTo(ConnectorConfig.GROUP_ID);
@@ -98,8 +99,8 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorType.required()).isFalse();
         assertThat(keyEvaluatorType.multiple()).isFalse();
         assertThat(keyEvaluatorType.mutable()).isTrue();
-        assertThat(keyEvaluatorType.defaultValue()).isEqualTo("RAW");
-        assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.TEXT);
+        assertThat(keyEvaluatorType.defaultValue()).isEqualTo("STRING");
+        assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
         ConfParameter keySchemaFile = configSpec.getParameter(ConnectorConfig.KEY_SCHEMA_FILE);
         assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.KEY_SCHEMA_FILE);
@@ -115,8 +116,8 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorType.required()).isFalse();
         assertThat(valueEvaluatorType.multiple()).isFalse();
         assertThat(valueEvaluatorType.mutable()).isTrue();
-        assertThat(valueEvaluatorType.defaultValue()).isEqualTo("RAW");
-        assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.TEXT);
+        assertThat(valueEvaluatorType.defaultValue()).isEqualTo("STRING");
+        assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
         ConfParameter valueSchemaFile = configSpec.getParameter(ConnectorConfig.VALUE_SCHEMA_FILE);
         assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.VALUE_SCHEMA_FILE);
@@ -286,12 +287,12 @@ public class ConnectorConfigTest {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "value-consumer");
+        adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "STRING");
         adapterParams.put(ConnectorConfig.VALUE_SCHEMA_FILE, "value-schema-file");
         adapterParams.put(
                 ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
                 "http://value-host:8080/registry");
-        adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "key-consumer");
+        adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
         adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
         adapterParams.put(
                 ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
@@ -325,22 +326,9 @@ public class ConnectorConfigTest {
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
-                                .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
+                                .formatted(ConnectorConfig.ADAPTERS_CONF_ID));
 
         Map<String, String> params = new HashMap<>();
-        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Specify a valid value for parameter [%s]"
-                                .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
-
-        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "data_provider_name");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Missing required parameter [%s]"
-                                .formatted(ConnectorConfig.ADAPTERS_CONF_ID));
 
         params.put(ConnectorConfig.ADAPTERS_CONF_ID, "");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
@@ -350,6 +338,19 @@ public class ConnectorConfigTest {
                                 .formatted(ConnectorConfig.ADAPTERS_CONF_ID));
 
         params.put(ConnectorConfig.ADAPTERS_CONF_ID, "adapters_conf_id");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
+
+        params.put(ConnectorConfig.ADAPTER_DIR, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(ConnectorConfig.ADAPTER_DIR));
+
+        params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage())
                 .isEqualTo(
@@ -366,6 +367,20 @@ public class ConnectorConfigTest {
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [%s]"
+                                .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
+
+        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
+
+        params.put(ConnectorConfig.DATA_ADAPTER_NAME, "data_provider_name");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
                 .isEqualTo("Specify at least one parameter [item-template.<...>]");
 
         params.put("item-template.template1", "");
@@ -375,27 +390,6 @@ public class ConnectorConfigTest {
 
         params.put("item-template.template1", "template");
         e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
-
-        params.put("field.field1", "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [field.field1]");
-
-        params.put("field.field1", "VALUE");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
-
-        params.put(ConnectorConfig.ADAPTER_DIR, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Specify a valid value for parameter [%s]"
-                                .formatted(ConnectorConfig.ADAPTER_DIR));
-
-        params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
 
         params.put("map.topic.to", "");
@@ -403,6 +397,14 @@ public class ConnectorConfigTest {
         assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         params.put("map.topic.to", "aTemplate");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
+
+        params.put("field.field1", "");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [field.field1]");
+
+        params.put("field.field1", "VALUE");
         assertDoesNotThrow(() -> new ConnectorConfig(params));
     }
 
@@ -468,15 +470,26 @@ public class ConnectorConfigTest {
         ConnectorConfig config = new ConnectorConfig(standardParameters());
         assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
-        assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE))
-                .isEqualTo("value-consumer");
-        assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("key-consumer");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("INFO_FIELD");
 
         String groupId = config.getText(ConnectorConfig.GROUP_ID);
         assertThat(groupId).startsWith("KAFKA-CONNECTOR-");
         assertThat(groupId.length()).isGreaterThan("KAFKA-CONNECTOR-".length());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"AVRO", "STRING", "JSON"})
+    public void shouldGetEvaluator(String type) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, type);
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, type);
+        ConnectorConfig config = new ConnectorConfig(updatedConfig);
+
+        assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
+                .isEqualTo(EvaluatorType.valueOf(type));
+        assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
+                .isEqualTo(EvaluatorType.valueOf(type));
     }
 
     @Test
@@ -583,10 +596,17 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
-        assertThat(config.getText(ConnectorConfig.KEY_EVALUATOR_TYPE)).isEqualTo("RAW");
-        assertThat(config.getText(ConnectorConfig.VALUE_EVALUATOR_TYPE)).isEqualTo("RAW");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("MSG");
+    }
+
+    @Test
+    public void shouldGetDefaultEvaluator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
+                .isEqualTo(EvaluatorType.STRING);
+        assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
+                .isEqualTo(EvaluatorType.STRING);
     }
 
     @Test

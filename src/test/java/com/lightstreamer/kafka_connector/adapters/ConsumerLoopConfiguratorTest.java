@@ -90,7 +90,7 @@ public class ConsumerLoopConfiguratorTest {
     }
 
     @Test
-    public void shouldShouldNotConfigureAvroDueToMissingLocalSchemaFile() {
+    public void shouldNotConfigureAvroDueToMissingLocalSchemaFile() {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
@@ -115,7 +115,7 @@ public class ConsumerLoopConfiguratorTest {
     }
 
     @Test
-    public void shouldShouldNotConfigureJsonDueToMissingLocalSchemaFile() {
+    public void shouldNotConfigureJsonDueToMissingLocalSchemaFile() {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
@@ -126,6 +126,32 @@ public class ConsumerLoopConfiguratorTest {
                         () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
         assertThat(e.getMessage())
                 .isEqualTo("File [%s/%s] not found".formatted(adapterDir, "flights.json"));
+    }
+
+    @Test
+    public void shouldNotConfigureDueToInvalidKeyEvaluatorType() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "INVALID");
+
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [key.evaluator.type]");
+    }
+
+    @Test
+    public void shouldNotConfigureDueToInvalidValueEvaluatorType() {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "INVALID");
+
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+        assertThat(e.getMessage())
+                .isEqualTo("Specify a valid value for parameter [value.evaluator.type]");
     }
 
     @Test
@@ -174,7 +200,23 @@ public class ConsumerLoopConfiguratorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"a,", ".", "|", "@", "item-$", "item-#{", "item-#{}}"})
+    @ValueSource(
+            strings = {
+                "a,",
+                ".",
+                "|",
+                "@",
+                "item-$",
+                "item-#",
+                "item-#}",
+                "item-#{",
+                "item-#{{}",
+                "item-#{{a=VALUE}",
+                "item-#{{}}",
+                "item-#{{a=VALUE}}",
+                "item-#{{{}}}",
+                "item-#{}}"
+            })
     public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template1", expression);

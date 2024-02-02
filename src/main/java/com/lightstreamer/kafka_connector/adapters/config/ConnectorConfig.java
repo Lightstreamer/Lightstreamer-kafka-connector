@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.HOST;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
@@ -75,7 +76,7 @@ public class ConnectorConfig {
 
     public static final String VALUE_SCHEMA_FILE = "value.evaluator.schema.file";
 
-    public static final String GROUP_ID = "group-id";
+    public static final String GROUP_ID = "group.id";
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
 
@@ -121,8 +122,9 @@ public class ConnectorConfig {
     static {
         CONFIG_SPEC =
                 new ConfigSpec()
+                        .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ADAPTER_DIR, true, false, ConfType.Directory)
-                        .add(BOOTSTRAP_SERVERS, true, false, ConfType.HostsList)
+                        .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
                         .add(
                                 GROUP_ID,
                                 false,
@@ -141,16 +143,25 @@ public class ConnectorConfig {
                                                             params.get(DATA_ADAPTER_NAME),
                                                             suffix);
                                         }))
-                        .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(DATA_ADAPTER_NAME, true, false, TEXT)
                         .add(ITEM_TEMPLATE, true, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
                         .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
-                        .add(KEY_EVALUATOR_TYPE, false, false, TEXT, defaultValue("RAW"))
+                        .add(
+                                KEY_EVALUATOR_TYPE,
+                                false,
+                                false,
+                                EVALUATOR,
+                                defaultValue(EvaluatorType.STRING.toString()))
                         .add(KEY_SCHEMA_FILE, false, false, TEXT)
-                        .add(VALUE_EVALUATOR_TYPE, false, false, TEXT, defaultValue("RAW"))
+                        .add(
+                                VALUE_EVALUATOR_TYPE,
+                                false,
+                                false,
+                                EVALUATOR,
+                                defaultValue(EvaluatorType.STRING.toString()))
                         .add(VALUE_SCHEMA_FILE, false, false, TEXT)
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
@@ -248,6 +259,10 @@ public class ConnectorConfig {
         return get(configKey, BOOL, false);
     }
 
+    public EvaluatorType getEvaluator(String configKey) {
+        return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
     public String getHost(String configKey) {
         return get(configKey, HOST, false);
     }
@@ -265,7 +280,7 @@ public class ConnectorConfig {
     }
 
     public String getHostsList(String configKey) {
-        return get(configKey, ConfType.HostsList, false);
+        return get(configKey, ConfType.HOST_LIST, false);
     }
 
     public String getDirectory(String configKey) {

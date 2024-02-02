@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
 import java.io.File;
 import java.net.URI;
@@ -26,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +41,12 @@ class ConfigSpec {
     interface Type {
 
         boolean isValid(String param);
+
+        // boolean checkValidity(String param);
+
+        // default boolean checkValidity(String param) {
+        //     return true;
+        // }
 
         default String getValue(String param) {
             return param;
@@ -58,6 +66,10 @@ class ConfigSpec {
             this.choiches = Set.copyOf(List.of(choiches));
         }
 
+        Choices(Set<String> choiches) {
+            this.choiches = Set.copyOf(choiches);
+        }
+
         @Override
         public boolean isValid(String param) {
             return choiches.contains(param);
@@ -66,19 +78,33 @@ class ConfigSpec {
         static Choices booleans() {
             return new Choices("true", "false");
         }
+
+        static Choices evaluatorTypes() {
+            return new Choices(EvaluatorType.names());
+        }
+    }
+
+    static class Split implements Type {
+
+        private Type type;
+
+        Split(Type type) {
+            this.type = type;
+        }
+
+        @Override
+        public boolean isValid(String param) {
+            String[] params = param.split(",");
+            return Arrays.stream(params).allMatch(type::isValid);
+        }
     }
 
     enum ConfType implements Type {
-        TEXT {
-            @Override
-            public boolean isValid(String paramValue) {
-                return true;
-            }
-        },
+        TEXT,
 
         INT {
             @Override
-            public boolean isValid(String param) {
+            public boolean checkValidity(String param) {
                 try {
                     Integer.valueOf(param);
                     return true;
@@ -92,24 +118,20 @@ class ConfigSpec {
             private static Pattern HOST = Pattern.compile("^([0-9a-zA-Z-.%_]+):([1-9]\\d*)$");
 
             @Override
-            public boolean isValid(String paramValue) {
-                return HOST.matcher(paramValue).matches();
+            public boolean checkValidity(String param) {
+                return HOST.matcher(param).matches();
             }
         },
 
-        BOOL(Choices.booleans()) {
+        BOOL(Choices.booleans()) {},
 
-            @Override
-            public boolean isValid(String param) {
-                return embeddedType.isValid(param);
-            }
-        },
+        EVALUATOR(Choices.evaluatorTypes()),
 
         URL {
             @Override
-            public boolean isValid(String paramValue) {
+            public boolean checkValidity(String param) {
                 try {
-                    URI uri = new URI(paramValue);
+                    URI uri = new URI(param);
                     return uri.getHost() != null;
                 } catch (Exception e) {
                     return false;
@@ -117,29 +139,23 @@ class ConfigSpec {
             }
         },
 
-        HostsList(HOST) {
-            @Override
-            public boolean isValid(String param) {
-                String[] params = param.split(",");
-                return Arrays.stream(params).allMatch(embeddedType::isValid);
-            }
-        },
+        HOST_LIST(new Split(HOST)),
 
-        ItemSpec {
+        ITEM_SPEC {
             private static Pattern ITEM_SEPC = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
 
             @Override
-            public boolean isValid(String param) {
+            public boolean checkValidity(String param) {
                 return ITEM_SEPC.matcher(param).matches();
             }
         },
 
         Directory {
             @Override
-            public boolean isValid(String param) {
+            public boolean checkValidity(String param) {
+                super.checkValidity(param);
                 return Files.isDirectory(Paths.get(param));
             }
-            ;
 
             @Override
             public String getValue(String param) {
@@ -158,6 +174,19 @@ class ConfigSpec {
 
         ConfType(Type t) {
             this.embeddedType = t;
+        }
+
+        @Override
+        public final boolean isValid(String param) {
+            if (embeddedType != null) {
+                boolean valid = embeddedType.isValid(param);
+                return valid;
+            }
+            return checkValidity(param);
+        }
+
+        public boolean checkValidity(String param) {
+            return true;
         }
     }
 
@@ -205,7 +234,7 @@ class ConfigSpec {
         }
     }
 
-    private final Map<String, ConfParameter> paramSpec = new HashMap<>();
+    private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
     ConfigSpec add(
             String name,

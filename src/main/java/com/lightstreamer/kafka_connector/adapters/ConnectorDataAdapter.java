@@ -33,8 +33,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nonnull;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +42,8 @@ import org.slf4j.LoggerFactory;
 public class ConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
-
     private Loop loop;
-
     private ConsumerLoopConfig<?, ?> loopConfig;
-
     private ConnectorConfig connectorConfig;
 
     public ConnectorDataAdapter() {}
@@ -64,13 +61,20 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     }
 
     private void configureLogging(Map<String, String> params, File configDir) {
-        Path logFilePath =
-                Paths.get(configDir.getAbsolutePath(), params.get("logging.configuration.file"));
+        String param = params.get("logging.configuration.file");
+        String logConfigFile =
+                Optional.ofNullable(param)
+                        .orElseThrow(
+                                () ->
+                                        new ConfigException(
+                                                "Missing required parameter [%s]"
+                                                        .formatted("logging.configuration.file")));
+
+        Path logFilePath = Paths.get(configDir.getAbsolutePath(), logConfigFile);
         if (!Files.isRegularFile(logFilePath)) {
             throw new ConfigException(
-                    "Logging configuration file [%s] not found".formatted(logFilePath));
+                    "Logging configuration file [%s] not found".formatted(logConfigFile));
         }
-        BasicConfigurator.configure();
         PropertyConfigurator.configure(logFilePath.toString());
         this.log = LoggerFactory.getLogger(ConnectorDataAdapter.class);
     }
