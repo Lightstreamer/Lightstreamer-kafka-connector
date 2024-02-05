@@ -34,17 +34,12 @@ import org.junit.jupiter.api.Test;
 public class GlobalConfigTest {
 
     private Path loggingConfigurationFile;
+    private Path adapterDir;
 
     @BeforeEach
     public void before() throws IOException {
-        loggingConfigurationFile = Files.createTempFile("log4j-", ".properties");
-    }
-
-    private Map<String, String> standardParameters() {
-        Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(
-                GlobalConfig.LOGGING_CONFIGURATION_FILE, loggingConfigurationFile.toString());
-        return adapterParams;
+        adapterDir = Files.createTempDirectory("adapter_dir");
+        loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
     }
 
     @Test
@@ -67,25 +62,52 @@ public class GlobalConfigTest {
         ConfigException e =
                 assertThrows(ConfigException.class, () -> new GlobalConfig(Collections.emptyMap()));
         assertThat(e.getMessage())
-                .isEqualTo(
-                        "Missing required parameter [%s]"
-                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_FILE));
+                .isEqualTo("Missing required parameter [%s]".formatted(GlobalConfig.ADAPTER_DIR));
 
         Map<String, String> params = new HashMap<>();
-        params.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, "");
+        params.put(GlobalConfig.ADAPTER_DIR, "");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.ADAPTER_DIR));
+
+        params.put(GlobalConfig.ADAPTER_DIR, adapterDir.toString());
+        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [%s]"
                                 .formatted(GlobalConfig.LOGGING_CONFIGURATION_FILE));
 
-        params.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, loggingConfigurationFile.toString());
+        params.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, "non-existing-conf-file");
+        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Not found file [non-existing-conf-file] specified in [%s]"
+                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_FILE));
+
+        params.put(
+                GlobalConfig.LOGGING_CONFIGURATION_FILE,
+                Path.of(adapterDir.toString(), loggingConfigurationFile.getFileName().toString())
+                        .toString());
         assertDoesNotThrow(() -> new GlobalConfig(params));
     }
 
+    private Map<String, String> minimal() {
+        Map<String, String> adapterParams = new HashMap<>();
+        adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
+
+        // Ensure we are specifying a path name relative to the provided adapter dir.
+        String farthestPathName = loggingConfigurationFile.getFileName().toString();
+        adapterParams.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, farthestPathName);
+
+        return adapterParams;
+    }
+
     @Test
-    public void shouldGetFile() {
-        GlobalConfig config = new GlobalConfig(standardParameters());
+    public void shouldGetNewConfig() {
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
+        assertThat(config.getDirectory(GlobalConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
         assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE))
                 .isEqualTo(loggingConfigurationFile.toString());
     }

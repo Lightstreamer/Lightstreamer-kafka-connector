@@ -51,7 +51,7 @@ public class ConsumerLoopConfiguratorTest {
         adapterDir = Files.createTempDirectory("adapter_dir").toFile();
     }
 
-    static ConnectorConfig cgf(Map<String, String> params) {
+    static ConnectorConfig newConfig(Map<String, String> params) {
         return ConnectorConfig.newConfig(adapterDir, params);
     }
 
@@ -71,10 +71,10 @@ public class ConsumerLoopConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
 
+        ConnectorConfig config = newConfig(updatedConfigs);
         ConfigException e =
                 assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
                 .isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
     }
@@ -86,21 +86,7 @@ public class ConsumerLoopConfiguratorTest {
         updatedConfigs.put(
                 ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
 
-        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
-    }
-
-    @Test
-    public void shouldNotConfigureAvroDueToMissingLocalSchemaFile() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
-
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
-        assertThat(e.getMessage())
-                .isEqualTo("File [%s/%s] not found".formatted(adapterDir, "value.avsc"));
+        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(newConfig(updatedConfigs)));
     }
 
     @Test
@@ -109,49 +95,9 @@ public class ConsumerLoopConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
 
-        ConnectorConfig cfg =
+        ConnectorConfig config =
                 ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
-        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(cfg));
-    }
-
-    @Test
-    public void shouldNotConfigureJsonDueToMissingLocalSchemaFile() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "flights.json");
-
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
-        assertThat(e.getMessage())
-                .isEqualTo("File [%s/%s] not found".formatted(adapterDir, "flights.json"));
-    }
-
-    @Test
-    public void shouldNotConfigureDueToInvalidKeyEvaluatorType() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "INVALID");
-
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
-        assertThat(e.getMessage())
-                .isEqualTo("Specify a valid value for parameter [key.evaluator.type]");
-    }
-
-    @Test
-    public void shouldNotConfigureDueToInvalidValueEvaluatorType() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "INVALID");
-
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
-        assertThat(e.getMessage())
-                .isEqualTo("Specify a valid value for parameter [value.evaluator.type]");
+        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(config));
     }
 
     @Test
@@ -159,10 +105,13 @@ public class ConsumerLoopConfiguratorTest {
         Map<String, String> updatedConfigs = basicParameters();
         updatedConfigs.put("map.topic1.to", "no-valid-item-template");
 
+        ConnectorConfig config = newConfig(updatedConfigs);
         ConfigException e =
                 assertThrows(
                         ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+                        () -> {
+                            ConsumerLoopConfigurator.configure(config);
+                        });
         assertThat(e.getMessage()).isEqualTo("No item template [no-valid-item-template] found");
     }
 
@@ -171,10 +120,10 @@ public class ConsumerLoopConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("field.fieldName1", "VALUE");
 
+        ConnectorConfig config = newConfig(updatedConfigs);
         ConfigException e =
                 assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
@@ -188,10 +137,11 @@ public class ConsumerLoopConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
         updatedConfigs.put("field.fieldName1", expression);
 
-        ConnectorConfig cfg =
+        ConnectorConfig config =
                 ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
         ConfigException e =
-                assertThrows(ConfigException.class, () -> ConsumerLoopConfigurator.configure(cfg));
+                assertThrows(
+                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Found the invalid expression ["
@@ -221,10 +171,10 @@ public class ConsumerLoopConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template1", expression);
 
+        ConnectorConfig config = newConfig(updatedConfigs);
         ConfigException e =
                 assertThrows(
-                        ConfigException.class,
-                        () -> ConsumerLoopConfigurator.configure(cgf(updatedConfigs)));
+                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Found the invalid expression ["
@@ -235,7 +185,7 @@ public class ConsumerLoopConfiguratorTest {
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
         ConsumerLoopConfig<?, ?> loopConfig =
-                ConsumerLoopConfigurator.configure(cgf(basicParameters()));
+                ConsumerLoopConfigurator.configure(newConfig(basicParameters()));
 
         Properties consumerProperties = loopConfig.consumerProperties();
         assertThat(consumerProperties)
@@ -272,7 +222,7 @@ public class ConsumerLoopConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
 
         ConsumerLoopConfig<?, ?> loopConfig =
-                ConsumerLoopConfigurator.configure(cgf(updatedConfigs));
+                ConsumerLoopConfigurator.configure(newConfig(updatedConfigs));
 
         FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
         Schema schema = fieldMappings.selectors().schema();

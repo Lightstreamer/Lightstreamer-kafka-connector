@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
@@ -27,9 +26,7 @@ import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
-import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -172,35 +169,5 @@ public class JsonNodeDeserializerTest {
             assertThat(deser.deserializerClassName())
                     .isEqualTo(JsonLocalSchemaDeserializer.class.getName());
         }
-    }
-
-    @Test
-    public void shouldNotDeserializeKeyDueToMissingLocalSchema() throws IOException {
-        Path adapterDir = Paths.get("src/test/resources");
-
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "no-file.json");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
-
-        SerializationException e =
-                assertThrows(
-                        SerializationException.class, () -> new JsonNodeDeserializer(config, true));
-        assertThat(e.getMessage())
-                .isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.json] not found");
-    }
-
-    @Test
-    public void shouldNotDeserializeValueDueToMissingLocalSchema() throws IOException {
-        Path adapterDir = Paths.get("src/test/resources");
-
-        Map<String, String> otherConfigs =
-                Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, "no-file.json");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
-
-        SerializationException e =
-                assertThrows(
-                        SerializationException.class,
-                        () -> new JsonNodeDeserializer(config, false));
-        assertThat(e.getMessage())
-                .isEqualTo("File [" + adapterDir.toAbsolutePath() + "/no-file.json] not found");
     }
 }

@@ -19,6 +19,7 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
@@ -53,8 +54,6 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String DATA_ADAPTER_NAME = "data_provider.name";
 
     public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
-
-    public static final String ADAPTER_DIR = "adapter.dir";
 
     public static final String ITEM_TEMPLATE = "item-template";
 
@@ -151,14 +150,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(KEY_SCHEMA_FILE, false, false, TEXT)
+                        .add(KEY_SCHEMA_FILE, false, false, FILE)
                         .add(
                                 VALUE_EVALUATOR_TYPE,
                                 false,
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(VALUE_SCHEMA_FILE, false, false, TEXT)
+                        .add(VALUE_SCHEMA_FILE, false, false, FILE)
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -212,7 +211,8 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
-        return new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
+        return new ConnectorConfig(
+                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
     }
 
     public Properties baseConsumerProps() {
@@ -266,16 +266,10 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean hasKeySchemaFile() {
-        return getText(KEY_SCHEMA_FILE) != null;
+        return getFile(KEY_SCHEMA_FILE) != null;
     }
 
     public boolean hasValueSchemaFile() {
-        return getText(VALUE_SCHEMA_FILE) != null;
-    }
-
-    public static Map<String, String> appendAdapterDir(Map<String, String> config, File configDir) {
-        Map<String, String> updated = new HashMap<>(config);
-        updated.put(ADAPTER_DIR, configDir.getAbsolutePath());
-        return updated;
+        return getFile(VALUE_SCHEMA_FILE) != null;
     }
 }

@@ -24,54 +24,44 @@ import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ConnectorMetadataAdapter extends LiteralBasedProvider {
 
-    private static Logger log;
     private static ConnectorMetadataAdapter METADATA_ADAPTER;
 
-    private Set<String> disabledDataProviders = ConcurrentHashMap.newKeySet();
-    private Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
+    private Logger log;
 
+    private final Set<String> disabledDataProviders = ConcurrentHashMap.newKeySet();
+    private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
+    private GlobalConfig globalConfig;
+
+    @SuppressWarnings("unchecked")
     @Override
-    public void init(Map params, File configDir) throws MetadataProviderException {
+    public void init(@SuppressWarnings("rawtypes") Map params, File configDir)
+            throws MetadataProviderException {
         super.init(params, configDir);
-        configureLogging(params, configDir);
+        globalConfig = GlobalConfig.newConfig(configDir, params);
+        configureLogging(configDir);
         METADATA_ADAPTER = this;
     }
 
-    private void configureLogging(Map<String, String> params, File configDir) {
-        String param = params.get("logging.configuration.file");
-        String logConfigFile =
-                Optional.ofNullable(param)
-                        .orElseThrow(
-                                () ->
-                                        new ConfigException(
-                                                "Missing required parameter [%s]"
-                                                        .formatted("logging.configuration.file")));
-
+    private void configureLogging(File configDir) throws ConfigException {
+        String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE);
         Path logFilePath = Paths.get(configDir.getAbsolutePath(), logConfigFile);
-        if (!Files.isRegularFile(logFilePath)) {
-            throw new ConfigException(
-                    "Logging configuration file [%s] not found".formatted(logConfigFile));
-        }
-        PropertyConfigurator propertyConfigurator = new PropertyConfigurator();
-        propertyConfigurator.doConfigure(logFilePath.toString(), LogManager.getLoggerRepository());
+        PropertyConfigurator.configure(logFilePath.toString());
         this.log = LoggerFactory.getLogger(ConnectorMetadataAdapter.class);
     }
 

@@ -19,12 +19,15 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.HOST;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Type;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +37,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
+
+    public static final String ADAPTER_DIR = "adapter.dir";
 
     private final ConfigSpec configSpec;
     private final Map<String, String> configuration;
@@ -135,5 +140,21 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             String configKey, Function<? super Entry<String, String>, T> conv) {
         Map<String, String> values = getValues(configKey, true);
         return values.entrySet().stream().map(conv).toList();
+    }
+
+    public static final Map<String, String> appendAdapterDir(
+            ConfigSpec configSpec, Map<String, String> config, File configDir) {
+        Map<String, String> updatedConfigs = new HashMap<>(config);
+        updatedConfigs.put(ADAPTER_DIR, configDir.getAbsolutePath());
+        List<ConfParameter> confParams = configSpec.getByType(FILE);
+        for (ConfParameter confParameter : confParams) {
+            String value = updatedConfigs.get(confParameter.name());
+            if (value != null) {
+                updatedConfigs.replace(
+                        confParameter.name(),
+                        Paths.get(updatedConfigs.get(ADAPTER_DIR), value).toString());
+            }
+        }
+        return updatedConfigs;
     }
 }

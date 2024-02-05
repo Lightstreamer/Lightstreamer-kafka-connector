@@ -22,8 +22,6 @@ import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,13 +39,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
+
 public class ConnectorConfigTest {
 
     private Path adapterDir;
+    private Path keySchemaFile;
+    private Path valueSchemaFile;
 
     @BeforeEach
     public void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
+        keySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
+        valueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
     }
 
     @Test
@@ -116,7 +122,7 @@ public class ConnectorConfigTest {
         assertThat(keySchemaFile.multiple()).isFalse();
         assertThat(keySchemaFile.mutable()).isTrue();
         assertThat(keySchemaFile.defaultValue()).isNull();
-        assertThat(keySchemaFile.type()).isEqualTo(ConfType.TEXT);
+        assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter valueEvaluatorType =
                 configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_TYPE);
@@ -133,7 +139,7 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.multiple()).isFalse();
         assertThat(valueSchemaFile.mutable()).isTrue();
         assertThat(valueSchemaFile.defaultValue()).isNull();
-        assertThat(valueSchemaFile.type()).isEqualTo(ConfType.TEXT);
+        assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter itemTemplate = configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplate.name()).isEqualTo(ConnectorConfig.ITEM_TEMPLATE);
@@ -293,15 +299,15 @@ public class ConnectorConfigTest {
 
     private Map<String, String> standardParameters() {
         Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "STRING");
-        adapterParams.put(ConnectorConfig.VALUE_SCHEMA_FILE, "value-schema-file");
+        adapterParams.put(
+                ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.getFileName().toString());
         adapterParams.put(
                 ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
                 "http://value-host:8080/registry");
         adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, "key-schema-file");
+        adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.getFileName().toString());
         adapterParams.put(
                 ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
         adapterParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
@@ -356,6 +362,13 @@ public class ConnectorConfigTest {
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
+                                .formatted(ConnectorConfig.ADAPTER_DIR));
+
+        params.put(ConnectorConfig.ADAPTER_DIR, "non-existing-directory");
+        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Not found directory [non-existing-directory] specified in [%s]"
                                 .formatted(ConnectorConfig.ADAPTER_DIR));
 
         params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
@@ -418,14 +431,16 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldRetrieveConfiguration() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Map<String, String> configuration = config.configuration();
         assertThat(configuration).isNotEmpty();
     }
 
     @Test
     public void shouldRetrieveBaseConsumerProperties() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Properties baseConsumerProps = config.baseConsumerProps();
         assertThat(baseConsumerProps)
                 .containsAtLeast(
@@ -448,7 +463,8 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldExtendBaseConsumerProperties() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Map<String, ?> extendedProps = config.extendsConsumerProps(Map.of("new.key", "new.value"));
         assertThat(extendedProps)
                 .containsAtLeast(
@@ -468,14 +484,16 @@ public class ConnectorConfigTest {
     public void shouldNotModifyEnableAutoCommitConfig() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.getBoolean(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG))
                 .isEqualTo("false");
     }
 
     @Test
     public void shouldGetText() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
         assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
@@ -492,7 +510,7 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, type);
-        ConnectorConfig config = new ConnectorConfig(updatedConfig);
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
                 .isEqualTo(EvaluatorType.valueOf(type));
@@ -501,17 +519,33 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldFailDueToInvaludEvaluatorType() {
+        Map<String, String> keys = Map.of(ConnectorConfig.KEY_EVALUATOR_TYPE, "[key.evaluator.type]",  ConnectorConfig.VALUE_EVALUATOR_TYPE, "[value.evaluator.type]");
+        for (Map.Entry<String, String> entry: keys.entrySet()) {
+            Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+            updatedConfig.put(entry.getKey(), "invalidType");
+            ConfigException e =
+                    assertThrows(
+                            ConfigException.class,
+                            () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+            assertThat(e.getMessage())
+                    .isEqualTo("Specify a valid value for parameter " + entry.getValue());
+        }
+    }
+
+    @Test
     public void shouldGetOverridenGroupId() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.GROUP_ID, "group-id");
-        ConnectorConfig config = new ConnectorConfig(updatedConfig);
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getText(ConnectorConfig.GROUP_ID)).isEqualTo("group-id");
     }
 
     @Test
     public void shouldGetValues() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Map<String, String> topics = config.getValues(ConnectorConfig.TOPIC_MAPPING, true);
         assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
 
@@ -527,7 +561,8 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetAsList() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         List<String> values =
                 config.getAsList(
                         ConnectorConfig.TOPIC_MAPPING, e -> e.getKey() + "_" + e.getValue());
@@ -536,7 +571,8 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetItemTemplateList() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         List<String> values =
                 config.getAsList(
                         ConnectorConfig.ITEM_TEMPLATE, e -> e.getKey() + "_" + e.getValue());
@@ -545,7 +581,8 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetUrl() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
                 .isEqualTo("http://key-host:8080/registry");
         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
@@ -554,7 +591,8 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetRequiredUrl() {
-        ConnectorConfig config = new ConnectorConfig(standardParameters());
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true))
                 .isEqualTo("http://key-host:8080/registry");
         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
@@ -618,13 +656,6 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotGetNonExistingNonRequiredText() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getText(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
-        assertThat(config.getText(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
-    }
-
-    @Test
     public void shouldNotGetNonExistingNonRequiredHost() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
@@ -641,7 +672,24 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNoGetNonExistinggNonRequiredInt() {
+    public void shouldGetFiles() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+        assertThat(config.getFile(ConnectorConfig.KEY_SCHEMA_FILE))
+                .isEqualTo(keySchemaFile.toString());
+        assertThat(config.getFile(ConnectorConfig.VALUE_SCHEMA_FILE))
+                .isEqualTo(valueSchemaFile.toString());
+    }
+
+    @Test
+    public void shouldGetNotExistingNonRequiredFiles() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir);
+        assertThat(config.getFile(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
+        assertThat(config.getFile(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
+    }
+
+    @Test
+    public void shouldNoGetNonExistingNonRequiredInt() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG)).isNull();

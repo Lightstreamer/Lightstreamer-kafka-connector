@@ -24,21 +24,13 @@ import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapters.consumers.ConsumerLoop;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 import javax.annotation.Nonnull;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConnectorDataAdapter implements SmartDataProvider {
 
@@ -47,14 +39,12 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     private ConsumerLoopConfig<?, ?> loopConfig;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataAdapter;
-    private PropertyConfigurator propertyConfigurator;
 
     public ConnectorDataAdapter() {}
 
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
-        configureLogging(params, configDir);
         connectorConfig = ConnectorConfig.newConfig(configDir, params);
         metadataAdapter =
                 ConnectorMetadataAdapter.listener(
@@ -68,26 +58,6 @@ public class ConnectorDataAdapter implements SmartDataProvider {
         loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
 
         log.info("Configuration complete");
-    }
-
-    private void configureLogging(Map<String, String> params, File configDir) {
-        String param = params.get("logging.configuration.file");
-        String logConfigFile =
-                Optional.ofNullable(param)
-                        .orElseThrow(
-                                () ->
-                                        new ConfigException(
-                                                "Missing required parameter [%s]"
-                                                        .formatted("logging.configuration.file")));
-
-        Path logFilePath = Paths.get(configDir.getAbsolutePath(), logConfigFile);
-        if (!Files.isRegularFile(logFilePath)) {
-            throw new ConfigException(
-                    "Logging configuration file [%s] not found".formatted(logConfigFile));
-        }
-        PropertyConfigurator propertyConfigurator = new PropertyConfigurator();
-        propertyConfigurator.doConfigure(logFilePath.toString(), LogManager.getLoggerRepository());
-        this.log = LoggerFactory.getLogger(ConnectorDataAdapter.class);
     }
 
     @Override

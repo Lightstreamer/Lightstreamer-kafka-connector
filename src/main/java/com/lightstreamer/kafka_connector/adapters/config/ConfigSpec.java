@@ -41,19 +41,12 @@ class ConfigSpec {
 
         boolean isValid(String param);
 
-        // boolean checkValidity(String param);
-
-        // default boolean checkValidity(String param) {
-        //     return true;
-        // }
-
         default String getValue(String param) {
             return param;
         }
 
         default String formatErrorMessage(String param, String paramValue) {
-            return String.format(
-                    "Value [%s] is not valid for parameter [%s]", paramValue, paramValue);
+            return String.format("Specify a valid value for parameter [%s]", param);
         }
     }
 
@@ -152,7 +145,6 @@ class ConfigSpec {
         FILE {
             @Override
             public boolean checkValidity(String param) {
-                super.checkValidity(param);
                 return Files.isRegularFile(Paths.get(param));
             }
 
@@ -163,14 +155,16 @@ class ConfigSpec {
 
             @Override
             public String formatErrorMessage(String param, String paramValue) {
-                return String.format("File [%s] not found", paramValue);
+                if (paramValue.isBlank()) {
+                    return super.formatErrorMessage(param, paramValue);
+                }
+                return String.format("Not found file [%s] specified in [%s]", paramValue, param);
             }
         },
 
         DIRECTORY {
             @Override
             public boolean checkValidity(String param) {
-                super.checkValidity(param);
                 return Files.isDirectory(Paths.get(param));
             }
 
@@ -181,7 +175,11 @@ class ConfigSpec {
 
             @Override
             public String formatErrorMessage(String param, String paramValue) {
-                return String.format("Directory [%s] not found", paramValue);
+                if (paramValue.isBlank()) {
+                    return super.formatErrorMessage(param, paramValue);
+                }
+                return String.format(
+                        "Not found directory [%s] specified in [%s]", paramValue, param);
             }
         };
 
@@ -313,6 +311,10 @@ class ConfigSpec {
         return paramSpec.get(name);
     }
 
+    List<ConfParameter> getByType(Type type) {
+        return paramSpec.values().stream().filter(p -> p.type().equals(type)).toList();
+    }
+
     public static Optional<String> extractInfix(ConfParameter param, String value) {
         if (!param.multiple()) {
             return Optional.empty();
@@ -402,8 +404,7 @@ record ConfParameter(
                 if ((paramValue != null && !type.isValid(paramValue))
                         || paramValue == null
                         || paramValue.isBlank()) {
-                    throw new ConfigException(
-                            String.format("Specify a valid value for parameter [%s]", key));
+                    throw new ConfigException(type().formatErrorMessage(key, paramValue));
                 }
                 destination.put(key, type.getValue(paramValue));
             }
