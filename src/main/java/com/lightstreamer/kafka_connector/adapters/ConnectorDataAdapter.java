@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nonnull;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,8 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     private Loop loop;
     private ConsumerLoopConfig<?, ?> loopConfig;
     private ConnectorConfig connectorConfig;
+    private MetadataListener metadataAdapter;
+    private PropertyConfigurator propertyConfigurator;
 
     public ConnectorDataAdapter() {}
 
@@ -52,11 +55,18 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         configureLogging(params, configDir);
+        connectorConfig = ConnectorConfig.newConfig(configDir, params);
+        metadataAdapter =
+                ConnectorMetadataAdapter.listener(
+                        connectorConfig.getText(ConnectorConfig.DATA_ADAPTER_NAME));
 
-        this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
-
+        boolean isDisabled = connectorConfig.getBoolean(ConnectorConfig.ENABLED).equals("false");
+        if (isDisabled) {
+            metadataAdapter.disableAdapter();
+        }
         log.info("Configuring Kafka Connector");
-        this.loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
+        loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
+
         log.info("Configuration complete");
     }
 
@@ -75,7 +85,8 @@ public class ConnectorDataAdapter implements SmartDataProvider {
             throw new ConfigException(
                     "Logging configuration file [%s] not found".formatted(logConfigFile));
         }
-        PropertyConfigurator.configure(logFilePath.toString());
+        PropertyConfigurator propertyConfigurator = new PropertyConfigurator();
+        propertyConfigurator.doConfigure(logFilePath.toString(), LogManager.getLoggerRepository());
         this.log = LoggerFactory.getLogger(ConnectorDataAdapter.class);
     }
 
@@ -85,9 +96,6 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     }
 
     private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        MetadataListener metadataAdapter =
-                ConnectorMetadataAdapter.listener(
-                        connectorConfig.getText(ConnectorConfig.DATA_ADAPTER_NAME));
         return new ConsumerLoop<>(config, metadataAdapter, eventListener);
     }
 

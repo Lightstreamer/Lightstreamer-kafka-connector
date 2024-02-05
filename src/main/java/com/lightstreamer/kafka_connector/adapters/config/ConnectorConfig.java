@@ -19,7 +19,6 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.HOST;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
@@ -40,20 +39,16 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Type;
 import java.io.File;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ConnectorConfig {
+public final class ConnectorConfig extends AbstractConfig {
+
+    public static final String ENABLED = "enabled";
 
     public static final String DATA_ADAPTER_NAME = "data_provider.name";
 
@@ -123,7 +118,8 @@ public class ConnectorConfig {
         CONFIG_SPEC =
                 new ConfigSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
-                        .add(ADAPTER_DIR, true, false, ConfType.Directory)
+                        .add(ENABLED, false, false, BOOL, defaultValue("true"))
+                        .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
                         .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
                         .add(
                                 GROUP_ID,
@@ -203,21 +199,12 @@ public class ConnectorConfig {
                                 defaultValue("250"));
     }
 
-    private final ConfigSpec configSpec;
-
-    private final Map<String, String> configuration;
-
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
-        this.configSpec = spec;
-        this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
+        super(spec, configs);
     }
 
     public ConnectorConfig(Map<String, String> configs) {
         this(CONFIG_SPEC, configs);
-    }
-
-    public Map<String, String> configuration() {
-        return this.configuration;
     }
 
     static ConfigSpec configSpec() {
@@ -226,92 +213,6 @@ public class ConnectorConfig {
 
     public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
         return new ConnectorConfig(ConnectorConfig.appendAdapterDir(params, adapterDir));
-    }
-
-    private String get(String key, Type type, boolean forceRequired) {
-        ConfParameter param = configSpec.getParameter(key);
-        if (param.type().equals(type)) {
-            if (param.required() && configuration.containsKey(key)) {
-                return configuration.get(key);
-            } else {
-                String value =
-                        configuration.getOrDefault(key, param.defaultHolder().value(configuration));
-                if (forceRequired && value == null) {
-                    throw new ConfigException("Missing required parameter [%s]".formatted(key));
-                }
-                return value;
-            }
-        }
-        throw new ConfigException(
-                "No parameter [%s] of %s type is present in the configuration"
-                        .formatted(key, type));
-    }
-
-    public String getInt(String configKey) {
-        return get(configKey, INT, false);
-    }
-
-    public String getText(String configKey) {
-        return get(configKey, TEXT, false);
-    }
-
-    public String getBoolean(String configKey) {
-        return get(configKey, BOOL, false);
-    }
-
-    public EvaluatorType getEvaluator(String configKey) {
-        return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
-    }
-
-    public String getHost(String configKey) {
-        return get(configKey, HOST, false);
-    }
-
-    public String getHost(String configKey, boolean forceRequired) {
-        String value = get(configKey, HOST, false);
-        if (forceRequired && value == null) {
-            throw new ConfigException("Missing required parameter [%s]".formatted(configKey));
-        }
-        return value;
-    }
-
-    public String getUrl(String configKey, boolean forceRequired) {
-        return get(configKey, URL, forceRequired);
-    }
-
-    public String getHostsList(String configKey) {
-        return get(configKey, ConfType.HOST_LIST, false);
-    }
-
-    public String getDirectory(String configKey) {
-        return get(configKey, ConfType.Directory, false);
-    }
-
-    public Map<String, String> getValues(String configKey, boolean remap) {
-        ConfParameter param = this.configSpec.getParameter(configKey);
-        if (param.multiple()) {
-            Map<String, String> newMap = new HashMap<>();
-            for (Map.Entry<String, String> e : configuration.entrySet()) {
-                if (remap) {
-                    Optional<String> infix = ConfigSpec.extractInfix(param, e.getKey());
-                    if (infix.isPresent()) {
-                        newMap.put(infix.get(), e.getValue());
-                    }
-                } else {
-                    if (e.getKey().startsWith(configKey)) {
-                        newMap.put(e.getKey(), e.getValue());
-                    }
-                }
-            }
-            return newMap;
-        }
-        return Collections.emptyMap();
-    }
-
-    public <T> List<T> getAsList(
-            String configKey, Function<? super Entry<String, String>, T> conv) {
-        Map<String, String> values = getValues(configKey, true);
-        return values.entrySet().stream().map(conv).toList();
     }
 
     public Properties baseConsumerProps() {

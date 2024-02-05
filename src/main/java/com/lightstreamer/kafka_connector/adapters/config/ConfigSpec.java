@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
 import java.io.File;
 import java.net.URI;
@@ -150,7 +149,25 @@ class ConfigSpec {
             }
         },
 
-        Directory {
+        FILE {
+            @Override
+            public boolean checkValidity(String param) {
+                super.checkValidity(param);
+                return Files.isRegularFile(Paths.get(param));
+            }
+
+            @Override
+            public String getValue(String param) {
+                return new File(param).getAbsolutePath();
+            }
+
+            @Override
+            public String formatErrorMessage(String param, String paramValue) {
+                return String.format("File [%s] not found", paramValue);
+            }
+        },
+
+        DIRECTORY {
             @Override
             public boolean checkValidity(String param) {
                 super.checkValidity(param);

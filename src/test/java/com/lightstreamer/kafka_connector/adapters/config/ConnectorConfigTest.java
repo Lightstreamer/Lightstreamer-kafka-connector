@@ -50,7 +50,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldCreateConfigSpec() {
+    public void shouldReturnConfigSpec() {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
 
         ConfParameter adapterDir = configSpec.getParameter(ConnectorConfig.ADAPTER_DIR);
@@ -59,7 +59,15 @@ public class ConnectorConfigTest {
         assertThat(adapterDir.multiple()).isFalse();
         assertThat(adapterDir.mutable()).isTrue();
         assertThat(adapterDir.defaultValue()).isNull();
-        assertThat(adapterDir.type()).isEqualTo(ConfType.Directory);
+        assertThat(adapterDir.type()).isEqualTo(ConfType.DIRECTORY);
+
+        ConfParameter enabled = configSpec.getParameter(ConnectorConfig.ENABLED);
+        assertThat(enabled.name()).isEqualTo(ConnectorConfig.ENABLED);
+        assertThat(enabled.required()).isFalse();
+        assertThat(enabled.multiple()).isFalse();
+        assertThat(enabled.mutable()).isTrue();
+        assertThat(enabled.defaultValue()).isEqualTo("true");
+        assertThat(enabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter adapterConfId = configSpec.getParameter(ConnectorConfig.ADAPTERS_CONF_ID);
         assertThat(adapterConfId.name()).isEqualTo(ConnectorConfig.ADAPTERS_CONF_ID);
