@@ -22,6 +22,8 @@ import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,16 +33,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 public class ConnectorConfigTest {
 
@@ -520,8 +518,13 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldFailDueToInvaludEvaluatorType() {
-        Map<String, String> keys = Map.of(ConnectorConfig.KEY_EVALUATOR_TYPE, "[key.evaluator.type]",  ConnectorConfig.VALUE_EVALUATOR_TYPE, "[value.evaluator.type]");
-        for (Map.Entry<String, String> entry: keys.entrySet()) {
+        Map<String, String> keys =
+                Map.of(
+                        ConnectorConfig.KEY_EVALUATOR_TYPE,
+                        "[key.evaluator.type]",
+                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                        "[value.evaluator.type]");
+        for (Map.Entry<String, String> entry : keys.entrySet()) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
             updatedConfig.put(entry.getKey(), "invalidType");
             ConfigException e =
@@ -666,7 +669,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetDirectory() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir);
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getDirectory(ConnectorConfig.ADAPTER_DIR))
                 .isEqualTo(adapterDir.toString());
     }
@@ -683,7 +686,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetNotExistingNonRequiredFiles() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir);
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getFile(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
         assertThat(config.getFile(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
     }

@@ -68,22 +68,17 @@ public class ItemTemplatesTest {
 
     private static ConnectorConfig avroJsonConfig() {
         return ConnectorConfigProvider.minimalWith(
-                Map.of(
-                        ConnectorConfig.KEY_SCHEMA_FILE,
-                        "value.avsc",
-                        ConnectorConfig.ADAPTER_DIR,
-                        "src/test/resources"));
+                "src/test/resources", Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc"));
     }
 
     private static ConnectorConfig avroAvroConfig() {
         return ConnectorConfigProvider.minimalWith(
+                "src/test/resources",
                 Map.of(
                         ConnectorConfig.KEY_SCHEMA_FILE,
                         "value.avsc",
                         ConnectorConfig.VALUE_SCHEMA_FILE,
-                        "value.avsc",
-                        ConnectorConfig.ADAPTER_DIR,
-                        "src/test/resources"));
+                        "value.avsc"));
     }
 
     @Test

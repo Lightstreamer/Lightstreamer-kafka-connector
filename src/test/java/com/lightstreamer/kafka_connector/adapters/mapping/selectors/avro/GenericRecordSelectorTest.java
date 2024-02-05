@@ -43,9 +43,8 @@ public class GenericRecordSelectorTest {
 
     static ConnectorConfig config() {
         return ConnectorConfigProvider.minimalWith(
+                "src/test/resources",
                 Map.of(
-                        ConnectorConfig.ADAPTER_DIR,
-                        "src/test/resources",
                         ConnectorConfig.KEY_SCHEMA_FILE,
                         "value.avsc",
                         ConnectorConfig.VALUE_SCHEMA_FILE,

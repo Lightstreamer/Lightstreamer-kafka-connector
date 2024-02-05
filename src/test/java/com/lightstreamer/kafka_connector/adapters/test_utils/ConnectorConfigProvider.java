@@ -57,17 +57,17 @@ public class ConnectorConfigProvider {
         return minimalWith(Collections.emptyMap());
     }
 
-    public static ConnectorConfig minimal(Path adapterDir) {
-        return minimalWith(Collections.emptyMap(), adapterDir);
+    public static ConnectorConfig minimal(String adapterDir) {
+        return minimalWith(adapterDir, Collections.emptyMap());
     }
 
     public static ConnectorConfig minimalWith(Map<String, String> additionalConfigs) {
-        return minimalWith(additionalConfigs, createTempAdapterDir());
+        return minimalWith(createTempAdapterDir().toString(), additionalConfigs);
     }
 
     public static ConnectorConfig minimalWith(
-            Map<String, String> additionalConfigs, Path adapterDir) {
+            String adapterDir, Map<String, String> additionalConfigs) {
         return ConnectorConfig.newConfig(
-                adapterDir.toFile(), minimalConfigParamsWith(additionalConfigs));
+                Path.of(adapterDir).toFile(), minimalConfigParamsWith(additionalConfigs));
     }
 }

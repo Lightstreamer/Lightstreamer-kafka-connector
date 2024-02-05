@@ -113,7 +113,8 @@ public class JsonNodeDeserializerTest {
         Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName());
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName())
@@ -134,7 +135,8 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             assertThat(deser.deserializerClassName())
@@ -158,7 +160,8 @@ public class JsonNodeDeserializerTest {
                 Map.of(
                         ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName(),
                         ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs, adapterDir);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName())
