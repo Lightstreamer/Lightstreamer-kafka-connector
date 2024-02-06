@@ -61,11 +61,7 @@ public class ConsumerLoopConfigurator {
 
     private ConsumerLoopConfigurator(ConnectorConfig config) {
         this.connectorConfig = config;
-        this.log =
-                LoggerFactory.getLogger(
-                        config.getText(ConnectorConfig.ADAPTERS_CONF_ID)
-                                + "."
-                                + this.getClass().getSimpleName());
+        this.log = LoggerFactory.getLogger(config.getAdapterName());
     }
 
     public static ConsumerLoopConfig<?, ?> configure(ConnectorConfig config) {
