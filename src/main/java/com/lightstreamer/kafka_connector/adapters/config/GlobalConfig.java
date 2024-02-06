@@ -17,9 +17,10 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.DIRECTORY;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import java.io.File;
 import java.util.Map;
 
@@ -32,7 +33,8 @@ public final class GlobalConfig extends AbstractConfig {
     static {
         CONFIG_SPEC =
                 new ConfigSpec()
-                        .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
+                        .add(ADAPTERS_CONF_ID, true, false, TEXT)
+                        .add(ADAPTER_DIR, true, false, DIRECTORY)
                         .add(LOGGING_CONFIGURATION_FILE, true, false, FILE);
     }
 

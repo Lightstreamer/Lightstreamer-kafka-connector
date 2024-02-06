@@ -23,6 +23,7 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapters.commons.LogFactory;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
@@ -45,15 +46,14 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
-        connectorConfig = ConnectorConfig.newConfig(configDir, params);
-        metadataAdapter =
-                ConnectorMetadataAdapter.listener(
-                        connectorConfig.getText(ConnectorConfig.DATA_ADAPTER_NAME));
+        this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
+        this.log = LogFactory.getLogger(connectorConfig.getAdapterName(), getClass());
+        this.metadataAdapter = ConnectorMetadataAdapter.listener(connectorConfig.getAdapterName());
 
-        boolean isDisabled = connectorConfig.getBoolean(ConnectorConfig.ENABLED).equals("false");
-        if (isDisabled) {
+        if (!connectorConfig.isEnabled()) {
             metadataAdapter.disableAdapter();
         }
+
         log.info("Configuring Kafka Connector");
         loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
 

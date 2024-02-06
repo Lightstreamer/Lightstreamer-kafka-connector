@@ -650,6 +650,18 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetBoolean() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+        assertThat(config.isEnabled()).isTrue();
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLED, "false");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isEnabled()).isFalse();
+    }
+
+    @Test
     public void shouldGetDefaultEvaluator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
@@ -703,5 +715,12 @@ public class ConnectorConfigTest {
         assertThat(config.getInt(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS)).isNull();
+    }
+
+    @Test
+    public void shouldGetAdapterNAme() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+        assertThat(config.getAdapterName()).isEqualTo("CONNECTOR");
     }
 }

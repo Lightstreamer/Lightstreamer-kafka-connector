@@ -35,14 +35,15 @@ public class ConnectorConfigProvider {
         }
     }
 
-    private static Map<String, String> minimalConfigParams() {
+    public static Map<String, String> minimalConfigParams() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ITEM_TEMPLATE, "item.template1");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
-        adapterParams.put("map.topic1.to", "item-template1");
-        adapterParams.put("field.fieldName1", "bar");
+        adapterParams.put("item-template.template1", "item");
+        adapterParams.put("map.topic1.to", "item-template.template1");
+        adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
     }
 

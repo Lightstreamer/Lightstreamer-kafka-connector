@@ -38,6 +38,7 @@ import java.util.function.Function;
 
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
+    public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
     public static final String ADAPTER_DIR = "adapter.dir";
 
     private final ConfigSpec configSpec;

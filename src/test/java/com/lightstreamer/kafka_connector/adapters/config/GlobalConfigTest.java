@@ -62,9 +62,22 @@ public class GlobalConfigTest {
         ConfigException e =
                 assertThrows(ConfigException.class, () -> new GlobalConfig(Collections.emptyMap()));
         assertThat(e.getMessage())
-                .isEqualTo("Missing required parameter [%s]".formatted(GlobalConfig.ADAPTER_DIR));
+                .isEqualTo(
+                        "Missing required parameter [%s]".formatted(GlobalConfig.ADAPTERS_CONF_ID));
 
         Map<String, String> params = new HashMap<>();
+        params.put(GlobalConfig.ADAPTERS_CONF_ID, "");
+        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.ADAPTERS_CONF_ID));
+
+        params.put(GlobalConfig.ADAPTERS_CONF_ID, "KAFKA");
+        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
+        assertThat(e.getMessage())
+                .isEqualTo("Missing required parameter [%s]".formatted(GlobalConfig.ADAPTER_DIR));
+
         params.put(GlobalConfig.ADAPTER_DIR, "");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
         assertThat(e.getMessage())
@@ -95,6 +108,7 @@ public class GlobalConfigTest {
 
     private Map<String, String> minimal() {
         Map<String, String> adapterParams = new HashMap<>();
+        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
 
         // Ensure we are specifying a path name relative to the provided adapter dir.
@@ -107,6 +121,7 @@ public class GlobalConfigTest {
     @Test
     public void shouldGetNewConfig() {
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
+        assertThat(config.getText(GlobalConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getDirectory(GlobalConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
         assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE))
                 .isEqualTo(loggingConfigurationFile.toString());

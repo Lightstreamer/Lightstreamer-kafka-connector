@@ -21,6 +21,7 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.Loop;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
-    protected static Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
+    protected Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
 
     protected final ConsumerLoopConfig<K, V> config;
     protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
@@ -51,18 +52,24 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
     @Override
     public final Item subscribe(String item, Object itemHandle) throws SubscriptionException {
-        Item newItem = Items.itemFrom(item, itemHandle);
-        if (config.itemTemplates().matches(newItem)) {
-            log.atInfo().log("Subscribed to {}", item);
-        } else {
-            throw new SubscriptionException("Item does not match any defined item templates");
-        }
+        try {
+            Item newItem = Items.itemFrom(item, itemHandle);
+            if (config.itemTemplates().matches(newItem)) {
+                log.atInfo().log("Subscribed to {}", item);
+            } else {
+                log.atWarn().log("Item does not match any defined item templates");
+                throw new SubscriptionException("Item does not match any defined item templates");
+            }
 
-        subscribedItems.put(item, newItem);
-        if (itemsCounter.addAndGet(1) == 1) {
-            startConsuming();
+            subscribedItems.put(item, newItem);
+            if (itemsCounter.addAndGet(1) == 1) {
+                startConsuming();
+            }
+            return newItem;
+        } catch (ExpressionException e) {
+            log.atError().setCause(e).log();
+            throw new SubscriptionException(e.getMessage());
         }
-        return newItem;
     }
 
     abstract void startConsuming() throws SubscriptionException;
@@ -71,7 +78,8 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
     public final Item unsubscribe(String item) throws SubscriptionException {
         Item removedItem = subscribedItems.remove(item);
         if (removedItem == null) {
-            throw new SubscriptionException("Unsubscribing unexpected item [%s]".formatted(item));
+            throw new SubscriptionException(
+                    "Unsubscribing from unexpected item [%s]".formatted(item));
         }
 
         if (itemsCounter.decrementAndGet() == 0) {

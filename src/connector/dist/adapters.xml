@@ -9,30 +9,39 @@
 -->
 
 <!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
-<adapters_conf id="KAFKA">
+<adapters_conf id="KafkaConnector">
     <metadata_provider>
         <!-- Java class name of the Kafka Connector Metadata Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter</adapter_class>
+
+        <!-- Mandatory. Path of the configuration file for the log4j-based logging system.
+             The file path is relative to the Kafka Connector deployment directory.
+        -->
+        <param name="logging.configuration.file">log4j.properties</param>
+
     </metadata_provider>
 
     <!-- The Lightstreamer Kafka Connector allows to configure indipendent connections to different Kakfa clusters.
          Every single connection is configured via the definition of a specific Lightstreamer Data Adapter.
-         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many 
+         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
          configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
          configuration.
-         
+
          At least one connection configuration must be provided.
          Every configuration is distinguished throug the "name" attribute, which is "DFAULT" if not provided,
          but only one "DEFAULT" configuration is allowed. -->
-    <data_provider name="CONNECTION">
+    <data_provider name="BrokerConnection">
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
-        
-        <!-- Mandatory. Path of the configuration file for the log4j-based logging system. 
-             The file path is relative to the Kafka Connector deployment directory. 
+
+        <!-- Optional. Enabling flag. Can be one of the following:
+                - "true": Enables the connection.
+                - "false": Disables the connection.
+                Default: "true". -->
+        <!--
+        <param name="enable">false</param>
         -->
-        <param name="logging.configuration.file">log4j.properties</param>
 
         <!-- Mandatory. The list of host/port pairs used to establish the initial connection to the Kafka cluster.
              The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
@@ -41,21 +50,21 @@
         <param name="bootstrap.servers">broker:29092,broker:29003</param>
 
         <!-- Optional. The name of the consumer group this connection belongs to.
-             The parameter sets the value for the "group.id" key used to configure the internal 
-             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details. 
+             The parameter sets the value for the "group.id" key used to configure the internal
+             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
              If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
              combining the adapter set, the connector name, and a randomly generated suffix. -->
         <!--
-        param name="group.id">kafka-adapter-user-NEW</param>
+        param name="group.id">kafka-connector-group</param>
         -->
-        
+
         <!-- Lightstreamer Clients can subscribe to a special "service" item through which the Kafka Connector can
              send update about any issue while processing the records received fron the Kafka cluster.
              The following parameters configure such a service item. -->
         <!-- Optional. The name of the service item.
              Default: "info". -->
-        <!-- 
-        <param name="info.item">connection_info</param> 
+        <!--
+        <param name="info.item">connection_info</param>
         -->
         <!-- Optional. The field name of service item.
              Default: "message". -->
@@ -74,7 +83,7 @@
         <param name="key.evaluator.type">AVRO</param>
         <!-- <param name="key.evaluator.schema.file">user-key.avsc</param> -->
         <param name="key.evaluator.schema.registry.url">http://schema-registry:8081</param>
-        <param name="value.evaluator.schema.registry.url">http://schema-registry:8081</param>        
+        <param name="value.evaluator.schema.registry.url">http://schema-registry:8081</param>
 
         <param name="field.key-name">#{KEY.name}</param>
         <param name="field.age">#{VALUE.info.age}</param>
@@ -98,10 +107,10 @@
 
         <!-- Map one topic to one item template -->
         <!-- <param name="map.topic-avro.to">kafka-user-#{name=User.name,age=User.info.age}</param> -->
-        
+
         <!-- Map one topic to many item templates -->
         <!--<param name="map.topic-avro.to">kafka-user-#{name=User.name},kafka-user-#{age=User.info.age}</param>-->
-        
+
         <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
 
         <!--<param name="field.name">User.name</param> -->
@@ -112,42 +121,34 @@
         <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param> -->
     </data_provider>
 
-    <!-- <data_provider name="Suit">
-        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
-        <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-suit</param>
-
-        <param name="mapping_for_topic.topic-suit">suits</param>
-
-        <param name="consumer">SymbolConsumer</param>
-        <param name="item_suit">Suit</param>
-    </data_provider> -->
-
-    <!-- <data_provider name="Json">
-        <adapter_class>com.lightstreamer.kafka_connector.adapter.KafkaConnectorAdapter</adapter_class>
-        <param name="bootstrap-servers">broker:29092</param>
-        <param name="group-id">kafka-adapter-json</param>
-
-        <param name="topics">topic-json</param>
-        <param name="mapped_item">kafka-user-#{name=firtName}</param>
-
-        <param name="consumer">JsonConsumer</param>
-        <param name="field.firstname">#{VALUE.firstName}</param>
-        <param name="field.lastname">#{VALUE.lastName}</param>
-    </data_provider> -->
-
-
     <data_provider name="QuickStart">
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
-        <param name="bootstrap.servers">broker:29092</param>
-        <param name="logging.configuration.file">quickstart.log4j.properties</param>
 
+        <!-- The Kafka cluster address -->
+        <param name="bootstrap.servers">broker:29092</param>
+
+        <!-- TOPIC MAPPING SECTION -->
+
+        <!-- Define a "sample" item-template, which is simply made of the "sample" item name. -->
         <param name="item-template.sample">sample</param>
+
+        <!-- Map the topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.sample-topic.to">item-template.sample</param>
 
+        <!-- FIELDS MAPPING SECTION -->
+
+        <!-- Extraction of the record key mapped to the field "key". -->
         <param name="field.key">#{KEY}</param>
+
+        <!-- Extraction of the record value mapped to the field "value". -->
         <param name="field.value">#{VALUE}</param>
+
+        <!-- Extraction of the record timestamp to the field "ts". -->
         <param name="field.ts">#{TIMESTAMP}</param>
+
+        <!-- Extraction of the record partition mapped to the field "partition". -->
         <param name="field.partition">#{PARTITION}</param>
     </data_provider>
+
+
 </adapters_conf>

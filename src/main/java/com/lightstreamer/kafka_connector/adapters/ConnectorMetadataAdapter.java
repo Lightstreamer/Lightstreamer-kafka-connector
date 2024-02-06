@@ -26,8 +26,6 @@ import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -60,8 +58,7 @@ public final class ConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private void configureLogging(File configDir) throws ConfigException {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE);
-        Path logFilePath = Paths.get(configDir.getAbsolutePath(), logConfigFile);
-        PropertyConfigurator.configure(logFilePath.toString());
+        PropertyConfigurator.configure(logConfigFile);
         this.log = LoggerFactory.getLogger(ConnectorMetadataAdapter.class);
     }
 

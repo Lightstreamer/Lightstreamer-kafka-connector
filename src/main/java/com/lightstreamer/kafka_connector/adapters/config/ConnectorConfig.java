@@ -53,8 +53,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String DATA_ADAPTER_NAME = "data_provider.name";
 
-    public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
-
     public static final String ITEM_TEMPLATE = "item-template";
 
     public static final String TOPIC_MAPPING = "map";
@@ -271,5 +269,13 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean hasValueSchemaFile() {
         return getFile(VALUE_SCHEMA_FILE) != null;
+    }
+
+    public String getAdapterName() {
+        return getText(DATA_ADAPTER_NAME);
+    }
+
+    public boolean isEnabled() {
+        return getBoolean(ENABLED).equals("true");
     }
 }

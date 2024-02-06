@@ -210,4 +210,8 @@ public class Items {
             return selectors().filter(s -> s.schema().name().equals(name)).findFirst();
         }
     }
+
+    public static void main(String args[]) {
+        Items.itemFrom("@@", new Object());
+    }
 }

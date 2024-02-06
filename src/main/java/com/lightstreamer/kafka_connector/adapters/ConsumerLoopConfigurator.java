@@ -54,11 +54,16 @@ public class ConsumerLoopConfigurator {
         String recordErrorHandlingStrategy();
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ConsumerLoopConfigurator.class);
+    private final Logger log;
     private final ConnectorConfig connectorConfig;
 
     private ConsumerLoopConfigurator(ConnectorConfig config) {
         this.connectorConfig = config;
+        this.log =
+                LoggerFactory.getLogger(
+                        config.getText(ConnectorConfig.ADAPTERS_CONF_ID)
+                                + "."
+                                + this.getClass().getSimpleName());
     }
 
     public static ConsumerLoopConfig<?, ?> configure(ConnectorConfig config) {
