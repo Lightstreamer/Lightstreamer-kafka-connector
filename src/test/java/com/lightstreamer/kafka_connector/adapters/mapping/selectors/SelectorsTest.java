@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -26,15 +27,17 @@ import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class SelectorsTest {
 
@@ -98,31 +101,38 @@ public class SelectorsTest {
                         "Found the invalid expression [VALUE.] while evaluating [name]"),
                 arguments(
                         Map.of("name", "VALUE.."),
-                        "Found the invalid expression [VALUE..] with missing tokens while evaluating [name]"),
+                        "Found the invalid expression [VALUE..] with missing tokens while"
+                                + " evaluating [name]"),
                 arguments(
                         Map.of("name", "VALUE"),
                         "Found the invalid expression [VALUE] while evaluating [name]"),
                 arguments(
                         Map.of("name", "VALUE.attrib[]"),
-                        "Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]"),
+                        "Found the invalid indexed expression [VALUE.attrib[]] while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "VALUE.attrib[0]xsd"),
-                        "Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]"),
+                        "Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "VALUE.attrib[1]xsd"),
-                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating [name]"),
+                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "VALUE.attrib[1]."),
-                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating [name]"),
+                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "VALUE.attrib.-@"),
-                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating [name]"),
+                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "KEY."),
                         "Found the invalid expression [KEY.] while evaluating [name]"),
                 arguments(
                         Map.of("name", "KEY.."),
-                        "Found the invalid expression [KEY..] with missing tokens while evaluating [name]"),
+                        "Found the invalid expression [KEY..] with missing tokens while evaluating"
+                                + " [name]"),
                 arguments(
                         Map.of("name", "KEY"),
                         "Found the invalid expression [KEY] while evaluating [name]"),

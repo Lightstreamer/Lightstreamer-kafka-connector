@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,12 +18,14 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
+
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
@@ -40,6 +42,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+
 import java.io.File;
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -81,6 +84,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String ITEM_INFO_NAME = "info.item";
 
     public static final String ITEM_INFO_FIELD = "info.field";
+
+    public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
+            "record.extraction.error.strategy";
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -158,6 +164,12 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(VALUE_SCHEMA_FILE, false, false, FILE)
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
+                        .add(
+                                RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY,
+                                false,
+                                false,
+                                ERROR_STRATEGY,
+                                defaultValue("IGNORE_AND_CONTINUE"))
                         .add(
                                 CONSUMER_AUTO_OFFSET_RESET_CONFIG,
                                 false,
@@ -261,6 +273,15 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 e -> e.getValue().toString())));
         extendedProps.putAll(props);
         return extendedProps;
+    }
+
+    public final EvaluatorType getEvaluator(String configKey) {
+        return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
+    public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
+        return RecordErrorHandlingStrategy.valueOf(
+                get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
     }
 
     public boolean hasKeySchemaFile() {

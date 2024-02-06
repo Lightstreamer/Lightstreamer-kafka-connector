@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,23 +22,13 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
+import com.lightstreamer.kafka_connector.adapters.config.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -50,12 +40,19 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 
-public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
+import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
-    enum RecordErrorHandlingStrategy {
-        IGNORE_AND_CONTINUE,
-        FORCE_UNSUBSCRIPTION;
-    }
+public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
     private final MetadataListener metadataListener;
     private final ItemEventListener eventListener;
@@ -90,10 +87,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         consumerLock.lock();
         log.atDebug().log("Lock acquired...");
         try {
-            consumer =
-                    new ConsumerWrapper(
-                            RecordErrorHandlingStrategy.valueOf(
-                                    config.recordErrorHandlingStrategy()));
+            consumer = new ConsumerWrapper(config.recordErrorHandlingStrategy());
             CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
@@ -127,20 +121,15 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
     private class ConsumerWrapper implements Runnable {
 
-        private static AtomicInteger COUNTER = new AtomicInteger(0);
-
         private final KafkaConsumer<K, V> consumer;
+        private final ConsumerLoop<K, V>.RebalancerListener relabancerListener;
         private final CountDownLatch latch = new CountDownLatch(1);
-        private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
-        private final int counter;
         private final Thread hook;
-
-        private RecordErrorHandlingStrategy errorStrategy;
+        private final RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean enableFinalCommit = true;
 
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
-            this.counter = COUNTER.incrementAndGet();
             String bootStrapServers =
                     config.consumerProperties()
                             .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
@@ -152,6 +141,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
+            this.relabancerListener = new RebalancerListener(consumer);
             this.hook = setShutdownHook();
             log.atDebug().log("Shutdown Hook set");
         }
@@ -159,7 +149,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private Thread setShutdownHook() {
             Runnable shutdownTask =
                     () -> {
-                        log.atInfo().log("Hook shutdown for consumer {}", counter);
+                        log.atInfo().log("Invoked shutdown Hook");
                         shutdown();
                     };
 
@@ -172,29 +162,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         public void run() {
             List<String> topics = config.itemTemplates().topics().toList();
             log.atDebug().log("Subscring to topics [{}]", topics);
-            consumer.subscribe(
-                    topics,
-                    new ConsumerRebalanceListener() {
-
-                        @Override
-                        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                            log.atWarn()
-                                    .log("Partions revoked, committing offsets {}", currentOffsets);
-                            try {
-                                consumer.commitSync(currentOffsets);
-                            } catch (Exception e) {
-                                log.atError()
-                                        .setCause(e)
-                                        .log(
-                                                "An error occured while committing current offsets during after partitions have been revoked");
-                            }
-                        }
-
-                        @Override
-                        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                            log.atDebug().log("Assigned partiions {}", partitions);
-                        }
-                    });
+            consumer.subscribe(topics, relabancerListener);
             log.atInfo().log("Subscribed to topics [{}]", topics);
             try {
                 while (true) {
@@ -209,8 +177,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     } catch (ValueException ve) {
                         log.atWarn()
                                 .log(
-                                        "An error occured while extracting values from the record: {}",
+                                        "An error occured while extracting values from the record:"
+                                                + " {}",
                                         ve.getMessage());
+                        log.atWarn().log("Applying the {} strategy", errorStrategy);
                         notifyException(ve);
 
                         switch (errorStrategy) {
@@ -258,9 +228,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             config.itemTemplates()
                     .expand(remappedRecord)
                     .forEach(expandedItem -> processItem(remappedRecord, expandedItem));
-            currentOffsets.put(
-                    new TopicPartition(record.topic(), record.partition()),
-                    new OffsetAndMetadata(record.offset() + 1, null));
+            relabancerListener.updateOffsets(record);
         }
 
         private void processItem(MappedRecord record, Item expandedItem) {
@@ -327,6 +295,42 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     infoItem.itemHandle(), infoItem.mkEvent(re.getMessage()), false);
         } finally {
             infoLock.set(false);
+        }
+    }
+
+    class RebalancerListener implements ConsumerRebalanceListener {
+
+        private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+        private final KafkaConsumer<?, ?> consumer;
+
+        RebalancerListener(KafkaConsumer<?, ?> consumer) {
+            this.consumer = consumer;
+        }
+
+        @Override
+        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+            log.atWarn().log("Partions revoked, committing offsets {}", currentOffsets);
+            try {
+                consumer.commitSync(currentOffsets);
+            } catch (KafkaException e) {
+                log.atError()
+                        .setCause(e)
+                        .log(
+                                "An error occured while committing current offsets during after"
+                                        + " partitions have been revoked");
+                throw e;
+            }
+        }
+
+        @Override
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+            log.atDebug().log("Assigned partiions {}", partitions);
+        }
+
+        void updateOffsets(ConsumerRecord<?, ?> record) {
+            currentOffsets.put(
+                    new TopicPartition(record.topic(), record.partition()),
+                    new OffsetAndMetadata(record.offset() + 1, null));
         }
     }
 }

@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSup
 import static com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers.avroKeyJsonValue;
 import static com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers.jsonValue;
 import static com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers.string;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,16 +38,18 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Se
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
+
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public class ItemTemplatesTest {
 
@@ -89,7 +92,8 @@ public class ItemTemplatesTest {
                         () -> templates(string(), "item-#{name=VALUE,name=PARTITION}"));
         assertThat(e.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while evaluating [item-template]: <No duplicated keys are allowed>");
+                        "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while"
+                                + " evaluating [item-template]: <No duplicated keys are allowed>");
     }
 
     @Test

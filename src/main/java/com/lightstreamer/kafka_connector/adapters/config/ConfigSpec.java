@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +18,9 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Choices;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
+
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
@@ -62,6 +64,10 @@ class ConfigSpec {
             this.choiches = Set.copyOf(choiches);
         }
 
+        public String toString() {
+            return choiches.toString();
+        }
+
         @Override
         public boolean isValid(String param) {
             return choiches.contains(param);
@@ -73,6 +79,10 @@ class ConfigSpec {
 
         static Choices evaluatorTypes() {
             return new Choices(EvaluatorType.names());
+        }
+
+        static Choices errorStrategies() {
+            return new Choices(RecordErrorHandlingStrategy.names());
         }
     }
 
@@ -118,6 +128,8 @@ class ConfigSpec {
         BOOL(Choices.booleans()) {},
 
         EVALUATOR(Choices.evaluatorTypes()),
+
+        ERROR_STRATEGY(Choices.errorStrategies()),
 
         URL {
             @Override

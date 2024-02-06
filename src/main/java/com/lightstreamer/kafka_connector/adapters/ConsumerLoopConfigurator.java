@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@ package com.lightstreamer.kafka_connector.adapters;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.Fields;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
@@ -31,11 +32,13 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelecto
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.string.StringSelectorSuppliers;
-import java.util.Map;
-import java.util.Properties;
+
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Properties;
 
 public class ConsumerLoopConfigurator {
 
@@ -53,7 +56,7 @@ public class ConsumerLoopConfigurator {
 
         Deserializer<V> valueDeserializer();
 
-        String recordErrorHandlingStrategy();
+        RecordErrorHandlingStrategy recordErrorHandlingStrategy();
     }
 
     private final Logger log;
@@ -96,7 +99,7 @@ public class ConsumerLoopConfigurator {
                     fieldSelectors,
                     keyDeserializer,
                     valueDeserializer,
-                    "IGNORE_AND_CONTINUE");
+                    connectorConfig.getRecordExtractionErrorHandlingStrategy());
         } catch (Exception e) {
             throw new ConfigException(e.getMessage());
         }
@@ -119,7 +122,7 @@ public class ConsumerLoopConfigurator {
             Selectors<K, V> fieldSelectors,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer,
-            String recordErrorHandlingStrategy)
+            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
             implements ConsumerLoopConfig<K, V> {}
 
     private ItemTemplates<?, ?> initItemTemplates(

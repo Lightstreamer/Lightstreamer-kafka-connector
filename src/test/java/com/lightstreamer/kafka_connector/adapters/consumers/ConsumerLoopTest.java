@@ -1,13 +1,13 @@
 
 /*
  * Copyright (C) 2024 Lightstreamer Srl
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,12 +18,14 @@
 package com.lightstreamer.kafka_connector.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
+import com.lightstreamer.kafka_connector.adapters.config.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
@@ -31,9 +33,11 @@ import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
-import java.util.Properties;
+
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
+
+import java.util.Properties;
 
 class TestMetadataListener implements MetadataListener {
 
@@ -100,9 +104,8 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     }
 
     @Override
-    public String recordErrorHandlingStrategy() {
-        throw new UnsupportedOperationException(
-                "Unimplemented method 'recordErrorHandlingStrategy'");
+    public RecordErrorHandlingStrategy recordErrorHandlingStrategy() {
+        return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
     }
 
     @Override

@@ -28,7 +28,7 @@
          configuration.
 
          At least one connection configuration must be provided.
-         Every configuration is distinguished throug the "name" attribute, which is "DFAULT" if not provided,
+         Every configuration is distinguished throug the "name" attribute, which is "DEFAULT" if not provided,
          but only one "DEFAULT" configuration is allowed. -->
     <data_provider name="BrokerConnection">
 
@@ -72,8 +72,15 @@
         <param name="info.field">connection_message</param>
         -->
 
-        <param name="record.extraction.error.strategy">IGNORE_AND_CONTINUE</param>
-        <!-- <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param> -->
+        <!-- Optional. The strategy to be used if an error occur while extracting data from incoming records.
+                Can be one of the following:
+                - "IGNORE_AND_CONTINUE": Ignore the error and continue to process the next record.
+                - "FORCE_UNSUBSCRIPTION": Stop processing records and force unsubscription of the items 
+                  requested by all Lightstreamer clients subscribed to this connection.
+                Default: "IGNORE_AND_CONTINUE". -->
+        <!-- 
+        <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+        -->
 
         <!-- Map one topic to one item -->
         <param name="item-template.user">user</param>
@@ -129,7 +136,7 @@
 
         <!-- TOPIC MAPPING SECTION -->
 
-        <!-- Define a "sample" item-template, which is simply made of the "sample" item name. -->
+        <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
         <param name="item-template.sample">sample</param>
 
         <!-- Map the topic "sample-topic" to the previous defined "sample" item template. -->

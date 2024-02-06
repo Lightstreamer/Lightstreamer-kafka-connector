@@ -15,17 +15,26 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
+package com.lightstreamer.kafka_connector.adapters.config;
 
-import org.apache.kafka.common.serialization.Deserializer;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public interface KeySelectorSupplier<V> extends SelectorSupplier<KeySelector<V>> {
+public enum RecordErrorHandlingStrategy {
+    IGNORE_AND_CONTINUE,
+    FORCE_UNSUBSCRIPTION;
 
-    KeySelector<V> newSelector(String name, String expression);
+    private static Set<String> NAMES;
 
-    Deserializer<V> deseralizer();
+    static {
+        NAMES =
+                Arrays.stream(RecordErrorHandlingStrategy.values())
+                        .map(RecordErrorHandlingStrategy::toString)
+                        .collect(Collectors.toUnmodifiableSet());
+    }
 
-    default String expectedRoot() {
-        return "KEY";
+    public static Set<String> names() {
+        return NAMES;
     }
 }
