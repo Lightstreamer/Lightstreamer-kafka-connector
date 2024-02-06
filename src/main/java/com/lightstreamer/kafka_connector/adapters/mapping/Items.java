@@ -56,8 +56,6 @@ public class Items {
 
         Stream<Selectors<K, V>> selectors();
 
-        Optional<Selectors<K, V>> selectorsByName(String name);
-
         Stream<String> topics();
     }
 
@@ -204,14 +202,5 @@ public class Items {
         public Stream<String> topics() {
             return templates.stream().map(ItemTemplate::topic).distinct();
         }
-
-        @Override
-        public Optional<Selectors<K, V>> selectorsByName(String name) {
-            return selectors().filter(s -> s.schema().name().equals(name)).findFirst();
-        }
-    }
-
-    public static void main(String args[]) {
-        Items.itemFrom("@@", new Object());
     }
 }

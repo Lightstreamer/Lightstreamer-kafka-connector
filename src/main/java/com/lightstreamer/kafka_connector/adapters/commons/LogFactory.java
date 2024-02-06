@@ -25,4 +25,8 @@ public class LogFactory {
     public static Logger getLogger(String connectionName, Class<?> klass) {
         return LoggerFactory.getLogger(connectionName + "." + klass.getSimpleName());
     }
+
+    public static Logger getLogger(String connectionName) {
+        return LoggerFactory.getLogger(connectionName);
+    }
 }

@@ -22,10 +22,10 @@ import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.Fields;
-import com.lightstreamer.kafka_connector.adapters.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
@@ -41,9 +41,11 @@ public class ConsumerLoopConfigurator {
 
     public interface ConsumerLoopConfig<K, V> {
 
+        String connectionName();
+
         Properties consumerProperties();
 
-        FieldMappings<K, V> fieldMappings();
+        Selectors<K, V> fieldSelectors();
 
         ItemTemplates<K, V> itemTemplates();
 
@@ -89,12 +91,13 @@ public class ConsumerLoopConfigurator {
                     selectorsSupplier.valueSelectorSupplier().deseralizer();
 
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicsConfig);
-            FieldMappings<?, ?> fieldMappings = initFieldMappings(selectorsSupplier, fieldsMapping);
+            Selectors<?, ?> fieldSelectors = initFieldSelectors(selectorsSupplier, fieldsMapping);
 
             return new DefaultConsumerLoopConfig(
+                    connectorConfig.getAdapterName(),
                     props,
                     itemTemplates,
-                    fieldMappings,
+                    fieldSelectors,
                     keyDeserializer,
                     valueDeserializer,
                     "IGNORE_AND_CONTINUE");
@@ -103,20 +106,21 @@ public class ConsumerLoopConfigurator {
         }
     }
 
-    private FieldMappings<?, ?> initFieldMappings(
+    private Selectors<?, ?> initFieldSelectors(
             SelectorsSupplier<?, ?> selectorsSupplier, Map<String, String> fieldsMapping) {
-        return initFieldMappingsHelper(selectorsSupplier, fieldsMapping);
+        return initFieldSelectorsHelper(selectorsSupplier, fieldsMapping);
     }
 
-    private <K, V> FieldMappings<K, V> initFieldMappingsHelper(
+    private <K, V> Selectors<K, V> initFieldSelectorsHelper(
             SelectorsSupplier<K, V> selectorsSupplier, Map<String, String> fieldsMapping) {
-        return Fields.fieldMappingsFrom(fieldsMapping, selectorsSupplier);
+        return Fields.fromMapping(fieldsMapping, selectorsSupplier);
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
+            String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
-            FieldMappings<K, V> fieldMappings,
+            Selectors<K, V> fieldSelectors,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer,
             String recordErrorHandlingStrategy)

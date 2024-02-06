@@ -33,7 +33,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
-public class ConnectorDataAdapter implements SmartDataProvider {
+public final class ConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
     private Loop loop;
@@ -47,7 +47,7 @@ public class ConnectorDataAdapter implements SmartDataProvider {
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
-        this.log = LogFactory.getLogger(connectorConfig.getAdapterName(), getClass());
+        this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
         this.metadataAdapter = ConnectorMetadataAdapter.listener(connectorConfig.getAdapterName());
 
         if (!connectorConfig.isEnabled()) {

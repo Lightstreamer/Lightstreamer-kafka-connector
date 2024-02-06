@@ -271,11 +271,23 @@ public final class ConnectorConfig extends AbstractConfig {
         return getFile(VALUE_SCHEMA_FILE) != null;
     }
 
+    public String getMetadataAdapterName() {
+        return getText(ADAPTERS_CONF_ID);
+    }
+
     public String getAdapterName() {
         return getText(DATA_ADAPTER_NAME);
     }
 
     public boolean isEnabled() {
         return getBoolean(ENABLED).equals("true");
+    }
+
+    public String getItemInfoName() {
+        return getText(ITEM_INFO_NAME);
+    }
+
+    public String getItemInfoField() {
+        return getText(ITEM_INFO_FIELD);
     }
 }

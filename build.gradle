@@ -13,9 +13,9 @@ spotless {
 	}
 
 	java {
-		importOrder()
+		importOrder('java|javax', 'com.lightstreamer')
 		removeUnusedImports()
-		googleJavaFormat().aosp()
+		googleJavaFormat().aosp().groupArtifact('com.google.googlejavaformat:google-java-format')
 		formatAnnotations()
 		licenseHeader '''
 /*
@@ -54,10 +54,7 @@ dependencies {
 	testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
-	implementation 'org.slf4j:slf4j-api:2.0.9'
-	implementation 'org.slf4j:slf4j-reload4j:2.0.9'
-	implementation 'ch.qos.reload4j:reload4j:1.2.25'
-	implementation 'com.google.code.gson:gson:2.10.1'
+	implementation 'org.slf4j:slf4j-reload4j:2.0.10'
 
 	implementation group:'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
 	implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'

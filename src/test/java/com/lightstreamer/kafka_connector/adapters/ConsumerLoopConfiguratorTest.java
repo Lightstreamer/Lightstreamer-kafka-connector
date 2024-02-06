@@ -25,9 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka_connector.adapters.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeDeserializer;
 import java.io.File;
 import java.io.IOException;
@@ -196,8 +196,8 @@ public class ConsumerLoopConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
-        Schema schema = fieldMappings.selectors().schema();
+        Selectors<?, ?> fieldSelectors = loopConfig.fieldSelectors();
+        Schema schema = fieldSelectors.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
 
@@ -224,8 +224,8 @@ public class ConsumerLoopConfiguratorTest {
         ConsumerLoopConfig<?, ?> loopConfig =
                 ConsumerLoopConfigurator.configure(newConfig(updatedConfigs));
 
-        FieldMappings<?, ?> fieldMappings = loopConfig.fieldMappings();
-        Schema schema = fieldMappings.selectors().schema();
+        Selectors<?, ?> fieldSelectors = loopConfig.fieldSelectors();
+        Schema schema = fieldSelectors.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 

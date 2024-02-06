@@ -20,30 +20,25 @@ package com.lightstreamer.kafka_connector.adapters.consumers;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.Loop;
-import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka_connector.adapters.commons.LogFactory;
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
-    protected Logger log = LoggerFactory.getLogger(AbstractConsumerLoop.class);
-
+    protected final Logger log;
     protected final ConsumerLoopConfig<K, V> config;
     protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
     protected final AtomicInteger itemsCounter = new AtomicInteger(0);
     protected Object infoItemhande;
 
-    protected final MetadataListener metadataListener;
-
-    protected AbstractConsumerLoop(
-            ConsumerLoopConfig<K, V> config, MetadataListener metadataListener) {
+    protected AbstractConsumerLoop(ConsumerLoopConfig<K, V> config) {
         this.config = config;
-        this.metadataListener = metadataListener;
+        this.log = LogFactory.getLogger(config.connectionName());
     }
 
     public final int getItemsCounter() {

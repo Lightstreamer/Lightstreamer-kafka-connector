@@ -29,11 +29,7 @@ import java.util.regex.Pattern;
 
 public class Fields {
 
-    public interface FieldMappings<K, V> {
-        Selectors<K, V> selectors();
-    }
-
-    public static <K, V> FieldMappings<K, V> fieldMappingsFrom(
+    public static <K, V> Selectors<K, V> fromMapping(
             Map<String, String> fieldsMapping, SelectorsSupplier<K, V> selectorsSupplier) {
 
         class Support {
@@ -73,19 +69,6 @@ public class Fields {
 
         Builder<K, V> builder = Selectors.builder(selectorsSupplier).withSchemaName("fields");
         fieldsMapping.entrySet().stream().forEach(e -> Support.fill(builder, e));
-        return new DefaultFieldMappings<>(builder.build());
-    }
-
-    static class DefaultFieldMappings<K, V> implements FieldMappings<K, V> {
-        private Selectors<K, V> selectors;
-
-        DefaultFieldMappings(Selectors<K, V> selectors) {
-            this.selectors = selectors;
-        }
-
-        @Override
-        public Selectors<K, V> selectors() {
-            return selectors;
-        }
+        return builder.build();
     }
 }

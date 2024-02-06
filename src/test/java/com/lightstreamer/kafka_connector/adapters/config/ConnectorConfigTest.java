@@ -492,10 +492,10 @@ public class ConnectorConfigTest {
     public void shouldGetText() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getText(ConnectorConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
-        assertThat(config.getText(ConnectorConfig.DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
-        assertThat(config.getText(ConnectorConfig.ITEM_INFO_NAME)).isEqualTo("INFO_ITEM");
-        assertThat(config.getText(ConnectorConfig.ITEM_INFO_FIELD)).isEqualTo("INFO_FIELD");
+        assertThat(config.getMetadataAdapterName()).isEqualTo("KAFKA");
+        assertThat(config.getAdapterName()).isEqualTo("CONNECTOR");
+        assertThat(config.getItemInfoName()).isEqualTo("INFO_ITEM");
+        assertThat(config.getItemInfoField()).isEqualTo("INFO_FIELD");
 
         String groupId = config.getText(ConnectorConfig.GROUP_ID);
         assertThat(groupId).startsWith("KAFKA-CONNECTOR-");
@@ -650,7 +650,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetBoolean() {
+    public void shouldGetEnabled() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.isEnabled()).isTrue();
@@ -715,12 +715,5 @@ public class ConnectorConfigTest {
         assertThat(config.getInt(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS)).isNull();
-    }
-
-    @Test
-    public void shouldGetAdapterNAme() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getAdapterName()).isEqualTo("CONNECTOR");
     }
 }

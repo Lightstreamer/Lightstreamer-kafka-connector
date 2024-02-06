@@ -26,10 +26,10 @@ import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
-import com.lightstreamer.kafka_connector.adapters.mapping.Fields.FieldMappings;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 import java.util.Properties;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -50,7 +50,7 @@ class TestMetadataListener implements MetadataListener {
 class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
 
     TestConsumerLoopTest(ConsumerLoopConfig<String, String> config) {
-        super(config, new TestMetadataListener());
+        super(config);
     }
 
     @Override
@@ -80,7 +80,7 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     }
 
     @Override
-    public FieldMappings<String, String> fieldMappings() {
+    public Selectors<String, String> fieldSelectors() {
         throw new UnsupportedOperationException("Unimplemented method 'fieldMappings'");
     }
 
@@ -101,9 +101,13 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 
     @Override
     public String recordErrorHandlingStrategy() {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException(
                 "Unimplemented method 'recordErrorHandlingStrategy'");
+    }
+
+    @Override
+    public String connectionName() {
+        return "TestConnection";
     }
 }
 

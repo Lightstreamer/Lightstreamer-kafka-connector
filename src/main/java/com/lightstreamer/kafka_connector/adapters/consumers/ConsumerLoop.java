@@ -49,19 +49,15 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
-    enum ValueExceptionStrategy {
+    enum RecordErrorHandlingStrategy {
         IGNORE_AND_CONTINUE,
-
         FORCE_UNSUBSCRIPTION;
     }
 
-    protected static Logger log = LoggerFactory.getLogger(ConsumerLoop.class);
-
+    private final MetadataListener metadataListener;
     private final ItemEventListener eventListener;
     private final RecordMapper<K, V> recordRemapper;
     private final Selectors<K, V> fieldsSelectors;
@@ -70,43 +66,42 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     private AtomicBoolean infoLock = new AtomicBoolean(false);
 
     private volatile InfoItem infoItem;
-
     private final ExecutorService pool;
 
     public ConsumerLoop(
             ConsumerLoopConfig<K, V> config,
             MetadataListener metadataListener,
             ItemEventListener eventListener) {
-        super(config, metadataListener);
-        this.fieldsSelectors = config.fieldMappings().selectors();
-
+        super(config);
+        this.metadataListener = metadataListener;
+        this.fieldsSelectors = config.fieldSelectors();
         this.recordRemapper =
                 RecordMapper.<K, V>builder()
                         .withSelectors(config.itemTemplates().selectors())
                         .withSelectors(fieldsSelectors)
                         .build();
-
         this.eventListener = eventListener;
         this.pool = Executors.newFixedThreadPool(2);
     }
 
     @Override
     void startConsuming() throws SubscriptionException {
-        log.atDebug().log("START CONSUMER: Acquiring consumer lock...");
+        log.atTrace().log("Acquiring consumer lock...");
         consumerLock.lock();
-        log.atDebug().log("START CONSUMER: Lock acquired...");
+        log.atDebug().log("Lock acquired...");
         try {
             consumer =
                     new ConsumerWrapper(
-                            ValueExceptionStrategy.valueOf(config.recordErrorHandlingStrategy()));
+                            RecordErrorHandlingStrategy.valueOf(
+                                    config.recordErrorHandlingStrategy()));
             CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
             metadataListener.forceUnsubscriptionAll();
         } finally {
-            log.atDebug().log("START CONSUMER: Releasing consumer lock...");
+            log.atTrace().log("Releasing consumer lock...");
             consumerLock.unlock();
-            log.atDebug().log("START CONSUMER: Released consumer");
+            log.atTrace().log("Released consumer");
         }
     }
 
@@ -136,28 +131,26 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private final KafkaConsumer<K, V> consumer;
         private final CountDownLatch latch = new CountDownLatch(1);
-        private final Logger log = LoggerFactory.getLogger(ConsumerWrapper.class);
         private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
-
         private final int counter;
         private final Thread hook;
 
-        private ValueExceptionStrategy st;
+        private RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean enableFinalCommit = true;
 
-        ConsumerWrapper(ValueExceptionStrategy st) throws KafkaException {
-            this.st = st;
+        ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
+            this.errorStrategy = errorStrategy;
             this.counter = COUNTER.incrementAndGet();
             String bootStrapServers =
                     config.consumerProperties()
                             .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
-            log.atInfo().log("Starting connection to Kafka at {}", bootStrapServers);
+            log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
             consumer =
                     new KafkaConsumer<>(
                             config.consumerProperties(),
                             config.keyDeserializer(),
                             config.valueDeserializer());
-            log.atInfo().log("Established connection to Kafka broker at {}", bootStrapServers);
+            log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
             this.hook = setShutdownHook();
             log.atDebug().log("Shutdown Hook set");
@@ -166,7 +159,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private Thread setShutdownHook() {
             Runnable shutdownTask =
                     () -> {
-                        log.atInfo().log("Hook shutdown for consumer %d".formatted(counter));
+                        log.atInfo().log("Hook shutdown for consumer {}", counter);
                         shutdown();
                     };
 
@@ -220,7 +213,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                                         ve.getMessage());
                         notifyException(ve);
 
-                        switch (st) {
+                        switch (errorStrategy) {
                             case IGNORE_AND_CONTINUE -> {
                                 log.atWarn().log("Commiting anyway");
                                 consumer.commitAsync();
@@ -291,12 +284,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
-        private void closeAndExit(Throwable cause) {
-            enableFinalCommit = false;
-            close();
-            eventListener.failure(cause);
-        }
-
         void close() {
             shutdown();
             Runtime.getRuntime().removeShutdownHook(this.hook);
@@ -308,9 +295,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             consumer.wakeup();
             log.atDebug().log("Consumer woken up");
             try {
-                log.atDebug().log("Waiting for graceful thread completion");
+                log.atTrace().log("Waiting for graceful thread completion");
                 latch.await();
-                log.atDebug().log("Thread completed");
+                log.atTrace().log("Thread completed");
             } catch (InterruptedException e) {
                 // Ignore
             }
