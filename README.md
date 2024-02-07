@@ -170,7 +170,7 @@ As already anticipated, the Lightstreamer Kafka Connector is Lightstreamer Adapt
    ...
    ```
 
-### Connection Configuration
+#### Connection Configuration
 
 The Lightstreamer Kafka Connector allows the configuration of different independent connections to different Kafka clusters. 
 
