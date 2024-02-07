@@ -12,7 +12,7 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 ### Features
 
-[...]
+[...] TO TO
 
 ### Quick Start
 
@@ -62,9 +62,30 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
 
 1. Launch Lightstreamer Server.
 
-2. Attach a Lightstreamer Consumer
+2. Attach a Lightstreamer Consumer.
 
-   Execute the provided minimal [`lsclient.java`](src/clients/lsclient.java) script to connect to Lighstreamer and subscribe to the `sample` item:
+   The _Consumer_ is a simple Lightstreamer Java client that subscribes to the `sample` item to receive real-time data through the fields ....
+
+   In the `QuickStart` configuration, the `sample` item is mapped by the Kafka topic `sample-topic` through the following section:
+   
+   ```xml
+   <!-- TOPIC MAPPING SECTION -->
+
+   <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+   <param name="item-template.sample">sample</param>
+
+   <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
+   <param name="map.sample-topic.to">item-template.sample</param>
+   ```
+   
+   Every single event published to `sample-topic` will be processed and then routed by the _Kafka Connector_ to the `sample` item.
+
+   The fields mapping section configures how the record is mapped to tabular form of Lightstreamer fields.
+   
+  
+   
+
+   To launch the Consumer, execute the provided minimal [`lsclient.java`](src/clients/lsclient.java) script to connect to Lighstreamer and subscribe to `sample`:
 
     ```sh
     jbang run src/clients/lsclient.java --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items sample --fields key,value,partition,offset
@@ -72,7 +93,7 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
     
     As you can see, you have to specify a few parameters:
 
-    - `--address`, the Lightstreamer Server address
+    - `--address`, the Lightstreamer Server address.
     -  `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to look at the KafakConnectored deployed into the `adapters` folder.
     - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
     - `--items`, the list of items to subscribe to.
@@ -80,13 +101,21 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
 
     **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the standard _Java In-Process Adapter SDK_, every remote client based on the Lightstreamer Client SDK, like the _lsclient.java_ script, can interact with it.
     
-4. Publish Events
+4. Publish Events.
 
-   Execute the simple [`kafka-producer.java `](src/clients/kafka-producer.java) script to start publishing events to the Kafka Cluster:
+   From another shell, execute the simple [`kafka-producer.java `](src/clients/kafka-producer.java) script to start publishing events to the Kafka Cluster:
 
-   `jbang src/clients/kafka-producer.java --bootstrap-servers=<kafka_cluster_address> --topic sample-topic`
+   ```sh
+   jbang src/clients/kafka-producer.java --bootstrap-servers <kafka_cluster_address> --topic sample-topic
+   ```
 
-   where KAFKA_CONNECtioN
+   which will send a simple random string every 250 ms to the `sample-topic`.
+
+5. Check Consumed Events.
+
+   After starting the publisher, from the consumer shell, you should immediately see the real-time updates flowing from the consumer shell:
+
+
 
 ### Configuration
 
