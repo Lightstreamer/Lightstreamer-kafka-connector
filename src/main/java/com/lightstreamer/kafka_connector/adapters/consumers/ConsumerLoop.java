@@ -233,22 +233,26 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private void processItem(MappedRecord record, Item expandedItem) {
             log.atDebug().log(
-                    "Processing expanded item {} against {} subscribed items",
+                    "Processing expanded item [{}] against [{}] subscribed items",
                     expandedItem,
                     subscribedItems.size());
             for (Item subscribedItem : subscribedItems.values()) {
                 if (!expandedItem.matches(subscribedItem)) {
                     log.warn(
-                            "Expanded item <{}> does not match subscribed item <{}>",
+                            "Expanded item [{}] does not match subscribed item [{}]",
                             expandedItem,
                             subscribedItem);
                     continue;
                 }
                 log.atDebug().log("Filtering updates");
-                Map<String, String> updates = record.filter(fieldsSelectors);
-
-                log.atDebug().log("Sending updates: {}", updates);
-                eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
+                try {
+                    Map<String, String> updates = record.filter(fieldsSelectors);
+                    log.atDebug().log("Sending updates: {}", updates);
+                    eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
+                } catch (RuntimeException e) {
+                    log.atWarn().setCause(e).log();
+                    throw e;
+                }
             }
         }
 

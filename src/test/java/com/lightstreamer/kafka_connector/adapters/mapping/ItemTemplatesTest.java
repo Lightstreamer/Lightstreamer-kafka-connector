@@ -41,7 +41,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
@@ -187,7 +186,6 @@ public class ItemTemplatesTest {
                         Items.itemFrom("", "template-orders", Map.of("topic", "past_orders")));
     }
 
-    @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(
             files = "src/test/resources/should-expand-items.csv",
@@ -216,7 +214,6 @@ public class ItemTemplatesTest {
         assertThat(first.matches(subscribedItem)).isEqualTo(exandable);
     }
 
-    @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(
             files = "src/test/resources/should-expand-items.csv",

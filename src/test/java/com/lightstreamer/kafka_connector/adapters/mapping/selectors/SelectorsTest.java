@@ -29,7 +29,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -77,7 +76,6 @@ public class SelectorsTest {
                                 new SimpleValue("timestamp", "-1"))));
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("stringSelectorsArguments")
     public void shouldCreateAndExtractValues(
@@ -144,7 +142,6 @@ public class SelectorsTest {
                         "Found the invalid expression [\"\"] while evaluating [name]"));
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("wrongArguments")
     public void shouldNotCreateGenericRecordSelectors(
@@ -158,7 +155,6 @@ public class SelectorsTest {
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("wrongArguments")
     public void shouldNotCreateJsonNodeSelectors(
@@ -193,7 +189,6 @@ public class SelectorsTest {
                         "Found the invalid expression [wrong] while evaluating [name]"));
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("wrongArgumentsProviderForStringSelectors")
     public void shouldNotCreateStringSelectors(

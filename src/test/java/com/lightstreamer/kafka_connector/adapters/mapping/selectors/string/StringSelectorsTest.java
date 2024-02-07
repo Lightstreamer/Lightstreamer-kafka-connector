@@ -27,12 +27,10 @@ import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-@Tag("unit")
 public class StringSelectorsTest {
 
     static ValueSelector<String> valueSelector(String expression) {
@@ -48,10 +46,10 @@ public class StringSelectorsTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-            EXPRESSION, EXPECTED
-            VALUE,      joe
-            VALUE,      alex
-            """)
+						EXPRESSION, EXPECTED
+						VALUE,      joe
+						VALUE,      alex
+						""")
     public void shouldExtractValue(String expression, String expected) {
         ValueSelector<String> selector = valueSelector(expression);
         assertThat(selector.name()).isEqualTo("name");
@@ -63,10 +61,10 @@ public class StringSelectorsTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-            EXPRESSION, EXPECTED
-            KEY,        joe
-            KEY,        alex
-            """)
+						EXPRESSION, EXPECTED
+						KEY,        joe
+						KEY,        alex
+						""")
     public void shouldExtractKey(String expression, String expected) {
         KeySelector<String> selector = keySelector(expression);
         assertThat(selector.name()).isEqualTo("name");

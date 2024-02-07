@@ -25,7 +25,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -38,7 +37,6 @@ import java.util.stream.Stream;
 
 public class ItemTest {
 
-    @Tag("unit")
     @Test
     public void shouldHaveSchemaAndValues() {
         Item item = Items.itemFrom("source", "item", Map.of("a", "A", "b", "B"));
@@ -52,7 +50,6 @@ public class ItemTest {
         assertThat(item.values()).containsExactly("b", "B", "a", "A");
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("matching")
     public void shouldMatch(
@@ -75,7 +72,6 @@ public class ItemTest {
                         List.of("n1", "n2")));
     }
 
-    @Tag("unit")
     @ParameterizedTest
     @MethodSource("notMatching")
     public void shouldNotMatch(Map<String, String> values1, Map<String, String> values2) {
@@ -90,7 +86,6 @@ public class ItemTest {
                 arguments(Map.of("key", "value1"), Map.of("key", "value2")));
     }
 
-    @Tag("unit")
     @Test
     public void shouldNotMatcDueToDifferentPrefix() {
         Map<String, String> sameValues = Map.of("n1", "1");
@@ -99,20 +94,19 @@ public class ItemTest {
         assertThat(item1.matches(item2)).isFalse();
     }
 
-    @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
             delimiter = '|',
             textBlock =
                     """
-            INPUT      | EXPECTED_PREFIX
-            item       | item
-            item-first | item-first
-            item_123_  | item_123_
-            item-      | item-
-            prefix-<>  | prefix
-            """)
+						INPUT      | EXPECTED_PREFIX
+						item       | item
+						item-first | item-first
+						item_123_  | item_123_
+						item-      | item-
+						prefix-<>  | prefix
+						""")
     public void shouldMakeWithEmptySchemaKeys(String input, String expectedPrefix) {
         Object handle = new Object();
         Item item = Items.itemFrom(input, handle);
@@ -123,23 +117,22 @@ public class ItemTest {
         assertThat(item.values()).isEmpty();
     }
 
-    @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
             delimiter = '|',
             textBlock =
                     """
-            INPUT                     | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
-            item-<name=field1>        | item            | name          | field1
-            item-first-<height=12.34> | item-first      | height        | 12.34
-            item_123_-<test=\\>       | item_123_       | test          | \\
-            item-<test="">            | item            | test          | ""
-            prefix-<test=>>           | prefix          | test          | >
-            item-<test=value,>        | item            | test          | value
-            item-                     | item-           |               |
-            item-<>                   | item            |               |
-            """)
+						INPUT                     | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
+						item-<name=field1>        | item            | name          | field1
+						item-first-<height=12.34> | item-first      | height        | 12.34
+						item_123_-<test=\\>       | item_123_       | test          | \\
+						item-<test="">            | item            | test          | ""
+						prefix-<test=>>           | prefix          | test          | >
+						item-<test=value,>        | item            | test          | value
+						item-                     | item-           |               |
+						item-<>                   | item            |               |
+						""")
     public void shouldMakeWithValue(
             String input, String expectedPrefix, String expectedName, String expectedValue) {
         Object handle = new Object();
@@ -155,16 +148,15 @@ public class ItemTest {
         }
     }
 
-    @Tag("integration")
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
             delimiter = '|',
             textBlock =
                     """
-            INPUT                            | EXPECTED_NAME1 | EXPECTED_VALUE1 | EXPECTED_NAME2 | EXPECTED_VALUE2
-            item-<name1=field1,name2=field2> | name1          | field1          | name2          | field2
-            """)
+						INPUT                            | EXPECTED_NAME1 | EXPECTED_VALUE1 | EXPECTED_NAME2 | EXPECTED_VALUE2
+						item-<name1=field1,name2=field2> | name1          | field1          | name2          | field2
+						""")
     public void shouldMakeWithMoreValues(
             String input, String name1, String val1, String name2, String value2) {
         Object handle = new Object();
@@ -175,7 +167,6 @@ public class ItemTest {
         assertThat(item.values()).containsExactly(name1, val1, name2, value2);
     }
 
-    @Tag("unit")
     @Test
     public void shouldNotCreateDueToDuplicatedKeys() {
         assertThrows(

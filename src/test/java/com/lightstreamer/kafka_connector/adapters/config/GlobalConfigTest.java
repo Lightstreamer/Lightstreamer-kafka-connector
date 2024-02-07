@@ -18,11 +18,12 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.DIRECTORY;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,22 @@ public class GlobalConfigTest {
     public void shouldReturnConfigSpec() {
         ConfigSpec configSpec = GlobalConfig.configSpec();
 
+        ConfParameter adaptersConfId = configSpec.getParameter(GlobalConfig.ADAPTERS_CONF_ID);
+        assertThat(adaptersConfId.name()).isEqualTo(GlobalConfig.ADAPTERS_CONF_ID);
+        assertThat(adaptersConfId.required()).isTrue();
+        assertThat(adaptersConfId.multiple()).isFalse();
+        assertThat(adaptersConfId.mutable()).isTrue();
+        assertThat(adaptersConfId.defaultValue()).isNull();
+        assertThat(adaptersConfId.type()).isEqualTo(TEXT);
+
+        ConfParameter adapterDir = configSpec.getParameter(GlobalConfig.ADAPTER_DIR);
+        assertThat(adapterDir.name()).isEqualTo(GlobalConfig.ADAPTER_DIR);
+        assertThat(adapterDir.required()).isTrue();
+        assertThat(adapterDir.multiple()).isFalse();
+        assertThat(adapterDir.mutable()).isTrue();
+        assertThat(adapterDir.defaultValue()).isNull();
+        assertThat(adapterDir.type()).isEqualTo(DIRECTORY);
+
         ConfParameter loggingConfigurationFile =
                 configSpec.getParameter(GlobalConfig.LOGGING_CONFIGURATION_FILE);
         assertThat(loggingConfigurationFile.name())
@@ -57,7 +74,7 @@ public class GlobalConfigTest {
         assertThat(loggingConfigurationFile.multiple()).isFalse();
         assertThat(loggingConfigurationFile.mutable()).isTrue();
         assertThat(loggingConfigurationFile.defaultValue()).isNull();
-        assertThat(loggingConfigurationFile.type()).isEqualTo(ConfType.FILE);
+        assertThat(loggingConfigurationFile.type()).isEqualTo(FILE);
     }
 
     @Test

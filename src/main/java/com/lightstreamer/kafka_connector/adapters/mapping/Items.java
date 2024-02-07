@@ -94,10 +94,13 @@ public class Items {
 
         private final Schema schema;
 
+        private final String str;
+
         DefaultItem(Object itemHandle, String prefix, Map<String, String> values) {
             this.valuesMap = values;
             this.itemHandle = itemHandle;
             this.schema = Schema.from(prefix, values.keySet());
+            this.str = String.format("%s-<%s>", prefix, values.toString());
         }
 
         @Override
@@ -139,6 +142,11 @@ public class Items {
 
             return result.matchedKeys().stream()
                     .allMatch(key -> valuesMap.get(key).equals(other.values().get(key)));
+        }
+
+        @Override
+        public String toString() {
+            return str;
         }
     }
 

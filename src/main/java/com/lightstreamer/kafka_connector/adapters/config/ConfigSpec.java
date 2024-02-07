@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Choices;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
 
 import java.io.File;

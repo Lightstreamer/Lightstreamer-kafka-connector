@@ -193,9 +193,12 @@ public class ConsumerLoopConfiguratorTest {
         Properties consumerProperties = loopConfig.consumerProperties();
         assertThat(consumerProperties)
                 .containsAtLeast(
-                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
-                        ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        "server:8080,server:8081",
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                        "latest",
+                        ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
+                        "false");
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 

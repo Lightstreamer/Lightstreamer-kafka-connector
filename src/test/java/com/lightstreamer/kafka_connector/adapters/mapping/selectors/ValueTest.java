@@ -21,13 +21,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Set;
 
-@Tag("unit")
 public class ValueTest {
 
     @Test

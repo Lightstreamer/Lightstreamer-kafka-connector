@@ -123,6 +123,7 @@ class DefaultMappedRecord implements MappedRecord {
         return valuesContainers.stream()
                 .filter(container -> container.selectors().equals(selectors))
                 .flatMap(container -> container.values().stream())
+                .filter(v -> v.text() != null)
                 .collect(Collectors.toMap(Value::name, Value::text));
     }
 }

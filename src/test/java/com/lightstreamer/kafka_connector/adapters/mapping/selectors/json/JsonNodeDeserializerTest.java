@@ -25,7 +25,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProv
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-@Tag("unit")
 public class JsonNodeDeserializerTest {
 
     @Test
@@ -94,9 +92,10 @@ public class JsonNodeDeserializerTest {
     public void shouldDeserializeKeyAndValueWithSchema() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-value:8080",
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL,
+                        "http://host-value:8080",
                         ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
-                                "http://host-value:8080");
+                        "http://host-value:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
@@ -161,8 +160,10 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName(),
-                        ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
+                        ConnectorConfig.KEY_SCHEMA_FILE,
+                        keySchemaFile.toFile().getName(),
+                        ConnectorConfig.VALUE_SCHEMA_FILE,
+                        valueSchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 

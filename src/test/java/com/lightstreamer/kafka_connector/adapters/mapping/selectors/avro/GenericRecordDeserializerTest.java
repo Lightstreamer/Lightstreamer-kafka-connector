@@ -27,13 +27,11 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProv
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Map;
 
-@Tag("unit")
 public class GenericRecordDeserializerTest {
 
     @Test
@@ -55,9 +53,10 @@ public class GenericRecordDeserializerTest {
     public void shouldDeserializeWithSchemaRegistry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://host-key:8080",
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL,
+                        "http://host-key:8080",
                         ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
-                                "http://host-value:8080");
+                        "http://host-value:8080");
         ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
 
         try (GenericRecordDeserializer deser = new GenericRecordDeserializer(config, true)) {

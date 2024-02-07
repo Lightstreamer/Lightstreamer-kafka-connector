@@ -20,6 +20,7 @@ package com.lightstreamer.kafka_connector.adapters;
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
@@ -135,6 +136,15 @@ public final class ConnectorMetadataAdapter extends LiteralBasedProvider {
             tablesByItem.remove(item);
             log.atDebug().log("Removed subscription <{}> from session {}", item, sessionID);
         }
+    }
+
+    @Override
+    public final boolean isModeAllowed(
+            @Nullable String user,
+            @Nonnull String item,
+            @Nonnull String dataAdapter,
+            @Nonnull Mode mode) {
+        return !Mode.COMMAND.equals(mode);
     }
 
     static class MetadataListenterImpl implements MetadataListener {

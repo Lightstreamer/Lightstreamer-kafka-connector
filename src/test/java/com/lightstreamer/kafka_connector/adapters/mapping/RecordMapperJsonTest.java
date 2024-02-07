@@ -29,7 +29,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -48,7 +47,6 @@ public class RecordMapperJsonTest {
         return RecordMapper.<String, JsonNode>builder();
     }
 
-    @Tag("unit")
     @Test
     public void shouldBuildEmptyMapper() {
         RecordMapper<String, JsonNode> mapper = builder().build();
@@ -56,7 +54,6 @@ public class RecordMapperJsonTest {
         assertThat(mapper.selectorsSize()).isEqualTo(0);
     }
 
-    @Tag("unit")
     @Test
     public void shouldBuildMapperWithDuplicateSelectors() {
         RecordMapper<String, JsonNode> mapper =
@@ -69,7 +66,6 @@ public class RecordMapperJsonTest {
         assertThat(mapper.selectorsSize()).isEqualTo(1);
     }
 
-    @Tag("unit")
     @Test
     public void shouldBuildMapperWithDifferentSelectors() {
         RecordMapper<String, JsonNode> mapper =
@@ -82,7 +78,6 @@ public class RecordMapperJsonTest {
         assertThat(mapper.selectorsSize()).isEqualTo(2);
     }
 
-    @Tag("integration")
     @Test
     public void shoulMapEmpty() {
         RecordMapper<String, JsonNode> mapper = builder().build();
@@ -95,7 +90,6 @@ public class RecordMapperJsonTest {
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(0);
     }
 
-    @Tag("integration")
     @Test
     public void shoulMapWithValues() {
         RecordMapper<String, JsonNode> mapper =
@@ -111,7 +105,6 @@ public class RecordMapperJsonTest {
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
     }
 
-    @Tag("integration")
     @Test
     public void shoulNotFilterDueToUnboundSelectors() {
         RecordMapper<String, JsonNode> mapper =
@@ -122,12 +115,11 @@ public class RecordMapperJsonTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        Selectors<String, JsonNode> unbonudSelectors =
+        Selectors<String, JsonNode> unboundSelectors =
                 selectors("test", Map.of("name", "VALUE.any"));
-        assertThat(mappedRecord.filter(unbonudSelectors)).isEmpty();
+        assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
     }
 
-    @Tag("integration")
     @Test
     public void shouldFilter() {
         Selectors<String, JsonNode> nameSelectors = selectors("test", Map.of("name", "VALUE.name"));

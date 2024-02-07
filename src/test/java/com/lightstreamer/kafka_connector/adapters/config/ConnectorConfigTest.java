@@ -233,13 +233,13 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-            KEY                      | EXPECTED_INFIX
-            map.topic.to             | topic
-            map.topicprefix.topic.to | topicprefix.topic
-            map.topic                | ''
-            pam.topic.to             | ''
-            map.map.my.topic.to.to   | map.my.topic.to
-            """)
+						KEY                      | EXPECTED_INFIX
+						map.topic.to             | topic
+						map.topicprefix.topic.to | topicprefix.topic
+						map.topic                | ''
+						pam.topic.to             | ''
+						map.map.my.topic.to.to   | map.my.topic.to
+						""")
     public void shouldExtractInfixForMap(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
@@ -258,11 +258,11 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-            KEY                      | EXPECTED_INFIX
-            field.name               | name
-            myfield.name             | ''
-            field.my.name            | my.name
-            """)
+						KEY                      | EXPECTED_INFIX
+						field.name               | name
+						myfield.name             | ''
+						field.my.name            | my.name
+						""")
     public void shouldGetInfixForField(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
@@ -281,11 +281,11 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-            KEY                        | EXPECTED_INFIX
-            item-template.template1    | template1
-            myitem.template1           | ''
-            item-template.my.template1 | my.template1
-            """)
+						KEY                        | EXPECTED_INFIX
+						item-template.template1    | template1
+						myitem.template1           | ''
+						item-template.my.template1 | my.template1
+						""")
     public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
         ConfigSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
@@ -445,19 +445,32 @@ public class ConnectorConfigTest {
         Properties baseConsumerProps = config.baseConsumerProps();
         assertThat(baseConsumerProps)
                 .containsAtLeast(
-                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "server:8080,server:8081",
-                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
-                        ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false",
-                        ConsumerConfig.FETCH_MAX_BYTES_CONFIG, "100",
-                        ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, "200",
-                        ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "300",
-                        ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "400",
-                        ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "500",
-                        ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "600",
-                        ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "700",
-                        ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "800",
-                        ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "5000",
-                        ConsumerConfig.METADATA_MAX_AGE_CONFIG, "250");
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        "server:8080,server:8081",
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                        "latest",
+                        ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
+                        "false",
+                        ConsumerConfig.FETCH_MAX_BYTES_CONFIG,
+                        "100",
+                        ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
+                        "200",
+                        ConsumerConfig.FETCH_MIN_BYTES_CONFIG,
+                        "300",
+                        ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG,
+                        "400",
+                        ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG,
+                        "500",
+                        ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,
+                        "600",
+                        ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
+                        "700",
+                        ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,
+                        "800",
+                        ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                        "5000",
+                        ConsumerConfig.METADATA_MAX_AGE_CONFIG,
+                        "250");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
     }

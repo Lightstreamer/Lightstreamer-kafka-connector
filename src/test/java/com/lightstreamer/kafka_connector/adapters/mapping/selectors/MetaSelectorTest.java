@@ -24,14 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-@Tag("unit")
 public class MetaSelectorTest {
 
     static MetaSelector metaSelector(String expression) {
@@ -43,12 +41,12 @@ public class MetaSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,     VALUE
-                TOPIC,          record-topic
-                PARTITION,      150
-                TIMESTAMP,      -1
-                OFFSET,         120
-            """)
+								EXPRESSION,     VALUE
+								TOPIC,          record-topic
+								PARTITION,      150
+								TIMESTAMP,      -1
+								OFFSET,         120
+						""")
     public void shouldExtractAttribute(String expression, String expectedValue) {
         MetaSelector selector = metaSelector(expression);
         Value value = selector.extract(record("record-key", "record-value"));
