@@ -173,7 +173,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         log.atDebug().log("Received records");
                         records.forEach(this::consume);
                         consumer.commitAsync();
-
                     } catch (ValueException ve) {
                         log.atWarn()
                                 .log(
@@ -196,10 +195,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             }
                         }
                     } catch (WakeupException we) {
-                        // Catch and rethrow the Exception here because of the next KafkaException
+                        // Catch and rethrow the Exception here because of the next RuntimeException
                         throw we;
-                    } catch (KafkaException ke) {
-                        log.atError().setCause(ke).log("Unrecoverable Kafka exception");
+                    } catch (RuntimeException ke) {
+                        log.atError().setCause(ke).log("Unrecoverable exception");
                         metadataListener.forceUnsubscriptionAll();
                     }
                 }
