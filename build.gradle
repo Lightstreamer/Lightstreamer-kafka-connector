@@ -7,17 +7,24 @@ plugins {
 }
 
 spotless {
+	format 'misc', {
+		target '*.gradle'
+		trimTrailingWhitespace()
+		indentWithSpaces()
+		endWithNewline()
+	}
 	groovyGradle {
 		target '*.gradle'
 		greclipse()
 	}
-
 	java {
+		target 'src/main/**/*.java','src/test/**/*.java','src/clients/*/**.java'
 		googleJavaFormat()
 				.aosp()
 				.reorderImports(true)
-				.reflowLongStrings(false)
+				.reflowLongStrings(true)
 				.groupArtifact('com.google.googlejavaformat:google-java-format')
+		removeUnusedImports()
 		formatAnnotations()
 		licenseHeader '''
 /*
@@ -56,7 +63,7 @@ dependencies {
 	testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
-	implementation 'org.slf4j:slf4j-reload4j:2.0.10'
+	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
 
 	implementation group:'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
 	implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
@@ -104,6 +111,7 @@ task cleanDeploy(type: Delete) {
 	delete "deploy"
 }
 
+sourceSets.main.java.srcDirs += ['src/clients/java']
 
 distributions {
 	connector {
@@ -123,3 +131,6 @@ distributions {
 	}
 }
 
+task distribute {
+	dependsOn connectorDistZip
+}

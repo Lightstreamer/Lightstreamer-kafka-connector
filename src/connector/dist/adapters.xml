@@ -139,7 +139,7 @@
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
         <param name="item-template.sample">sample</param>
 
-        <!-- Map the topic "sample-topic" to the previous defined "sample" item template. -->
+        <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.sample-topic.to">item-template.sample</param>
 
         <!-- FIELDS MAPPING SECTION -->
@@ -155,6 +155,9 @@
 
         <!-- Extraction of the record partition mapped to the field "partition". -->
         <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Extraction of the record offset mapped to the field "offset". -->
+        <param name="field.offset">#{OFFSET}</param>
     </data_provider>
 
 

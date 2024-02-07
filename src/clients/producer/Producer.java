@@ -46,7 +46,7 @@ public class Producer implements Runnable {
             names = "--period",
             description = "The interval in ms between two successive executions",
             required = false,
-            defaultValue = "50")
+            defaultValue = "250")
     private int periodMs;
 
     public void run() {
@@ -59,8 +59,9 @@ public class Producer implements Runnable {
         properties.setProperty(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
-        // Create and start producer
+        // Create and start the producer.
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
+            int key = 0;
             while (true) {
                 String message =
                         new SecureRandom()
@@ -69,7 +70,8 @@ public class Producer implements Runnable {
                                 .collect(Collectors.joining());
 
                 ProducerRecord<String, String> record =
-                        new ProducerRecord<String, String>(this.topic, message);
+                        new ProducerRecord<String, String>(
+                                this.topic, String.valueOf(key++), message);
                 producer.send(
                         record,
                         new Callback() {

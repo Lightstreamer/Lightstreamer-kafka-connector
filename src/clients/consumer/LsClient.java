@@ -84,7 +84,7 @@ public class LsClient implements Runnable {
                                                             "[%s] = <%s>",
                                                             field, obj.getValue(field)))
                                     .collect(Collectors.joining(","));
-                    System.out.printf("Updates: <%s>%n", obj.getFields());
+                    System.out.printf("Received: %s%n", obj.getFields());
                 };
         SubscriptionListener listener = Listeners.subscriptionListener(cons);
         for (String item : this.items) {

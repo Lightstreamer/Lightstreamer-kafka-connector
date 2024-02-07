@@ -12,7 +12,7 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 ### Features
 
-[...] TO TO
+[...] TO TDO
 
 ### Quick Start
 
@@ -80,11 +80,27 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
    
    Every single event published to `sample-topic` will be processed and then routed by the _Kafka Connector_ to the `sample` item.
 
-   The fields mapping section configures how the record is mapped to tabular form of Lightstreamer fields.
-   
-  
-   
+   The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using a set of intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
 
+   ```xml
+   <!-- FIELDS MAPPING SECTION -->
+
+   <!-- Extraction of the record key mapped to the field "key". -->
+   <param name="field.key">#{KEY}</param>
+
+   <!-- Extraction of the record value mapped to the field "value". -->
+   <param name="field.value">#{VALUE}</param>
+
+   <!-- Extraction of the record timestamp to the field "ts". -->
+   <param name="field.ts">#{TIMESTAMP}</param>
+
+   <!-- Extraction of the record partition mapped to the field "partition". -->
+   <param name="field.partition">#{PARTITION}</param>
+
+   <!-- Extraction of the record offset mapped to the field "offset". -->
+   <param name="field.offset">#{OFFSET}</param>  
+   ```
+   
    To launch the Consumer, execute the provided minimal [`lsclient.java`](src/clients/lsclient.java) script to connect to Lighstreamer and subscribe to `sample`:
 
     ```sh
@@ -114,6 +130,8 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
 5. Check Consumed Events.
 
    After starting the publisher, from the consumer shell, you should immediately see the real-time updates flowing from the consumer shell:
+
+   INSERT VIDEO HERE
 
 
 
