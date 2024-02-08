@@ -126,4 +126,14 @@ class DefaultMappedRecord implements MappedRecord {
                 .filter(v -> v.text() != null)
                 .collect(Collectors.toMap(Value::name, Value::text));
     }
+
+    @Override
+    public String toString() {
+        String values =
+                valuesContainers.stream()
+                        .flatMap(v -> v.values().stream())
+                        .map(Value::toString)
+                        .collect(Collectors.joining(","));
+        return String.format("MappedRecord [topic=[%s],values=[%s]]", topic, values);
+    }
 }

@@ -69,9 +69,9 @@ public class Producer implements Runnable {
                                 .mapToObj(Character::toString)
                                 .collect(Collectors.joining());
 
+                String keyString = null; // String.valueOf(key++);
                 ProducerRecord<String, String> record =
-                        new ProducerRecord<String, String>(
-                                this.topic, String.valueOf(key++), message);
+                        new ProducerRecord<String, String>(this.topic, keyString, message);
                 producer.send(
                         record,
                         new Callback() {

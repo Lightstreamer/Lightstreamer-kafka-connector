@@ -23,7 +23,7 @@
 
     <!-- TThe Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
          Kafka clusters. 
-         Every single connection is configured via the definition of a specific Lightstreamer Data Adapter.
+         Every single connection is configured via the definition of its own Lightstreamer Data Adapter.
          Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
          configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
          configuration.
@@ -134,6 +134,8 @@
 
         <!-- The Kafka cluster address -->
         <param name="bootstrap.servers">broker:29092</param>
+
+        <param name="group.id">test</param>
 
         <!-- TOPIC MAPPING SECTION -->
 

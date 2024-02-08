@@ -85,7 +85,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     void startConsuming() throws SubscriptionException {
         log.atTrace().log("Acquiring consumer lock...");
         consumerLock.lock();
-        log.atDebug().log("Lock acquired...");
+        log.atTrace().log("Lock acquired...");
         try {
             consumer = new ConsumerWrapper(config.recordErrorHandlingStrategy());
             CompletableFuture.runAsync(consumer, pool);
@@ -166,13 +166,14 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atInfo().log("Subscribed to topics [{}]", topics);
             try {
                 while (true) {
-                    log.atDebug().log("Polling records");
+                    log.atInfo().log("Polling records");
                     try {
                         ConsumerRecords<K, V> records =
                                 consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
                         log.atDebug().log("Received records");
                         records.forEach(this::consume);
                         consumer.commitAsync();
+                        log.atInfo().log("Comsumed {} records", records.count());
                     } catch (ValueException ve) {
                         log.atWarn()
                                 .log(
@@ -222,11 +223,13 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         }
 
         protected void consume(ConsumerRecord<K, V> record) {
-            MappedRecord remappedRecord = recordRemapper.map(record);
-            log.atDebug().log("Mapped record to {}", remappedRecord);
+            log.atDebug().log("Mapping incoming Kafka record");
+            MappedRecord mappedRecord = recordRemapper.map(record);
+            log.atTrace().log("Mapped Kafka record to %s".formatted(mappedRecord));
+            log.atDebug().log("Mapped Kafka record");
             config.itemTemplates()
-                    .expand(remappedRecord)
-                    .forEach(expandedItem -> processItem(remappedRecord, expandedItem));
+                    .expand(mappedRecord)
+                    .forEach(expandedItem -> processItem(mappedRecord, expandedItem));
             relabancerListener.updateOffsets(record);
         }
 
@@ -244,14 +247,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     continue;
                 }
                 log.atDebug().log("Filtering updates");
-                try {
-                    Map<String, String> updates = record.filter(fieldsSelectors);
-                    log.atDebug().log("Sending updates: {}", updates);
-                    eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
-                } catch (RuntimeException e) {
-                    log.atWarn().setCause(e).log();
-                    throw e;
-                }
+                Map<String, String> updates = record.filter(fieldsSelectors);
+                log.atDebug().log("Sending updates: {}", updates);
+                eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
             }
         }
 
@@ -321,7 +319,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         .log(
                                 "An error occured while committing current offsets during after"
                                         + " partitions have been revoked");
-                throw e;
             }
         }
 

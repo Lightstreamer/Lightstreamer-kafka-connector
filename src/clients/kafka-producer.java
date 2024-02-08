@@ -5,8 +5,8 @@
 //DEPS info.picocli:picocli:4.7.5
 //SOURCES producer/Producer.java
 
-import picocli.CommandLine;
 import producer.Producer;
+import picocli.CommandLine;
 
 class kafka_producer  {
 
