@@ -51,13 +51,12 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
     public final Item subscribe(String item, Object itemHandle) throws SubscriptionException {
         try {
             Item newItem = Items.itemFrom(item, itemHandle);
-            if (config.itemTemplates().matches(newItem)) {
-                log.atInfo().log("Subscribed to {}", item);
-            } else {
-                log.atWarn().log("Item does not match any defined item templates");
+            if (!config.itemTemplates().matches(newItem)) {
+                log.atWarn().log("Item [{}] does not match any defined item templates", item);
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
+            log.atInfo().log("Subscribed to item [{}]", item);
             subscribedItems.put(item, newItem);
             if (itemsCounter.addAndGet(1) == 1) {
                 startConsuming();

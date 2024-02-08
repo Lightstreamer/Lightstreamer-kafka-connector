@@ -63,12 +63,12 @@
              send update about any issue while processing the records received fron the Kafka cluster.
              The following parameters configure such a service item. -->
         <!-- Optional. The name of the service item.
-             Default: "info". -->
+             Default: "INFO". -->
         <!--
         <param name="info.item">connection_info</param>
         -->
         <!-- Optional. The field name of service item.
-             Default: "message". -->
+             Default: "MSG". -->
         <!--
         <param name="info.field">connection_message</param>
         -->
@@ -140,10 +140,12 @@
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <param name="item-template.sample">sample</param>
+        <param name="item-template.sample1">sample1</param>
+        <param name="item-template.sample2">sample2</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-        <param name="map.sample-topic.to">item-template.sample</param>
+        <param name="map.sample-topic.to">item-template.sample1</param>
+        <param name="map.sample-topic2.to">item-template.sample2</param>
 
         <!-- FIELDS MAPPING SECTION -->
 

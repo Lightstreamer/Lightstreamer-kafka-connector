@@ -64,7 +64,7 @@ public final class ConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
-        return false;
+        return itemName.equals(connectorConfig.getText(ConnectorConfig.ITEM_INFO_NAME));
     }
 
     private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {

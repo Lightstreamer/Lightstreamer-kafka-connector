@@ -44,10 +44,9 @@ public final class ConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private static ConnectorMetadataAdapter METADATA_ADAPTER;
 
-    private Logger log;
-
     private final Set<String> disabledDataProviders = ConcurrentHashMap.newKeySet();
     private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
+    private Logger log;
     private GlobalConfig globalConfig;
 
     @SuppressWarnings("unchecked")

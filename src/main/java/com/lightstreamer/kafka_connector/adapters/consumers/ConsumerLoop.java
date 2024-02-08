@@ -29,6 +29,8 @@ import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRec
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -43,14 +45,17 @@ import org.apache.kafka.common.errors.WakeupException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
@@ -95,7 +100,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         } finally {
             log.atTrace().log("Releasing consumer lock...");
             consumerLock.unlock();
-            log.atTrace().log("Released consumer");
+            log.atTrace().log("Released consumer lock");
         }
     }
 
@@ -114,13 +119,40 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 log.atDebug().log("Consumer not yet started");
             }
         } finally {
-            log.atTrace().log("Releasing consumer lock to stop consuming...");
+            log.atTrace().log("Releasing consumer lock to stop consuming");
             consumerLock.unlock();
+            log.atTrace().log("Releases consumer lock to stop consuming");
         }
     }
 
-    private class ConsumerWrapper implements Runnable {
+    @Override
+    public void subscribeInfoItem(InfoItem itemHandle) {
+        this.infoItem = itemHandle;
+    }
 
+    @Override
+    public void unsubscribeInfoItem() {
+        while (!infoLock.compareAndSet(false, true)) {
+            this.infoItemhande = null;
+        }
+    }
+
+    private void notifyMessage(String message) {
+        infoLock.set(true);
+        try {
+            if (infoItem == null) {
+                return;
+            }
+            log.atDebug().log("Notifying message to the info item");
+            eventListener.smartUpdate(infoItem.itemHandle(), infoItem.mkEvent(message), false);
+        } finally {
+            infoLock.set(false);
+        }
+    }
+
+    class ConsumerWrapper implements Runnable {
+
+        private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
         private final KafkaConsumer<K, V> consumer;
         private final ConsumerLoop<K, V>.RebalancerListener relabancerListener;
         private final CountDownLatch latch = new CountDownLatch(1);
@@ -143,13 +175,13 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
             this.relabancerListener = new RebalancerListener(consumer);
             this.hook = setShutdownHook();
-            log.atDebug().log("Shutdown Hook set");
+            log.atDebug().log("Set shutdown kook");
         }
 
         private Thread setShutdownHook() {
             Runnable shutdownTask =
                     () -> {
-                        log.atInfo().log("Invoked shutdown Hook");
+                        log.atInfo().log("Invoked shutdown hook");
                         shutdown();
                     };
 
@@ -160,48 +192,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         @Override
         public void run() {
-            List<String> topics = config.itemTemplates().topics().toList();
-            log.atDebug().log("Subscring to topics [{}]", topics);
-            consumer.subscribe(topics, relabancerListener);
-            log.atInfo().log("Subscribed to topics [{}]", topics);
             try {
-                while (true) {
-                    log.atInfo().log("Polling records");
-                    try {
-                        ConsumerRecords<K, V> records =
-                                consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-                        log.atDebug().log("Received records");
-                        records.forEach(this::consume);
-                        consumer.commitAsync();
-                        log.atInfo().log("Comsumed {} records", records.count());
-                    } catch (ValueException ve) {
-                        log.atWarn()
-                                .log(
-                                        "An error occured while extracting values from the record:"
-                                                + " {}",
-                                        ve.getMessage());
-                        log.atWarn().log("Applying the {} strategy", errorStrategy);
-                        notifyException(ve);
-
-                        switch (errorStrategy) {
-                            case IGNORE_AND_CONTINUE -> {
-                                log.atWarn().log("Commiting anyway");
-                                consumer.commitAsync();
-                            }
-
-                            case FORCE_UNSUBSCRIPTION -> {
-                                log.atWarn().log("Forcing unsubscription");
-                                enableFinalCommit = false;
-                                metadataListener.forceUnsubscriptionAll();
-                            }
-                        }
-                    } catch (WakeupException we) {
-                        // Catch and rethrow the Exception here because of the next RuntimeException
-                        throw we;
-                    } catch (RuntimeException ke) {
-                        log.atError().setCause(ke).log("Unrecoverable exception");
-                        metadataListener.forceUnsubscriptionAll();
-                    }
+                if (subscribed()) {
+                    poll();
                 }
             } catch (WakeupException e) {
                 log.atDebug().log("Kafka Consumer woken up");
@@ -222,11 +215,91 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
+        private boolean subscribed() {
+            // Original requested topics.
+            Set<String> topics = new HashSet<>(config.itemTemplates().topics());
+            log.atInfo().log("Subscribing to requested topics [{}]", topics);
+            log.atDebug().log("Checking existing topics on Kafka");
+
+            // Check the actual available topics on Kafka.
+            ListTopicsResult listTopics =
+                    AdminClient.create(config.consumerProperties()).listTopics();
+            boolean notAllPresent = false;
+            try {
+                // Retain from the origianl requestes topics the available ones.
+                Set<String> existingTopics = listTopics.names().get();
+                notAllPresent = topics.retainAll(existingTopics);
+            } catch (InterruptedException | ExecutionException e) {
+                //
+            }
+
+            // Can't subscribe at all. Exit.
+            if (topics.isEmpty()) {
+                log.atWarn().log("Not found requested topics");
+                notifyMessage("Requested topics are not availebl on Kafka");
+                return false;
+            }
+
+            // Just warn that not all requested topics can be subscribed.
+            if (notAllPresent) {
+                String loggableTopics =
+                        topics.stream()
+                                .map(s -> "\"%s\"".formatted(s))
+                                .collect(Collectors.joining(","));
+                log.atWarn()
+                        .log(
+                                "Actually subscribing to the following existing topics [{}]",
+                                loggableTopics);
+                notifyMessage("Subscribing only to the topic: " + loggableTopics);
+            }
+            consumer.subscribe(topics, relabancerListener);
+            return true;
+        }
+
+        private void poll() throws WakeupException {
+            while (true) {
+                log.atInfo().log("Polling records");
+                try {
+                    ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
+                    log.atDebug().log("Received records");
+                    records.forEach(this::consume);
+                    consumer.commitAsync();
+                    log.atInfo().log("Comsumed {} records", records.count());
+                } catch (ValueException ve) {
+                    log.atWarn().log("Error while extracting record: {}", ve.getMessage());
+                    log.atWarn().log("Applying the {} strategy", errorStrategy);
+                    notifyMessage(ve.getMessage());
+
+                    switch (errorStrategy) {
+                        case IGNORE_AND_CONTINUE -> {
+                            log.atWarn().log("Commiting anyway");
+                            consumer.commitAsync();
+                        }
+
+                        case FORCE_UNSUBSCRIPTION -> {
+                            log.atWarn().log("Forcing unsubscription");
+                            enableFinalCommit = false;
+                            metadataListener.forceUnsubscriptionAll();
+                        }
+                    }
+                } catch (WakeupException we) {
+                    // Catch and rethrow the Exception here because of the next RuntimeException
+                    throw we;
+                } catch (RuntimeException ke) {
+                    log.atError().setCause(ke).log("Unrecoverable exception");
+                    metadataListener.forceUnsubscriptionAll();
+                }
+            }
+        }
+
         protected void consume(ConsumerRecord<K, V> record) {
             log.atDebug().log("Mapping incoming Kafka record");
             MappedRecord mappedRecord = recordRemapper.map(record);
-            log.atTrace().log("Mapped Kafka record to %s".formatted(mappedRecord));
+
+            // Logging the mapped record is expensive, log lazly it only at trace level.
+            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log("Mapped Kafka record");
+
             config.itemTemplates()
                     .expand(mappedRecord)
                     .forEach(expandedItem -> processItem(mappedRecord, expandedItem));
@@ -235,21 +308,22 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private void processItem(MappedRecord record, Item expandedItem) {
             log.atDebug().log(
-                    "Processing expanded item [{}] against [{}] subscribed items",
+                    "Processing expanded item [{}] against the [{}] subscribed items",
                     expandedItem,
-                    subscribedItems.size());
+                    itemsCounter.get());
             for (Item subscribedItem : subscribedItems.values()) {
-                if (!expandedItem.matches(subscribedItem)) {
-                    log.warn(
-                            "Expanded item [{}] does not match subscribed item [{}]",
-                            expandedItem,
-                            subscribedItem);
+                if (expandedItem.matches(subscribedItem)) {
+                    log.atDebug().log("Filtering updates");
+                    Map<String, String> updates = record.filter(fieldsSelectors);
+                    log.atDebug().log("Sending updates: {}", updates);
+                    eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
                     continue;
                 }
-                log.atDebug().log("Filtering updates");
-                Map<String, String> updates = record.filter(fieldsSelectors);
-                log.atDebug().log("Sending updates: {}", updates);
-                eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
+                log.atWarn()
+                        .log(
+                                "Expanded item [{}] does not match item [{}]",
+                                expandedItem,
+                                subscribedItem);
             }
         }
 
@@ -266,36 +340,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             try {
                 log.atTrace().log("Waiting for graceful thread completion");
                 latch.await();
-                log.atTrace().log("Thread completed");
+                log.atTrace().log("Completed thread");
             } catch (InterruptedException e) {
                 // Ignore
             }
-            log.atInfo().log("Kafka consumer shut down");
-        }
-    }
-
-    @Override
-    public void subscribeInfoItem(InfoItem itemHandle) {
-        this.infoItem = itemHandle;
-    }
-
-    @Override
-    public void unsubscribeInfoItem() {
-        while (!infoLock.compareAndSet(false, true)) {
-            this.infoItemhande = null;
-        }
-    }
-
-    private void notifyException(Throwable re) {
-        infoLock.set(true);
-        try {
-            if (infoItem == null) {
-                return;
-            }
-            eventListener.smartUpdate(
-                    infoItem.itemHandle(), infoItem.mkEvent(re.getMessage()), false);
-        } finally {
-            infoLock.set(false);
+            log.atInfo().log("Shut down Kafka consumer");
         }
     }
 

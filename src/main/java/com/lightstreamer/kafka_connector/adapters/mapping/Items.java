@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Items {
@@ -57,7 +59,7 @@ public class Items {
 
         Stream<Selectors<K, V>> selectors();
 
-        Stream<String> topics();
+        Set<String> topics();
     }
 
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
@@ -208,8 +210,8 @@ public class Items {
         }
 
         @Override
-        public Stream<String> topics() {
-            return templates.stream().map(ItemTemplate::topic).distinct();
+        public Set<String> topics() {
+            return templates.stream().map(ItemTemplate::topic).collect(Collectors.toSet());
         }
     }
 }
