@@ -140,18 +140,18 @@ The following sections will guide you through the configuration details.
 
 #### General Configuration
 
-- Kafka Connector Identifier
+- Kafka Connector Identifier (Mandatory)
 
-  The `id` attribute of the `adapters_conf` root tag defines the Kafka Connector identifier, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server.
+  The `id` attribute of the `adapters_conf` root tag defines the Kafka Connector identifier, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server through a _LightstreamerClient_ object.
 
-  The predefined value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
+  The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
   ```xml
   <adapters_conf id="KafkaConnector">
   
   ```
 
-- Logging Configuration File
+- Logging Configuration File (Mandatory)
 
   The Kafka Connector leverages [reload4j](https://reload4j.qos.ch/) as its logging system and the configuration file path is defined by the `logging.configuration.file` parameter in the `metadata_provider` block.
 
@@ -167,31 +167,65 @@ The following sections will guide you through the configuration details.
   ...
   ```
 
-  The distribution comes with a predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
+  The factory value points to the predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
 #### Connection Configuration
 
 The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka clusters. 
 
-Every single connection is configured via the definition of its own Data Adapter through the `data_provider` tag. At least one connection must be provided.
+Every single connection is configured via the definition of its own Data Adapter through the `data_provider` block. At least one connection must be provided.
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-- Connection Name
+- Connection Name (Optional)
   
   The Kafka Connector leverages the `name` attribute as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
+
+  The connection name is also used to group all logging messages belonging to the same connection
 
   ```xml
   <data_provider name="<YOUR BROKER CONNECTION NAME>">
   ```
 
-- Enable Flag
+  Default value: `DEFAULT`, but only one "DEFAULT" configuration is permitted.
 
+- Enable Flag (Optional)
 
+  The parameter `enable` specifies whether this connection is enabled or not. Can be one of the following:
+  - `true`
+  - `false`
+  
+  Default value: `true`.
 
+  If disabled, Lightstreamer Server will automatically force to unsubscribe every subscription made to this connection.
 
-- Kafka Cluster Address
-- Consumer Group
+  ```xml
+  <param name="enable"><ENABLE FLAG></param>
+  ```
+- Kafka Cluster Address (Mandatory)
+
+  The list of host/port pairs used to establish the initial connection to the Kafka cluster.
+  
+  The parameter sets the value of the `bootstrap.servers` key to configure the internal Kafka Consumer.
+
+  See the [official documentation](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) for  more details.
+
+  ```xml
+  <param name="bootstrap.servers"><KAFKA CONNECTION STRING></param>
+  ```
+  
+- Consumer Group (Optional)
+
+  The name of the consumer group this connection belongs to.
+  The parameter sets the value for the "group.id" key used to configure the internal
+  Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
+  If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
+  combining the adapter set, the connector name, and a randomly generated suffix
+
+  ```xml
+  <param name="group.id">kafka-connector-group</param>
+  ```
+  
 
 #### Topic Mappings
 
