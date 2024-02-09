@@ -146,9 +146,10 @@ The following sections will guide you through the configuration details.
 
   The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
+  Example:
+
   ```xml
   <adapters_conf id="KafkaConnector">
-  
   ```
 
 - Logging Configuration File (Mandatory)
@@ -157,17 +158,19 @@ The following sections will guide you through the configuration details.
 
   The path is relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
+  The factory value points to the predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
+
+  Example:
+
   ```xml
   ...
-     <metadata_provider>
-        ...
-        <param name="logging.configuration.file"><PATH/TO/LOGGING/CONFIGURATION/FILE></param>
-        ...
-     </metadata_provider>
+  <metadata_provider>
+      ...
+      <param name="logging.configuration.file">log4j.properties</param>
+      ...
+  </metadata_provider>
   ...
   ```
-
-  The factory value points to the predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
 #### Connection Configuration
 
@@ -183,47 +186,68 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
   The connection name is also used to group all logging messages belonging to the same connection
 
+  Example:
+
   ```xml
-  <data_provider name="<YOUR BROKER CONNECTION NAME>">
+  <data_provider name="BrokerConnection">
   ```
 
-  Default value: `DEFAULT`, but only one "DEFAULT" configuration is permitted.
+  Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
 - Enable Flag (Optional)
 
-  The parameter `enable` specifies whether this connection is enabled or not. Can be one of the following:
+  The `enable` parameter specifies whether this connection is enabled or not. Can be one of the following:
   - `true`
   - `false`
   
   Default value: `true`.
 
-  If disabled, Lightstreamer Server will automatically force to unsubscribe every subscription made to this connection.
+  If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
+
+  Example:
 
   ```xml
-  <param name="enable"><ENABLE FLAG></param>
+  <param name="enable">false</param>
   ```
+
 - Kafka Cluster Address (Mandatory)
 
-  The list of host/port pairs used to establish the initial connection to the Kafka cluster.
+  The `bootstrap.server` parameter defines the list of host/port pairs used to establish the initial connection to the Kafka cluster.
   
-  The parameter sets the value of the `bootstrap.servers` key to configure the internal Kafka Consumer.
+  The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
 
-  See the [official documentation](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) for  more details.
+  Example:
 
   ```xml
-  <param name="bootstrap.servers"><KAFKA CONNECTION STRING></param>
+  <param name="bootstrap.servers">broker:29092,broker:29093</param>
   ```
   
 - Consumer Group (Optional)
 
   The name of the consumer group this connection belongs to.
-  The parameter sets the value for the "group.id" key used to configure the internal
-  Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
-  If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
-  combining the adapter set, the connector name, and a randomly generated suffix
+
+  The parameter sets the value for the [`group.id`]https://kafka.apache.org/documentation/#consumerconfigs_group.id key used to configure the internal Kafka Consumer.
+
+  Default value: KafkaConnector Identifier + Connection Name + Randomly generated suffix.
 
   ```xml
   <param name="group.id">kafka-connector-group</param>
+  ```
+
+- Record Extraction Error Handling Strategy (Optional)
+
+  The strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+
+  - `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+  - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items 
+                  requested by all Lightstreamer clients subscribed to this connection.
+                
+  Default value: `IGNORE_AND_CONTINUE`.
+
+  Example:
+  
+  ```xml
+  <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
   ```
   
 
