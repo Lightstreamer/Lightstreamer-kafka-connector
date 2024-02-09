@@ -324,7 +324,7 @@ public class ConnectorConfigTest {
         adapterParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
         adapterParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
         adapterParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
-        adapterParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIGS, "250"); // Unmodifiable
+        adapterParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
         adapterParams.put("item-template.template1", "item1");
         adapterParams.put("item-template.template2", "item2");
         adapterParams.put("map.topic1.to", "template1");

@@ -28,6 +28,7 @@ import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapters.consumers.ConsumerLoop;
+import com.lightstreamer.kafka_connector.adapters.publics.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
 
@@ -39,9 +40,13 @@ import javax.annotation.Nonnull;
 public final class ConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
+
     private Loop loop;
+
     private ConsumerLoopConfig<?, ?> loopConfig;
+
     private ConnectorConfig connectorConfig;
+
     private MetadataListener metadataAdapter;
 
     public ConnectorDataAdapter() {}
@@ -51,11 +56,9 @@ public final class ConnectorDataAdapter implements SmartDataProvider {
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
         this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
-        this.metadataAdapter = ConnectorMetadataAdapter.listener(connectorConfig.getAdapterName());
-
-        if (!connectorConfig.isEnabled()) {
-            metadataAdapter.disableAdapter();
-        }
+        this.metadataAdapter =
+                KafkaConnectorMetadataAdapter.listener(
+                        connectorConfig.getAdapterName(), connectorConfig.isEnabled());
 
         log.info("Configuring Kafka Connector");
         loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);

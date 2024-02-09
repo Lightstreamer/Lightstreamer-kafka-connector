@@ -62,7 +62,7 @@ public class Items {
 
         Set<String> topics();
 
-        public Set<Item> route(MappedRecord record, Collection<? extends Item> subscribed);
+        public Set<Item> routable(MappedRecord record, Collection<? extends Item> subscribed);
     }
 
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
@@ -207,7 +207,7 @@ public class Items {
         }
 
         @Override
-        public Set<Item> route(MappedRecord record, Collection<? extends Item> subscribed) {
+        public Set<Item> routable(MappedRecord record, Collection<? extends Item> subscribed) {
             List<Item> items = expand(record).toList();
             // Set<Item> s = new HashSet<>();
             // for (Item item : subscribed) {

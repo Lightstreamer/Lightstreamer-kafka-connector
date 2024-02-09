@@ -15,11 +15,6 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.adapters.commons;
+package com.lightstreamer.kafka_connector.adapters.publics;
 
-public interface MetadataListener {
-
-    void forceUnsubscription(String item);
-
-    void forceUnsubscriptionAll();
-}
+public interface KafkaConnectorDataAdapter {}

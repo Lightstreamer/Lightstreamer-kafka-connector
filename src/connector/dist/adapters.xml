@@ -21,7 +21,7 @@
 
     </metadata_provider>
 
-    <!-- TThe Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
+    <!-- The Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
          Kafka clusters. 
          Every single connection is configured via the definition of its own Lightstreamer Data Adapter.
          Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
@@ -30,7 +30,7 @@
 
          At least one connection configuration must be provided.
          Every configuration is distinguished throug the "name" attribute, which is "DEFAULT" if not provided,
-         but only one "DEFAULT" configuration is allowed. -->
+         but only one "DEFAULT" configuration is permitted. -->
     <data_provider name="BrokerConnection">
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
@@ -54,7 +54,8 @@
              The parameter sets the value for the "group.id" key used to configure the internal
              Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
              If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
-             combining the adapter set, the connector name, and a randomly generated suffix. -->
+             
+             Default:  Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
         param name="group.id">kafka-connector-group</param>
         -->
@@ -73,7 +74,7 @@
         <param name="info.field">connection_message</param>
         -->
 
-        <!-- Optional. The strategy to be used if an error occur while extracting data from incoming records.
+        <!-- Optional. The strategy to be used if an error occurs while extracting data from incoming records.
                 Can be one of the following:
                 - "IGNORE_AND_CONTINUE": Ignore the error and continue to process the next record.
                 - "FORCE_UNSUBSCRIPTION": Stop processing records and force unsubscription of the items 
@@ -136,6 +137,8 @@
         <param name="bootstrap.servers">broker:29092</param>
 
         <param name="group.id">test</param>
+
+        <param name="enabled">true</param>
 
         <!-- TOPIC MAPPING SECTION -->
 

@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Defau
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_BYTES_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG;
@@ -39,9 +40,12 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_
 import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+
+import org.apache.kafka.clients.admin.AdminClientConfig;
 
 import java.io.File;
 import java.security.SecureRandom;
@@ -112,8 +116,14 @@ public final class ConnectorConfig extends AbstractConfig {
             CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
     public static final String CONSUMER_MAX_POLL_INTERVAL_MS =
             CONNECTOR_PREFIX + MAX_POLL_INTERVAL_MS_CONFIG;
-    public static final String CONSUMER_METADATA_MAX_AGE_CONFIGS =
+    public static final String CONSUMER_METADATA_MAX_AGE_CONFIG =
             CONNECTOR_PREFIX + METADATA_MAX_AGE_CONFIG;
+    public static final String CONSUMER_REQUEST_TIMEOUT_MS_CONFIG =
+            CONNECTOR_PREFIX + REQUEST_TIMEOUT_MS_CONFIG;
+    public static final String CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG =
+            CONNECTOR_PREFIX + DEFAULT_API_TIMEOUT_MS_CONFIG;
+    public static final String CONSUMER_RETRIES =
+            CONNECTOR_PREFIX + AdminClientConfig.RETRIES_CONFIG;
 
     private static final ConfigSpec CONFIG_SPEC;
 
@@ -200,12 +210,27 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 defaultValue("5000"))
                         .add(
-                                CONSUMER_METADATA_MAX_AGE_CONFIGS,
+                                CONSUMER_METADATA_MAX_AGE_CONFIG,
                                 false,
                                 false,
                                 INT,
                                 false,
-                                defaultValue("250"));
+                                defaultValue("250"))
+                        .add(
+                                CONSUMER_REQUEST_TIMEOUT_MS_CONFIG,
+                                false,
+                                false,
+                                INT,
+                                false,
+                                defaultValue("1000"))
+                        .add(CONSUMER_RETRIES, false, false, INT, false, defaultValue("0"))
+                        .add(
+                                CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG,
+                                false,
+                                false,
+                                INT,
+                                false,
+                                defaultValue("15000"));
     }
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
@@ -229,7 +254,7 @@ public final class ConnectorConfig extends AbstractConfig {
         Properties properties = new Properties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
-        copySetting(properties, METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIGS));
+        copySetting(properties, METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         copySetting(
                 properties, AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
         copySetting(
@@ -253,6 +278,13 @@ public final class ConnectorConfig extends AbstractConfig {
                 getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
         copySetting(properties, SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
         copySetting(properties, MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+        copySetting(
+                properties, REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
+        copySetting(
+                properties,
+                DEFAULT_API_TIMEOUT_MS_CONFIG,
+                getInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
+        copySetting(properties, AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
         return properties;
     }

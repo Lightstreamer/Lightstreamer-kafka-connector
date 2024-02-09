@@ -29,7 +29,9 @@ import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRec
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
 
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -50,7 +52,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -222,38 +223,43 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atDebug().log("Checking existing topics on Kafka");
 
             // Check the actual available topics on Kafka.
-            ListTopicsResult listTopics =
-                    AdminClient.create(config.consumerProperties()).listTopics();
-            boolean notAllPresent = false;
-            try {
+            try (Admin admin = AdminClient.create(config.consumerProperties())) {
+                ListTopicsOptions options = new ListTopicsOptions();
+                options.timeoutMs(5000);
+                ListTopicsResult listTopics = admin.listTopics(options);
+                boolean notAllPresent = false;
+
                 // Retain from the origianl requestes topics the available ones.
                 Set<String> existingTopics = listTopics.names().get();
                 notAllPresent = topics.retainAll(existingTopics);
-            } catch (InterruptedException | ExecutionException e) {
-                //
-            }
 
-            // Can't subscribe at all. Exit.
-            if (topics.isEmpty()) {
-                log.atWarn().log("Not found requested topics");
-                notifyMessage("Requested topics are not availebl on Kafka");
+                // Can't subscribe at all. Foruce unsubscription and exit the loop.
+                if (topics.isEmpty()) {
+                    log.atWarn().log("Not found requested topics");
+                    notifyMessage("Requested topics are not availebl on Kafka");
+                    metadataListener.forceUnsubscriptionAll();
+                    return false;
+                }
+
+                // Just warn that not all requested topics can be subscribed.
+                if (notAllPresent) {
+                    String loggableTopics =
+                            topics.stream()
+                                    .map(s -> "\"%s\"".formatted(s))
+                                    .collect(Collectors.joining(","));
+                    log.atWarn()
+                            .log(
+                                    "Actually subscribing to the following existing topics [{}]",
+                                    loggableTopics);
+                    notifyMessage("Subscribing only to the topic: " + loggableTopics);
+                }
+                consumer.subscribe(topics, relabancerListener);
+                return true;
+            } catch (Exception e) {
+                log.atError().setCause(e).log();
+                metadataListener.forceUnsubscriptionAll();
                 return false;
             }
-
-            // Just warn that not all requested topics can be subscribed.
-            if (notAllPresent) {
-                String loggableTopics =
-                        topics.stream()
-                                .map(s -> "\"%s\"".formatted(s))
-                                .collect(Collectors.joining(","));
-                log.atWarn()
-                        .log(
-                                "Actually subscribing to the following existing topics [{}]",
-                                loggableTopics);
-                notifyMessage("Subscribing only to the topic: " + loggableTopics);
-            }
-            consumer.subscribe(topics, relabancerListener);
-            return true;
         }
 
         private void poll() throws WakeupException {
@@ -300,9 +306,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log("Mapped Kafka record");
 
-            Set<Item> subs = config.itemTemplates().route(mappedRecord, subscribedItems.values());
+            Set<Item> routable =
+                    config.itemTemplates().routable(mappedRecord, subscribedItems.values());
 
-            for (Item sub : subs) {
+            for (Item sub : routable) {
                 log.atDebug().log("Filtering updates");
                 Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
                 log.atDebug().log("Sending updates: {}", updates);
@@ -311,7 +318,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
             relabancerListener.updateOffsets(record);
         }
-
 
         void close() {
             shutdown();
