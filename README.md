@@ -140,9 +140,9 @@ The following sections will guide you through the configuration details.
 
 #### General Configuration
 
-- Kafka Connector Identifier (Mandatory)
+- (Mandatory) **Kafka Connector Identifier**
 
-  The `id` attribute of the `adapters_conf` root tag defines the Kafka Connector identifier, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server through a _LightstreamerClient_ object.
+  The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server through a _LightstreamerClient_ object.
 
   The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
@@ -152,13 +152,13 @@ The following sections will guide you through the configuration details.
   <adapters_conf id="KafkaConnector">
   ```
 
-- Logging Configuration File (Mandatory)
+- (Mandatory) **`logging.configuration.file`**
 
-  The Kafka Connector leverages [reload4j](https://reload4j.qos.ch/) as its logging system and the configuration file path is defined by the `logging.configuration.file` parameter in the `metadata_provider` block.
+  The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  The path is relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+  The parameter is defined inside the `metadata_provider` block.
 
-  The factory value points to the predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
+  The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
   Example:
 
@@ -180,9 +180,9 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-- Connection Name (Optional)
+- (Optional) **Connection Name**
   
-  The Kafka Connector leverages the `name` attribute as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
+  The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
   The connection name is also used to group all logging messages belonging to the same connection
 
@@ -194,7 +194,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
   Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-- Enable Flag (Optional)
+- (Optional) **`enable`**
 
   The `enable` parameter specifies whether this connection is enabled or not. Can be one of the following:
   - `true`
@@ -210,9 +210,9 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="enable">false</param>
   ```
 
-- Kafka Cluster Address (Mandatory)
+- (Mandatory) **`bootstrap.servers`**
 
-  The `bootstrap.server` parameter defines the list of host/port pairs used to establish the initial connection to the Kafka cluster.
+  The Kafka Cluster address expressed as the list of host/port pairs used to establish the initial connection.
   
   The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
 
@@ -222,21 +222,21 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="bootstrap.servers">broker:29092,broker:29093</param>
   ```
   
-- Consumer Group (Optional)
+- (Optional) **`group.id`**
 
-  The name of the consumer group this connection belongs to.
+  The consumer group this connection belongs to.
 
-  The parameter sets the value for the [`group.id`]https://kafka.apache.org/documentation/#consumerconfigs_group.id key used to configure the internal Kafka Consumer.
+  The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
-  Default value: KafkaConnector Identifier + Connection Name + Randomly generated suffix.
+  Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
   ```xml
   <param name="group.id">kafka-connector-group</param>
   ```
 
-- Record Extraction Error Handling Strategy (Optional)
+- (Optional) **`record.extraction.error.strategy`**
 
-  The strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+  The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
 
   - `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
   - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items 
@@ -250,7 +250,17 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
   ```
   
+- Item Template
 
+  The `item-template.<template-name>` parameter de
+  
+  Examples:
+
+  
+  ```xml
+  <param name="item-template.stock">stock</param>
+  <param name="item-template.stock">stock</param>
+   
 #### Topic Mappings
 
 
