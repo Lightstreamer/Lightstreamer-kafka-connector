@@ -19,7 +19,7 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 #### Requirements
 
 - JDK version 17 or later.
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.1  or later (check the `<LS_HOME>/GETTING_STARTED.TXT` file for the instructions).
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.1  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
 - A running Kafka Cluster.
 - The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
  
@@ -27,7 +27,7 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 Get the deployment package from the [latest release page](releases). Alternatively, check out this repository and run the following command from the project root;
 
-`./gradlew distribute`
+`./gradlew distribuite`
 
 which generated the `build/distributions/lightstreamer-kafka-connector-<version>.zip` bundle.
 
@@ -35,7 +35,7 @@ Then, unzip it into the `adapters` folder of the Lightstreamer Server installati
 Check that the final Lightstreamer layout looks like the following:
 
 ```sh
-<LS_HOME>/
+LS_HOME/
 ...
 ├── adapters
 │   ├── lightstreamer-kafka-connector-0.1.0
@@ -44,7 +44,6 @@ Check that the final Lightstreamer layout looks like the following:
 │   │   ├── log4j.properties
 │   │   ├── lib
 │   └── welcome_res
-│       ├── adapters.xml
 ...
 ├── audit
 ├── bin
@@ -53,10 +52,10 @@ Check that the final Lightstreamer layout looks like the following:
 
 #### Configure
 
-Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connectors/adapters.xml` file as follows:
+Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file as follows:
 
 - Update the `bootstrap.servers` parameter with the connection string of the Kafka Cluster.
-- Optionally customize the `<LS_HOME>/lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+- Optionally customize the `LS_HOME/adapters//lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
 ### Start
 
@@ -110,7 +109,7 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
     As you can see, you have to specify a few parameters:
 
     - `--address`, the Lightstreamer Server address.
-    -  `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to look at the KafakConnectored deployed into the `adapters` folder.
+    -  `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to look at the KafakConnector deployed into the `adapters` folder.
     - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
     - `--items`, the list of items to subscribe to.
     - `--fields`, the list of requested fields for the items.
@@ -135,50 +134,62 @@ Edit the `QuickStart` configuration in the `<LS_HOME>/lightstreamer-kafka-connec
 
 ### Configuration
 
-As already anticipated, the Lightstreamer Kafka Connector is Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/lightstreamer-kafka-connector/adapters.xml` file.
+As already anticipated, the Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file.
 
+The following sections will guide you through the configuration details.
 
 #### General Configuration
 
 - Kafka Connector Identifier
 
-   The Kafka Connector identifier is specified in the `id` attribute of the `adapters_conf` root tag.
-   The predefined value is set to KafkaConnector for convenience, but you are free to change it as per your requirements.
+  The `id` attribute of the `adapters_conf` root tag defines the Kafka Connector identifier, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server.
 
-   ```xml
-   <!-- Mandatory. Define the Kafka Connector unique ID. -->
-   <adapters_conf id="KafkaConnector">
-   ...
-   ```
+  The predefined value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
- - Logging Configuration File
+  ```xml
+  <adapters_conf id="KafkaConnector">
+  
+  ```
 
-   The Kafka Connectoer leverages [reload4j](https://reload4j.qos.ch/) as its logging system and the configuration file path is defined in the `logging.configuration.file` parameter.
+- Logging Configuration File
 
-   The path is relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+  The Kafka Connector leverages [reload4j](https://reload4j.qos.ch/) as its logging system and the configuration file path is defined by the `logging.configuration.file` parameter in the `metadata_provider` block.
 
-   ```xml
-   ...
-      <metadata_provider>
-         ...
-         <!-- Mandatory. Path of the configuration file for the log4j-based logging system.
-               The file path is relative to the Kafka Connector deployment directory.
-         -->
-         <param name="logging.configuration.file">log4j.properties</param>
+  The path is relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-      </metadata_provider>
-   ...
-   ```
+  ```xml
+  ...
+     <metadata_provider>
+        ...
+        <param name="logging.configuration.file"><PATH/TO/LOGGING/CONFIGURATION/FILE></param>
+        ...
+     </metadata_provider>
+  ...
+  ```
+
+  The distribution comes with a predefined logging configuration file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
 #### Connection Configuration
 
-The Lightstreamer Kafka Connector allows the configuration of different independent connections to different Kafka clusters. 
+The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka clusters. 
 
-Every single connection is configured via the definition of a specific Lightstreamer Data Adapter.
+Every single connection is configured via the definition of its own Data Adapter through the `data_provider` tag. At least one connection must be provided.
+
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
 - Connection Name
+  
+  The Kafka Connector leverages the `name` attribute as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
+
+  ```xml
+  <data_provider name="<YOUR BROKER CONNECTION NAME>">
+  ```
+
 - Enable Flag
+
+
+
+
 - Kafka Cluster Address
 - Consumer Group
 
