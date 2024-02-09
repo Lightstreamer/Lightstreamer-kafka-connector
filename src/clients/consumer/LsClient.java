@@ -88,15 +88,10 @@ public class LsClient implements Runnable {
                 };
         SubscriptionListener listener = Listeners.subscriptionListener(cons);
         for (String item : this.items) {
-            Subscription sub = new Subscription("RAW", item, this.fields);
+            Subscription sub = new Subscription(this.subscriptionMode, item, this.fields);
             sub.setDataAdapter(dataAdapter);
             sub.addListener(listener);
             client.subscribe(sub);
         }
-        Subscription sub = new Subscription("DISTINCT", "INFO", new String[] {"MSG"});
-        sub.setDataAdapter(dataAdapter);
-        sub.addListener(listener);
-        sub.setRequestedSnapshot("yes");
-        client.subscribe(sub);
     }
 }

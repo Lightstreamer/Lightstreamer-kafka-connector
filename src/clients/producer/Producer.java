@@ -62,32 +62,32 @@ public class Producer implements Runnable {
         // Create and start the producer.
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
             int key = 0;
-            // while (true) {
-            String message =
-                    new SecureRandom()
-                            .ints(20, 48, 122)
-                            .mapToObj(Character::toString)
-                            .collect(Collectors.joining());
+            while (true) {
+                String message =
+                        new SecureRandom()
+                                .ints(20, 48, 122)
+                                .mapToObj(Character::toString)
+                                .collect(Collectors.joining());
 
-            String keyString = null; // String.valueOf(key++);
-            ProducerRecord<String, String> record =
-                    new ProducerRecord<String, String>(this.topic, keyString, message);
-            producer.send(
-                    record,
-                    new Callback() {
-                        public void onCompletion(RecordMetadata metadata, Exception e) {
-                            if (e != null) {
-                                e.printStackTrace();
-                                System.err.println("Send failed");
-                                return;
+                String keyString = null; // String.valueOf(key++);
+                ProducerRecord<String, String> record =
+                        new ProducerRecord<String, String>(this.topic, keyString, message);
+                producer.send(
+                        record,
+                        new Callback() {
+                            public void onCompletion(RecordMetadata metadata, Exception e) {
+                                if (e != null) {
+                                    e.printStackTrace();
+                                    System.err.println("Send failed");
+                                    return;
+                                }
+                                System.out.printf(
+                                        "Sent record [%s]%n to topic [%s] and partition [%d]%n",
+                                        record.value(), record.topic(), record.partition());
                             }
-                            System.out.printf(
-                                    "Sent record [%s]%n to topic [%s] and partition [%d]%n",
-                                    record.value(), record.topic(), record.partition());
-                        }
-                    });
-            TimeUnit.MILLISECONDS.sleep(this.periodMs);
-            // }
+                        });
+                TimeUnit.MILLISECONDS.sleep(this.periodMs);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

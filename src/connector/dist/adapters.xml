@@ -140,12 +140,12 @@
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <param name="item-template.sample1">sample1</param>
-        <param name="item-template.sample2">sample2</param>
+        <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
+        <param name="item-template.sample2">sample</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-        <param name="map.sample-topic.to">item-template.sample1</param>
-        <param name="map.sample-topic2.to">item-template.sample2</param>
+        <param name="map.sample-topic.to">item-template.sample1,item-template.sample2</param>
+        <!--<param name="map.sample-topic2.to">item-template.sample2</param>-->
 
         <!-- FIELDS MAPPING SECTION -->
 

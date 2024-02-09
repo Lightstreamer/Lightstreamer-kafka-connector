@@ -56,7 +56,7 @@ public class TopicsConfig {
                 configs.add(new TopicConfiguration(topic, templateKey, templateValue));
             }
         }
-        return configs;
+        return configs.stream().distinct().toList();
     }
 
     public List<TopicConfiguration> configurations() {

@@ -29,6 +29,7 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,8 @@ public class Items {
         Stream<Selectors<K, V>> selectors();
 
         Set<String> topics();
+
+        public Set<Item> route(MappedRecord record, Collection<? extends Item> subscribed);
     }
 
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
@@ -75,14 +78,16 @@ public class Items {
             TopicsConfig topcisConfig, SelectorsSupplier<K, V> selectorsSupplier) {
 
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
-        for (TopicConfiguration config : topcisConfig.configurations()) {
+        for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
             try {
-                Result result = ItemExpressionEvaluator.template().eval(config.itemTemplateValue());
+                Result result =
+                        ItemExpressionEvaluator.template().eval(topicConfig.itemTemplateValue());
                 Selectors<K, V> selectors =
                         Selectors.from(selectorsSupplier, result.prefix(), result.params());
-                templates.add(new ItemTemplate<>(config.topic(), selectors));
+                templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
             } catch (ExpressionException e) {
-                reThrowInvalidExpression(e, config.itemTemplateKey(), config.itemTemplateValue());
+                reThrowInvalidExpression(
+                        e, topicConfig.itemTemplateKey(), topicConfig.itemTemplateValue());
             }
         }
         return new DefaultItemTemplates<>(templates);
@@ -196,10 +201,29 @@ public class Items {
             this.templates = Collections.unmodifiableList(templates);
         }
 
+        @Override
         public Stream<Item> expand(MappedRecord record) {
-            return templates.stream().flatMap(i -> i.expand(record).stream());
+            return templates.stream().flatMap(t -> t.expand(record).stream()).distinct();
         }
 
+        @Override
+        public Set<Item> route(MappedRecord record, Collection<? extends Item> subscribed) {
+            List<Item> items = expand(record).toList();
+            // Set<Item> s = new HashSet<>();
+            // for (Item item : subscribed) {
+            //     for (Item expanded : items) {
+            //         if (expanded.matches(item)) {
+            //             s.add(item);
+            //         }
+            //     }
+            // }
+            return subscribed.stream()
+                    .filter(s -> items.stream().anyMatch(e -> matches(s)))
+                    .collect(Collectors.toSet());
+            // return s;
+        }
+
+        @Override
         public boolean matches(Item item) {
             return templates.stream().anyMatch(i -> i.matches(item));
         }

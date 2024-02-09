@@ -300,32 +300,18 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log("Mapped Kafka record");
 
-            config.itemTemplates()
-                    .expand(mappedRecord)
-                    .forEach(expandedItem -> processItem(mappedRecord, expandedItem));
+            Set<Item> subs = config.itemTemplates().route(mappedRecord, subscribedItems.values());
+
+            for (Item sub : subs) {
+                log.atDebug().log("Filtering updates");
+                Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
+                log.atDebug().log("Sending updates: {}", updates);
+                eventListener.smartUpdate(sub.itemHandle(), updates, false);
+            }
+
             relabancerListener.updateOffsets(record);
         }
 
-        private void processItem(MappedRecord record, Item expandedItem) {
-            log.atDebug().log(
-                    "Processing expanded item [{}] against the [{}] subscribed items",
-                    expandedItem,
-                    itemsCounter.get());
-            for (Item subscribedItem : subscribedItems.values()) {
-                if (expandedItem.matches(subscribedItem)) {
-                    log.atDebug().log("Filtering updates");
-                    Map<String, String> updates = record.filter(fieldsSelectors);
-                    log.atDebug().log("Sending updates: {}", updates);
-                    eventListener.smartUpdate(subscribedItem.itemHandle(), updates, false);
-                    continue;
-                }
-                log.atWarn()
-                        .log(
-                                "Expanded item [{}] does not match item [{}]",
-                                expandedItem,
-                                subscribedItem);
-            }
-        }
 
         void close() {
             shutdown();

@@ -67,7 +67,23 @@ public class TopicsConfigTest {
     }
 
     @Test
-    void shouldConfigManyTopOne() {
+    void shouldConfigOneToManyIndentical() {
+        Map<String, String> udpateConfig = new HashMap<>();
+        udpateConfig.put("map.topic1.to", "item-template.template1,item-template.template1");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpateConfig);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg);
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(1);
+
+        TopicConfiguration topicConfiguration1 = configurations.get(0);
+        assertThat(topicConfiguration1.itemTemplateKey()).isEqualTo("item-template.template1");
+        assertThat(topicConfiguration1.itemTemplateValue()).isEqualTo("item");
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic1");
+    }
+
+    @Test
+    void shouldConfigManyToOne() {
         Map<String, String> udpateConfig = new HashMap<>();
         udpateConfig.put("map.topic2.to", "item-template.template1");
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpateConfig);
