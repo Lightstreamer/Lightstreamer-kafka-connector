@@ -18,7 +18,13 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 
 import java.io.File;
 import java.net.URI;
@@ -51,15 +57,15 @@ class ConfigSpec {
         }
     }
 
-    static class Choices implements Type {
+    static class Options implements Type {
 
         private Set<String> choiches;
 
-        Choices(String... choiches) {
-            this.choiches = Set.copyOf(List.of(choiches));
+        Options(String... options) {
+            this.choiches = Set.of(options);
         }
 
-        Choices(Set<String> choiches) {
+        Options(Set<String> choiches) {
             this.choiches = Set.copyOf(choiches);
         }
 
@@ -72,24 +78,36 @@ class ConfigSpec {
             return choiches.contains(param);
         }
 
-        static Choices booleans() {
-            return new Choices("true", "false");
+        static Options booleans() {
+            return new Options("true", "false");
         }
 
-        static Choices evaluatorTypes() {
-            return new Choices(EvaluatorType.names());
+        static Options evaluatorTypes() {
+            return new Options(EvaluatorType.names());
         }
 
-        static Choices errorStrategies() {
-            return new Choices(RecordErrorHandlingStrategy.names());
+        static Options errorStrategies() {
+            return new Options(RecordErrorHandlingStrategy.names());
+        }
+
+        static Options securityProtocols() {
+            return new Options(SecurityProtocol.names());
+        }
+
+        static Options keystoreTypes() {
+            return new Options(KeystoreType.names());
+        }
+
+        static Options sslProtocols() {
+            return new Options(SslProtocol.names());
         }
     }
 
-    static class Split implements Type {
+    static class ListType implements Type {
 
         private Type type;
 
-        Split(Type type) {
+        ListType(Type type) {
             this.type = type;
         }
 
@@ -102,6 +120,8 @@ class ConfigSpec {
 
     enum ConfType implements Type {
         TEXT,
+
+        TEXT_LIST(new ListType(TEXT)),
 
         INT {
             @Override
@@ -124,11 +144,11 @@ class ConfigSpec {
             }
         },
 
-        BOOL(Choices.booleans()) {},
+        BOOL(Options.booleans()) {},
 
-        EVALUATOR(Choices.evaluatorTypes()),
+        EVALUATOR(Options.evaluatorTypes()),
 
-        ERROR_STRATEGY(Choices.errorStrategies()),
+        ERROR_STRATEGY(Options.errorStrategies()),
 
         URL {
             @Override
@@ -142,7 +162,7 @@ class ConfigSpec {
             }
         },
 
-        HOST_LIST(new Split(HOST)),
+        HOST_LIST(new ListType(HOST)),
 
         ITEM_SPEC {
             private static Pattern ITEM_SEPC = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
@@ -192,7 +212,15 @@ class ConfigSpec {
                 return String.format(
                         "Not found directory [%s] specified in [%s]", paramValue, param);
             }
-        };
+        },
+
+        SECURITY_PROTOCOL(Options.securityProtocols()),
+
+        KEYSTORE_TYPE(Options.keystoreTypes()),
+
+        SSL_PROTOCOL(Options.sslProtocols()),
+
+        SSL_ENABLED_PROTOCOLS(new ListType(new Options(ConfigTypes.SslProtocol.names())));
 
         Type embeddedType;
 
@@ -420,5 +448,9 @@ record ConfParameter(
                 destination.put(key, type.getValue(paramValue));
             }
         }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(ConfType.SSL_ENABLED_PROTOCOLS.isValid("TLSv1.a,TLSv1.3"));
     }
 }

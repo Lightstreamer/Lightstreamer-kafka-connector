@@ -22,6 +22,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import picocli.CommandLine.Option;
@@ -58,7 +59,9 @@ public class Producer implements Runnable {
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.setProperty(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-
+        properties.setProperty(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "SSL");
+        properties.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "client.trustore.jks");
+        // ssl.truststore.password=test1234
         // Create and start the producer.
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
             int key = 0;

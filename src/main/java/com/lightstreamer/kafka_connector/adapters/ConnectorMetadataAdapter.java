@@ -20,7 +20,7 @@ package com.lightstreamer.kafka_connector.adapters;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
-import com.lightstreamer.kafka_connector.adapters.publics.KafkaConnectorMetadataAdapter;
+import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter;
 
 public final class ConnectorMetadataAdapter extends KafkaConnectorMetadataAdapter {
 

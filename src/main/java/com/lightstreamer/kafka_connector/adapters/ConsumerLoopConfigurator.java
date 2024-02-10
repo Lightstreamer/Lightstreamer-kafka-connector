@@ -18,9 +18,9 @@
 package com.lightstreamer.kafka_connector.adapters;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka_connector.adapters.config.EvaluatorType;
-import com.lightstreamer.kafka_connector.adapters.config.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.Fields;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;

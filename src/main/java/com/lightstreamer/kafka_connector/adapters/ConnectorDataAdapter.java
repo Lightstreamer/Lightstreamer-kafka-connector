@@ -28,7 +28,7 @@ import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapters.consumers.ConsumerLoop;
-import com.lightstreamer.kafka_connector.adapters.publics.KafkaConnectorMetadataAdapter;
+import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
 

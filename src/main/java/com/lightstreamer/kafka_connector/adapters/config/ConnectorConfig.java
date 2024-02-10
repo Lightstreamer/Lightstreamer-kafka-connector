@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfT
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.SECURITY_PROTOCOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
@@ -44,6 +45,8 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -230,7 +233,13 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 INT,
                                 false,
-                                defaultValue("15000"));
+                                defaultValue("15000"))
+                        .add(
+                                "consume.security.protocol",
+                                false,
+                                false,
+                                SECURITY_PROTOCOL,
+                                defaultValue("SSL"));
     }
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
