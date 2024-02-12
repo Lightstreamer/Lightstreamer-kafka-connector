@@ -114,7 +114,7 @@ public class JsonNodeDeserializerTest {
         Path adapterDir = Files.createTempDirectory("adapter_dir");
         Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
         Map<String, String> otherConfigs =
-                Map.of(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.toFile().getName());
+                Map.of(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 
@@ -136,7 +136,9 @@ public class JsonNodeDeserializerTest {
         Path adapterDir = Files.createTempDirectory("adapter_dir");
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
-                Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.toFile().getName());
+                Map.of(
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        valueSchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
 
@@ -160,9 +162,9 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_SCHEMA_FILE,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
                         keySchemaFile.toFile().getName(),
-                        ConnectorConfig.VALUE_SCHEMA_FILE,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
                         valueSchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);

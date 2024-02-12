@@ -361,7 +361,17 @@ class ConfigSpec {
     }
 
     ConfParameter getParameter(String name) {
-        return paramSpec.get(name);
+        ConfParameter confParameter = paramSpec.get(name);
+        if (confParameter != null) {
+            return confParameter;
+        }
+        Optional<ConfParameter> op =
+                subsections.values().stream().map(c -> c.getParameter(name)).findFirst();
+        if (op.isPresent()) {
+            return op.get();
+        }
+
+        return null;
     }
 
     List<ConfParameter> getByType(Type type) {

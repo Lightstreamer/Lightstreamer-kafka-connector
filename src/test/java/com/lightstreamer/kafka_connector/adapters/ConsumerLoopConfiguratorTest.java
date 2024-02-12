@@ -96,7 +96,7 @@ public class ConsumerLoopConfiguratorTest {
     public void shouldConfigureAvroWithLocalSchemaFile() {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
 
         ConnectorConfig config =
                 ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
@@ -137,7 +137,7 @@ public class ConsumerLoopConfiguratorTest {
     public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
         updatedConfigs.put("field.fieldName1", expression);
 
         ConnectorConfig config =

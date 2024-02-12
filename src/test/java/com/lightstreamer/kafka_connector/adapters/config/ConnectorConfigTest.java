@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -50,12 +51,14 @@ public class ConnectorConfigTest {
     private Path adapterDir;
     private Path keySchemaFile;
     private Path valueSchemaFile;
+    private Path trustStoreFile;
 
     @BeforeEach
     public void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         keySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
         valueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
+        trustStoreFile = Files.createTempFile(adapterDir, "truststore", ".jks");
     }
 
     @Test
@@ -119,8 +122,9 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter keySchemaFile = configSpec.getParameter(ConnectorConfig.KEY_SCHEMA_FILE);
-        assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.KEY_SCHEMA_FILE);
+        ConfParameter keySchemaFile =
+                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH);
+        assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH);
         assertThat(keySchemaFile.required()).isFalse();
         assertThat(keySchemaFile.multiple()).isFalse();
         assertThat(keySchemaFile.mutable()).isTrue();
@@ -136,8 +140,9 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter valueSchemaFile = configSpec.getParameter(ConnectorConfig.VALUE_SCHEMA_FILE);
-        assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.VALUE_SCHEMA_FILE);
+        ConfParameter valueSchemaFile =
+                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH);
+        assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH);
         assertThat(valueSchemaFile.required()).isFalse();
         assertThat(valueSchemaFile.multiple()).isFalse();
         assertThat(valueSchemaFile.mutable()).isTrue();
@@ -310,38 +315,48 @@ public class ConnectorConfigTest {
     }
 
     private Map<String, String> standardParameters() {
-        Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        adapterParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "STRING");
-        adapterParams.put(
-                ConnectorConfig.VALUE_SCHEMA_FILE, valueSchemaFile.getFileName().toString());
-        adapterParams.put(
+        Map<String, String> standardParams = new HashMap<>();
+        standardParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
+        standardParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "STRING");
+        standardParams.put(
+                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                valueSchemaFile.getFileName().toString());
+        standardParams.put(
                 ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
                 "http://value-host:8080/registry");
-        adapterParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
-        adapterParams.put(ConnectorConfig.KEY_SCHEMA_FILE, keySchemaFile.getFileName().toString());
-        adapterParams.put(
+        standardParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
+        standardParams.put(
+                ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
+        standardParams.put(
                 ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
-        adapterParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
-        adapterParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
-        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
-        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
-        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
-        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
-        adapterParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
-        adapterParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
-        adapterParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
-        adapterParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
-        adapterParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
-        adapterParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
-        adapterParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
-        adapterParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
-        adapterParams.put("item-template.template1", "item1");
-        adapterParams.put("item-template.template2", "item2");
-        adapterParams.put("map.topic1.to", "template1");
-        adapterParams.put("map.topic2.to", "template2");
-        adapterParams.put("field.fieldName1", "bar");
-        return adapterParams;
+        standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
+        standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
+        standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        standardParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
+        standardParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
+        standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+        standardParams.put("item-template.template1", "item1");
+        standardParams.put("item-template.template2", "item2");
+        standardParams.put("map.topic1.to", "template1");
+        standardParams.put("map.topic2.to", "template2");
+        standardParams.put("field.fieldName1", "bar");
+        return standardParams;
+    }
+
+    private Map<String, String> encryptionParameters() {
+        Map<String, String> encryptionParams = new HashMap<>();
+        encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
+        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
+        return encryptionParams;
     }
 
     @Test
@@ -564,6 +579,28 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldFailDueToInvaludSchemaPath() {
+        Map<String, String> keys =
+                Map.of(
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        "[key.evaluator.schema.path]",
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        "[value.evaluator.schema.path]");
+        for (Map.Entry<String, String> entry : keys.entrySet()) {
+            Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+            updatedConfig.put(entry.getKey(), "invalidSchemaPath");
+            ConfigException e =
+                    assertThrows(
+                            ConfigException.class,
+                            () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+            assertThat(e.getMessage())
+                    .isEqualTo(
+                            "Not found file [%s/invalidSchemaPath] specified in [%s]"
+                                    .formatted(adapterDir, entry.getKey()));
+        }
+    }
+
+    @Test
     public void shouldGetOverridenGroupId() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.GROUP_ID, "group-id");
@@ -689,6 +726,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetEncryptionEnabled() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+        assertThat(config.isEncryptionEnabled()).isFalse();
+    }
+
+    @Test
     public void shouldGetDefaultEvaluator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
@@ -732,17 +776,17 @@ public class ConnectorConfigTest {
     public void shouldGetFiles() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getFile(ConnectorConfig.KEY_SCHEMA_FILE))
+        assertThat(config.getFile(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH))
                 .isEqualTo(keySchemaFile.toString());
-        assertThat(config.getFile(ConnectorConfig.VALUE_SCHEMA_FILE))
+        assertThat(config.getFile(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH))
                 .isEqualTo(valueSchemaFile.toString());
     }
 
     @Test
     public void shouldGetNotExistingNonRequiredFiles() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
-        assertThat(config.getFile(ConnectorConfig.KEY_SCHEMA_FILE)).isNull();
-        assertThat(config.getFile(ConnectorConfig.VALUE_SCHEMA_FILE)).isNull();
+        assertThat(config.getFile(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH)).isNull();
+        assertThat(config.getFile(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH)).isNull();
     }
 
     @Test
@@ -757,5 +801,67 @@ public class ConnectorConfigTest {
         assertThat(config.getInt(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS)).isNull();
         assertThat(config.getInt(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS)).isNull();
+    }
+
+    @Test
+    public void shouldSpecifyEncryptionRequiredParamater() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [encryption.truststore.path]");
+
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.truststore.path]");
+
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "aFile");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Not found file [aFile] specified in [encryption.truststore.path]");
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [encryption.truststore.password]");
+
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
+
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldRetrieveBaseConsumerPropertiesWithEncryption() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(encryptionParameters());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isEncryptionEnabled()).isTrue();
+        assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SSL);
     }
 }

@@ -46,6 +46,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -71,11 +72,11 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
 
-    public static final String KEY_SCHEMA_FILE = "key.evaluator.schema.file";
+    public static final String KEY_EVALUATOR_SCHEMA_PATH = "key.evaluator.schema.path";
 
     public static final String VALUE_EVALUATOR_TYPE = "value.evaluator.type";
 
-    public static final String VALUE_SCHEMA_FILE = "value.evaluator.schema.file";
+    public static final String VALUE_EVALUATOR_SCHEMA_PATH = "value.evaluator.schema.path";
 
     public static final String GROUP_ID = "group.id";
 
@@ -168,14 +169,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(KEY_SCHEMA_FILE, false, false, FILE)
+                        .add(KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
                                 VALUE_EVALUATOR_TYPE,
                                 false,
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(VALUE_SCHEMA_FILE, false, false, FILE)
+                        .add(VALUE_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -318,11 +319,11 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean hasKeySchemaFile() {
-        return getFile(KEY_SCHEMA_FILE) != null;
+        return getFile(KEY_EVALUATOR_SCHEMA_PATH) != null;
     }
 
     public boolean hasValueSchemaFile() {
-        return getFile(VALUE_SCHEMA_FILE) != null;
+        return getFile(VALUE_EVALUATOR_SCHEMA_PATH) != null;
     }
 
     public String getMetadataAdapterName() {
@@ -347,5 +348,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isEncryptionEnabled() {
         return getBoolean(ENABLE_ENCRYTPTION).equals("true");
+    }
+
+    public SecurityProtocol getSecurityProtocol() {
+        return SecurityProtocol.valueOf(
+                get(EncryptionConfigs.SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
     }
 }

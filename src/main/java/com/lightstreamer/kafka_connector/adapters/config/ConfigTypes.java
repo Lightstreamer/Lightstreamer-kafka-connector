@@ -55,7 +55,6 @@ public class ConfigTypes {
     }
 
     public enum KeystoreType {
-        PEM,
         JKS,
         PKCS12;
 

@@ -29,6 +29,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityPro
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.common.config.SecurityConfig;
 import org.apache.kafka.common.config.SslConfigs;
 
 import java.util.Properties;
@@ -37,8 +38,8 @@ public class EncryptionConfigs {
 
     public static String SECURITY_PROTOCOL = "encryption.security.protocol";
 
-    public static String SSL_ENABLED_PROTOCOLS = "encryption.ssl.enabled.protocols";
-    public static String SSL_PROTOCOL = "encryption.ssl.protocol";
+    public static String SSL_ENABLED_PROTOCOLS = "encryption.enabled.protocols";
+    public static String SSL_PROTOCOL = "encryption.protocol";
 
     public static String TRUSTSTORE_TYPE = "encryption.truststore.type";
     public static String TRUSTSTORE_PATH = "encryption.truststore.path";
@@ -49,14 +50,14 @@ public class EncryptionConfigs {
     public static String KEYSTORE_PASSWORD = "encryption.keystore.password";
 
     public static String ENABLE_HOSTNAME_VERIFICATION =
-            "encryption.ssl.endpoint.identification.algorithm";
-    public static String SSL_CIPHER_SUITES = "encryption.ssl.cipher.suites";
-    public static String SSL_PROVIDER = "encryption.ssl.provider";
-    public static String SSL_EGINE_FACTORY_CLASS = "encryption.ssl.engine.factory.class";
-    public static String SSL_KEYMANAGER_ALGORITHM = "encryption.ssl.keymanager.algorithm";
+            "encryption.endpoint.identification.algorithm";
+    public static String SSL_CIPHER_SUITES = "encryption.cipher.suites";
+    public static String SSL_PROVIDER = "encryption.provider";
+    public static String SSL_EGINE_FACTORY_CLASS = "encryption.engine.factory.class";
+    public static String SSL_KEYMANAGER_ALGORITHM = "encryption.keymanager.algorithm";
     public static String SSL_SECURE_RANDOM_IMPLEMENTATION =
-            "encryption.ssl.secure.random.implementation";
-    public static String SSL_TRUSTMANAGER_ALGORITHM = "encryption.ssl.trustmanager.algorithm";
+            "encryption.secure.random.implementation";
+    public static String SSL_TRUSTMANAGER_ALGORITHM = "encryption.trustmanager.algorithm";
     public static String SECURITY_PROVIDERS = "encryption.security.providers";
 
     private static ConfigSpec CONFIG_SPEC;
@@ -132,6 +133,11 @@ public class EncryptionConfigs {
                     properties,
                     SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
                     config.getText(SSL_ENABLED_PROTOCOLS));
+            copySetting(properties, SslConfigs.SSL_PROTOCOL_CONFIG, config.getText(SSL_PROTOCOL));
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                    config.get(TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
             copySetting(
                     properties,
                     SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
@@ -142,8 +148,8 @@ public class EncryptionConfigs {
                     config.getText(TRUSTSTORE_PASSWORD));
             copySetting(
                     properties,
-                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
-                    config.get(TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+                    SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                    config.get(KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
             copySetting(
                     properties,
                     SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
@@ -152,13 +158,30 @@ public class EncryptionConfigs {
                     properties,
                     SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
                     config.getText(KEYSTORE_PASSWORD));
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
-                    config.get(KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
             if (config.getBoolean(ENABLE_HOSTNAME_VERIFICATION).equals("false")) {
                 properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_CIPHER_SUITES_CONFIG,
+                    config.getText(SSL_CIPHER_SUITES));
+            copySetting(properties, SslConfigs.SSL_PROVIDER_CONFIG, config.getText(SSL_PROVIDER));
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
+                    config.getText(SSL_EGINE_FACTORY_CLASS));
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG,
+                    config.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
+                    config.getText(SSL_TRUSTMANAGER_ALGORITHM));
+            copySetting(
+                    properties,
+                    SecurityConfig.SECURITY_PROVIDERS_CONFIG,
+                    config.getText(SECURITY_PROVIDERS));
         }
 
         return properties;

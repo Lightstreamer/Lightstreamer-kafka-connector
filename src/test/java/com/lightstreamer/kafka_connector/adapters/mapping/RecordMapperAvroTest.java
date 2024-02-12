@@ -42,7 +42,7 @@ public class RecordMapperAvroTest {
                 SelectorsSuppliers.avroValue(
                         ConnectorConfigProvider.minimalWith(
                                 "src/test/resources",
-                                Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc"))),
+                                Map.of(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH, "value.avsc"))),
                 schemaName,
                 entries);
     }

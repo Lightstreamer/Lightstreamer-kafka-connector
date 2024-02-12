@@ -80,15 +80,6 @@ public class EncryptionConfigsTest {
         assertThat(sslCipherSuites.defaultValue()).isNull();
         assertThat(sslCipherSuites.type()).isEqualTo(ConfType.TEXT_LIST);
 
-        ConfParameter securityProviders =
-                configSpec.getParameter(EncryptionConfigs.SECURITY_PROVIDERS);
-        assertThat(securityProviders.name()).isEqualTo(EncryptionConfigs.SECURITY_PROVIDERS);
-        assertThat(securityProviders.required()).isFalse();
-        assertThat(securityProviders.multiple()).isFalse();
-        assertThat(securityProviders.mutable()).isTrue();
-        assertThat(securityProviders.defaultValue()).isNull();
-        assertThat(securityProviders.type()).isEqualTo(ConfType.TEXT);
-
         ConfParameter sslProviders = configSpec.getParameter(EncryptionConfigs.SSL_PROVIDER);
         assertThat(sslProviders.name()).isEqualTo(EncryptionConfigs.SSL_PROVIDER);
         assertThat(sslProviders.required()).isFalse();
@@ -136,8 +127,14 @@ public class EncryptionConfigsTest {
         assertThat(sslTrustManagerAlgorithm.mutable()).isTrue();
         assertThat(sslTrustManagerAlgorithm.defaultValue()).isNull();
         assertThat(sslTrustManagerAlgorithm.type()).isEqualTo(ConfType.TEXT);
-    }
 
-    @Test
-    void testWithEncryptionConfig() {}
+        ConfParameter securityProviders =
+                configSpec.getParameter(EncryptionConfigs.SECURITY_PROVIDERS);
+        assertThat(securityProviders.name()).isEqualTo(EncryptionConfigs.SECURITY_PROVIDERS);
+        assertThat(securityProviders.required()).isFalse();
+        assertThat(securityProviders.multiple()).isFalse();
+        assertThat(securityProviders.mutable()).isTrue();
+        assertThat(securityProviders.defaultValue()).isNull();
+        assertThat(securityProviders.type()).isEqualTo(ConfType.TEXT);
+    }
 }

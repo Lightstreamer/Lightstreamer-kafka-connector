@@ -72,7 +72,8 @@ public class GenericRecordDeserializerTest {
 
     @Test
     public void shouldDeserializeKeyWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.KEY_SCHEMA_FILE, "value.avsc");
+        Map<String, String> otherConfigs =
+                Map.of(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
 
@@ -84,7 +85,8 @@ public class GenericRecordDeserializerTest {
 
     @Test
     public void shouldDeserializeValueWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs = Map.of(ConnectorConfig.VALUE_SCHEMA_FILE, "value.avsc");
+        Map<String, String> otherConfigs =
+                Map.of(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH, "value.avsc");
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
 

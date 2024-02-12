@@ -44,9 +44,9 @@ public class SelectorsTest {
         return ConnectorConfigProvider.minimalWith(
                 "src/test/resources",
                 Map.of(
-                        ConnectorConfig.KEY_SCHEMA_FILE,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
-                        ConnectorConfig.VALUE_SCHEMA_FILE,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc"));
     }
 

@@ -59,8 +59,9 @@ public class ConsumerLoopConfigurator {
         RecordErrorHandlingStrategy recordErrorHandlingStrategy();
     }
 
-    private final Logger log;
     private final ConnectorConfig connectorConfig;
+
+    private final Logger log;
 
     private ConsumerLoopConfigurator(ConnectorConfig config) {
         this.connectorConfig = config;
@@ -101,7 +102,7 @@ public class ConsumerLoopConfigurator {
                     valueDeserializer,
                     connectorConfig.getRecordExtractionErrorHandlingStrategy());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
