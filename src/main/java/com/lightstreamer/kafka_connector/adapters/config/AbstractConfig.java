@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Function;
 
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
@@ -58,6 +59,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final String getText(String configKey) {
+        return get(configKey, TEXT, false);
+    }
+
+    public final String getText(String configKey, boolean forceRequired) {
         return get(configKey, TEXT, false);
     }
 
@@ -90,7 +95,11 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final String getFile(String configKey) {
-        return get(configKey, ConfType.FILE, false);
+        return getFile(configKey, false);
+    }
+
+    public final String getFile(String configKey, boolean forceRequired) {
+        return get(configKey, ConfType.FILE, forceRequired);
     }
 
     protected final String get(String key, Type type, boolean forceRequired) {
@@ -113,7 +122,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final Map<String, String> getValues(String configKey, boolean remap) {
-        ConfParameter param = this.configSpec.getParameter(configKey);
+        ConfParameter param = configSpec.getParameter(configKey);
         if (param.multiple()) {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {
@@ -153,5 +162,11 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             }
         }
         return updatedConfigs;
+    }
+
+    public static void copySetting(Properties properties, String toKey, String value) {
+        if (value != null) {
+            properties.setProperty(toKey, value);
+        }
     }
 }

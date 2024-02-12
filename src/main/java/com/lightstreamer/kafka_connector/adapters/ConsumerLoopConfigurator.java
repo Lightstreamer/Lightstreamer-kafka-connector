@@ -101,6 +101,7 @@ public class ConsumerLoopConfigurator {
                     valueDeserializer,
                     connectorConfig.getRecordExtractionErrorHandlingStrategy());
         } catch (Exception e) {
+            e.printStackTrace();
             throw new ConfigException(e.getMessage());
         }
     }

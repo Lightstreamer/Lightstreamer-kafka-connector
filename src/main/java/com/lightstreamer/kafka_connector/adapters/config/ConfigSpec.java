@@ -17,8 +17,9 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
+
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
@@ -290,6 +291,8 @@ class ConfigSpec {
 
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
+    private Map<ConfParameter, ConfigSpec> subsections = new HashMap<>();
+
     ConfigSpec add(
             String name,
             boolean required,
@@ -346,6 +349,17 @@ class ConfigSpec {
         return this;
     }
 
+    ConfigSpec addConfigSpec(ConfigSpec spec, String enablingKey) {
+        ConfParameter enablingPar = getParameter(enablingKey);
+        if (enablingPar == null || !enablingPar.type().equals(BOOL)) {
+            throw new ConfigException(
+                    "Since no paramerter [%s] of type BOOL has been found, can't add parameters subsection"
+                            .formatted(enablingKey));
+        }
+        subsections.put(enablingPar, spec);
+        return this;
+    }
+
     ConfParameter getParameter(String name) {
         return paramSpec.get(name);
     }
@@ -384,7 +398,19 @@ class ConfigSpec {
                 .filter(c -> c.mutable())
                 .forEach(c -> c.populate(originals, parsedValues));
 
+        subsections.forEach(
+                (confParamater, confSpec) -> {
+                    String enabled = parsedValues.getOrDefault(confParamater.name(), "false");
+                    if (enabled.equals("true")) {
+                        parsedValues.putAll(confSpec.parse(originals));
+                    }
+                });
         return parsedValues;
+    }
+
+    public ConfigSpec withEncryptionConfig(String enableKey) {
+        EncryptionConfigs.withEncryptionConfig(this, enableKey);
+        return this;
     }
 }
 
@@ -403,9 +429,6 @@ record ConfParameter(
 
     void populate(Map<String, String> source, Map<String, String> destination)
             throws ConfigException {
-        // if (!mutable()) {
-        // throw new ConfigException("Cannot modify parameter [%s]".formatted(name()));
-        // }
         List<String> keys = Collections.singletonList(name());
         if (multiple()) {
             keys =
@@ -448,9 +471,5 @@ record ConfParameter(
                 destination.put(key, type.getValue(paramValue));
             }
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(ConfType.SSL_ENABLED_PROTOCOLS.isValid("TLSv1.a,TLSv1.3"));
     }
 }

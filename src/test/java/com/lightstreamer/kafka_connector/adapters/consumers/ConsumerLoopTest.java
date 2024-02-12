@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
-import com.lightstreamer.kafka_connector.adapters.config.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
@@ -40,9 +40,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Properties;
 
 class TestMetadataListener implements MetadataListener {
-
-    @Override
-    public void disableAdapter() {}
 
     @Override
     public void forceUnsubscription(String item) {}

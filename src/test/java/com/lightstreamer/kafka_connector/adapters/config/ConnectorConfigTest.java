@@ -24,6 +24,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -225,6 +227,15 @@ public class ConnectorConfigTest {
         assertThat(autoOffsetReset.mutable()).isTrue();
         assertThat(autoOffsetReset.defaultValue()).isEqualTo("latest");
         assertThat(autoOffsetReset.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter encryptionEnabed =
+                configSpec.getParameter(ConnectorConfig.ENABLE_ENCRYTPTION);
+        assertThat(encryptionEnabed.name()).isEqualTo(ConnectorConfig.ENABLE_ENCRYTPTION);
+        assertThat(encryptionEnabed.required()).isFalse();
+        assertThat(encryptionEnabed.multiple()).isFalse();
+        assertThat(encryptionEnabed.mutable()).isTrue();
+        assertThat(encryptionEnabed.defaultValue()).isEqualTo("false");
+        assertThat(encryptionEnabed.type()).isEqualTo(ConfType.BOOL);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

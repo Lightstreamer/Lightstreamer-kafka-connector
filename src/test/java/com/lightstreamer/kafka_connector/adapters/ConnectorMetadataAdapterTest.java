@@ -57,13 +57,13 @@ public class ConnectorMetadataAdapterTest {
                         ConfigException.class,
                         () -> connectorMetadataAdapter.init(params, adapterDir.toFile()));
         assertThat(e.getMessage())
-                .isEqualTo("Missing required parameter [logging.configuration.file]");
+                .isEqualTo("Missing required parameter [logging.configuration.path]");
     }
 
     @Test
     void shouldInit() throws MetadataProviderException {
         params.put(
-                GlobalConfig.LOGGING_CONFIGURATION_FILE,
+                GlobalConfig.LOGGING_CONFIGURATION_PATH,
                 loggingConfigurationFile.getFileName().toString());
         connectorMetadataAdapter.init(params, adapterDir.toFile());
     }

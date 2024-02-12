@@ -26,7 +26,7 @@ import java.util.Map;
 
 public final class GlobalConfig extends AbstractConfig {
 
-    public static final String LOGGING_CONFIGURATION_FILE = "logging.configuration.file";
+    public static final String LOGGING_CONFIGURATION_PATH = "logging.configuration.path";
 
     private static final ConfigSpec CONFIG_SPEC;
 
@@ -35,7 +35,7 @@ public final class GlobalConfig extends AbstractConfig {
                 new ConfigSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ADAPTER_DIR, true, false, DIRECTORY)
-                        .add(LOGGING_CONFIGURATION_FILE, true, false, FILE);
+                        .add(LOGGING_CONFIGURATION_PATH, true, false, FILE);
     }
 
     private GlobalConfig(ConfigSpec spec, Map<String, String> configs) {

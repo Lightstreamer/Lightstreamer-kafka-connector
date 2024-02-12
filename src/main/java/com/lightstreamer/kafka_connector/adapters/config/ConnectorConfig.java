@@ -22,7 +22,6 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfT
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.SECURITY_PROTOCOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
@@ -94,6 +93,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
+
+    public static final String ENABLE_ENCRYTPTION = "encryption.enabled";
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -183,6 +184,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
+                        .add(ENABLE_ENCRYTPTION, false, false, BOOL, defaultValue("false"))
                         .add(
                                 CONSUMER_AUTO_OFFSET_RESET_CONFIG,
                                 false,
@@ -234,12 +236,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .add(
-                                "consume.security.protocol",
-                                false,
-                                false,
-                                SECURITY_PROTOCOL,
-                                defaultValue("SSL"));
+                        .withEncryptionConfig(ENABLE_ENCRYTPTION);
     }
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
@@ -295,13 +292,8 @@ public final class ConnectorConfig extends AbstractConfig {
                 getInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
         copySetting(properties, AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
+        properties.putAll(EncryptionConfigs.addEncryption(this));
         return properties;
-    }
-
-    private void copySetting(Properties properties, String toKey, String value) {
-        if (value != null) {
-            properties.setProperty(toKey, value);
-        }
     }
 
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
@@ -351,5 +343,9 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public String getItemInfoField() {
         return getText(ITEM_INFO_FIELD);
+    }
+
+    public boolean isEncryptionEnabled() {
+        return getBoolean(ENABLE_ENCRYTPTION).equals("true");
     }
 }

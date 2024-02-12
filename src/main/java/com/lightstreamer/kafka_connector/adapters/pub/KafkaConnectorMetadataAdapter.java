@@ -63,7 +63,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
     }
 
     private void configureLogging(File configDir) throws ConfigException {
-        String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE);
+        String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
         this.log = LoggerFactory.getLogger(ConnectorMetadataAdapter.class);
     }

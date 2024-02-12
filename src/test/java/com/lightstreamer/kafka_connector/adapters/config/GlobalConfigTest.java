@@ -67,9 +67,9 @@ public class GlobalConfigTest {
         assertThat(adapterDir.type()).isEqualTo(DIRECTORY);
 
         ConfParameter loggingConfigurationFile =
-                configSpec.getParameter(GlobalConfig.LOGGING_CONFIGURATION_FILE);
+                configSpec.getParameter(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         assertThat(loggingConfigurationFile.name())
-                .isEqualTo(GlobalConfig.LOGGING_CONFIGURATION_FILE);
+                .isEqualTo(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         assertThat(loggingConfigurationFile.required()).isTrue();
         assertThat(loggingConfigurationFile.multiple()).isFalse();
         assertThat(loggingConfigurationFile.mutable()).isTrue();
@@ -110,17 +110,17 @@ public class GlobalConfigTest {
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
-                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_FILE));
+                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_PATH));
 
-        params.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, "non-existing-conf-file");
+        params.put(GlobalConfig.LOGGING_CONFIGURATION_PATH, "non-existing-conf-file");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Not found file [non-existing-conf-file] specified in [%s]"
-                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_FILE));
+                                .formatted(GlobalConfig.LOGGING_CONFIGURATION_PATH));
 
         params.put(
-                GlobalConfig.LOGGING_CONFIGURATION_FILE,
+                GlobalConfig.LOGGING_CONFIGURATION_PATH,
                 Path.of(adapterDir.toString(), loggingConfigurationFile.getFileName().toString())
                         .toString());
         assertDoesNotThrow(() -> new GlobalConfig(params));
@@ -133,7 +133,7 @@ public class GlobalConfigTest {
 
         // Ensure we are specifying a path name relative to the provided adapter dir.
         String farthestPathName = loggingConfigurationFile.getFileName().toString();
-        adapterParams.put(GlobalConfig.LOGGING_CONFIGURATION_FILE, farthestPathName);
+        adapterParams.put(GlobalConfig.LOGGING_CONFIGURATION_PATH, farthestPathName);
 
         return adapterParams;
     }
@@ -143,7 +143,7 @@ public class GlobalConfigTest {
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
         assertThat(config.getText(GlobalConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getDirectory(GlobalConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
-        assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_FILE))
+        assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH))
                 .isEqualTo(loggingConfigurationFile.toString());
     }
 }

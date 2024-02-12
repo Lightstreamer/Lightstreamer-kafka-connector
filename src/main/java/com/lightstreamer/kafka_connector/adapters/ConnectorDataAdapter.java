@@ -61,8 +61,13 @@ public final class ConnectorDataAdapter implements SmartDataProvider {
                         connectorConfig.getAdapterName(), connectorConfig.isEnabled());
 
         log.info("Configuring Kafka Connector");
-        loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
-        log.info("Configuration complete");
+        try {
+            loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
+            log.info("Configuration complete");
+        } catch (RuntimeException e) {
+            log.atError().setCause(e).log();
+            throw e;
+        }
     }
 
     @Override

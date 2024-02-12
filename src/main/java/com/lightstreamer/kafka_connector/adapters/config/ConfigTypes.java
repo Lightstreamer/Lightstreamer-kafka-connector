@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class ConfigTypes {
 
     public enum SecurityProtocol {
-        PLAIN_TEXT,
         SASL_PLAINTEXT,
         SASL_SSL,
         SSL;
@@ -45,6 +44,10 @@ public class ConfigTypes {
                 return "TLSv1.3";
             }
         };
+
+        public static String valueStr() {
+            return names().stream().collect(Collectors.joining(","));
+        }
 
         public static Set<String> names() {
             return ConfigTypes.names(values());

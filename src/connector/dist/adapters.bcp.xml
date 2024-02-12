@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+
+<!--
+    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
+
+
+    A very simple variable-expansion feature is available; see
+    <enable_expansion_for_adapters_config> in the Server's main configuration file.
+-->
+
+<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
+<adapters_conf id="KafkaConnector">
+    <metadata_provider>
+        <!-- Java class name of the Kafka Connector Metadata Adapter. DO NOT EDIT IT. -->
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter</adapter_class>
+
+        <!-- Mandatory. Path of the configuration file for the log4j-based logging system.
+             The file path is relative to the Kafka Connector deployment directory.
+        -->
+        <param name="logging.configuration.path">log4j.properties</param>
+
+    </metadata_provider>
+
+    <!-- The Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
+         Kafka clusters. 
+         Every single connection is configured via the definition of its own Lightstreamer Data Adapter.
+         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
+         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
+         configuration.
+
+         At least one connection configuration must be provided.
+         Every configuration is distinguished throug the "name" attribute, which is "DEFAULT" if not provided,
+         but only one "DEFAULT" configuration is permitted. -->
+    <!-- <data_provider name="BrokerConnection">
+
+        <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
+
+        <!-- Optional. Enabling flag. Can be one of the following:
+                - "true": Enables the connection.
+                - "false": Disables the connection.
+                Default: "true". -->
+        <!--
+        <param name="enable">false</param>
+        -->
+
+        <!-- Mandatory. The list of host/port pairs used to establish the initial connection to the Kafka cluster.
+             The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers for more details.
+         -->
+        <param name="bootstrap.servers">broker:29092,broker:29003</param>
+
+        <!-- Optional. The name of the consumer group this connection belongs to.
+             The parameter sets the value for the "group.id" key used to configure the internal
+             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
+             If not specified, the Lightstreamer Kafka Connector automatically set the consumer group name by
+             
+             Default:  Adapter Set id + the Data Adapter name + randomly generated suffix. -->
+        <!--
+        param name="group.id">kafka-connector-group</param>
+        -->
+
+        <!-- Lightstreamer Clients can subscribe to a special "service" item through which the Kafka Connector can
+             send update about any issue while processing the records received fron the Kafka cluster.
+             The following parameters configure such a service item. -->
+        <!-- Optional. The name of the service item.
+             Default: "INFO". -->
+        <!--
+        <param name="info.item">connection_info</param>
+        -->
+        <!-- Optional. The field name of service item.
+             Default: "MSG". -->
+        <!--
+        <param name="info.field">connection_message</param>
+        -->
+
+        <!-- Optional. The strategy to be used if an error occurs while extracting data from incoming records.
+                Can be one of the following:
+                - "IGNORE_AND_CONTINUE": Ignore the error and continue to process the next record.
+                - "FORCE_UNSUBSCRIPTION": Stop processing records and force unsubscription of the items 
+                  requested by all Lightstreamer clients subscribed to this connection.
+                Default: "IGNORE_AND_CONTINUE". -->
+        <!-- 
+        <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+        -->
+
+
+        <!--<param name="encryption.enable">true</param>-->
+
+        <!-- Map one topic to one item -->
+        <param name="item-template.user">user</param>
+        <param name="map.topic-avro-one-to-one.to">item-template.user</param>
+        <param name="value.evaluator.type">AVRO</param>
+        <!-- <param name="value.evaluator.schema.file">user-value.avsc</param> -->
+        <param name="key.evaluator.type">AVRO</param>
+        <!-- <param name="key.evaluator.schema.file">user-key.avsc</param> -->
+        <param name="key.evaluator.schema.registry.url">http://schema-registry:8081</param>
+        <param name="value.evaluator.schema.registry.url">http://schema-registry:8081</param>
+
+        <param name="field.key-name">#{KEY.name}</param>
+        <param name="field.age">#{VALUE.info.age}</param>
+        <param name="field.height">#{VALUE.info.height}</param>
+        <param name="field.zipcode1">#{VALUE.addresses[0].zipcode}</param>
+        <param name="field.zipcode2">#{VALUE.addresses[1].zipcode}</param>
+        <param name="field.docid">#{VALUE.documents['doc_id']['doc_id']}</param>
+        <param name="field.doc_type">#{VALUE.documents['doc_id'].doc_type}</param>
+        <param name="field.pref1">#{VALUE.preferences['pref1']}</param>
+        <param name="field.type">#{VALUE.type}</param>
+        <param name="field.signature">#{VALUE.signature}</param>
+        <param name="field.union">#{VALUE.union}</param>
+        <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Map one topic to multimple items -->
+        <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-#{name=User.name,friend=User.friends}</param>-->
+        <!--<param name="map.topic-avro-one-to-many.to">kafka-avro-item2</param> -->
+
+        <!-- Map many topics to one item -->
+        <!-- <param name="map.topic-avro-many-to-one-2.to">kafka-avro-many-topics</param> -->
+
+        <!-- Map one topic to one item template -->
+        <!-- <param name="map.topic-avro.to">kafka-user-#{name=User.name,age=User.info.age}</param> -->
+
+        <!-- Map one topic to many item templates -->
+        <!--<param name="map.topic-avro.to">kafka-user-#{name=User.name},kafka-user-#{age=User.info.age}</param>-->
+
+        <!--<param name="map.topic-avro-3.to">kafka-topic</param> -->
+
+        <!--<param name="field.name">User.name</param> -->
+        <!-- <param name="field.favorite_number">VALUE.User.favorite_number</param>
+        <param name="field.age">VALUE.User.info.age</param>
+        <param name="field.height">VALUE.User.info.height</param>
+        <param name="field.zipcode1">VALUE.User.addresses[0].zipcode</param>
+        <param name="field.zipcode2">VALUE.User.addresses[1].zipcode</param> -->
+    </data_provider> -->
+
+    <data_provider name="QuickStart">
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
+
+        <!-- The Kafka cluster address -->
+        <param name="bootstrap.servers">broker:29094</param>
+
+        <param name="group.id">test</param>
+
+        <param name="enabled">true</param>
+
+        <!-- TOPIC MAPPING SECTION -->
+
+        <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+        <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
+        <param name="item-template.sample2">sample</param>
+
+        <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
+        <param name="map.sample-topic.to">item-template.sample1,item-template.sample2</param>
+        <!--<param name="map.sample-topic2.to">item-template.sample2</param>-->
+
+        <param name="encryption.enable">true</param>
+        <!--<param name="encryption.security.protocol">SSL</param>-->
+        <param name="encryption.truststore.path">../secrets/kafka.client.truststore.jks</param>
+        <param name="encryption.truststore.password">password</param>
+
+        <!-- FIELDS MAPPING SECTION -->
+
+        <!-- Extraction of the record key mapped to the field "key". -->
+        <param name="field.key">#{KEY}</param>
+
+        <!-- Extraction of the record value mapped to the field "value". -->
+        <param name="field.value">#{VALUE}</param>
+
+        <!-- Extraction of the record timestamp to the field "ts". -->
+        <param name="field.ts">#{TIMESTAMP}</param>
+
+        <!-- Extraction of the record partition mapped to the field "partition". -->
+        <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Extraction of the record offset mapped to the field "offset". -->
+        <param name="field.offset">#{OFFSET}</param>
+    </data_provider>
+
+
+</adapters_conf>
