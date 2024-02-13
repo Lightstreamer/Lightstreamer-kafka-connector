@@ -36,7 +36,7 @@ public class ConfigTypes {
         SSL;
 
         public static Set<String> names() {
-            return ConfigTypes.names(values());
+            return enumNames(values());
         }
     }
 
@@ -77,7 +77,17 @@ public class ConfigTypes {
         }
 
         public static Set<String> names() {
-            return ConfigTypes.names(values());
+            return enumNames(values());
+        }
+    }
+
+    public enum SaslMechanism {
+        PLAIN,
+        SCRAM_256,
+        SCRAM_512;
+
+        public static Set<String> names() {
+            return enumNames(values());
         }
     }
 
@@ -86,7 +96,7 @@ public class ConfigTypes {
         PKCS12;
 
         public static Set<String> names() {
-            return ConfigTypes.names(values());
+            return enumNames(values());
         }
     }
 
@@ -96,7 +106,7 @@ public class ConfigTypes {
         STRING;
 
         public static Set<String> names() {
-            return ConfigTypes.names(values());
+            return enumNames(values());
         }
     }
 
@@ -105,11 +115,11 @@ public class ConfigTypes {
         FORCE_UNSUBSCRIPTION;
 
         public static Set<String> names() {
-            return ConfigTypes.names(values());
+            return enumNames(values());
         }
     }
 
-    private static Set<String> names(Enum<?>[] e) {
+    private static Set<String> enumNames(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
     }
 }

@@ -99,6 +99,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String ENABLE_ENCRYTPTION = "encryption.enabled";
 
+    public static final String ENABLE_AUTHENTICATION = "authentication.enabled";
+
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
     public static final String CONSUMER_AUTO_OFFSET_RESET_CONFIG =
@@ -188,6 +190,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
                         .add(ENABLE_ENCRYTPTION, false, false, BOOL, defaultValue("false"))
+                        .add(ENABLE_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
                         .add(
                                 CONSUMER_AUTO_OFFSET_RESET_CONFIG,
                                 false,
@@ -239,7 +242,8 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .withEncryptionConfigs(ENABLE_ENCRYTPTION);
+                        .withEncryptionConfigs(ENABLE_ENCRYTPTION)
+                        .withAuthenticationConfigs(ENABLE_AUTHENTICATION);
     }
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
@@ -371,6 +375,13 @@ public final class ConnectorConfig extends AbstractConfig {
         }
     }
 
+    private void checkAuthenticationEnabled() {
+        if (!isAuthenticationEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not enabled".formatted(ENABLE_AUTHENTICATION));
+        }
+    }
+
     public SecurityProtocol getSecurityProtocol() {
         checkEncryptionEnabled();
         return SecurityProtocol.valueOf(
@@ -447,5 +458,24 @@ public final class ConnectorConfig extends AbstractConfig {
     public String getKeyPassword() {
         checkKeystoreEnabled();
         return getText(KeystoreConfigs.KEY_PASSWORD);
+    }
+
+    public boolean isAuthenticationEnabled() {
+        return getBoolean(ENABLE_AUTHENTICATION).equals("true");
+    }
+
+    public String getAuthenticationMechanism() {
+        checkAuthenticationEnabled();
+        return get(AuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false);
+    }
+
+    public String getAuthenticationUsername() {
+        checkAuthenticationEnabled();
+        return getText(AuthenticationConfigs.USERNAME);
+    }
+
+    public String getAuthenticationPassword() {
+        checkAuthenticationEnabled();
+        return getText(AuthenticationConfigs.PASSWORD);
     }
 }

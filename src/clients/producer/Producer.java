@@ -17,11 +17,13 @@
 
 package producer;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import picocli.CommandLine.Option;
@@ -58,7 +60,7 @@ public class Producer implements Runnable {
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.setProperty(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        // properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+        properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
         // properties.setProperty(
         //         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
         // "secrets/kafka.client.truststore.jks");
@@ -66,6 +68,11 @@ public class Producer implements Runnable {
         // properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
         // ssl.truststore.password=test1234
         // Create and start the producer.
+        properties.setProperty(SaslConfigs.SASL_MECHANISM, "PLAIN");
+        properties.setProperty(
+                SaslConfigs.SASL_JAAS_CONFIG,
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='admin-secret1';");
+
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
             int key = 0;
             while (true) {

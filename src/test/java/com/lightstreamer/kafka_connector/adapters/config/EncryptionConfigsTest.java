@@ -24,6 +24,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import org.junit.jupiter.api.Test;
 
 public class EncryptionConfigsTest {
+
     @Test
     void shouldReturnConfigSpec() {
         ConfigSpec configSpec = EncryptionConfigs.configSpec();
@@ -60,6 +61,15 @@ public class EncryptionConfigsTest {
         assertThat(trustStorePath.mutable()).isTrue();
         assertThat(trustStorePath.defaultValue()).isNull();
         assertThat(trustStorePath.type()).isEqualTo(ConfType.FILE);
+
+        ConfParameter trustStorePassword =
+                configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_PASSWORD);
+        assertThat(trustStorePassword.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_PASSWORD);
+        assertThat(trustStorePassword.required()).isTrue();
+        assertThat(trustStorePassword.multiple()).isFalse();
+        assertThat(trustStorePassword.mutable()).isTrue();
+        assertThat(trustStorePassword.defaultValue()).isNull();
+        assertThat(trustStorePassword.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter enableHostNameVerification =
                 configSpec.getParameter(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);

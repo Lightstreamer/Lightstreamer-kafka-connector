@@ -74,9 +74,12 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public final List<String> getTextList(String configKey, boolean forceRequired) {
         String value = get(configKey, TEXT_LIST, forceRequired);
-        String[] elements = value.split(",");
-        if (elements.length == 1 && elements[0].isBlank()) {
-            return Collections.emptyList();
+        String[] elements = new String[0];
+        if (value != null) {
+            elements = value.split(",");
+            if (elements.length == 1 && elements[0].isBlank()) {
+                return Collections.emptyList();
+            }
         }
         return Arrays.asList(elements);
     }
@@ -119,16 +122,19 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     protected final String get(String key, Type type, boolean forceRequired) {
         ConfParameter param = configSpec.getParameter(key);
-        if (param.type().equals(type)) {
-            if (param.required() && configuration.containsKey(key)) {
-                return configuration.get(key);
-            } else {
-                String value =
-                        configuration.getOrDefault(key, param.defaultHolder().value(configuration));
-                if (forceRequired && value == null) {
-                    throw new ConfigException("Missing required parameter [%s]".formatted(key));
+        if (param != null) {
+            if (param.type().equals(type)) {
+                if (param.required() && configuration.containsKey(key)) {
+                    return configuration.get(key);
+                } else {
+                    String value =
+                            configuration.getOrDefault(
+                                    key, param.defaultHolder().value(configuration));
+                    if (forceRequired && value == null) {
+                        throw new ConfigException("Missing required parameter [%s]".formatted(key));
+                    }
+                    return value;
                 }
-                return value;
             }
         }
         throw new ConfigException(

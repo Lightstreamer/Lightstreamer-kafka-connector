@@ -95,7 +95,7 @@ public class EncryptionConfigs {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
-                        .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST, defaultValue(""))
+                        .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST)
                         .add(SSL_PROVIDER, false, false, TEXT)
                         .add(SSL_EGINE_FACTORY_CLASS, false, false, TEXT)
                         .add(SSL_KEYMANAGER_ALGORITHM, false, false, TEXT)
@@ -104,10 +104,6 @@ public class EncryptionConfigs {
                         .add(SECURITY_PROVIDERS, false, false, TEXT)
                         .add(ENABLE_MTLS, false, false, ConfType.BOOL, defaultValue("false"))
                         .withKeystoreConfigs(ENABLE_MTLS);
-    }
-
-    static ConfigSpec configSpec() {
-        return CONFIG_SPEC;
     }
 
     static void withEncryptionConfigs(ConfigSpec config, String enablingKey) {

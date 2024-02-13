@@ -24,6 +24,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolde
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 
@@ -101,6 +102,10 @@ class ConfigSpec {
 
         static Options sslProtocols() {
             return new Options(SslProtocol.names());
+        }
+
+        static Options saslMechanisms() {
+            return new Options(SaslMechanism.names());
         }
     }
 
@@ -221,7 +226,9 @@ class ConfigSpec {
 
         SSL_PROTOCOL(Options.sslProtocols()),
 
-        SSL_ENABLED_PROTOCOLS(new ListType(new Options(ConfigTypes.SslProtocol.names())));
+        SSL_ENABLED_PROTOCOLS(new ListType(new Options(ConfigTypes.SslProtocol.names()))),
+
+        SASL_MECHANISM(Options.saslMechanisms());
 
         Type embeddedType;
 
@@ -425,6 +432,11 @@ class ConfigSpec {
 
     public ConfigSpec withKeystoreConfigs(String enableKey) {
         KeystoreConfigs.withKeystoreConfigs(this, enableKey);
+        return this;
+    }
+
+    public ConfigSpec withAuthenticationConfigs(String enableKey) {
+        AuthenticationConfigs.withAuthenticationConfigs(this, enableKey);
         return this;
     }
 }

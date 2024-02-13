@@ -249,6 +249,15 @@ public class ConnectorConfigTest {
         assertThat(encryptionEnabed.mutable()).isTrue();
         assertThat(encryptionEnabed.defaultValue()).isEqualTo("false");
         assertThat(encryptionEnabed.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter authenticationEnabled =
+                configSpec.getParameter(ConnectorConfig.ENABLE_AUTHENTICATION);
+        assertThat(authenticationEnabled.name()).isEqualTo(ConnectorConfig.ENABLE_AUTHENTICATION);
+        assertThat(authenticationEnabled.required()).isFalse();
+        assertThat(authenticationEnabled.multiple()).isFalse();
+        assertThat(authenticationEnabled.mutable()).isTrue();
+        assertThat(authenticationEnabled.defaultValue()).isEqualTo("false");
+        assertThat(authenticationEnabled.type()).isEqualTo(ConfType.BOOL);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -373,6 +382,14 @@ public class ConnectorConfigTest {
         keystoreParams.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.toString());
         keystoreParams.put(KeystoreConfigs.KEYSTORE_PASSWORD, "keystore-password");
         return keystoreParams;
+    }
+
+    private Map<String, String> authenticationParameters() {
+        Map<String, String> authParams = new HashMap<>();
+        authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        authParams.put(AuthenticationConfigs.USERNAME, "username");
+        authParams.put(AuthenticationConfigs.PASSWORD, "password");
+        return authParams;
     }
 
     @Test
@@ -749,6 +766,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetAuthenticationEnabled() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+        assertThat(config.isAuthenticationEnabled()).isFalse();
+    }
+
+    @Test
     public void shouldGetDefaultEvaluator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
@@ -907,7 +931,7 @@ public class ConnectorConfigTest {
         assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
         assertThat(config.isHostNameVerificationEnabled()).isFalse();
         assertThat(config.getCipherSuites()).isEmpty();
-        assertThat(config.getCipherSuitesAsStr()).isEmpty();
+        assertThat(config.getCipherSuitesAsStr()).isNull();
         assertThat(config.getSslProvider()).isNull();
         assertThat(config.isKeystoreEnabled()).isFalse();
 
@@ -925,9 +949,8 @@ public class ConnectorConfigTest {
                         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
                         "truststore-password",
                         SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
-                        "",
-                        SslConfigs.SSL_CIPHER_SUITES_CONFIG,
                         "");
+        assertThat(props).doesNotContainKey(SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
         List<ThrowingRunnable> runnables =
                 List.of(
@@ -1104,5 +1127,92 @@ public class ConnectorConfigTest {
                         keyStoreFile.toString(),
                         SslConfigs.SSL_KEY_PASSWORD_CONFIG,
                         "key-password");
+    }
+
+    @Test
+    public void shouldSpecifyAuthenticationRequiredParameters() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.username]");
+
+        updatedConfig.put(AuthenticationConfigs.USERNAME, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.username]");
+
+        updatedConfig.put(AuthenticationConfigs.USERNAME, "username");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.password]");
+
+        updatedConfig.put(AuthenticationConfigs.PASSWORD, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.password]");
+
+        updatedConfig.put(AuthenticationConfigs.PASSWORD, "password");
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldNotAccessToAuthenticationSettings() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+
+        assertThat(config.isAuthenticationEnabled()).isFalse();
+        assertThrows(ConfigException.class, () -> config.getAuthenticationMechanism());
+        assertThrows(ConfigException.class, () -> config.getAuthenticationUsername());
+        assertThrows(ConfigException.class, () -> config.getAuthenticationPassword());
+        
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.getAuthenticationMechanism(),
+                        () -> config.getAuthenticationUsername(),
+                        () -> config.getAuthenticationPassword()
+                        );
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo("Parameter [authentication.enabled] is not enabled");
+        }        
+    }
+
+
+    @Test
+    public void shouldGetDefaultAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(authenticationParameters());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isAuthenticationEnabled()).isTrue();
+        assertThat(config.getAuthenticationMechanism()).isEqualTo("PLAIN");
+    }
+
+    @Test
+    public void shouldOverrideAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(authenticationParameters());
+        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, ConfigTypes.SaslMechanism.SCRAM_256.toString());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isAuthenticationEnabled()).isTrue();
+        assertThat(config.getAuthenticationMechanism()).isEqualTo("SCRAM_256");
     }
 }
