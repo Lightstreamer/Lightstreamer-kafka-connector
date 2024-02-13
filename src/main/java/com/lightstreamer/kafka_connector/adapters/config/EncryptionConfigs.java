@@ -45,9 +45,7 @@ public class EncryptionConfigs {
     public static String TRUSTSTORE_PATH = "encryption.truststore.path";
     public static String TRUSTSTORE_PASSWORD = "encryption.truststore.password";
 
-    public static String KEYSTORE_TYPE = "encryption.keystore.type";
-    public static String KEYSTORE_PATH = "encryption.keystore.path";
-    public static String KEYSTORE_PASSWORD = "encryption.keystore.password";
+    public static String ENABLE_MTLS = "encryption.keystore.enabled";
 
     public static String ENABLE_HOSTNAME_VERIFICATION =
             "encryption.endpoint.identification.algorithm";
@@ -76,7 +74,7 @@ public class EncryptionConfigs {
                                 false,
                                 false,
                                 ConfType.SSL_ENABLED_PROTOCOLS,
-                                defaultValue(ConfigTypes.SslProtocol.valueStr()))
+                                defaultValue(ConfigTypes.SslProtocol.valuesStr()))
                         .add(
                                 SSL_PROTOCOL,
                                 false,
@@ -92,33 +90,27 @@ public class EncryptionConfigs {
                         .add(TRUSTSTORE_PATH, true, false, FILE)
                         .add(TRUSTSTORE_PASSWORD, true, false, TEXT)
                         .add(
-                                KEYSTORE_TYPE,
-                                false,
-                                false,
-                                ConfType.KEYSTORE_TYPE,
-                                defaultValue(KeystoreType.JKS.toString()))
-                        .add(KEYSTORE_PATH, false, false, FILE)
-                        .add(KEYSTORE_PASSWORD, false, false, TEXT)
-                        .add(
                                 ENABLE_HOSTNAME_VERIFICATION,
                                 false,
                                 false,
                                 BOOL,
                                 defaultValue("false"))
-                        .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST)
+                        .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST, defaultValue(""))
                         .add(SSL_PROVIDER, false, false, TEXT)
                         .add(SSL_EGINE_FACTORY_CLASS, false, false, TEXT)
                         .add(SSL_KEYMANAGER_ALGORITHM, false, false, TEXT)
                         .add(SSL_SECURE_RANDOM_IMPLEMENTATION, false, false, TEXT)
                         .add(SSL_TRUSTMANAGER_ALGORITHM, false, false, TEXT)
-                        .add(SECURITY_PROVIDERS, false, false, TEXT);
+                        .add(SECURITY_PROVIDERS, false, false, TEXT)
+                        .add(ENABLE_MTLS, false, false, ConfType.BOOL, defaultValue("false"))
+                        .withKeystoreConfigs(ENABLE_MTLS);
     }
 
     static ConfigSpec configSpec() {
         return CONFIG_SPEC;
     }
 
-    static void withEncryptionConfig(ConfigSpec config, String enablingKey) {
+    static void withEncryptionConfigs(ConfigSpec config, String enablingKey) {
         config.addConfigSpec(CONFIG_SPEC, enablingKey);
     }
 
@@ -129,11 +121,11 @@ public class EncryptionConfigs {
                     properties,
                     CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
                     config.get(SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
+            copySetting(properties, SslConfigs.SSL_PROTOCOL_CONFIG, config.getText(SSL_PROTOCOL));
             copySetting(
                     properties,
                     SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
                     config.getText(SSL_ENABLED_PROTOCOLS));
-            copySetting(properties, SslConfigs.SSL_PROTOCOL_CONFIG, config.getText(SSL_PROTOCOL));
             copySetting(
                     properties,
                     SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
@@ -146,18 +138,6 @@ public class EncryptionConfigs {
                     properties,
                     SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
                     config.getText(TRUSTSTORE_PASSWORD));
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
-                    config.get(KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
-                    config.getFile(KEYSTORE_PATH));
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-                    config.getText(KEYSTORE_PASSWORD));
             if (config.getBoolean(ENABLE_HOSTNAME_VERIFICATION).equals("false")) {
                 properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }

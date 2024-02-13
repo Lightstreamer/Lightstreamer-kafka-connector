@@ -30,6 +30,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityPro
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,9 +50,12 @@ import java.util.Properties;
 public class ConnectorConfigTest {
 
     private Path adapterDir;
+
     private Path keySchemaFile;
     private Path valueSchemaFile;
+
     private Path trustStoreFile;
+    private Path keyStoreFile;
 
     @BeforeEach
     public void before() throws IOException {
@@ -59,6 +63,7 @@ public class ConnectorConfigTest {
         keySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
         valueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
         trustStoreFile = Files.createTempFile(adapterDir, "truststore", ".jks");
+        keyStoreFile = Files.createTempFile(adapterDir, "keystore", ".jks");
     }
 
     @Test
@@ -355,8 +360,16 @@ public class ConnectorConfigTest {
         Map<String, String> encryptionParams = new HashMap<>();
         encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
         encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
-        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
+        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         return encryptionParams;
+    }
+
+    private Map<String, String> kesytoreParameters() {
+        Map<String, String> keystoreParams = new HashMap<>();
+        keystoreParams.put(EncryptionConfigs.ENABLE_MTLS, "true");
+        keystoreParams.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.toString());
+        keystoreParams.put(KeystoreConfigs.KEYSTORE_PASSWORD, "keystore-password");
+        return keystoreParams;
     }
 
     @Test
@@ -804,7 +817,26 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyEncryptionRequiredParamater() {
+    public void shouldNotAccessToEncryptionSettings() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+
+        assertThat(config.isEncryptionEnabled()).isFalse();
+        assertThrows(ConfigException.class, () -> config.isKeystoreEnabled());
+        assertThrows(ConfigException.class, () -> config.getSecurityProtocol());
+        assertThrows(ConfigException.class, () -> config.getEnabledProtocols());
+        assertThrows(ConfigException.class, () -> config.getSslProtocol());
+        assertThrows(ConfigException.class, () -> config.getTrustStoreType());
+        assertThrows(ConfigException.class, () -> config.getTrustStorePath());
+        assertThrows(ConfigException.class, () -> config.getTrustStorePassword());
+        assertThrows(ConfigException.class, () -> config.getSslProtocol());
+        assertThrows(ConfigException.class, () -> config.isHostNameVerificationEnabled());
+        assertThrows(ConfigException.class, () -> config.getCipherSuites());
+        assertThrows(ConfigException.class, () -> config.getSslProvider());
+    }
+
+    @Test
+    public void shouldSpecifyEncryptionRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
 
@@ -848,14 +880,11 @@ public class ConnectorConfigTest {
                 .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
 
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
     @Test
-    public void shouldRetrieveBaseConsumerPropertiesWithEncryption() {
+    public void shouldGetDefaultEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
 
@@ -863,5 +892,142 @@ public class ConnectorConfigTest {
 
         assertThat(config.isEncryptionEnabled()).isTrue();
         assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SSL);
+        assertThat(config.getEnabledProtocols()).isEqualTo("TLSv1.2,TLSv1.3");
+        assertThat(config.getSslProtocol()).isEqualTo("TLSv1.3");
+        assertThat(config.getTrustStoreType()).isEqualTo("JKS");
+        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
+        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
+        assertThat(config.isHostNameVerificationEnabled()).isFalse();
+        assertThat(config.getCipherSuites()).isEmpty();
+        assertThat(config.getSslProvider()).isNull();
+        assertThat(config.isKeystoreEnabled()).isFalse();
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.getKeystorePath(),
+                        () -> config.getKeystorePassword(),
+                        () -> config.getKeystoreType(),
+                        () -> config.getKeyPassword());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo("Parameter [encryption.keystore.enabled] is not enabled");
+        }
+    }
+
+    @Test
+    public void shouldOverrideEncryptionSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(encryptionParameters());
+        updatedConfig.put(
+                EncryptionConfigs.SECURITY_PROTOCOL,
+                ConfigTypes.SecurityProtocol.SASL_SSL.toString());
+        updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
+        updatedConfig.put(EncryptionConfigs.SSL_PROTOCOL, "TLSv1.2");
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_TYPE, "PKCS12");
+        updatedConfig.put(
+                EncryptionConfigs.SSL_CIPHER_SUITES,
+                "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
+        updatedConfig.put(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION, "true");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isEncryptionEnabled()).isTrue();
+        assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SASL_SSL);
+        assertThat(config.getEnabledProtocols()).isEqualTo("TLSv1.2");
+        assertThat(config.getSslProtocol()).isEqualTo("TLSv1.2");
+        assertThat(config.getTrustStoreType()).isEqualTo("PKCS12");
+        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
+        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
+        assertThat(config.isHostNameVerificationEnabled()).isTrue();
+        assertThat(config.getCipherSuites())
+                .containsExactly(
+                        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
+        assertThat(config.getSslProvider()).isNull();
+    }
+
+    @Test
+    public void shoudSpecifyRequiredKeystoreParameters() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(encryptionParameters());
+        updatedConfig.put(EncryptionConfigs.ENABLE_MTLS, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [encryption.keystore.path]");
+
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.keystore.path]");
+
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, "aFile");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Not found file [aFile] specified in [encryption.keystore.path]");
+
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.toString());
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [encryption.keystore.password]");
+
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PASSWORD, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.keystore.password]");
+
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PASSWORD, "password");
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldGetDefaultKeystoreSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(encryptionParameters());
+        updatedConfig.putAll(kesytoreParameters());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isKeystoreEnabled()).isTrue();
+        assertThat(config.getKeystorePath()).isEqualTo(keyStoreFile.toString());
+        assertThat(config.getKeystoreType()).isEqualTo("JKS");
+        assertThat(config.getKeystorePassword()).isEqualTo("keystore-password");
+        assertThat(config.getKeyPassword()).isNull();
+    }
+
+    @Test
+    public void shouldOverrideKeystoreSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.putAll(encryptionParameters());
+        updatedConfig.putAll(kesytoreParameters());
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_TYPE, "PKCS12");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isKeystoreEnabled()).isTrue();
+        assertThat(config.getKeystoreType()).isEqualTo("PKCS12");
+
+        updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "");
+        ConfigException ce = assertThrows(ConfigException.class, ()->ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [encryption.key.password]");
+
+        updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "key-password");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getKeyPassword()).isEqualTo("key-password");
     }
 }

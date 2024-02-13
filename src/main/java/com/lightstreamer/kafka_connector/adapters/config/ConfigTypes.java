@@ -39,14 +39,15 @@ public class ConfigTypes {
                 return "TLSv1.2";
             }
         },
+
         TLSv13 {
             public String toString() {
                 return "TLSv1.3";
             }
         };
 
-        public static String valueStr() {
-            return names().stream().collect(Collectors.joining(","));
+        public static String valuesStr() {
+            return names().stream().sorted().collect(Collectors.joining(","));
         }
 
         public static Set<String> names() {
@@ -84,5 +85,9 @@ public class ConfigTypes {
 
     private static Set<String> names(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static void main(String[] args) {
+        System.out.println(SslProtocol.names().stream().sorted().toList());
     }
 }

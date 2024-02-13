@@ -21,6 +21,7 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfT
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.HOST;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
@@ -28,6 +29,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Type;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +66,19 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public final String getText(String configKey, boolean forceRequired) {
         return get(configKey, TEXT, false);
+    }
+
+    protected final List<String> getTextList(String configKey) {
+        return getTextList(configKey, false);
+    }
+
+    public final List<String> getTextList(String configKey, boolean forceRequired) {
+        String value = get(configKey, TEXT_LIST, forceRequired);
+        String[] elements = value.split(",");
+        if (elements.length == 1 && elements[0].isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.asList(elements);
     }
 
     public final String getBoolean(String configKey) {

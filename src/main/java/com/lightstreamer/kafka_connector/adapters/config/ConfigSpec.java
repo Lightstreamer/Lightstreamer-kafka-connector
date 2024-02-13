@@ -418,8 +418,13 @@ class ConfigSpec {
         return parsedValues;
     }
 
-    public ConfigSpec withEncryptionConfig(String enableKey) {
-        EncryptionConfigs.withEncryptionConfig(this, enableKey);
+    public ConfigSpec withEncryptionConfigs(String enableKey) {
+        EncryptionConfigs.withEncryptionConfigs(this, enableKey);
+        return this;
+    }
+
+    public ConfigSpec withKeystoreConfigs(String enableKey) {
+        KeystoreConfigs.withKeystoreConfigs(this, enableKey);
         return this;
     }
 }

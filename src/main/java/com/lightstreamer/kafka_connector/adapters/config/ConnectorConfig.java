@@ -53,6 +53,7 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import java.io.File;
 import java.security.SecureRandom;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -237,7 +238,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .withEncryptionConfig(ENABLE_ENCRYTPTION);
+                        .withEncryptionConfigs(ENABLE_ENCRYTPTION);
     }
 
     private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
@@ -350,8 +351,88 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(ENABLE_ENCRYTPTION).equals("true");
     }
 
+    public boolean isKeystoreEnabled() {
+        checkEncryptionEnabled();
+        return getBoolean(EncryptionConfigs.ENABLE_MTLS).equals("true");
+    }
+
+    private void checkEncryptionEnabled() {
+        if (!isEncryptionEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not enabled".formatted(ENABLE_ENCRYTPTION));
+        }
+    }
+
+    private void checkKeystoreEnabled() {
+        if (!isKeystoreEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not enabled".formatted(EncryptionConfigs.ENABLE_MTLS));
+        }
+    }
+
     public SecurityProtocol getSecurityProtocol() {
+        checkEncryptionEnabled();
         return SecurityProtocol.valueOf(
                 get(EncryptionConfigs.SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
+    }
+
+    public String getEnabledProtocols() {
+        checkEncryptionEnabled();
+        return get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
+    }
+
+    public String getSslProtocol() {
+        checkEncryptionEnabled();
+        return get(EncryptionConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false);
+    }
+
+    public String getTrustStoreType() {
+        checkEncryptionEnabled();
+        return get(EncryptionConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false);
+    }
+
+    public String getTrustStorePath() {
+        checkEncryptionEnabled();
+        return getFile(EncryptionConfigs.TRUSTSTORE_PATH);
+    }
+
+    public String getTrustStorePassword() {
+        checkEncryptionEnabled();
+        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD);
+    }
+
+    public List<String> getCipherSuites() {
+        checkEncryptionEnabled();
+        return getTextList(EncryptionConfigs.SSL_CIPHER_SUITES);
+    }
+
+    public String getSslProvider() {
+        checkEncryptionEnabled();
+        return getText(EncryptionConfigs.SSL_PROVIDER);
+    }
+
+    public boolean isHostNameVerificationEnabled() {
+        checkEncryptionEnabled();
+        return getBoolean(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION).equals("true");
+    }
+
+    public String getKeystoreType() {
+        checkKeystoreEnabled();
+        return get(KeystoreConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false);
+    }
+
+    public String getKeystorePath() {
+        checkKeystoreEnabled();
+        return getFile(KeystoreConfigs.KEYSTORE_PATH);
+    }
+
+    public String getKeystorePassword() {
+        checkKeystoreEnabled();
+        return getText(KeystoreConfigs.KEYSTORE_PASSWORD);
+    }
+
+    public String getKeyPassword() {
+        checkKeystoreEnabled();
+        return getText(KeystoreConfigs.KEY_PASSWORD);
     }
 }
