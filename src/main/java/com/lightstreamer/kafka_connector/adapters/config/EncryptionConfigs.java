@@ -74,7 +74,7 @@ public class EncryptionConfigs {
                                 false,
                                 false,
                                 ConfType.SSL_ENABLED_PROTOCOLS,
-                                defaultValue(ConfigTypes.SslProtocol.valuesStr()))
+                                defaultValue(ConfigTypes.SslProtocol.toValuesStr()))
                         .add(
                                 SSL_PROTOCOL,
                                 false,
@@ -120,32 +120,27 @@ public class EncryptionConfigs {
             copySetting(
                     properties,
                     CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-                    config.get(SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
-            copySetting(properties, SslConfigs.SSL_PROTOCOL_CONFIG, config.getText(SSL_PROTOCOL));
+                    config.getSecurityProtocol().toString());
             copySetting(
                     properties,
                     SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
-                    config.getText(SSL_ENABLED_PROTOCOLS));
+                    config.getEnabledProtocolsAsStr());
             copySetting(
-                    properties,
-                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
-                    config.get(TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+                    properties, SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, config.getTrustStoreType());
             copySetting(
                     properties,
                     SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-                    config.getFile(TRUSTSTORE_PATH));
+                    config.getTrustStorePath());
             copySetting(
                     properties,
                     SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-                    config.getText(TRUSTSTORE_PASSWORD));
-            if (config.getBoolean(ENABLE_HOSTNAME_VERIFICATION).equals("false")) {
+                    config.getTrustStorePassword());
+            if (!config.isHostNameVerificationEnabled()) {
                 properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }
             copySetting(
-                    properties,
-                    SslConfigs.SSL_CIPHER_SUITES_CONFIG,
-                    config.getText(SSL_CIPHER_SUITES));
-            copySetting(properties, SslConfigs.SSL_PROVIDER_CONFIG, config.getText(SSL_PROVIDER));
+                    properties, SslConfigs.SSL_CIPHER_SUITES_CONFIG, config.getCipherSuitesAsStr());
+            copySetting(properties, SslConfigs.SSL_PROVIDER_CONFIG, config.getSslProvider());
             copySetting(
                     properties,
                     SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
@@ -162,6 +157,7 @@ public class EncryptionConfigs {
                     properties,
                     SecurityConfig.SECURITY_PROVIDERS_CONFIG,
                     config.getText(SECURITY_PROVIDERS));
+            properties.putAll(KeystoreConfigs.addKeystore(config));
         }
 
         return properties;

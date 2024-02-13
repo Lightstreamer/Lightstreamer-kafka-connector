@@ -65,16 +65,16 @@ public class KeystoreConfigs {
 
     static Properties addKeystore(ConnectorConfig config) {
         Properties properties = new Properties();
-        copySetting(
-                properties,
-                SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
-                config.get(KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
-        copySetting(
-                properties,
-                SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-                config.getText(KEYSTORE_PASSWORD));
-        copySetting(
-                properties, SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getFile(KEYSTORE_PATH));
+        if (config.isKeystoreEnabled()) {
+            copySetting(properties, SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType());
+            copySetting(
+                    properties,
+                    SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                    config.getKeystorePassword());
+            copySetting(
+                    properties, SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
+            copySetting(properties, SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
+        }
 
         return properties;
     }

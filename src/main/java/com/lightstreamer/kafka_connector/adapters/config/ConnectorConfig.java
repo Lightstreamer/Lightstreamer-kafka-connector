@@ -47,6 +47,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -376,7 +377,14 @@ public final class ConnectorConfig extends AbstractConfig {
                 get(EncryptionConfigs.SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
     }
 
-    public String getEnabledProtocols() {
+    public List<SslProtocol> getEnabledProtocols() {
+        checkEncryptionEnabled();
+        String value =
+                get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
+        return SslProtocol.fromValueStr(value);
+    }
+
+    public String getEnabledProtocolsAsStr() {
         checkEncryptionEnabled();
         return get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
     }
@@ -404,6 +412,11 @@ public final class ConnectorConfig extends AbstractConfig {
     public List<String> getCipherSuites() {
         checkEncryptionEnabled();
         return getTextList(EncryptionConfigs.SSL_CIPHER_SUITES);
+    }
+
+    public String getCipherSuitesAsStr() {
+        checkEncryptionEnabled();
+        return get(EncryptionConfigs.SSL_CIPHER_SUITES, ConfType.TEXT_LIST, false);
     }
 
     public String getSslProvider() {

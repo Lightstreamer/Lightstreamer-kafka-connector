@@ -27,9 +27,12 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SslConfigs;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -825,6 +828,7 @@ public class ConnectorConfigTest {
         assertThrows(ConfigException.class, () -> config.isKeystoreEnabled());
         assertThrows(ConfigException.class, () -> config.getSecurityProtocol());
         assertThrows(ConfigException.class, () -> config.getEnabledProtocols());
+        assertThrows(ConfigException.class, () -> config.getEnabledProtocolsAsStr());
         assertThrows(ConfigException.class, () -> config.getSslProtocol());
         assertThrows(ConfigException.class, () -> config.getTrustStoreType());
         assertThrows(ConfigException.class, () -> config.getTrustStorePath());
@@ -832,6 +836,7 @@ public class ConnectorConfigTest {
         assertThrows(ConfigException.class, () -> config.getSslProtocol());
         assertThrows(ConfigException.class, () -> config.isHostNameVerificationEnabled());
         assertThrows(ConfigException.class, () -> config.getCipherSuites());
+        assertThrows(ConfigException.class, () -> config.getCipherSuitesAsStr());
         assertThrows(ConfigException.class, () -> config.getSslProvider());
     }
 
@@ -892,15 +897,37 @@ public class ConnectorConfigTest {
 
         assertThat(config.isEncryptionEnabled()).isTrue();
         assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SSL);
-        assertThat(config.getEnabledProtocols()).isEqualTo("TLSv1.2,TLSv1.3");
+        assertThat(config.getEnabledProtocols())
+                .containsExactly(SslProtocol.TLSv12, SslProtocol.TLSv13);
+        assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
+
         assertThat(config.getSslProtocol()).isEqualTo("TLSv1.3");
         assertThat(config.getTrustStoreType()).isEqualTo("JKS");
         assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
         assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
         assertThat(config.isHostNameVerificationEnabled()).isFalse();
         assertThat(config.getCipherSuites()).isEmpty();
+        assertThat(config.getCipherSuitesAsStr()).isEmpty();
         assertThat(config.getSslProvider()).isNull();
         assertThat(config.isKeystoreEnabled()).isFalse();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        "SSL",
+                        SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
+                        "TLSv1.2,TLSv1.3",
+                        SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                        "JKS",
+                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+                        trustStoreFile.toString(),
+                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+                        "truststore-password",
+                        SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+                        "",
+                        SslConfigs.SSL_CIPHER_SUITES_CONFIG,
+                        "");
 
         List<ThrowingRunnable> runnables =
                 List.of(
@@ -934,7 +961,8 @@ public class ConnectorConfigTest {
 
         assertThat(config.isEncryptionEnabled()).isTrue();
         assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SASL_SSL);
-        assertThat(config.getEnabledProtocols()).isEqualTo("TLSv1.2");
+        assertThat(config.getEnabledProtocols()).containsExactly(SslProtocol.TLSv12);
+        assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
         assertThat(config.getSslProtocol()).isEqualTo("TLSv1.2");
         assertThat(config.getTrustStoreType()).isEqualTo("PKCS12");
         assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
@@ -943,7 +971,27 @@ public class ConnectorConfigTest {
         assertThat(config.getCipherSuites())
                 .containsExactly(
                         "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
+        assertThat(config.getCipherSuitesAsStr())
+                .isEqualTo("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
         assertThat(config.getSslProvider()).isNull();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .doesNotContainKey(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG);
+        assertThat(props)
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        "SASL_SSL",
+                        SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
+                        "TLSv1.2",
+                        SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                        "PKCS12",
+                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+                        trustStoreFile.toString(),
+                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+                        "truststore-password",
+                        SslConfigs.SSL_CIPHER_SUITES_CONFIG,
+                        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
     }
 
     @Test
@@ -1008,6 +1056,17 @@ public class ConnectorConfigTest {
         assertThat(config.getKeystoreType()).isEqualTo("JKS");
         assertThat(config.getKeystorePassword()).isEqualTo("keystore-password");
         assertThat(config.getKeyPassword()).isNull();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                        "JKS",
+                        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                        "keystore-password",
+                        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+                        keyStoreFile.toString());
+        assertThat(props).doesNotContainKey(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
     }
 
     @Test
@@ -1023,11 +1082,27 @@ public class ConnectorConfigTest {
         assertThat(config.getKeystoreType()).isEqualTo("PKCS12");
 
         updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "");
-        ConfigException ce = assertThrows(ConfigException.class, ()->ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [encryption.key.password]");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.key.password]");
 
         updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getKeyPassword()).isEqualTo("key-password");
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                        "PKCS12",
+                        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                        "keystore-password",
+                        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+                        keyStoreFile.toString(),
+                        SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+                        "key-password");
     }
 }

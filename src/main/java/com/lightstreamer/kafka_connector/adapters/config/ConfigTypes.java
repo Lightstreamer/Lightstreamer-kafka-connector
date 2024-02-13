@@ -18,8 +18,15 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ConfigTypes {
 
@@ -46,8 +53,27 @@ public class ConfigTypes {
             }
         };
 
-        public static String valuesStr() {
+        static Map<String, SslProtocol> fromNames = new HashMap<>();
+
+        static {
+            fromNames =
+                    Stream.of(values())
+                            .collect(Collectors.toMap(SslProtocol::toString, Function.identity()));
+        }
+
+        public static String toValuesStr() {
             return names().stream().sorted().collect(Collectors.joining(","));
+        }
+
+        public static List<SslProtocol> fromValueStr(String text) {
+            String[] elements = text.split(",");
+            if (elements.length == 1 && elements[0].isBlank()) {
+                return Collections.emptyList();
+            }
+            return Stream.of(elements)
+                    .map(element -> fromNames.get(element))
+                    .filter(Objects::nonNull)
+                    .toList();
         }
 
         public static Set<String> names() {
@@ -85,9 +111,5 @@ public class ConfigTypes {
 
     private static Set<String> names(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
-    }
-
-    public static void main(String[] args) {
-        System.out.println(SslProtocol.names().stream().sorted().toList());
     }
 }
