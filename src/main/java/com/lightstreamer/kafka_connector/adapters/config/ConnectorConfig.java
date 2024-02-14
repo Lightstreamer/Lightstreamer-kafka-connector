@@ -259,7 +259,19 @@ public final class ConnectorConfig extends AbstractConfig {
     @Override
     protected void validate() throws ConfigException {
         if (isEncryptionEnabled()) {
+            // If a truststore file is provided, a password must be provided as well
             getTrustStorePassword();
+        }
+
+        if (isAuthenticationEnabled()) {
+            if (isGssapiEnabled()) {
+                // If use keytab, a key tab file must be provided
+                gssapiKeyTab();
+            } else {
+                // In case of PLAIN auhentication, credentials must be provided
+                getAuthenticationUsername();
+                getAuthenticationPassword();
+            }
         }
     }
 
@@ -411,7 +423,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public String getTrustStorePassword() {
         checkEncryptionEnabled();
-        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD, getTrustStorePath() != null);
+        boolean isRequired = getTrustStorePath() != null;
+        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD, isRequired);
     }
 
     public List<String> getCipherSuites() {
@@ -467,12 +480,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public String getAuthenticationUsername() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigs.USERNAME);
+        boolean isRequired = !isGssapiEnabled();
+        return getText(AuthenticationConfigs.USERNAME, isRequired);
     }
 
     public String getAuthenticationPassword() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigs.PASSWORD);
+        boolean isRequired = !isGssapiEnabled();
+        return getText(AuthenticationConfigs.PASSWORD, isRequired);
     }
 
     public boolean isGssapiEnabled() {
@@ -492,6 +507,12 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
     }
 
+    public String gssapiKeyTab() {
+        checkGssapi();
+        boolean isRequired = gssapiUseKeyTab();
+        return getFile(AuthenticationConfigs.GSSAPI_KEY_TAB, isRequired);
+    }
+
     public boolean gssapiStoreKey() {
         checkGssapi();
         return getBoolean(AuthenticationConfigs.GSSAPI_STORE_KEY);
@@ -505,10 +526,5 @@ public final class ConnectorConfig extends AbstractConfig {
     public String gssapiKerberosServiceName() {
         checkGssapi();
         return getText(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
-    }
-
-    public String gssapiKeyTab() {
-        checkGssapi();
-        return getFile(AuthenticationConfigs.GSSAPI_KEY_TAB);
     }
 }

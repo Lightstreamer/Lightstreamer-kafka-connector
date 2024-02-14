@@ -67,8 +67,8 @@ public class AuthenticationConfigs {
                                 false,
                                 ConfType.SASL_MECHANISM,
                                 defaultValue(SaslMechanism.PLAIN.toString()))
-                        .add(USERNAME, true, false, TEXT)
-                        .add(PASSWORD, true, false, TEXT)
+                        .add(USERNAME, false, false, TEXT)
+                        .add(PASSWORD, false, false, TEXT)
                         // GSSAPI configuration enabled only if key "authentication.mechanism" is
                         // set to "GSSAPI"
                         .addConfigSpec(
