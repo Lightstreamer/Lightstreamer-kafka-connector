@@ -64,16 +64,16 @@ public class KeystoreConfigs {
     }
 
     static Properties addKeystore(ConnectorConfig config) {
-        NoNullKeyProperties properties = new NoNullKeyProperties();
+        NoNullKeyProperties props = new NoNullKeyProperties();
         if (config.isKeystoreEnabled()) {
-            properties.setProperty(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType());
-            properties.setProperty(
+            props.setProperty(
+                    SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType().toString());
+            props.setProperty(
                     SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, config.getKeystorePassword());
-            properties.setProperty(
-                    SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
-            properties.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
+            props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
+            props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
         }
 
-        return properties.properties();
+        return props.properties();
     }
 }

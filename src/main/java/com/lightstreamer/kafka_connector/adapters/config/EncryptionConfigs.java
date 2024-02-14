@@ -112,9 +112,11 @@ public class EncryptionConfigs {
                 SecurityProtocol.retrieve(cfg.isEncryptionEnabled(), cfg.isAuthenticationEnabled());
         props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, protocol.toString());
         if (cfg.isEncryptionEnabled()) {
+            props.setProperty(SslConfigs.SSL_PROTOCOL_CONFIG, cfg.getSslProtocol().toString());
             props.setProperty(
                     SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, cfg.getEnabledProtocolsAsStr());
-            props.setProperty(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, cfg.getTrustStoreType());
+            props.setProperty(
+                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, cfg.getTrustStoreType().toString());
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, cfg.getTrustStorePath());
             props.setProperty(
                     SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, cfg.getTrustStorePassword());

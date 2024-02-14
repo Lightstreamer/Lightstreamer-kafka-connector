@@ -63,12 +63,21 @@ public class ConfigTypes {
             }
         };
 
-        static Map<String, SslProtocol> fromNames = new HashMap<>();
+        static Map<String, SslProtocol> NAME_CACHE = new HashMap<>();
 
         static {
-            fromNames =
+            NAME_CACHE =
                     Stream.of(values())
                             .collect(Collectors.toMap(SslProtocol::toString, Function.identity()));
+        }
+
+        public static SslProtocol fromName(String name) {
+            SslProtocol protocol = NAME_CACHE.get(name);
+            if (protocol == null) {
+                throw new IllegalArgumentException(
+                        "No SslProtocol found with name [%s]".formatted(name));
+            }
+            return protocol;
         }
 
         public static String toValuesStr() {
@@ -81,7 +90,7 @@ public class ConfigTypes {
                 return Collections.emptyList();
             }
             return Stream.of(elements)
-                    .map(element -> fromNames.get(element))
+                    .map(element -> NAME_CACHE.get(element))
                     .filter(Objects::nonNull)
                     .toList();
         }

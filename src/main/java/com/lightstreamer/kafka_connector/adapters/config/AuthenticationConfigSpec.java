@@ -58,14 +58,13 @@ public class AuthenticationConfigSpec {
     }
 
     static Properties addAuthentication(ConnectorConfig config) {
-        Properties properties = new Properties();
+        Properties props = new Properties();
         if (config.isAuthenticationEnabled()) {
-            properties.setProperty(
-                    SaslConfigs.SASL_MECHANISM, config.getAuthenticationMechanismStr());
-            properties.setProperty(
-                    SaslConfigs.SASL_JAAS_CONFIG, JaasConfig.fromConnectorConfig(config));
+            props.setProperty(
+                    SaslConfigs.SASL_MECHANISM, config.getAuthenticationMechanism().toString());
+            props.setProperty(SaslConfigs.SASL_JAAS_CONFIG, JaasConfig.fromConnectorConfig(config));
         }
-        return properties;
+        return props;
     }
 
     private static class JaasConfig {

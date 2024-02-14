@@ -46,6 +46,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
@@ -383,10 +384,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public List<SslProtocol> getEnabledProtocols() {
-        checkEncryptionEnabled();
-        String value =
-                get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
-        return SslProtocol.fromValueStr(value);
+        return SslProtocol.fromValueStr(getEnabledProtocolsAsStr());
     }
 
     public String getEnabledProtocolsAsStr() {
@@ -394,14 +392,16 @@ public final class ConnectorConfig extends AbstractConfig {
         return get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
     }
 
-    public String getSslProtocol() {
+    public SslProtocol getSslProtocol() {
         checkEncryptionEnabled();
-        return get(EncryptionConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false);
+        return SslProtocol.fromName(
+                get(EncryptionConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false));
     }
 
-    public String getTrustStoreType() {
+    public KeystoreType getTrustStoreType() {
         checkEncryptionEnabled();
-        return get(EncryptionConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false);
+        return KeystoreType.valueOf(
+                get(EncryptionConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
     public String getTrustStorePath() {
@@ -434,9 +434,10 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION).equals("true");
     }
 
-    public String getKeystoreType() {
+    public KeystoreType getKeystoreType() {
         checkKeystoreEnabled();
-        return get(KeystoreConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false);
+        return KeystoreType.valueOf(
+                get(KeystoreConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
     public String getKeystorePath() {
@@ -456,10 +457,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isAuthenticationEnabled() {
         return getBoolean(ENABLE_AUTHENTICATION).equals("true");
-    }
-
-    public String getAuthenticationMechanismStr() {
-        return getAuthenticationMechanism().toString();
     }
 
     public SaslMechanism getAuthenticationMechanism() {

@@ -19,6 +19,8 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol.TLSv12;
+import static com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol.TLSv13;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -27,7 +29,6 @@ import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -859,7 +860,6 @@ public class ConnectorConfigTest {
         assertThrows(ConfigException.class, () -> config.getTrustStoreType());
         assertThrows(ConfigException.class, () -> config.getTrustStorePath());
         assertThrows(ConfigException.class, () -> config.getTrustStorePassword());
-        assertThrows(ConfigException.class, () -> config.getSslProtocol());
         assertThrows(ConfigException.class, () -> config.isHostNameVerificationEnabled());
         assertThrows(ConfigException.class, () -> config.getCipherSuites());
         assertThrows(ConfigException.class, () -> config.getCipherSuitesAsStr());
@@ -867,7 +867,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyEncryptionRequiredParameters() {
+    public void shouldSpecifyEncryptionParametersWhenRequired() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
 
@@ -910,19 +910,14 @@ public class ConnectorConfigTest {
     public void shouldGetDefaultEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getEnabledProtocols())
-                .containsExactly(SslProtocol.TLSv12, SslProtocol.TLSv13);
+        assertThat(config.getEnabledProtocols()).containsExactly(TLSv12, TLSv13);
         assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
-        assertThat(config.getSslProtocol()).isEqualTo("TLSv1.3");
-        assertThat(config.getTrustStoreType()).isEqualTo("JKS");
-        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
-        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
+        assertThat(config.getSslProtocol().toString()).isEqualTo("TLSv1.3");
+        assertThat(config.getTrustStoreType().toString()).isEqualTo("JKS");
         assertThat(config.isHostNameVerificationEnabled()).isFalse();
         assertThat(config.getCipherSuites()).isEmpty();
         assertThat(config.getCipherSuitesAsStr()).isNull();
@@ -934,14 +929,12 @@ public class ConnectorConfigTest {
                 .containsAtLeast(
                         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
                         "SSL",
+                        SslConfigs.SSL_PROTOCOL_CONFIG,
+                        "TLSv1.3",
                         SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
                         "TLSv1.2,TLSv1.3",
                         SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
                         "JKS",
-                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-                        trustStoreFile.toString(),
-                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-                        "truststore-password",
                         SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
                         "");
         assertThat(props).doesNotContainKey(SslConfigs.SSL_CIPHER_SUITES_CONFIG);
@@ -963,6 +956,8 @@ public class ConnectorConfigTest {
     public void shouldOverrideEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.SSL_PROTOCOL, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_TYPE, "PKCS12");
@@ -974,12 +969,12 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getEnabledProtocols()).containsExactly(SslProtocol.TLSv12);
+        assertThat(config.getEnabledProtocols()).containsExactly(TLSv12);
         assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
-        assertThat(config.getSslProtocol()).isEqualTo("TLSv1.2");
-        assertThat(config.getTrustStoreType()).isEqualTo("PKCS12");
-        assertThat(config.getTrustStorePath()).isNull();
-        assertThat(config.getTrustStorePassword()).isNull();
+        assertThat(config.getSslProtocol().toString()).isEqualTo("TLSv1.2");
+        assertThat(config.getTrustStoreType().toString()).isEqualTo("PKCS12");
+        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
+        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
         assertThat(config.isHostNameVerificationEnabled()).isTrue();
         assertThat(config.getCipherSuites())
                 .containsExactly(
@@ -995,10 +990,16 @@ public class ConnectorConfigTest {
                 .containsAtLeast(
                         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
                         "SSL",
+                        SslConfigs.SSL_PROTOCOL_CONFIG,
+                        "TLSv1.2",
                         SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
                         "TLSv1.2",
                         SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
                         "PKCS12",
+                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+                        trustStoreFile.toString(),
+                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+                        "truststore-password",
                         SslConfigs.SSL_CIPHER_SUITES_CONFIG,
                         "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
     }
@@ -1062,7 +1063,7 @@ public class ConnectorConfigTest {
 
         assertThat(config.isKeystoreEnabled()).isTrue();
         assertThat(config.getKeystorePath()).isEqualTo(keyStoreFile.toString());
-        assertThat(config.getKeystoreType()).isEqualTo("JKS");
+        assertThat(config.getKeystoreType().toString()).isEqualTo("JKS");
         assertThat(config.getKeystorePassword()).isEqualTo("keystore-password");
         assertThat(config.getKeyPassword()).isNull();
 
@@ -1088,7 +1089,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isKeystoreEnabled()).isTrue();
-        assertThat(config.getKeystoreType()).isEqualTo("PKCS12");
+        assertThat(config.getKeystoreType().toString()).isEqualTo("PKCS12");
 
         updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "");
         ConfigException ce =
@@ -1164,7 +1165,7 @@ public class ConnectorConfigTest {
 
         List<ThrowingRunnable> runnables =
                 List.of(
-                        () -> config.getAuthenticationMechanismStr(),
+                        () -> config.getAuthenticationMechanism(),
                         () -> config.getAuthenticationUsername(),
                         () -> config.getAuthenticationPassword());
         for (ThrowingRunnable executable : runnables) {
@@ -1182,7 +1183,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isAuthenticationEnabled()).isTrue();
-        assertThat(config.getAuthenticationMechanismStr()).isEqualTo("PLAIN");
+        assertThat(config.getAuthenticationMechanism().toString()).isEqualTo("PLAIN");
 
         Properties properties = config.baseConsumerProps();
         assertThat(properties)
@@ -1216,7 +1217,7 @@ public class ConnectorConfigTest {
                         ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
                 assertThat(config.isAuthenticationEnabled()).isTrue();
-                assertThat(config.getAuthenticationMechanismStr()).isEqualTo(mechanism);
+                assertThat(config.getAuthenticationMechanism().toString()).isEqualTo(mechanism);
 
                 Properties properties = config.baseConsumerProps();
                 assertThat(properties)
