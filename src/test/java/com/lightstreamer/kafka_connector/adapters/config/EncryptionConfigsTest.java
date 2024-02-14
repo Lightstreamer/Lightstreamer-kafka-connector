@@ -47,7 +47,7 @@ public class EncryptionConfigsTest {
 
         ConfParameter trustStorePath = configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_PATH);
         assertThat(trustStorePath.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_PATH);
-        assertThat(trustStorePath.required()).isTrue();
+        assertThat(trustStorePath.required()).isFalse();
         assertThat(trustStorePath.multiple()).isFalse();
         assertThat(trustStorePath.mutable()).isTrue();
         assertThat(trustStorePath.defaultValue()).isNull();
@@ -56,7 +56,7 @@ public class EncryptionConfigsTest {
         ConfParameter trustStorePassword =
                 configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_PASSWORD);
         assertThat(trustStorePassword.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_PASSWORD);
-        assertThat(trustStorePassword.required()).isTrue();
+        assertThat(trustStorePassword.required()).isFalse();
         assertThat(trustStorePassword.multiple()).isFalse();
         assertThat(trustStorePassword.mutable()).isTrue();
         assertThat(trustStorePassword.defaultValue()).isNull();

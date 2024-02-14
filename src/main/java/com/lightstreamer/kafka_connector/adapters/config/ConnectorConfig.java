@@ -43,7 +43,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
-import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
+import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
@@ -255,6 +255,13 @@ public final class ConnectorConfig extends AbstractConfig {
         this(CONFIG_SPEC, configs);
     }
 
+    @Override
+    protected void validate() throws ConfigException {
+        if (isEncryptionEnabled()) {
+            getTrustStorePassword();
+        }
+    }
+
     static ConfigSpec configSpec() {
         return CONFIG_SPEC;
     }
@@ -265,7 +272,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public Properties baseConsumerProps() {
-        SkipNullKeyProperties properties = new SkipNullKeyProperties();
+        NoNullKeyProperties properties = new NoNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
@@ -404,7 +411,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public String getTrustStorePassword() {
         checkEncryptionEnabled();
-        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD);
+        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD, getTrustStorePath() != null);
     }
 
     public List<String> getCipherSuites() {

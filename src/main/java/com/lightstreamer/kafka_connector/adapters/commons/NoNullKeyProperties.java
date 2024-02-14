@@ -20,11 +20,11 @@ package com.lightstreamer.kafka_connector.adapters.commons;
 import java.util.Map;
 import java.util.Properties;
 
-public final class SkipNullKeyProperties {
+public final class NoNullKeyProperties {
 
     private Properties properties;
 
-    public SkipNullKeyProperties() {
+    public NoNullKeyProperties() {
         this.properties = new Properties();
     }
 

@@ -21,7 +21,7 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfT
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
+import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 
@@ -64,7 +64,7 @@ public class KeystoreConfigs {
     }
 
     static Properties addKeystore(ConnectorConfig config) {
-        SkipNullKeyProperties properties = new SkipNullKeyProperties();
+        NoNullKeyProperties properties = new NoNullKeyProperties();
         if (config.isKeystoreEnabled()) {
             properties.setProperty(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType());
             properties.setProperty(

@@ -22,7 +22,7 @@ import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfT
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
+import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
@@ -79,8 +79,8 @@ public class EncryptionConfigs {
                                 false,
                                 ConfType.KEYSTORE_TYPE,
                                 defaultValue(KeystoreType.JKS.toString()))
-                        .add(TRUSTSTORE_PATH, true, false, FILE)
-                        .add(TRUSTSTORE_PASSWORD, true, false, TEXT)
+                        .add(TRUSTSTORE_PATH, false, false, FILE)
+                        .add(TRUSTSTORE_PASSWORD, false, false, TEXT)
                         .add(
                                 ENABLE_HOSTNAME_VERIFICATION,
                                 false,
@@ -106,40 +106,36 @@ public class EncryptionConfigs {
         config.addConfigSpec(CONFIG_SPEC, enablingKey);
     }
 
-    static Properties addEncryption(ConnectorConfig config) {
-        SkipNullKeyProperties properties = new SkipNullKeyProperties();
+    static Properties addEncryption(ConnectorConfig cfg) {
+        NoNullKeyProperties props = new NoNullKeyProperties();
         SecurityProtocol protocol =
-                SecurityProtocol.retrieve(
-                        config.isEncryptionEnabled(), config.isAuthenticationEnabled());
-        properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, protocol.toString());
-        if (config.isEncryptionEnabled()) {
-            properties.setProperty(
-                    SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, config.getEnabledProtocolsAsStr());
-            properties.setProperty(
-                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, config.getTrustStoreType());
-            properties.setProperty(
-                    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, config.getTrustStorePath());
-            properties.setProperty(
-                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, config.getTrustStorePassword());
-            if (!config.isHostNameVerificationEnabled()) {
-                properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+                SecurityProtocol.retrieve(cfg.isEncryptionEnabled(), cfg.isAuthenticationEnabled());
+        props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, protocol.toString());
+        if (cfg.isEncryptionEnabled()) {
+            props.setProperty(
+                    SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, cfg.getEnabledProtocolsAsStr());
+            props.setProperty(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, cfg.getTrustStoreType());
+            props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, cfg.getTrustStorePath());
+            props.setProperty(
+                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, cfg.getTrustStorePassword());
+            if (!cfg.isHostNameVerificationEnabled()) {
+                props.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }
-            properties.setProperty(
-                    SslConfigs.SSL_CIPHER_SUITES_CONFIG, config.getCipherSuitesAsStr());
-            properties.setProperty(SslConfigs.SSL_PROVIDER_CONFIG, config.getSslProvider());
-            properties.setProperty(
+            props.setProperty(SslConfigs.SSL_CIPHER_SUITES_CONFIG, cfg.getCipherSuitesAsStr());
+            props.setProperty(SslConfigs.SSL_PROVIDER_CONFIG, cfg.getSslProvider());
+            props.setProperty(
                     SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
-                    config.getText(SSL_EGINE_FACTORY_CLASS));
-            properties.setProperty(
+                    cfg.getText(SSL_EGINE_FACTORY_CLASS));
+            props.setProperty(
                     SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG,
-                    config.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
-            properties.setProperty(
+                    cfg.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
+            props.setProperty(
                     SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
-                    config.getText(SSL_TRUSTMANAGER_ALGORITHM));
-            properties.setProperty(
-                    SecurityConfig.SECURITY_PROVIDERS_CONFIG, config.getText(SECURITY_PROVIDERS));
-            properties.putAll(KeystoreConfigs.addKeystore(config));
+                    cfg.getText(SSL_TRUSTMANAGER_ALGORITHM));
+            props.setProperty(
+                    SecurityConfig.SECURITY_PROVIDERS_CONFIG, cfg.getText(SECURITY_PROVIDERS));
+            props.putAll(KeystoreConfigs.addKeystore(cfg));
         }
-        return properties.properties();
+        return props.properties();
     }
 }

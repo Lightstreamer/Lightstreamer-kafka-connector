@@ -63,43 +63,45 @@ public class AuthenticationConfigSpec {
             properties.setProperty(
                     SaslConfigs.SASL_MECHANISM, config.getAuthenticationMechanismStr());
             properties.setProperty(
-                    SaslConfigs.SASL_JAAS_CONFIG, JaasConfigBuilder.jaasConfig(config));
+                    SaslConfigs.SASL_JAAS_CONFIG, JaasConfig.fromConnectorConfig(config));
         }
         return properties;
     }
 
-    static class JaasConfigBuilder {
+    private static class JaasConfig {
 
         private String username;
+
         private String password;
+
         private SaslMechanism mechanism;
 
-        static String jaasConfig(ConnectorConfig config) {
-            return new JaasConfigBuilder()
+        static String fromConnectorConfig(ConnectorConfig config) {
+            return new JaasConfig()
                     .withMechanism(config.getAuthenticationMechanism())
                     .withUsername(config.getAuthenticationUsername())
                     .withPassword(config.getAuthenticationPassword())
                     .build();
         }
 
-        public JaasConfigBuilder withMechanism(SaslMechanism mechanism) {
+        public JaasConfig withMechanism(SaslMechanism mechanism) {
             this.mechanism = mechanism;
             return this;
         }
 
-        public JaasConfigBuilder withUsername(String username) {
+        public JaasConfig withUsername(String username) {
             this.username = username;
             return this;
         }
 
-        public JaasConfigBuilder withPassword(String password) {
+        public JaasConfig withPassword(String password) {
             this.password = password;
             return this;
         }
 
         public String build() {
             return String.format(
-                    "%s required username='%s' password='%s'",
+                    "%s required username='%s' password='%s';",
                     mechanism.loginModule(), username, password);
         }
     }

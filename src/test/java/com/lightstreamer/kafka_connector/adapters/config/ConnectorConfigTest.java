@@ -374,8 +374,8 @@ public class ConnectorConfigTest {
     private Map<String, String> encryptionParameters() {
         Map<String, String> encryptionParams = new HashMap<>();
         encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
-        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
-        encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
+        // encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        // encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         return encryptionParams;
     }
 
@@ -871,15 +871,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
 
-        ConfigException ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [encryption.truststore.path]");
-
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "");
-        ce =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
@@ -893,8 +886,8 @@ public class ConnectorConfigTest {
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
                 .isEqualTo("Not found file [aFile] specified in [encryption.truststore.path]");
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
 
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -909,7 +902,6 @@ public class ConnectorConfigTest {
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
-
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
@@ -918,6 +910,8 @@ public class ConnectorConfigTest {
     public void shouldGetDefaultEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -984,8 +978,8 @@ public class ConnectorConfigTest {
         assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
         assertThat(config.getSslProtocol()).isEqualTo("TLSv1.2");
         assertThat(config.getTrustStoreType()).isEqualTo("PKCS12");
-        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
-        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
+        assertThat(config.getTrustStorePath()).isNull();
+        assertThat(config.getTrustStorePassword()).isNull();
         assertThat(config.isHostNameVerificationEnabled()).isTrue();
         assertThat(config.getCipherSuites())
                 .containsExactly(
@@ -1005,10 +999,6 @@ public class ConnectorConfigTest {
                         "TLSv1.2",
                         SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
                         "PKCS12",
-                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-                        trustStoreFile.toString(),
-                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-                        "truststore-password",
                         SslConfigs.SSL_CIPHER_SUITES_CONFIG,
                         "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
     }
@@ -1202,7 +1192,7 @@ public class ConnectorConfigTest {
                         SaslConfigs.SASL_MECHANISM,
                         "PLAIN",
                         SaslConfigs.SASL_JAAS_CONFIG,
-                        "org.apache.kafka.common.security.plain.PlainLoginModule required username='username' password='password'");
+                        "org.apache.kafka.common.security.plain.PlainLoginModule required username='username' password='password';");
     }
 
     @Test
@@ -1238,7 +1228,7 @@ public class ConnectorConfigTest {
                                 SaslConfigs.SASL_MECHANISM,
                                 mechanism,
                                 SaslConfigs.SASL_JAAS_CONFIG,
-                                "org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password'");
+                                "org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password';");
             }
         }
     }
