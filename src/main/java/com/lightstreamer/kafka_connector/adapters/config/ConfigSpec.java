@@ -32,6 +32,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -298,7 +299,7 @@ class ConfigSpec {
 
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
-    private final Map<ConfParameter, ConfigSpec> subsections = new HashMap<>();
+    private final List<SubsectionTrigger> subsections = new ArrayList<>();
 
     private final String name;
 
@@ -373,7 +374,27 @@ class ConfigSpec {
                     "Since no paramerter [%s] of type BOOL has been found, can't add parameters subsection"
                             .formatted(enablingKey));
         }
-        subsections.put(enablingPar, spec);
+        return addConfigSpec(
+                spec, enablingKey, map -> map.getOrDefault(enablingKey, "false").equals("true"));
+    }
+
+    static record SubsectionTrigger(
+            String enablingKey,
+            ConfigSpec spec,
+            Function<Map<String, String>, Boolean> evalStrategy) {}
+
+    ConfigSpec addConfigSpec(
+            ConfigSpec spec,
+            String enablingKey,
+            Function<Map<String, String>, Boolean> evalStrategy) {
+        ConfParameter enablingPar = getParameter(enablingKey);
+        if (enablingPar == null) {
+            throw new ConfigException(
+                    "Can't add parameters subsection [%s] without the enablig parameter [%s]"
+                            .formatted(spec.name, enablingKey));
+        }
+        // subsections.put(enablingPar, spec);
+        subsections.add(new SubsectionTrigger(enablingKey, spec, evalStrategy));
         return this;
     }
 
@@ -384,8 +405,14 @@ class ConfigSpec {
         }
 
         // Search in all subsections
-        for (ConfigSpec s : subsections.values()) {
-            parameter = s.getParameter(name);
+        // for (ConfigSpec s : subsections.values()) {
+        //     parameter = s.getParameter(name);
+        //     if (parameter != null) {
+        //         return parameter;
+        //     }
+        // }
+        for (SubsectionTrigger trigger : subsections) {
+            parameter = trigger.spec().getParameter(name);
             if (parameter != null) {
                 return parameter;
             }
@@ -429,13 +456,19 @@ class ConfigSpec {
                 .filter(c -> c.mutable())
                 .forEach(c -> c.populate(originals, parsedValues));
 
-        subsections.forEach(
-                (confParamater, confSpec) -> {
-                    String enabled = parsedValues.getOrDefault(confParamater.name(), "false");
-                    if (enabled.equals("true")) {
-                        parsedValues.putAll(confSpec.parse(originals));
-                    }
-                });
+        // subsections.forEach(
+        //         (confParameter, confSpec) -> {
+        //             String enabled = parsedValues.getOrDefault(confParameter.name(), "false");
+        //             if (enabled.equals("true")) {
+        //                 parsedValues.putAll(confSpec.parse(originals));
+        //             }
+        //         });
+        for (SubsectionTrigger trigger : subsections) {
+            boolean enabled = trigger.evalStrategy().apply(parsedValues);
+            if (enabled) {
+                parsedValues.putAll(trigger.spec().parse(originals));
+            }
+        }
         return parsedValues;
     }
 
@@ -450,7 +483,7 @@ class ConfigSpec {
     }
 
     public ConfigSpec withAuthenticationConfigs(String enableKey) {
-        AuthenticationConfigSpec.withAuthenticationConfigs(this, enableKey);
+        AuthenticationConfigs.withAuthenticationConfigs(this, enableKey);
         return this;
     }
 }

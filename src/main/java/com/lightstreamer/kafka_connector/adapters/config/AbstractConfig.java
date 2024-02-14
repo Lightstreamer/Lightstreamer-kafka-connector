@@ -86,8 +86,12 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return Arrays.asList(elements);
     }
 
-    public final String getBoolean(String configKey) {
+    public final String getBooleanStr(String configKey) {
         return get(configKey, BOOL, false);
+    }
+
+    public final boolean getBoolean(String configKey) {
+        return get(configKey, BOOL, false).equals(Boolean.TRUE.toString());
     }
 
     public final String getHost(String configKey) {

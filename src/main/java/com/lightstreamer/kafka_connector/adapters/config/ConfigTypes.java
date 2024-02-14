@@ -119,6 +119,13 @@ public class ConfigTypes {
             public String loginModule() {
                 return "org.apache.kafka.common.security.scram.ScramLoginModule";
             }
+        },
+
+        GSSAPI {
+            @Override
+            public String loginModule() {
+                return "com.sun.security.auth.module.Krb5LoginModule";
+            }
         };
 
         public static Set<String> names() {

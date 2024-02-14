@@ -280,7 +280,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(
                 AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
         properties.setProperty(
-                ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
+                ENABLE_AUTO_COMMIT_CONFIG, getBooleanStr(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
         properties.setProperty(FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
         properties.setProperty(FETCH_MAX_BYTES_CONFIG, getInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
         properties.setProperty(FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
@@ -300,7 +300,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
-        properties.putAll(AuthenticationConfigSpec.addAuthentication(this));
+        properties.putAll(AuthenticationConfigs.addAuthentication(this));
         return properties.properties();
     }
 
@@ -342,7 +342,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEnabled() {
-        return getBoolean(ENABLED).equals("true");
+        return getBoolean(ENABLED);
     }
 
     public String getItemInfoName() {
@@ -354,12 +354,12 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEncryptionEnabled() {
-        return getBoolean(ENABLE_ENCRYTPTION).equals("true");
+        return getBoolean(ENABLE_ENCRYTPTION);
     }
 
     public boolean isKeystoreEnabled() {
         checkEncryptionEnabled();
-        return getBoolean(EncryptionConfigs.ENABLE_MTLS).equals("true");
+        return getBoolean(EncryptionConfigs.ENABLE_MTLS);
     }
 
     private void checkEncryptionEnabled() {
@@ -431,7 +431,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isHostNameVerificationEnabled() {
         checkEncryptionEnabled();
-        return getBoolean(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION).equals("true");
+        return getBoolean(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);
     }
 
     public KeystoreType getKeystoreType() {
@@ -456,22 +456,59 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isAuthenticationEnabled() {
-        return getBoolean(ENABLE_AUTHENTICATION).equals("true");
+        return getBoolean(ENABLE_AUTHENTICATION);
     }
 
     public SaslMechanism getAuthenticationMechanism() {
         checkAuthenticationEnabled();
         return SaslMechanism.valueOf(
-                get(AuthenticationConfigSpec.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
+                get(AuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
     }
 
     public String getAuthenticationUsername() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigSpec.USERNAME);
+        return getText(AuthenticationConfigs.USERNAME);
     }
 
     public String getAuthenticationPassword() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigSpec.PASSWORD);
+        return getText(AuthenticationConfigs.PASSWORD);
+    }
+
+    public boolean isGssapiEnabled() {
+        return getAuthenticationMechanism().equals(SaslMechanism.GSSAPI);
+    }
+
+    private void checkGssapi() {
+        if (!isGssapiEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not set to GSSAPI"
+                            .formatted(AuthenticationConfigs.SASL_MECHANISM));
+        }
+    }
+
+    public boolean gssapiUseKeyTab() {
+        checkGssapi();
+        return getBoolean(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+    }
+
+    public boolean gssapiStoreKey() {
+        checkGssapi();
+        return getBoolean(AuthenticationConfigs.GSSAPI_STORE_KEY);
+    }
+
+    public String gssapiPrincipal() {
+        checkGssapi();
+        return getText(AuthenticationConfigs.GSSAPI_PRINCIPAL);
+    }
+
+    public String gssapiKerberosServiceName() {
+        checkGssapi();
+        return getText(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    }
+
+    public String gssapiKeyTab() {
+        checkGssapi();
+        return getFile(AuthenticationConfigs.GSSAPI_KEY_TAB);
     }
 }

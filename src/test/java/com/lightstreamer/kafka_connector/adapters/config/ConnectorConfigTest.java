@@ -391,8 +391,8 @@ public class ConnectorConfigTest {
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        authParams.put(AuthenticationConfigSpec.USERNAME, "username");
-        authParams.put(AuthenticationConfigSpec.PASSWORD, "password");
+        authParams.put(AuthenticationConfigs.USERNAME, "username");
+        authParams.put(AuthenticationConfigs.PASSWORD, "password");
         return authParams;
     }
 
@@ -563,8 +563,7 @@ public class ConnectorConfigTest {
         updatedConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getBoolean(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG))
-                .isEqualTo("false");
+        assertThat(config.getBoolean(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG)).isFalse();
     }
 
     @Test
@@ -1128,7 +1127,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigSpec.USERNAME, "");
+        updatedConfig.put(AuthenticationConfigs.USERNAME, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1136,7 +1135,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigSpec.USERNAME, "username");
+        updatedConfig.put(AuthenticationConfigs.USERNAME, "username");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1144,7 +1143,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigSpec.PASSWORD, "");
+        updatedConfig.put(AuthenticationConfigs.PASSWORD, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1152,7 +1151,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigSpec.PASSWORD, "password");
+        updatedConfig.put(AuthenticationConfigs.PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1212,7 +1211,7 @@ public class ConnectorConfigTest {
                 updatedConfig.putAll(encryptionParameters());
             }
             for (String mechanism : mechanisms) {
-                updatedConfig.put(AuthenticationConfigSpec.SASL_MECHANISM, mechanism);
+                updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, mechanism);
                 ConnectorConfig config =
                         ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
