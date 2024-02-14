@@ -56,7 +56,7 @@ public class AuthenticationConfigs {
                         .add(GSSAPI_USE_KEY_TAB, false, false, BOOL, defaultValue("false"))
                         .add(GSSAPI_STORE_KEY, false, false, BOOL, defaultValue("false"))
                         .add(GSSAPI_KEY_TAB, false, false, FILE)
-                        .add(GSSAPI_PRINCIPAL, false, false, TEXT)
+                        .add(GSSAPI_PRINCIPAL, true, false, TEXT)
                         .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT);
 
         CONFIG_SPEC =

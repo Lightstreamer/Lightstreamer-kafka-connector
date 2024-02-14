@@ -391,8 +391,6 @@ public class ConnectorConfigTest {
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        authParams.put(AuthenticationConfigs.USERNAME, "username");
-        authParams.put(AuthenticationConfigs.PASSWORD, "password");
         return authParams;
     }
 
@@ -1116,7 +1114,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyAuthenticationRequiredParameters() {
+    public void shouldSpecifyPlainAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
 
@@ -1166,7 +1164,14 @@ public class ConnectorConfigTest {
                 List.of(
                         () -> config.getAuthenticationMechanism(),
                         () -> config.getAuthenticationUsername(),
-                        () -> config.getAuthenticationPassword());
+                        () -> config.getAuthenticationPassword(),
+                        () -> config.isGssapiEnabled(),
+                        () -> config.gssapiKerberosServiceName(),
+                        () -> config.gssapiKeyTab(),
+                        () -> config.gssapiStoreKey(),
+                        () -> config.gssapiPrincipal(),
+                        () -> config.gssapiUseKeyTab()
+                        );
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
@@ -1231,5 +1236,65 @@ public class ConnectorConfigTest {
                                 "org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password';");
             }
         }
+    }
+
+    @Test
+    public void shouldSpecifyGssapiAuthenticationRequiredParameters() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.gssapi.principal]");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.gssapi.principal]");
+
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [authentication.gssapi.kerberos.service.name]");
+
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [authentication.gssapi.kerberos.service.name]");
+
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isGssapiEnabled()).isTrue();
+        assertThat(config.gssapiUseKeyTab()).isFalse();
+        assertThat(config.gssapiKeyTab()).isNull();
+        assertThat(config.gssapiStoreKey()).isFalse();
+        assertThat(config.gssapiPrincipal()).isEqualTo("kafka-user");
+        assertThat(config.gssapiKerberosServiceName()).isEqualTo("kafka");
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SaslConfigs.SASL_MECHANISM,
+                        "GSSAPI",
+                        SaslConfigs.SASL_KERBEROS_SERVICE_NAME,
+                        "kafka",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=false storeKey=false principal='kafka-user';");
     }
 }
