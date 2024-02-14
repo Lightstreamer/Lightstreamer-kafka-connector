@@ -26,13 +26,15 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConnectorConfigTest {
 
@@ -387,8 +390,8 @@ public class ConnectorConfigTest {
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        authParams.put(AuthenticationConfigs.USERNAME, "username");
-        authParams.put(AuthenticationConfigs.PASSWORD, "password");
+        authParams.put(AuthenticationConfigSpec.USERNAME, "username");
+        authParams.put(AuthenticationConfigSpec.PASSWORD, "password");
         return authParams;
     }
 
@@ -850,7 +853,6 @@ public class ConnectorConfigTest {
 
         assertThat(config.isEncryptionEnabled()).isFalse();
         assertThrows(ConfigException.class, () -> config.isKeystoreEnabled());
-        assertThrows(ConfigException.class, () -> config.getSecurityProtocol());
         assertThrows(ConfigException.class, () -> config.getEnabledProtocols());
         assertThrows(ConfigException.class, () -> config.getEnabledProtocolsAsStr());
         assertThrows(ConfigException.class, () -> config.getSslProtocol());
@@ -920,11 +922,9 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SSL);
         assertThat(config.getEnabledProtocols())
                 .containsExactly(SslProtocol.TLSv12, SslProtocol.TLSv13);
         assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
-
         assertThat(config.getSslProtocol()).isEqualTo("TLSv1.3");
         assertThat(config.getTrustStoreType()).isEqualTo("JKS");
         assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
@@ -969,9 +969,6 @@ public class ConnectorConfigTest {
     public void shouldOverrideEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.put(
-                EncryptionConfigs.SECURITY_PROTOCOL,
-                ConfigTypes.SecurityProtocol.SASL_SSL.toString());
         updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.SSL_PROTOCOL, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_TYPE, "PKCS12");
@@ -983,7 +980,6 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getSecurityProtocol()).isEqualTo(SecurityProtocol.SASL_SSL);
         assertThat(config.getEnabledProtocols()).containsExactly(SslProtocol.TLSv12);
         assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
         assertThat(config.getSslProtocol()).isEqualTo("TLSv1.2");
@@ -1004,7 +1000,7 @@ public class ConnectorConfigTest {
         assertThat(props)
                 .containsAtLeast(
                         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-                        "SASL_SSL",
+                        "SSL",
                         SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
                         "TLSv1.2",
                         SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
@@ -1141,7 +1137,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigs.USERNAME, "");
+        updatedConfig.put(AuthenticationConfigSpec.USERNAME, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1149,7 +1145,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigs.USERNAME, "username");
+        updatedConfig.put(AuthenticationConfigSpec.USERNAME, "username");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1157,7 +1153,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigs.PASSWORD, "");
+        updatedConfig.put(AuthenticationConfigSpec.PASSWORD, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1165,7 +1161,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigs.PASSWORD, "password");
+        updatedConfig.put(AuthenticationConfigSpec.PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1175,23 +1171,18 @@ public class ConnectorConfigTest {
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isAuthenticationEnabled()).isFalse();
-        assertThrows(ConfigException.class, () -> config.getAuthenticationMechanism());
-        assertThrows(ConfigException.class, () -> config.getAuthenticationUsername());
-        assertThrows(ConfigException.class, () -> config.getAuthenticationPassword());
-        
+
         List<ThrowingRunnable> runnables =
                 List.of(
-                        () -> config.getAuthenticationMechanism(),
+                        () -> config.getAuthenticationMechanismStr(),
                         () -> config.getAuthenticationUsername(),
-                        () -> config.getAuthenticationPassword()
-                        );
+                        () -> config.getAuthenticationPassword());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
                     .isEqualTo("Parameter [authentication.enabled] is not enabled");
-        }        
+        }
     }
-
 
     @Test
     public void shouldGetDefaultAuthenticationSettings() {
@@ -1201,18 +1192,54 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isAuthenticationEnabled()).isTrue();
-        assertThat(config.getAuthenticationMechanism()).isEqualTo("PLAIN");
+        assertThat(config.getAuthenticationMechanismStr()).isEqualTo("PLAIN");
+
+        Properties properties = config.baseConsumerProps();
+        assertThat(properties)
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        "SASL_PLAINTEXT",
+                        SaslConfigs.SASL_MECHANISM,
+                        "PLAIN",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "org.apache.kafka.common.security.plain.PlainLoginModule required username='username' password='password'");
     }
 
     @Test
     public void shouldOverrideAuthenticationSettings() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.putAll(authenticationParameters());
-        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, ConfigTypes.SaslMechanism.SCRAM_256.toString());
+        // Sasl mechanisms under test
+        List<String> mechanisms =
+                Stream.of(SaslMechanism.SCRAM_256, SaslMechanism.SCRAM_512)
+                        .map(Object::toString)
+                        .toList();
 
-        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        for (boolean encrypted : List.of(true, false)) {
+            Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+            updatedConfig.putAll(authenticationParameters());
+            // Test both encrypted and clear channel
+            if (encrypted) {
+                updatedConfig.putAll(encryptionParameters());
+            }
+            for (String mechanism : mechanisms) {
+                updatedConfig.put(AuthenticationConfigSpec.SASL_MECHANISM, mechanism);
+                ConnectorConfig config =
+                        ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
-        assertThat(config.isAuthenticationEnabled()).isTrue();
-        assertThat(config.getAuthenticationMechanism()).isEqualTo("SCRAM_256");
+                assertThat(config.isAuthenticationEnabled()).isTrue();
+                assertThat(config.getAuthenticationMechanismStr()).isEqualTo(mechanism);
+
+                Properties properties = config.baseConsumerProps();
+                assertThat(properties)
+                        .containsAtLeast(
+                                CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                                encrypted
+                                        ? SecurityProtocol.SASL_SSL.toString()
+                                        : SecurityProtocol.SASL_PLAINTEXT.toString(),
+                                SaslConfigs.SASL_MECHANISM,
+                                mechanism,
+                                SaslConfigs.SASL_JAAS_CONFIG,
+                                "org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password'");
+            }
+        }
     }
 }

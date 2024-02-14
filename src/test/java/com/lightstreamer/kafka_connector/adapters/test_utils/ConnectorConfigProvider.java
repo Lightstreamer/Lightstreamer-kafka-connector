@@ -48,7 +48,7 @@ public class ConnectorConfigProvider {
         return adapterParams;
     }
 
-    private static Map<String, String> minimalConfigParamsWith(
+    public static Map<String, String> minimalConfigParamsWith(
             Map<String, String> additionalConfigs) {
         Map<String, String> essentialConfigs = minimalConfigParams();
         essentialConfigs.putAll(additionalConfigs);

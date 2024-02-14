@@ -17,11 +17,11 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.AbstractConfig.copySetting;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
 
+import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 
@@ -43,7 +43,7 @@ public class KeystoreConfigs {
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec()
+                new ConfigSpec("keyStore")
                         .add(
                                 KEYSTORE_TYPE,
                                 false,
@@ -64,18 +64,16 @@ public class KeystoreConfigs {
     }
 
     static Properties addKeystore(ConnectorConfig config) {
-        Properties properties = new Properties();
+        SkipNullKeyProperties properties = new SkipNullKeyProperties();
         if (config.isKeystoreEnabled()) {
-            copySetting(properties, SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType());
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-                    config.getKeystorePassword());
-            copySetting(
-                    properties, SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
-            copySetting(properties, SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
+            properties.setProperty(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType());
+            properties.setProperty(
+                    SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, config.getKeystorePassword());
+            properties.setProperty(
+                    SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
+            properties.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
         }
 
-        return properties;
+        return properties.properties();
     }
 }

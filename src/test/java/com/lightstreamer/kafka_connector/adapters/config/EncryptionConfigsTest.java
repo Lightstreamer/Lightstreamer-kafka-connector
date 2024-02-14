@@ -29,15 +29,6 @@ public class EncryptionConfigsTest {
     void shouldReturnConfigSpec() {
         ConfigSpec configSpec = EncryptionConfigs.configSpec();
 
-        ConfParameter securityProtocol =
-                configSpec.getParameter(EncryptionConfigs.SECURITY_PROTOCOL);
-        assertThat(securityProtocol.name()).isEqualTo(EncryptionConfigs.SECURITY_PROTOCOL);
-        assertThat(securityProtocol.required()).isFalse();
-        assertThat(securityProtocol.multiple()).isFalse();
-        assertThat(securityProtocol.mutable()).isTrue();
-        assertThat(securityProtocol.defaultValue()).isEqualTo("SSL");
-        assertThat(securityProtocol.type()).isEqualTo(ConfType.SECURITY_PROTOCOL);
-
         ConfParameter sslProtocol = configSpec.getParameter(EncryptionConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.name()).isEqualTo(EncryptionConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.required()).isFalse();

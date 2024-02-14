@@ -29,7 +29,7 @@
 
         <param name="group.id">test</param>
 
-        <param name="enabled">true</param>
+        <param name="enabled">false</param>
 
         <!-- TOPIC MAPPING SECTION -->
 
@@ -62,7 +62,58 @@
 
         <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.offset">#{OFFSET}</param>
+
+        <!---->
     </data_provider>
+
+    <data_provider name="QuickStartSasl">
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
+
+        <!-- The Kafka cluster address -->
+        <param name="bootstrap.servers">broker:29095</param>
+
+        <param name="group.id">test</param>
+
+        <param name="enabled">true</param>
+
+        <!-- TOPIC MAPPING SECTION -->
+
+        <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+        <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
+        <param name="item-template.sample2">sample</param>
+
+        <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
+        <param name="map.sample-topic.to">item-template.sample1,item-template.sample2</param>
+        <!--<param name="map.sample-topic2.to">item-template.sample2</param>-->
+
+        <param name="encryption.enable">false</param>
+        <!--<param name="encryption.security.protocol">SSL</param>-->
+        <param name="encryption.truststore.path">secrets/kafka.client.truststore.jks1</param>
+        <param name="encryption.truststore.password">password</param>
+
+        <param name="authentication.enabled">true</param>
+        <param name="authentication.username">admin</param>
+        <param name="authentication.password">admin-secret</param>
+
+        <!-- FIELDS MAPPING SECTION -->
+
+        <!-- Extraction of the record key mapped to the field "key". -->
+        <param name="field.key">#{KEY}</param>
+
+        <!-- Extraction of the record value mapped to the field "value". -->
+        <param name="field.value">#{VALUE}</param>
+
+        <!-- Extraction of the record timestamp to the field "ts". -->
+        <param name="field.ts">#{TIMESTAMP}</param>
+
+        <!-- Extraction of the record partition mapped to the field "partition". -->
+        <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Extraction of the record offset mapped to the field "offset". -->
+        <param name="field.offset">#{OFFSET}</param>
+
+        <!---->
+    </data_provider>    
 
 
 </adapters_conf>

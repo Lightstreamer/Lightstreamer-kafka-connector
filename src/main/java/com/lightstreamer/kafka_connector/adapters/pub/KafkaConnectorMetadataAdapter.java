@@ -44,7 +44,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
-    private final Map<String, DataAdapterInfo> registeredDataADapters = new ConcurrentHashMap<>();
+    private final Map<String, ConnectionInfo> registeredDataAdapters = new ConcurrentHashMap<>();
 
     private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
 
@@ -104,7 +104,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         }
 
         TableInfo table = tables[0];
-        DataAdapterInfo dataAdapterInfo = registeredDataADapters.get(table.getDataAdapter());
+        ConnectionInfo dataAdapterInfo = registeredDataAdapters.get(table.getDataAdapter());
 
         if (dataAdapterInfo != null) {
             if (!dataAdapterInfo.enabled()) {
@@ -134,7 +134,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         }
 
         TableInfo table = tables[0];
-        if (registeredDataADapters.containsKey(table.getDataAdapter())) {
+        if (registeredDataAdapters.containsKey(table.getDataAdapter())) {
             String[] items = table.getSubscribedItems();
             Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
             for (String item : items) {
@@ -146,8 +146,12 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         tableClosed(sessionID, tables);
     }
 
-    private void notifyDataAdapter(String dataAdapterName, boolean enabled) {
-        registeredDataADapters.put(dataAdapterName, new DataAdapterInfo(dataAdapterName, enabled));
+    private void notifyDataAdapter(String connectionName, boolean enabled) {
+        registeredDataAdapters.put(connectionName, new ConnectionInfo(connectionName, enabled));
+    }
+
+    public final ConnectionInfo lookUp(String connectionName) {
+        return registeredDataAdapters.get(connectionName);
     }
 
     public abstract void newTables(
@@ -166,7 +170,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         return !Mode.COMMAND.equals(mode);
     }
 
-    private static record DataAdapterInfo(String name, boolean enabled) {}
+    public static record ConnectionInfo(String name, boolean enabled) {}
 
     private static class MetadataListenterImpl implements MetadataListener {
 

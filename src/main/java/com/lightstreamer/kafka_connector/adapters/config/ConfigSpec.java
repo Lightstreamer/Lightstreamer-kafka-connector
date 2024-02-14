@@ -298,7 +298,17 @@ class ConfigSpec {
 
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
-    private Map<ConfParameter, ConfigSpec> subsections = new HashMap<>();
+    private final Map<ConfParameter, ConfigSpec> subsections = new HashMap<>();
+
+    private final String name;
+
+    ConfigSpec(String name) {
+        this.name = name;
+    }
+
+    ConfigSpec() {
+        this(null);
+    }
 
     ConfigSpec add(
             String name,
@@ -368,16 +378,20 @@ class ConfigSpec {
     }
 
     ConfParameter getParameter(String name) {
-        ConfParameter confParameter = paramSpec.get(name);
-        if (confParameter != null) {
-            return confParameter;
-        }
-        Optional<ConfParameter> op =
-                subsections.values().stream().map(c -> c.getParameter(name)).findFirst();
-        if (op.isPresent()) {
-            return op.get();
+        ConfParameter parameter = paramSpec.get(name);
+        if (parameter != null) {
+            return parameter;
         }
 
+        // Search in all subsections
+        for (ConfigSpec s : subsections.values()) {
+            parameter = s.getParameter(name);
+            if (parameter != null) {
+                return parameter;
+            }
+        }
+
+        // No parameter found
         return null;
     }
 
@@ -436,7 +450,7 @@ class ConfigSpec {
     }
 
     public ConfigSpec withAuthenticationConfigs(String enableKey) {
-        AuthenticationConfigs.withAuthenticationConfigs(this, enableKey);
+        AuthenticationConfigSpec.withAuthenticationConfigs(this, enableKey);
         return this;
     }
 }

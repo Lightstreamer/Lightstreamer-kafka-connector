@@ -17,12 +17,12 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.AbstractConfig.copySetting;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
 
+import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
@@ -35,8 +35,6 @@ import org.apache.kafka.common.config.SslConfigs;
 import java.util.Properties;
 
 public class EncryptionConfigs {
-
-    public static String SECURITY_PROTOCOL = "encryption.security.protocol";
 
     public static String SSL_ENABLED_PROTOCOLS = "encryption.enabled.protocols";
     public static String SSL_PROTOCOL = "encryption.protocol";
@@ -62,13 +60,7 @@ public class EncryptionConfigs {
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec()
-                        .add(
-                                SECURITY_PROTOCOL,
-                                false,
-                                false,
-                                ConfType.SECURITY_PROTOCOL,
-                                defaultValue(SecurityProtocol.SSL.toString()))
+                new ConfigSpec("encryption")
                         .add(
                                 SSL_ENABLED_PROTOCOLS,
                                 false,
@@ -106,56 +98,48 @@ public class EncryptionConfigs {
                         .withKeystoreConfigs(ENABLE_MTLS);
     }
 
+    static ConfigSpec configSpec() {
+        return CONFIG_SPEC;
+    }
+
     static void withEncryptionConfigs(ConfigSpec config, String enablingKey) {
         config.addConfigSpec(CONFIG_SPEC, enablingKey);
     }
 
     static Properties addEncryption(ConnectorConfig config) {
-        Properties properties = new Properties();
+        SkipNullKeyProperties properties = new SkipNullKeyProperties();
+        SecurityProtocol protocol =
+                SecurityProtocol.retrieve(
+                        config.isEncryptionEnabled(), config.isAuthenticationEnabled());
+        properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, protocol.toString());
         if (config.isEncryptionEnabled()) {
-            copySetting(
-                    properties,
-                    CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-                    config.getSecurityProtocol().toString());
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
-                    config.getEnabledProtocolsAsStr());
-            copySetting(
-                    properties, SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, config.getTrustStoreType());
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-                    config.getTrustStorePath());
-            copySetting(
-                    properties,
-                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-                    config.getTrustStorePassword());
+            properties.setProperty(
+                    SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, config.getEnabledProtocolsAsStr());
+            properties.setProperty(
+                    SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, config.getTrustStoreType());
+            properties.setProperty(
+                    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, config.getTrustStorePath());
+            properties.setProperty(
+                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, config.getTrustStorePassword());
             if (!config.isHostNameVerificationEnabled()) {
                 properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }
-            copySetting(
-                    properties, SslConfigs.SSL_CIPHER_SUITES_CONFIG, config.getCipherSuitesAsStr());
-            copySetting(properties, SslConfigs.SSL_PROVIDER_CONFIG, config.getSslProvider());
-            copySetting(
-                    properties,
+            properties.setProperty(
+                    SslConfigs.SSL_CIPHER_SUITES_CONFIG, config.getCipherSuitesAsStr());
+            properties.setProperty(SslConfigs.SSL_PROVIDER_CONFIG, config.getSslProvider());
+            properties.setProperty(
                     SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
                     config.getText(SSL_EGINE_FACTORY_CLASS));
-            copySetting(
-                    properties,
+            properties.setProperty(
                     SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG,
                     config.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
-            copySetting(
-                    properties,
+            properties.setProperty(
                     SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
                     config.getText(SSL_TRUSTMANAGER_ALGORITHM));
-            copySetting(
-                    properties,
-                    SecurityConfig.SECURITY_PROVIDERS_CONFIG,
-                    config.getText(SECURITY_PROVIDERS));
+            properties.setProperty(
+                    SecurityConfig.SECURITY_PROVIDERS_CONFIG, config.getText(SECURITY_PROVIDERS));
             properties.putAll(KeystoreConfigs.addKeystore(config));
         }
-
-        return properties;
+        return properties.properties();
     }
 }

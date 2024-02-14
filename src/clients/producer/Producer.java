@@ -71,7 +71,7 @@ public class Producer implements Runnable {
         properties.setProperty(SaslConfigs.SASL_MECHANISM, "PLAIN");
         properties.setProperty(
                 SaslConfigs.SASL_JAAS_CONFIG,
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='admin-secret1';");
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='admin-secret';");
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
             int key = 0;

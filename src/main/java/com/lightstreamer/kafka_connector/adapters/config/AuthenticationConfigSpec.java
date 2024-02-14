@@ -20,12 +20,15 @@ package com.lightstreamer.kafka_connector.adapters.config;
 import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
+
+import org.apache.kafka.common.config.SaslConfigs;
 
 import java.util.Properties;
 
-public class AuthenticationConfigs {
+public class AuthenticationConfigSpec {
 
-    public static final String SASL_MECHANISM = "authentication.mecanism";
+    public static final String SASL_MECHANISM = "authentication.mechanism";
 
     public static final String USERNAME = "authentication.username";
 
@@ -35,7 +38,7 @@ public class AuthenticationConfigs {
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec()
+                new ConfigSpec("authentication")
                         .add(
                                 SASL_MECHANISM,
                                 false,
@@ -54,8 +57,50 @@ public class AuthenticationConfigs {
         config.addConfigSpec(CONFIG_SPEC, enablingKey);
     }
 
-    static Properties addEncryption(ConnectorConfig config) {
+    static Properties addAuthentication(ConnectorConfig config) {
         Properties properties = new Properties();
+        if (config.isAuthenticationEnabled()) {
+            properties.setProperty(
+                    SaslConfigs.SASL_MECHANISM, config.getAuthenticationMechanismStr());
+            properties.setProperty(
+                    SaslConfigs.SASL_JAAS_CONFIG, JaasConfigBuilder.jaasConfig(config));
+        }
         return properties;
+    }
+
+    static class JaasConfigBuilder {
+
+        private String username;
+        private String password;
+        private SaslMechanism mechanism;
+
+        static String jaasConfig(ConnectorConfig config) {
+            return new JaasConfigBuilder()
+                    .withMechanism(config.getAuthenticationMechanism())
+                    .withUsername(config.getAuthenticationUsername())
+                    .withPassword(config.getAuthenticationPassword())
+                    .build();
+        }
+
+        public JaasConfigBuilder withMechanism(SaslMechanism mechanism) {
+            this.mechanism = mechanism;
+            return this;
+        }
+
+        public JaasConfigBuilder withUsername(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public JaasConfigBuilder withPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public String build() {
+            return String.format(
+                    "%s required username='%s' password='%s'",
+                    mechanism.loginModule(), username, password);
+        }
     }
 }

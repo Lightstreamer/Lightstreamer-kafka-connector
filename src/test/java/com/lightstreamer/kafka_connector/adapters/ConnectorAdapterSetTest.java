@@ -20,10 +20,14 @@ package com.lightstreamer.kafka_connector.adapters;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,12 +36,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 
-public class ConnectorMetadataAdapterTest {
+public class ConnectorAdapterSetTest {
 
     private Path adapterDir;
     private ConnectorMetadataAdapter connectorMetadataAdapter;
-    private HashMap<String, String> params;
+    private HashMap<String, String> metadataAdapterParams;
     private Path loggingConfigurationFile;
 
     @BeforeEach
@@ -46,8 +51,9 @@ public class ConnectorMetadataAdapterTest {
         loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
 
         connectorMetadataAdapter = new ConnectorMetadataAdapter();
-        params = new HashMap<>();
-        params.put("adapters_conf.id", "KAFKA");
+
+        metadataAdapterParams = new HashMap<>();
+        metadataAdapterParams.put("adapters_conf.id", "KAFKA");
     }
 
     @Test
@@ -55,16 +61,36 @@ public class ConnectorMetadataAdapterTest {
         ConfigException e =
                 assertThrows(
                         ConfigException.class,
-                        () -> connectorMetadataAdapter.init(params, adapterDir.toFile()));
+                        () ->
+                                connectorMetadataAdapter.init(
+                                        metadataAdapterParams, adapterDir.toFile()));
         assertThat(e.getMessage())
                 .isEqualTo("Missing required parameter [logging.configuration.path]");
     }
 
     @Test
     void shouldInit() throws MetadataProviderException {
-        params.put(
+        metadataAdapterParams.put(
                 GlobalConfig.LOGGING_CONFIGURATION_PATH,
                 loggingConfigurationFile.getFileName().toString());
-        connectorMetadataAdapter.init(params, adapterDir.toFile());
+        connectorMetadataAdapter.init(metadataAdapterParams, adapterDir.toFile());
+
+        ConnectorDataAdapter connectorDataAdapter1 = new ConnectorDataAdapter();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        assertDoesNotThrow(
+                () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
+
+        ConnectorDataAdapter connectorDataAdapter2 = new ConnectorDataAdapter();
+        Map<String, String> dataAdapterParams2 =
+                ConnectorConfigProvider.minimalConfigParamsWith(
+                        Map.of(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR2"));
+        assertDoesNotThrow(
+                () -> connectorDataAdapter2.init(dataAdapterParams2, adapterDir.toFile()));
+
+        ConnectionInfo connector1 = connectorMetadataAdapter.lookUp("CONNECTOR");
+        assertThat(connector1.name()).isEqualTo("CONNECTOR");
+
+        ConnectionInfo connector2 = connectorMetadataAdapter.lookUp("CONNECTOR2");
+        assertThat(connector2.name()).isEqualTo("CONNECTOR2");
     }
 }

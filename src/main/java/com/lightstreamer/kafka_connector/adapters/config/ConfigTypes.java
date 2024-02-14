@@ -31,12 +31,22 @@ import java.util.stream.Stream;
 public class ConfigTypes {
 
     public enum SecurityProtocol {
+        PLAINTEXT,
         SASL_PLAINTEXT,
         SASL_SSL,
         SSL;
 
         public static Set<String> names() {
             return enumNames(values());
+        }
+
+        static SecurityProtocol retrieve(boolean encrypted, boolean authenticated) {
+            SecurityProtocol channel = encrypted ? SSL : PLAINTEXT;
+            String protocol =
+                    authenticated
+                            ? String.join("_", "SASL", channel.toString())
+                            : channel.toString();
+            return SecurityProtocol.valueOf(protocol);
         }
     }
 
@@ -82,12 +92,32 @@ public class ConfigTypes {
     }
 
     public enum SaslMechanism {
-        PLAIN,
-        SCRAM_256,
-        SCRAM_512;
+        PLAIN {
+            @Override
+            public String loginModule() {
+                return "org.apache.kafka.common.security.plain.PlainLoginModule";
+            }
+        },
+        SCRAM_256 {
+            @Override
+            public String loginModule() {
+                return "org.apache.kafka.common.security.scram.ScramLoginModule";
+            }
+        },
+
+        SCRAM_512 {
+            @Override
+            public String loginModule() {
+                return "org.apache.kafka.common.security.scram.ScramLoginModule";
+            }
+        };
 
         public static Set<String> names() {
             return enumNames(values());
+        }
+
+        public String loginModule() {
+            return "";
         }
     }
 

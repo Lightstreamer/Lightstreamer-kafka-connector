@@ -43,10 +43,11 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
+import com.lightstreamer.kafka_connector.adapters.commons.SkipNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -138,7 +139,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec()
+                new ConfigSpec("root")
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ENABLED, false, false, BOOL, defaultValue("true"))
                         .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
@@ -264,43 +265,35 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public Properties baseConsumerProps() {
-        Properties properties = new Properties();
+        SkipNullKeyProperties properties = new SkipNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
-        copySetting(properties, METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
-        copySetting(
-                properties, AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
-        copySetting(
-                properties,
-                ENABLE_AUTO_COMMIT_CONFIG,
-                getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
-        copySetting(properties, FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
-        copySetting(properties, FETCH_MAX_BYTES_CONFIG, getInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
-        copySetting(
-                properties, FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
-        copySetting(
-                properties, HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
-        copySetting(properties, MAX_POLL_RECORDS_CONFIG, getInt(CONSUMER_MAX_POLL_RECORDS));
-        copySetting(
-                properties,
-                RECONNECT_BACKOFF_MAX_MS_CONFIG,
-                getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
-        copySetting(
-                properties,
-                RECONNECT_BACKOFF_MS_CONFIG,
-                getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
-        copySetting(properties, SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
-        copySetting(properties, MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
-        copySetting(
-                properties, REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
-        copySetting(
-                properties,
-                DEFAULT_API_TIMEOUT_MS_CONFIG,
-                getInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
-        copySetting(properties, AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
+        properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
+        properties.setProperty(
+                AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
+        properties.setProperty(
+                ENABLE_AUTO_COMMIT_CONFIG, getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
+        properties.setProperty(FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
+        properties.setProperty(FETCH_MAX_BYTES_CONFIG, getInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
+        properties.setProperty(FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
+        properties.setProperty(
+                HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
+        properties.setProperty(MAX_POLL_RECORDS_CONFIG, getInt(CONSUMER_MAX_POLL_RECORDS));
+        properties.setProperty(
+                RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
+        properties.setProperty(
+                RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
+        properties.setProperty(SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
+        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+        properties.setProperty(
+                REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
+        properties.setProperty(
+                DEFAULT_API_TIMEOUT_MS_CONFIG, getInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
+        properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
-        return properties;
+        properties.putAll(AuthenticationConfigSpec.addAuthentication(this));
+        return properties.properties();
     }
 
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
@@ -382,12 +375,6 @@ public final class ConnectorConfig extends AbstractConfig {
         }
     }
 
-    public SecurityProtocol getSecurityProtocol() {
-        checkEncryptionEnabled();
-        return SecurityProtocol.valueOf(
-                get(EncryptionConfigs.SECURITY_PROTOCOL, ConfType.SECURITY_PROTOCOL, false));
-    }
-
     public List<SslProtocol> getEnabledProtocols() {
         checkEncryptionEnabled();
         String value =
@@ -464,18 +451,23 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(ENABLE_AUTHENTICATION).equals("true");
     }
 
-    public String getAuthenticationMechanism() {
+    public String getAuthenticationMechanismStr() {
+        return getAuthenticationMechanism().toString();
+    }
+
+    public SaslMechanism getAuthenticationMechanism() {
         checkAuthenticationEnabled();
-        return get(AuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false);
+        return SaslMechanism.valueOf(
+                get(AuthenticationConfigSpec.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
     }
 
     public String getAuthenticationUsername() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigs.USERNAME);
+        return getText(AuthenticationConfigSpec.USERNAME);
     }
 
     public String getAuthenticationPassword() {
         checkAuthenticationEnabled();
-        return getText(AuthenticationConfigs.PASSWORD);
+        return getText(AuthenticationConfigSpec.PASSWORD);
     }
 }

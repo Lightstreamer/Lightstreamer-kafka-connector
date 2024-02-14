@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.function.Function;
 
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
@@ -183,11 +182,5 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             }
         }
         return updatedConfigs;
-    }
-
-    public static void copySetting(Properties properties, String toKey, String value) {
-        if (value != null) {
-            properties.setProperty(toKey, value);
-        }
     }
 }
