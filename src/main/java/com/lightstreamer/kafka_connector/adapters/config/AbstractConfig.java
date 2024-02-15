@@ -182,7 +182,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         List<ConfParameter> confParams = configSpec.getByType(FILE);
         for (ConfParameter confParameter : confParams) {
             String value = updatedConfigs.get(confParameter.name());
-            if (value != null) {
+            if (value != null && !value.isBlank()) {
                 updatedConfigs.replace(
                         confParameter.name(),
                         Paths.get(updatedConfigs.get(ADAPTER_DIR), value).toString());

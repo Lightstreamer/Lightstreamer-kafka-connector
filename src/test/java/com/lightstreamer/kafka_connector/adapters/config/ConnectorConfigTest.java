@@ -386,7 +386,7 @@ public class ConnectorConfigTest {
     private Map<String, String> kesytoreParameters() {
         Map<String, String> keystoreParams = new HashMap<>();
         keystoreParams.put(EncryptionConfigs.ENABLE_MTLS, "true");
-        keystoreParams.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.toString());
+        keystoreParams.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
         keystoreParams.put(KeystoreConfigs.KEYSTORE_PASSWORD, "keystore-password");
         return keystoreParams;
     }
@@ -401,10 +401,10 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldSpecifyRequiredParams() {
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> new ConnectorConfig(Collections.emptyMap()));
-        assertThat(e.getMessage())
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
                                 .formatted(ConnectorConfig.ADAPTERS_CONF_ID));
@@ -412,85 +412,85 @@ public class ConnectorConfigTest {
         Map<String, String> params = new HashMap<>();
 
         params.put(ConnectorConfig.ADAPTERS_CONF_ID, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(ConnectorConfig.ADAPTERS_CONF_ID));
 
         params.put(ConnectorConfig.ADAPTERS_CONF_ID, "adapters_conf_id");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]".formatted(ConnectorConfig.ADAPTER_DIR));
 
         params.put(ConnectorConfig.ADAPTER_DIR, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(ConnectorConfig.ADAPTER_DIR));
 
         params.put(ConnectorConfig.ADAPTER_DIR, "non-existing-directory");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Not found directory [non-existing-directory] specified in [%s]"
                                 .formatted(ConnectorConfig.ADAPTER_DIR));
 
         params.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
                                 .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
                                 .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
         params.put(ConnectorConfig.DATA_ADAPTER_NAME, "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
         params.put(ConnectorConfig.DATA_ADAPTER_NAME, "data_provider_name");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo("Specify at least one parameter [item-template.<...>]");
 
         params.put("item-template.template1", "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage())
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [item-template.template1]");
 
         params.put("item-template.template1", "template");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
 
         params.put("map.topic.to", "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         params.put("map.topic.to", "aTemplate");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
 
         params.put("field.field1", "");
-        e = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid value for parameter [field.field1]");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [field.field1]");
 
         params.put("field.field1", "VALUE");
         assertDoesNotThrow(() -> new ConnectorConfig(params));
@@ -887,9 +887,13 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Not found file [aFile] specified in [encryption.truststore.path]");
+                .isEqualTo(
+                        "Not found file ["
+                                + adapterDir.toString()
+                                + "/aFile] specified in [encryption.truststore.path]");
 
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        updatedConfig.put(
+                EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -958,7 +962,8 @@ public class ConnectorConfigTest {
     public void shouldOverrideEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        updatedConfig.put(
+                EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.SSL_PROTOCOL, "TLSv1.2");
@@ -1033,9 +1038,12 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Not found file [aFile] specified in [encryption.keystore.path]");
+                .isEqualTo(
+                        "Not found file ["
+                                + adapterDir.toString()
+                                + "/aFile] specified in [encryption.keystore.path]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.toString());
+        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1201,7 +1209,7 @@ public class ConnectorConfigTest {
                         SaslConfigs.SASL_MECHANISM,
                         "PLAIN",
                         SaslConfigs.SASL_JAAS_CONFIG,
-                        "org.apache.kafka.common.security.plain.PlainLoginModule required username='username' password='password';");
+                        "org.apache.kafka.common.security.plain.PlainLoginModule required username='sasl-username' password='sasl-password';");
     }
 
     @Test
@@ -1323,7 +1331,8 @@ public class ConnectorConfigTest {
         updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
         updatedConfig.put(AuthenticationConfigs.GSSAPI_STORE_KEY, "true");
         updatedConfig.put(AuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.toString());
+        updatedConfig.put(
+                AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1369,9 +1378,13 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Not found file [aFile] specified in [authentication.gssapi.key.tab]");
+                .isEqualTo(
+                        "Not found file ["
+                                + adapterDir.toString()
+                                + "/aFile] specified in [authentication.gssapi.key.tab]");
 
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.toString());
+        updatedConfig.put(
+                AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 }

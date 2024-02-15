@@ -61,9 +61,8 @@ public class Producer implements Runnable {
         properties.setProperty(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        // properties.setProperty(
-        //         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-        // "secrets/kafka.client.truststore.jks");
+        properties.setProperty(
+                SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "secrets/kafka.client.truststore.jks");
         // properties.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "password");
         // properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
         // ssl.truststore.password=test1234

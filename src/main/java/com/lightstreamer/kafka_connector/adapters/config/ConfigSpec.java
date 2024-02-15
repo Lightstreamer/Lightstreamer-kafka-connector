@@ -423,7 +423,13 @@ class ConfigSpec {
     }
 
     List<ConfParameter> getByType(Type type) {
-        return paramSpec.values().stream().filter(p -> p.type().equals(type)).toList();
+        List<ConfParameter> list1 =
+                new ArrayList<>(
+                        subsections.stream()
+                                .flatMap(s -> s.spec().getByType(type).stream())
+                                .toList());
+        list1.addAll(paramSpec.values().stream().filter(p -> p.type().equals(type)).toList());
+        return list1;
     }
 
     public static Optional<String> extractInfix(ConfParameter param, String value) {

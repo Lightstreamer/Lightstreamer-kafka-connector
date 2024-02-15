@@ -86,7 +86,7 @@ public class AuthenticationConfigsTest {
 
         ConfParameter principal = configSpec.getParameter(AuthenticationConfigs.GSSAPI_PRINCIPAL);
         assertThat(principal.name()).isEqualTo(AuthenticationConfigs.GSSAPI_PRINCIPAL);
-        assertThat(principal.required()).isFalse();
+        assertThat(principal.required()).isTrue();
         assertThat(principal.multiple()).isFalse();
         assertThat(principal.mutable()).isTrue();
         assertThat(principal.defaultValue()).isNull();
