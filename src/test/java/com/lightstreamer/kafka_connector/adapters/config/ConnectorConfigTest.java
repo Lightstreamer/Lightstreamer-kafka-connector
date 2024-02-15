@@ -64,6 +64,8 @@ public class ConnectorConfigTest {
     private Path trustStoreFile;
     private Path keyStoreFile;
 
+    private Path keyTabFile;
+
     @BeforeEach
     public void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
@@ -71,6 +73,7 @@ public class ConnectorConfigTest {
         valueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
         trustStoreFile = Files.createTempFile(adapterDir, "truststore", ".jks");
         keyStoreFile = Files.createTempFile(adapterDir, "keystore", ".jks");
+        keyTabFile = Files.createTempFile(adapterDir, "keytabFile", ".keytab");
     }
 
     @Test
@@ -391,6 +394,8 @@ public class ConnectorConfigTest {
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        authParams.put(AuthenticationConfigs.USERNAME, "sasl-username");
+        authParams.put(AuthenticationConfigs.PASSWORD, "sasl-password");
         return authParams;
     }
 
@@ -1170,8 +1175,7 @@ public class ConnectorConfigTest {
                         () -> config.gssapiKeyTab(),
                         () -> config.gssapiStoreKey(),
                         () -> config.gssapiPrincipal(),
-                        () -> config.gssapiUseKeyTab()
-                        );
+                        () -> config.gssapiUseKeyTab());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
@@ -1211,7 +1215,7 @@ public class ConnectorConfigTest {
         for (boolean encrypted : List.of(true, false)) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
             updatedConfig.putAll(authenticationParameters());
-            // Test both encrypted and clear channel
+            // Test both encrypted and clear channels
             if (encrypted) {
                 updatedConfig.putAll(encryptionParameters());
             }
@@ -1222,6 +1226,8 @@ public class ConnectorConfigTest {
 
                 assertThat(config.isAuthenticationEnabled()).isTrue();
                 assertThat(config.getAuthenticationMechanism().toString()).isEqualTo(mechanism);
+                assertThat(config.getAuthenticationUsername()).isEqualTo("sasl-username");
+                assertThat(config.getAuthenticationPassword()).isEqualTo("sasl-password");
 
                 Properties properties = config.baseConsumerProps();
                 assertThat(properties)
@@ -1233,13 +1239,13 @@ public class ConnectorConfigTest {
                                 SaslConfigs.SASL_MECHANISM,
                                 mechanism,
                                 SaslConfigs.SASL_JAAS_CONFIG,
-                                "org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password';");
+                                "org.apache.kafka.common.security.scram.ScramLoginModule required username='sasl-username' password='sasl-password';");
             }
         }
     }
 
     @Test
-    public void shouldSpecifyGssapiAuthenticationRequiredParameters() {
+    public void shouldGetDefaultGssapiAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
         updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -1277,6 +1283,16 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter [authentication.gssapi.kerberos.service.name]");
 
         updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldGetDefaultGssapiAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1296,5 +1312,66 @@ public class ConnectorConfigTest {
                         "kafka",
                         SaslConfigs.SASL_JAAS_CONFIG,
                         "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=false storeKey=false principal='kafka-user';");
+    }
+
+    @Test
+    public void shouldOverrideGssapiAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_STORE_KEY, "true");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.toString());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isGssapiEnabled()).isTrue();
+        assertThat(config.gssapiUseKeyTab()).isTrue();
+        assertThat(config.gssapiKeyTab()).isEqualTo(keyTabFile.toString());
+        assertThat(config.gssapiStoreKey()).isTrue();
+        assertThat(config.gssapiPrincipal()).isEqualTo("kafka-user");
+        assertThat(config.gssapiKerberosServiceName()).isEqualTo("kafka");
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SaslConfigs.SASL_MECHANISM,
+                        "GSSAPI",
+                        SaslConfigs.SASL_KERBEROS_SERVICE_NAME,
+                        "kafka",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "com.sun.security.auth.module.Krb5LoginModule required useKeyTab=true storeKey=true keyTab='"
+                                + keyTabFile.toAbsolutePath()
+                                + "' principal='kafka-user';");
+    }
+
+    @Test
+    public void shouldNotValidateWhenKeyTabIsNotSpecified() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab]");
+
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Not found file [aFile] specified in [authentication.gssapi.key.tab]");
+
+        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.toString());
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 }
