@@ -28,62 +28,65 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfP
 
 import org.junit.jupiter.api.Test;
 
-public class AuthenticationConfigsTest {
+public class BrokerAuthenticationConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
-        ConfigsSpec configSpec = AuthenticationConfigs.spec();
-
-        ConfParameter salsMechanism = configSpec.getParameter(AuthenticationConfigs.SASL_MECHANISM);
-        assertThat(salsMechanism.name()).isEqualTo(AuthenticationConfigs.SASL_MECHANISM);
+        ConfigsSpec configSpec = BrokerAuthenticationConfigs.spec();
+        ConfParameter salsMechanism =
+                configSpec.getParameter(BrokerAuthenticationConfigs.SASL_MECHANISM);
+        assertThat(salsMechanism.name()).isEqualTo(BrokerAuthenticationConfigs.SASL_MECHANISM);
         assertThat(salsMechanism.required()).isFalse();
         assertThat(salsMechanism.multiple()).isFalse();
         assertThat(salsMechanism.mutable()).isTrue();
         assertThat(salsMechanism.defaultValue()).isEqualTo("PLAIN");
         assertThat(salsMechanism.type()).isEqualTo(SASL_MECHANISM);
 
-        ConfParameter username = configSpec.getParameter(AuthenticationConfigs.USERNAME);
-        assertThat(username.name()).isEqualTo(AuthenticationConfigs.USERNAME);
+        ConfParameter username = configSpec.getParameter(BrokerAuthenticationConfigs.USERNAME);
+        assertThat(username.name()).isEqualTo(BrokerAuthenticationConfigs.USERNAME);
         assertThat(username.required()).isFalse();
         assertThat(username.multiple()).isFalse();
         assertThat(username.mutable()).isTrue();
         assertThat(username.defaultValue()).isNull();
         assertThat(username.type()).isEqualTo(TEXT);
 
-        ConfParameter password = configSpec.getParameter(AuthenticationConfigs.PASSWORD);
-        assertThat(password.name()).isEqualTo(AuthenticationConfigs.PASSWORD);
+        ConfParameter password = configSpec.getParameter(BrokerAuthenticationConfigs.PASSWORD);
+        assertThat(password.name()).isEqualTo(BrokerAuthenticationConfigs.PASSWORD);
         assertThat(password.required()).isFalse();
         assertThat(password.multiple()).isFalse();
         assertThat(password.mutable()).isTrue();
         assertThat(password.defaultValue()).isNull();
         assertThat(password.type()).isEqualTo(TEXT);
 
-        ConfParameter useKeyTab = configSpec.getParameter(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
-        assertThat(useKeyTab.name()).isEqualTo(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+        ConfParameter useKeyTab =
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+        assertThat(useKeyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
         assertThat(useKeyTab.required()).isFalse();
         assertThat(useKeyTab.multiple()).isFalse();
         assertThat(useKeyTab.mutable()).isTrue();
         assertThat(useKeyTab.defaultValue()).isEqualTo("false");
         assertThat(useKeyTab.type()).isEqualTo(BOOL);
 
-        ConfParameter storeKey = configSpec.getParameter(AuthenticationConfigs.GSSAPI_STORE_KEY);
-        assertThat(storeKey.name()).isEqualTo(AuthenticationConfigs.GSSAPI_STORE_KEY);
+        ConfParameter storeKey =
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
+        assertThat(storeKey.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
         assertThat(storeKey.required()).isFalse();
         assertThat(storeKey.multiple()).isFalse();
         assertThat(storeKey.mutable()).isTrue();
         assertThat(storeKey.defaultValue()).isEqualTo("false");
         assertThat(storeKey.type()).isEqualTo(BOOL);
 
-        ConfParameter keyTab = configSpec.getParameter(AuthenticationConfigs.GSSAPI_KEY_TAB);
-        assertThat(keyTab.name()).isEqualTo(AuthenticationConfigs.GSSAPI_KEY_TAB);
+        ConfParameter keyTab = configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB);
+        assertThat(keyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB);
         assertThat(keyTab.required()).isFalse();
         assertThat(keyTab.multiple()).isFalse();
         assertThat(keyTab.mutable()).isTrue();
         assertThat(keyTab.defaultValue()).isNull();
         assertThat(keyTab.type()).isEqualTo(FILE);
 
-        ConfParameter principal = configSpec.getParameter(AuthenticationConfigs.GSSAPI_PRINCIPAL);
-        assertThat(principal.name()).isEqualTo(AuthenticationConfigs.GSSAPI_PRINCIPAL);
+        ConfParameter principal =
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
+        assertThat(principal.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
         assertThat(principal.required()).isTrue();
         assertThat(principal.multiple()).isFalse();
         assertThat(principal.mutable()).isTrue();
@@ -91,9 +94,9 @@ public class AuthenticationConfigsTest {
         assertThat(principal.type()).isEqualTo(TEXT);
 
         ConfParameter kerberosServiceName =
-                configSpec.getParameter(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
         assertThat(kerberosServiceName.name())
-                .isEqualTo(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+                .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
         assertThat(kerberosServiceName.required()).isTrue();
         assertThat(kerberosServiceName.multiple()).isFalse();
         assertThat(kerberosServiceName.mutable()).isTrue();

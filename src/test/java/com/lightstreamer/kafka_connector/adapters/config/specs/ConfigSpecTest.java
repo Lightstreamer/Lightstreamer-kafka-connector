@@ -15,18 +15,34 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.adapters.config;
+package com.lightstreamer.kafka_connector.adapters.config.specs;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
-import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
-import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
-
 import org.junit.jupiter.api.Test;
 
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.Options;
+
 public class ConfigSpecTest {
+
+    @Test
+    void shouldClone() {
+        ConfigsSpec parent = new ConfigsSpec("parent");
+        parent.add("prop1", ConfType.TEXT);
+        parent.add("prop2", Options.evaluatorTypes());
+
+        ConfigsSpec child = new ConfigsSpec("child");
+        child.add("prop3", ConfType.TEXT);
+
+        parent.withChildConfigs(child);
+
+        ConfigsSpec cloned = new ConfigsSpec(parent);
+        assertThat(parent).isEqualTo(cloned);
+    }
+
     @Test
     void shouldReturnSimpleNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("source");
@@ -42,14 +58,14 @@ public class ConfigSpecTest {
     }
 
     @Test
-    void shouldReturnNoestedNameSpacedConfigSpec() {
+    void shouldReturnNestedNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("root");
         source.add("prop1", ConfType.TEXT);
         source.add("enabled.nested", true, false, ConfType.BOOL, defaultValue("true"));
 
         ConfigsSpec nested = new ConfigsSpec("nested");
         nested.add("nested.prop1", ConfType.TEXT);
-        source.addChildConfigs(nested, "enabled.nested");
+        source.withEnabledChildConfigs(nested, "enabled.nested");
 
         ConfigsSpec sub = source.newSpecWithNameSpace("sub");
 

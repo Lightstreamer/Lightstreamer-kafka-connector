@@ -20,7 +20,7 @@ package com.lightstreamer.kafka_connector.adapters.config.specs;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.AuthenticationConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.BrokerAuthenticationConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -77,6 +78,18 @@ public class ConfigsSpec {
 
         public String toString() {
             return choiches.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(choiches);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof Options other && Objects.equals(choiches, other.choiches);
         }
 
         @Override
@@ -119,6 +132,18 @@ public class ConfigsSpec {
 
         ListType(Type type) {
             this.type = type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(type);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof ListType other && Objects.equals(type, other.type);
         }
 
         @Override
@@ -272,6 +297,18 @@ public class ConfigsSpec {
             this.either = Either.right(function);
         }
 
+        @Override
+        public int hashCode() {
+            return Objects.hash(either);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof DefaultHolder other && Objects.equals(either, other.either);
+        }
+
         public T value(Map<String, String> config) {
             if (either.isLeft()) {
                 return either.getLeft().get();
@@ -311,7 +348,42 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec() {
-        this(null);
+        this.name = null;
+    }
+
+    public ConfigsSpec(ConfigsSpec from) {
+        this.name = from.name;
+        from.paramSpec.forEach(
+                (name, confParameter) -> {
+                    ConfParameter p =
+                            new ConfParameter(
+                                    confParameter.name(),
+                                    confParameter.required(),
+                                    confParameter.multiple(),
+                                    confParameter.suffix(),
+                                    confParameter.type(),
+                                    confParameter.mutable(),
+                                    confParameter.defaultHolder());
+                    paramSpec.put(name, p);
+                });
+        for (ChildSpec childSpec : from.specChildren) {
+            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, paramSpec, specChildren);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+
+        return obj instanceof ConfigsSpec other
+                && Objects.equals(name, other.name)
+                && Objects.equals(paramSpec, other.paramSpec)
+                && Objects.equals(specChildren, other.specChildren);
     }
 
     ConfigsSpec add(ConfParameter confParameter) {
@@ -395,7 +467,7 @@ public class ConfigsSpec {
         return this;
     }
 
-    public ConfigsSpec addChildConfigs(ConfigsSpec spec, String enablingKey) {
+    public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, String enablingKey) {
         ConfParameter enablingPar = getParameter(enablingKey);
         if (enablingPar == null || !enablingPar.type().equals(BOOL)) {
             throw new ConfigException(
@@ -488,11 +560,6 @@ public class ConfigsSpec {
             }
         }
         return parsedValues;
-    }
-
-    public ConfigsSpec withAuthenticationConfigs(String enableKey) {
-        AuthenticationConfigs.withAuthenticationConfigs(this, enableKey);
-        return this;
     }
 
     public ConfigsSpec newSpecWithNameSpace(String nameSpace) {

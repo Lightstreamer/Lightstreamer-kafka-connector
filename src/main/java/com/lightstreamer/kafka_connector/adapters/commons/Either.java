@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka_connector.adapters.commons;
 
+import java.util.Objects;
+
 public class Either<Left, Right> {
 
     private final Left left;
@@ -51,6 +53,20 @@ public class Either<Left, Right> {
 
     public boolean isRight() {
         return right != null;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(left, right);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+
+        return obj instanceof Either other
+                && Objects.equals(left, other.left)
+                && Objects.equals(right, other.right);
     }
 
     public static <Left, Right> Either<Left, Right> left(Left left) {

@@ -245,9 +245,9 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        // .withAuthenticationConfigs(ENABLE_AUTHENTICATION)
-                        .addChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION)
-                        .addChildConfigs(AuthenticationConfigs.spec(), ENABLE_AUTHENTICATION);
+                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION)
+                        .withEnabledChildConfigs(
+                                BrokerAuthenticationConfigs.spec(), ENABLE_AUTHENTICATION);
     }
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
@@ -314,7 +314,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
-        properties.putAll(AuthenticationConfigs.addAuthentication(this));
+        properties.putAll(BrokerAuthenticationConfigs.addAuthentication(this));
         return properties.properties();
     }
 
@@ -477,19 +477,19 @@ public final class ConnectorConfig extends AbstractConfig {
     public SaslMechanism getAuthenticationMechanism() {
         checkAuthenticationEnabled();
         return SaslMechanism.valueOf(
-                get(AuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
+                get(BrokerAuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
     }
 
     public String getAuthenticationUsername() {
         checkAuthenticationEnabled();
         boolean isRequired = !isGssapiEnabled();
-        return getText(AuthenticationConfigs.USERNAME, isRequired);
+        return getText(BrokerAuthenticationConfigs.USERNAME, isRequired);
     }
 
     public String getAuthenticationPassword() {
         checkAuthenticationEnabled();
         boolean isRequired = !isGssapiEnabled();
-        return getText(AuthenticationConfigs.PASSWORD, isRequired);
+        return getText(BrokerAuthenticationConfigs.PASSWORD, isRequired);
     }
 
     public boolean isGssapiEnabled() {
@@ -500,33 +500,33 @@ public final class ConnectorConfig extends AbstractConfig {
         if (!isGssapiEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not set to GSSAPI"
-                            .formatted(AuthenticationConfigs.SASL_MECHANISM));
+                            .formatted(BrokerAuthenticationConfigs.SASL_MECHANISM));
         }
     }
 
     public boolean gssapiUseKeyTab() {
         checkGssapi();
-        return getBoolean(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
     }
 
     public String gssapiKeyTab() {
         checkGssapi();
         boolean isRequired = gssapiUseKeyTab();
-        return getFile(AuthenticationConfigs.GSSAPI_KEY_TAB, isRequired);
+        return getFile(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, isRequired);
     }
 
     public boolean gssapiStoreKey() {
         checkGssapi();
-        return getBoolean(AuthenticationConfigs.GSSAPI_STORE_KEY);
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
     }
 
     public String gssapiPrincipal() {
         checkGssapi();
-        return getText(AuthenticationConfigs.GSSAPI_PRINCIPAL);
+        return getText(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
     }
 
     public String gssapiKerberosServiceName() {
         checkGssapi();
-        return getText(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+        return getText(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
     }
 }

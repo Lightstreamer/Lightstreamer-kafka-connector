@@ -87,7 +87,7 @@ public class TlsConfigs {
                         .add(SSL_TRUSTMANAGER_ALGORITHM, false, false, TEXT)
                         .add(SECURITY_PROVIDERS, false, false, TEXT)
                         .add(ENABLE_KESYTORE, false, false, ConfType.BOOL, defaultValue("false"))
-                        .addChildConfigs(CoreKeystoreConfigs.spec(), ENABLE_KESYTORE);
+                        .withEnabledChildConfigs(KeystoreConfigs.spec(), ENABLE_KESYTORE);
     }
 
     public static ConfigsSpec spec() {

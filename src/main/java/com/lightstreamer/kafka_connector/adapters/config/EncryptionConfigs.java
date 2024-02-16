@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
-import com.lightstreamer.kafka_connector.adapters.config.nested.CoreKeystoreConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.nested.KeystoreConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.nested.TlsConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
@@ -53,10 +53,10 @@ public class EncryptionConfigs {
     public static String SSL_TRUSTMANAGER_ALGORITHM = adapt(TlsConfigs.SSL_TRUSTMANAGER_ALGORITHM);
     public static String SECURITY_PROVIDERS = adapt(TlsConfigs.SECURITY_PROVIDERS);
 
-    public static String KEYSTORE_TYPE = adapt(CoreKeystoreConfigs.KEYSTORE_TYPE);
-    public static String KEYSTORE_PATH = adapt(CoreKeystoreConfigs.KEYSTORE_PATH);
-    public static String KEYSTORE_PASSWORD = adapt(CoreKeystoreConfigs.KEYSTORE_PASSWORD);
-    public static String KEY_PASSWORD = adapt(CoreKeystoreConfigs.KEY_PASSWORD);
+    public static String KEYSTORE_TYPE = adapt(KeystoreConfigs.KEYSTORE_TYPE);
+    public static String KEYSTORE_PATH = adapt(KeystoreConfigs.KEYSTORE_PATH);
+    public static String KEYSTORE_PASSWORD = adapt(KeystoreConfigs.KEYSTORE_PASSWORD);
+    public static String KEY_PASSWORD = adapt(KeystoreConfigs.KEY_PASSWORD);
 
     private static ConfigsSpec CONFIG_SPEC = TlsConfigs.spec().newSpecWithNameSpace(NAME_SPACE);
 

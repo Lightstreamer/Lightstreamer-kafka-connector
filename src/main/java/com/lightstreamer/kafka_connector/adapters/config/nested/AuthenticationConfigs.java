@@ -24,18 +24,11 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslM
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
-public class AuthenticationCoreConfigs {
+public class AuthenticationConfigs {
 
     public static final String SASL_MECHANISM = "mechanism";
-
     public static final String USERNAME = "username";
     public static final String PASSWORD = "password";
-
-    public static final String GSSAPI_USE_KEY_TAB = "gssapi.use.key.tab";
-    public static final String GSSAPI_STORE_KEY = "gssapi.store.key";
-    public static final String GSSAPI_KEY_TAB = "gssapi.key.tab";
-    public static final String GSSAPI_KERBEROS_SERVICE_NAME = "gssapi.kerberos.service.name";
-    public static final String GSSAPI_PRINCIPAL = "gssapi.principal";
 
     private static ConfigsSpec CONFIG_SPEC;
 
@@ -54,5 +47,9 @@ public class AuthenticationCoreConfigs {
 
     public static ConfigsSpec spec() {
         return CONFIG_SPEC;
+    }
+
+    public static ConfigsSpec cloneSpec() {
+        return new ConfigsSpec(CONFIG_SPEC);
     }
 }

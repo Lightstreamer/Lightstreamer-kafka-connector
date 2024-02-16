@@ -396,8 +396,8 @@ public class ConnectorConfigTest {
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        authParams.put(AuthenticationConfigs.USERNAME, "sasl-username");
-        authParams.put(AuthenticationConfigs.PASSWORD, "sasl-password");
+        authParams.put(BrokerAuthenticationConfigs.USERNAME, "sasl-username");
+        authParams.put(BrokerAuthenticationConfigs.PASSWORD, "sasl-password");
         return authParams;
     }
 
@@ -1140,7 +1140,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigs.USERNAME, "");
+        updatedConfig.put(BrokerAuthenticationConfigs.USERNAME, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1148,7 +1148,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.username]");
 
-        updatedConfig.put(AuthenticationConfigs.USERNAME, "username");
+        updatedConfig.put(BrokerAuthenticationConfigs.USERNAME, "username");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1156,7 +1156,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigs.PASSWORD, "");
+        updatedConfig.put(BrokerAuthenticationConfigs.PASSWORD, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1164,7 +1164,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.password]");
 
-        updatedConfig.put(AuthenticationConfigs.PASSWORD, "password");
+        updatedConfig.put(BrokerAuthenticationConfigs.PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1230,7 +1230,7 @@ public class ConnectorConfigTest {
                 updatedConfig.putAll(encryptionParameters());
             }
             for (String mechanism : mechanisms) {
-                updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, mechanism);
+                updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, mechanism);
                 ConnectorConfig config =
                         ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1258,7 +1258,7 @@ public class ConnectorConfigTest {
     public void shouldGetDefaultGssapiAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
 
         ConfigException ce =
                 assertThrows(
@@ -1266,7 +1266,7 @@ public class ConnectorConfigTest {
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.gssapi.principal]");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1274,7 +1274,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [authentication.gssapi.principal]");
 
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1283,7 +1283,7 @@ public class ConnectorConfigTest {
                 .isEqualTo(
                         "Missing required parameter [authentication.gssapi.kerberos.service.name]");
 
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1292,7 +1292,7 @@ public class ConnectorConfigTest {
                 .isEqualTo(
                         "Specify a valid value for parameter [authentication.gssapi.kerberos.service.name]");
 
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1300,9 +1300,9 @@ public class ConnectorConfigTest {
     public void shouldGetDefaultGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1328,13 +1328,13 @@ public class ConnectorConfigTest {
     public void shouldOverrideGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_STORE_KEY, "true");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
         updatedConfig.put(
-                AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1362,10 +1362,10 @@ public class ConnectorConfigTest {
     public void shouldNotValidateWhenKeyTabIsNotSpecified() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
-        updatedConfig.put(AuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
 
         ConfigException ce =
                 assertThrows(
@@ -1374,7 +1374,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [authentication.gssapi.key.tab]");
 
-        updatedConfig.put(AuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1386,7 +1386,7 @@ public class ConnectorConfigTest {
                                 + "/aFile] specified in [authentication.gssapi.key.tab]");
 
         updatedConfig.put(
-                AuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 }

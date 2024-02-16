@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import com.lightstreamer.kafka_connector.adapters.config.nested.AuthenticationCoreConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.nested.AuthenticationConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.nested.GssapiConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
@@ -29,27 +29,26 @@ import scala.collection.mutable.StringBuilder;
 import java.util.Objects;
 import java.util.Properties;
 
-public class AuthenticationConfigs {
+public class BrokerAuthenticationConfigs {
 
     public static final String NAME_SPACE = "authentication";
-    public static final String SASL_MECHANISM = adapt(AuthenticationCoreConfigs.SASL_MECHANISM);
+    public static final String SASL_MECHANISM = adapt(AuthenticationConfigs.SASL_MECHANISM);
 
-    public static final String USERNAME = adapt(AuthenticationCoreConfigs.USERNAME);
-    public static final String PASSWORD = adapt(AuthenticationCoreConfigs.PASSWORD);
+    public static final String USERNAME = adapt(AuthenticationConfigs.USERNAME);
+    public static final String PASSWORD = adapt(AuthenticationConfigs.PASSWORD);
 
-    public static final String GSSAPI_USE_KEY_TAB =
-            adapt(AuthenticationCoreConfigs.GSSAPI_USE_KEY_TAB);
-    public static final String GSSAPI_STORE_KEY = adapt(AuthenticationCoreConfigs.GSSAPI_STORE_KEY);
-    public static final String GSSAPI_KEY_TAB = adapt(AuthenticationCoreConfigs.GSSAPI_KEY_TAB);
+    public static final String GSSAPI_USE_KEY_TAB = adapt(GssapiConfigs.GSSAPI_USE_KEY_TAB);
+    public static final String GSSAPI_STORE_KEY = adapt(GssapiConfigs.GSSAPI_STORE_KEY);
+    public static final String GSSAPI_KEY_TAB = adapt(GssapiConfigs.GSSAPI_KEY_TAB);
     public static final String GSSAPI_KERBEROS_SERVICE_NAME =
-            adapt(AuthenticationCoreConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
-    public static final String GSSAPI_PRINCIPAL = adapt(AuthenticationCoreConfigs.GSSAPI_PRINCIPAL);
+            adapt(GssapiConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    public static final String GSSAPI_PRINCIPAL = adapt(GssapiConfigs.GSSAPI_PRINCIPAL);
 
     private static ConfigsSpec CONFIG_SPEC =
-            AuthenticationCoreConfigs.spec()
+            AuthenticationConfigs.cloneSpec()
                     .addChildConfigs(
                             GssapiConfigs.spec(),
-                            SASL_MECHANISM,
+                            AuthenticationConfigs.SASL_MECHANISM,
                             (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)))
                     .newSpecWithNameSpace(NAME_SPACE);
 
@@ -62,7 +61,7 @@ public class AuthenticationConfigs {
     }
 
     public static void withAuthenticationConfigs(ConfigsSpec config, String enablingKey) {
-        config.addChildConfigs(CONFIG_SPEC, enablingKey);
+        config.withEnabledChildConfigs(CONFIG_SPEC, enablingKey);
     }
 
     static Properties addAuthentication(ConnectorConfig config) {
