@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.adapters.config;
+package com.lightstreamer.kafka_connector.adapters.config.specs;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,7 +40,7 @@ public class ConfigTypes {
             return enumNames(values());
         }
 
-        static SecurityProtocol retrieve(boolean encrypted, boolean authenticated) {
+        public static SecurityProtocol retrieve(boolean encrypted, boolean authenticated) {
             SecurityProtocol channel = encrypted ? SSL : PLAINTEXT;
             String protocol =
                     authenticated

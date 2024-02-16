@@ -207,7 +207,6 @@ public class ConnectorAdapterSetTest {
         doInit(customAdapter);
 
         TableInfo[] tables = mkTable("OTHER-ADAPTER", Mode.COMMAND);
-
         customAdapter.notifyNewTables("user", "sessionId", tables);
 
         NotifyedNewTables newTables = customAdapter.newTables;

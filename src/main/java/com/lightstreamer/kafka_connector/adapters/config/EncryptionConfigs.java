@@ -17,16 +17,11 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
-
 import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.nested.CoreKeystoreConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.nested.TlsConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SecurityConfig;
@@ -36,74 +31,41 @@ import java.util.Properties;
 
 public class EncryptionConfigs {
 
-    public static String SSL_ENABLED_PROTOCOLS = "encryption.enabled.protocols";
-    public static String SSL_PROTOCOL = "encryption.protocol";
+    public static String NAME_SPACE = "encryption";
+    public static String SSL_ENABLED_PROTOCOLS = adapt(TlsConfigs.SSL_ENABLED_PROTOCOLS);
+    public static String SSL_PROTOCOL = adapt(TlsConfigs.SSL_PROTOCOL);
 
-    public static String TRUSTSTORE_TYPE = "encryption.truststore.type";
-    public static String TRUSTSTORE_PATH = "encryption.truststore.path";
-    public static String TRUSTSTORE_PASSWORD = "encryption.truststore.password";
+    public static String TRUSTSTORE_TYPE = adapt(TlsConfigs.TRUSTSTORE_TYPE);
+    public static String TRUSTSTORE_PATH = adapt(TlsConfigs.TRUSTSTORE_PATH);
+    public static String TRUSTSTORE_PASSWORD = adapt(TlsConfigs.TRUSTSTORE_PASSWORD);
 
-    public static String ENABLE_MTLS = "encryption.keystore.enabled";
+    public static String ENABLE_MTLS = adapt(TlsConfigs.ENABLE_KESYTORE);
 
     public static String ENABLE_HOSTNAME_VERIFICATION =
-            "encryption.endpoint.identification.algorithm";
-    public static String SSL_CIPHER_SUITES = "encryption.cipher.suites";
-    public static String SSL_PROVIDER = "encryption.provider";
-    public static String SSL_EGINE_FACTORY_CLASS = "encryption.engine.factory.class";
-    public static String SSL_KEYMANAGER_ALGORITHM = "encryption.keymanager.algorithm";
+            adapt(TlsConfigs.ENABLE_HOSTNAME_VERIFICATION);
+
+    public static String SSL_CIPHER_SUITES = adapt(TlsConfigs.SSL_CIPHER_SUITES);
+    public static String SSL_PROVIDER = adapt(TlsConfigs.SSL_PROVIDER);
+    public static String SSL_EGINE_FACTORY_CLASS = adapt(TlsConfigs.SSL_EGINE_FACTORY_CLASS);
+    public static String SSL_KEYMANAGER_ALGORITHM = adapt(TlsConfigs.SSL_KEYMANAGER_ALGORITHM);
     public static String SSL_SECURE_RANDOM_IMPLEMENTATION =
-            "encryption.secure.random.implementation";
-    public static String SSL_TRUSTMANAGER_ALGORITHM = "encryption.trustmanager.algorithm";
-    public static String SECURITY_PROVIDERS = "encryption.security.providers";
+            adapt(TlsConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);
+    public static String SSL_TRUSTMANAGER_ALGORITHM = adapt(TlsConfigs.SSL_TRUSTMANAGER_ALGORITHM);
+    public static String SECURITY_PROVIDERS = adapt(TlsConfigs.SECURITY_PROVIDERS);
 
-    private static ConfigSpec CONFIG_SPEC;
+    public static String KEYSTORE_TYPE = adapt(CoreKeystoreConfigs.KEYSTORE_TYPE);
+    public static String KEYSTORE_PATH = adapt(CoreKeystoreConfigs.KEYSTORE_PATH);
+    public static String KEYSTORE_PASSWORD = adapt(CoreKeystoreConfigs.KEYSTORE_PASSWORD);
+    public static String KEY_PASSWORD = adapt(CoreKeystoreConfigs.KEY_PASSWORD);
 
-    static {
-        CONFIG_SPEC =
-                new ConfigSpec("encryption")
-                        .add(
-                                SSL_ENABLED_PROTOCOLS,
-                                false,
-                                false,
-                                ConfType.SSL_ENABLED_PROTOCOLS,
-                                defaultValue(ConfigTypes.SslProtocol.toValuesStr()))
-                        .add(
-                                SSL_PROTOCOL,
-                                false,
-                                false,
-                                ConfType.SSL_PROTOCOL,
-                                defaultValue(SslProtocol.TLSv13.toString()))
-                        .add(
-                                TRUSTSTORE_TYPE,
-                                false,
-                                false,
-                                ConfType.KEYSTORE_TYPE,
-                                defaultValue(KeystoreType.JKS.toString()))
-                        .add(TRUSTSTORE_PATH, false, false, FILE)
-                        .add(TRUSTSTORE_PASSWORD, false, false, TEXT)
-                        .add(
-                                ENABLE_HOSTNAME_VERIFICATION,
-                                false,
-                                false,
-                                BOOL,
-                                defaultValue("false"))
-                        .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST)
-                        .add(SSL_PROVIDER, false, false, TEXT)
-                        .add(SSL_EGINE_FACTORY_CLASS, false, false, TEXT)
-                        .add(SSL_KEYMANAGER_ALGORITHM, false, false, TEXT)
-                        .add(SSL_SECURE_RANDOM_IMPLEMENTATION, false, false, TEXT)
-                        .add(SSL_TRUSTMANAGER_ALGORITHM, false, false, TEXT)
-                        .add(SECURITY_PROVIDERS, false, false, TEXT)
-                        .add(ENABLE_MTLS, false, false, ConfType.BOOL, defaultValue("false"))
-                        .withKeystoreConfigs(ENABLE_MTLS);
+    private static ConfigsSpec CONFIG_SPEC = TlsConfigs.spec().newSpecWithNameSpace(NAME_SPACE);
+
+    static String adapt(String key) {
+        return NAME_SPACE + "." + key;
     }
 
-    static ConfigSpec configSpec() {
+    static ConfigsSpec spec() {
         return CONFIG_SPEC;
-    }
-
-    static void withEncryptionConfigs(ConfigSpec config, String enablingKey) {
-        config.addConfigSpec(CONFIG_SPEC, enablingKey);
     }
 
     static Properties addEncryption(ConnectorConfig cfg) {
@@ -135,8 +97,17 @@ public class EncryptionConfigs {
                     SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
                     cfg.getText(SSL_TRUSTMANAGER_ALGORITHM));
             props.setProperty(
-                    SecurityConfig.SECURITY_PROVIDERS_CONFIG, cfg.getText(SECURITY_PROVIDERS));
-            props.putAll(KeystoreConfigs.addKeystore(cfg));
+                    SecurityConfig.SECURITY_PROVIDERS_CONFIG,
+                    cfg.getText(SECURITY_PROVIDERS));
+
+            if (cfg.isKeystoreEnabled()) {
+                props.setProperty(
+                        SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, cfg.getKeystoreType().toString());
+                props.setProperty(
+                        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, cfg.getKeystorePassword());
+                props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, cfg.getKeystorePath());
+                props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, cfg.getKeyPassword());
+            }
         }
         return props.properties();
     }

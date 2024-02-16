@@ -18,10 +18,13 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.SASL_MECHANISM;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.SASL_MECHANISM;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +32,7 @@ public class AuthenticationConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
-        ConfigSpec configSpec = AuthenticationConfigs.configSpec();
+        ConfigsSpec configSpec = AuthenticationConfigs.configSpec();
 
         ConfParameter salsMechanism = configSpec.getParameter(AuthenticationConfigs.SASL_MECHANISM);
         assertThat(salsMechanism.name()).isEqualTo(AuthenticationConfigs.SASL_MECHANISM);
@@ -58,7 +61,7 @@ public class AuthenticationConfigsTest {
 
     @Test
     void shouldReturnGssapConfigSpec() {
-        ConfigSpec configSpec = AuthenticationConfigs.gssapiConfigSpec();
+        ConfigsSpec configSpec = AuthenticationConfigs.gssapiConfigSpec();
 
         ConfParameter useKeyTab = configSpec.getParameter(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
         assertThat(useKeyTab.name()).isEqualTo(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);

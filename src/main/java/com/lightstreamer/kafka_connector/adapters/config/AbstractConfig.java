@@ -17,15 +17,17 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.HOST;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT_LIST;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.HOST;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.URL;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.Type;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.Type;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -43,10 +45,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
     public static final String ADAPTER_DIR = "adapter.dir";
 
-    private final ConfigSpec configSpec;
+    private final ConfigsSpec configSpec;
     private final Map<String, String> configuration;
 
-    AbstractConfig(ConfigSpec spec, Map<String, String> configs) {
+    AbstractConfig(ConfigsSpec spec, Map<String, String> configs) {
         this.configSpec = spec;
         this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
         validate();
@@ -154,7 +156,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {
                 if (remap) {
-                    Optional<String> infix = ConfigSpec.extractInfix(param, e.getKey());
+                    Optional<String> infix = ConfigsSpec.extractInfix(param, e.getKey());
                     if (infix.isPresent()) {
                         newMap.put(infix.get(), e.getValue());
                     }
@@ -176,7 +178,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public static final Map<String, String> appendAdapterDir(
-            ConfigSpec configSpec, Map<String, String> config, File configDir) {
+            ConfigsSpec configSpec, Map<String, String> config, File configDir) {
         Map<String, String> updatedConfigs = new HashMap<>(config);
         updatedConfigs.put(ADAPTER_DIR, configDir.getAbsolutePath());
         List<ConfParameter> confParams = configSpec.getByType(FILE);

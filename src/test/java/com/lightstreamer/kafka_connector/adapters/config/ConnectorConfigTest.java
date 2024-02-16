@@ -19,16 +19,18 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol.TLSv12;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol.TLSv13;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -78,7 +80,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldReturnConfigSpec() {
-        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        ConfigsSpec configSpec = ConnectorConfig.configSpec();
 
         ConfParameter adapterDir = configSpec.getParameter(ConnectorConfig.ADAPTER_DIR);
         assertThat(adapterDir.name()).isEqualTo(ConnectorConfig.ADAPTER_DIR);
@@ -281,9 +283,9 @@ public class ConnectorConfigTest {
 						map.map.my.topic.to.to   | map.my.topic.to
 						""")
     public void shouldExtractInfixForMap(String key, String expectedInfix) {
-        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
-                ConfigSpec.extractInfix(
+                ConfigsSpec.extractInfix(
                         configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING), key);
         if (!expectedInfix.isBlank()) {
             assertThat(infix).hasValue(expectedInfix);
@@ -304,9 +306,9 @@ public class ConnectorConfigTest {
 						field.my.name            | my.name
 						""")
     public void shouldGetInfixForField(String key, String expectedInfix) {
-        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
-                ConfigSpec.extractInfix(
+                ConfigsSpec.extractInfix(
                         configSpec.getParameter(ConnectorConfig.FIELD_MAPPING), key);
         if (!expectedInfix.isBlank()) {
             assertThat(infix).hasValue(expectedInfix);
@@ -327,9 +329,9 @@ public class ConnectorConfigTest {
 						item-template.my.template1 | my.template1
 						""")
     public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
-        ConfigSpec configSpec = ConnectorConfig.configSpec();
+        ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
-                ConfigSpec.extractInfix(
+                ConfigsSpec.extractInfix(
                         configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE), key);
         if (!expectedInfix.isBlank()) {
             assertThat(infix).hasValue(expectedInfix);
@@ -378,16 +380,16 @@ public class ConnectorConfigTest {
     private Map<String, String> encryptionParameters() {
         Map<String, String> encryptionParams = new HashMap<>();
         encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
-        // encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
-        // encryptionParams.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
+        // encryptionParams.put(TlsConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
+        // encryptionParams.put(TlsConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         return encryptionParams;
     }
 
     private Map<String, String> kesytoreParameters() {
         Map<String, String> keystoreParams = new HashMap<>();
         keystoreParams.put(EncryptionConfigs.ENABLE_MTLS, "true");
-        keystoreParams.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
-        keystoreParams.put(KeystoreConfigs.KEYSTORE_PASSWORD, "keystore-password");
+        keystoreParams.put(EncryptionConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
+        keystoreParams.put(EncryptionConfigs.KEYSTORE_PASSWORD, "keystore-password");
         return keystoreParams;
     }
 
@@ -1024,7 +1026,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [encryption.keystore.path]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, "");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1032,7 +1034,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [encryption.keystore.path]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, "aFile");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, "aFile");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1043,7 +1045,7 @@ public class ConnectorConfigTest {
                                 + adapterDir.toString()
                                 + "/aFile] specified in [encryption.keystore.path]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1051,7 +1053,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Missing required parameter [encryption.keystore.password]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PASSWORD, "");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1059,7 +1061,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [encryption.keystore.password]");
 
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_PASSWORD, "password");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1094,14 +1096,14 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.putAll(kesytoreParameters());
-        updatedConfig.put(KeystoreConfigs.KEYSTORE_TYPE, "PKCS12");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_TYPE, "PKCS12");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isKeystoreEnabled()).isTrue();
         assertThat(config.getKeystoreType().toString()).isEqualTo("PKCS12");
 
-        updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "");
+        updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "");
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -1109,7 +1111,7 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [encryption.key.password]");
 
-        updatedConfig.put(KeystoreConfigs.KEY_PASSWORD, "key-password");
+        updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getKeyPassword()).isEqualTo("key-password");
 

@@ -18,12 +18,15 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.DIRECTORY;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.DIRECTORY;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +51,7 @@ public class GlobalConfigTest {
 
     @Test
     public void shouldReturnConfigSpec() {
-        ConfigSpec configSpec = GlobalConfig.configSpec();
+        ConfigsSpec configSpec = GlobalConfig.configSpec();
 
         ConfParameter adaptersConfId = configSpec.getParameter(GlobalConfig.ADAPTERS_CONF_ID);
         assertThat(adaptersConfId.name()).isEqualTo(GlobalConfig.ADAPTERS_CONF_ID);

@@ -19,7 +19,9 @@ package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +29,7 @@ public class EncryptionConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
-        ConfigSpec configSpec = EncryptionConfigs.configSpec();
+        ConfigsSpec configSpec = EncryptionConfigs.spec();
 
         ConfParameter sslProtocol = configSpec.getParameter(EncryptionConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.name()).isEqualTo(EncryptionConfigs.SSL_PROTOCOL);
@@ -137,5 +139,38 @@ public class EncryptionConfigsTest {
         assertThat(securityProviders.mutable()).isTrue();
         assertThat(securityProviders.defaultValue()).isNull();
         assertThat(securityProviders.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter keyStoreType = configSpec.getParameter(EncryptionConfigs.KEYSTORE_TYPE);
+        assertThat(keyStoreType.name()).isEqualTo(EncryptionConfigs.KEYSTORE_TYPE);
+        assertThat(keyStoreType.required()).isFalse();
+        assertThat(keyStoreType.multiple()).isFalse();
+        assertThat(keyStoreType.mutable()).isTrue();
+        assertThat(keyStoreType.defaultValue()).isEqualTo("JKS");
+        assertThat(keyStoreType.type()).isEqualTo(ConfType.KEYSTORE_TYPE);
+
+        ConfParameter keystorePath = configSpec.getParameter(EncryptionConfigs.KEYSTORE_PATH);
+        assertThat(keystorePath.name()).isEqualTo(EncryptionConfigs.KEYSTORE_PATH);
+        assertThat(keystorePath.required()).isTrue();
+        assertThat(keystorePath.multiple()).isFalse();
+        assertThat(keystorePath.mutable()).isTrue();
+        assertThat(keystorePath.defaultValue()).isNull();
+        assertThat(keystorePath.type()).isEqualTo(ConfType.FILE);
+
+        ConfParameter keystorePassword =
+                configSpec.getParameter(EncryptionConfigs.KEYSTORE_PASSWORD);
+        assertThat(keystorePassword.name()).isEqualTo(EncryptionConfigs.KEYSTORE_PASSWORD);
+        assertThat(keystorePassword.required()).isTrue();
+        assertThat(keystorePassword.multiple()).isFalse();
+        assertThat(keystorePassword.mutable()).isTrue();
+        assertThat(keystorePassword.defaultValue()).isNull();
+        assertThat(keystorePassword.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter keyPassword = configSpec.getParameter(EncryptionConfigs.KEY_PASSWORD);
+        assertThat(keyPassword.name()).isEqualTo(EncryptionConfigs.KEY_PASSWORD);
+        assertThat(keyPassword.required()).isFalse();
+        assertThat(keyPassword.multiple()).isFalse();
+        assertThat(keyPassword.mutable()).isTrue();
+        assertThat(keyPassword.defaultValue()).isNull();
+        assertThat(keyPassword.type()).isEqualTo(ConfType.TEXT);
     }
 }

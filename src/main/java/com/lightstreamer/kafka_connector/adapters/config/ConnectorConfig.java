@@ -17,14 +17,14 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.ERROR_STRATEGY;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.EVALUATOR;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.INT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.URL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.URL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
@@ -44,12 +44,13 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -136,11 +137,11 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String CONSUMER_RETRIES =
             CONNECTOR_PREFIX + AdminClientConfig.RETRIES_CONFIG;
 
-    private static final ConfigSpec CONFIG_SPEC;
+    private static final ConfigsSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec("root")
+                new ConfigsSpec("root")
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ENABLED, false, false, BOOL, defaultValue("true"))
                         .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
@@ -244,11 +245,11 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .withEncryptionConfigs(ENABLE_ENCRYTPTION)
-                        .withAuthenticationConfigs(ENABLE_AUTHENTICATION);
+                        .withAuthenticationConfigs(ENABLE_AUTHENTICATION)
+                        .addChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION);
     }
 
-    private ConnectorConfig(ConfigSpec spec, Map<String, String> configs) {
+    private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
     }
 
@@ -275,7 +276,7 @@ public final class ConnectorConfig extends AbstractConfig {
         }
     }
 
-    static ConfigSpec configSpec() {
+    static ConfigsSpec configSpec() {
         return CONFIG_SPEC;
     }
 
@@ -450,22 +451,22 @@ public final class ConnectorConfig extends AbstractConfig {
     public KeystoreType getKeystoreType() {
         checkKeystoreEnabled();
         return KeystoreType.valueOf(
-                get(KeystoreConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+                get(EncryptionConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
     public String getKeystorePath() {
         checkKeystoreEnabled();
-        return getFile(KeystoreConfigs.KEYSTORE_PATH);
+        return getFile(EncryptionConfigs.KEYSTORE_PATH);
     }
 
     public String getKeystorePassword() {
         checkKeystoreEnabled();
-        return getText(KeystoreConfigs.KEYSTORE_PASSWORD);
+        return getText(EncryptionConfigs.KEYSTORE_PASSWORD);
     }
 
     public String getKeyPassword() {
         checkKeystoreEnabled();
-        return getText(KeystoreConfigs.KEY_PASSWORD);
+        return getText(EncryptionConfigs.KEY_PASSWORD);
     }
 
     public boolean isAuthenticationEnabled() {

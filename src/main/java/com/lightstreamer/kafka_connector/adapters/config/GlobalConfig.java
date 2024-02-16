@@ -17,9 +17,11 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.DIRECTORY;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.DIRECTORY;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 
 import java.io.File;
 import java.util.Map;
@@ -28,17 +30,17 @@ public final class GlobalConfig extends AbstractConfig {
 
     public static final String LOGGING_CONFIGURATION_PATH = "logging.configuration.path";
 
-    private static final ConfigSpec CONFIG_SPEC;
+    private static final ConfigsSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC =
-                new ConfigSpec()
+                new ConfigsSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ADAPTER_DIR, true, false, DIRECTORY)
                         .add(LOGGING_CONFIGURATION_PATH, true, false, FILE);
     }
 
-    private GlobalConfig(ConfigSpec spec, Map<String, String> configs) {
+    private GlobalConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
     }
 
@@ -46,7 +48,7 @@ public final class GlobalConfig extends AbstractConfig {
         this(CONFIG_SPEC, configs);
     }
 
-    static ConfigSpec configSpec() {
+    static ConfigsSpec configSpec() {
         return CONFIG_SPEC;
     }
 

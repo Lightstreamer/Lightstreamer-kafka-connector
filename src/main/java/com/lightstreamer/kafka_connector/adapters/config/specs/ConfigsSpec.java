@@ -15,18 +15,20 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.adapters.config;
+package com.lightstreamer.kafka_connector.adapters.config.specs;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SecurityProtocol;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SslProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.AuthenticationConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.EncryptionConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol;
 
 import java.io.File;
 import java.net.URI;
@@ -41,14 +43,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-class ConfigSpec {
+public class ConfigsSpec {
 
-    interface Type {
+    public interface Type {
 
         boolean isValid(String param);
 
@@ -126,7 +129,7 @@ class ConfigSpec {
         }
     }
 
-    enum ConfType implements Type {
+    public enum ConfType implements Type {
         TEXT,
 
         TEXT_LIST(new ListType(TEXT)),
@@ -254,7 +257,7 @@ class ConfigSpec {
         }
     }
 
-    static class DefaultHolder<T> {
+    public static class DefaultHolder<T> {
 
         Either<Supplier<T>, Function<Map<String, String>, T>> either;
 
@@ -281,19 +284,19 @@ class ConfigSpec {
             return value(Collections.emptyMap());
         }
 
-        static <T> DefaultHolder<T> defaultValue(T value) {
+        public static <T> DefaultHolder<T> defaultValue(T value) {
             return new DefaultHolder<>(value);
         }
 
-        static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
+        public static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
             return new DefaultHolder<>(supplier);
         }
 
-        static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
+        public static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
             return new DefaultHolder<>(function);
         }
 
-        static <T> DefaultHolder<T> defaultNull() {
+        public static <T> DefaultHolder<T> defaultNull() {
             return new DefaultHolder<>(() -> null);
         }
     }
@@ -304,15 +307,20 @@ class ConfigSpec {
 
     private final String name;
 
-    ConfigSpec(String name) {
+    public ConfigsSpec(String name) {
         this.name = name;
     }
 
-    ConfigSpec() {
+    public ConfigsSpec() {
         this(null);
     }
 
-    ConfigSpec add(
+    ConfigsSpec add(ConfParameter confParameter) {
+        paramSpec.put(confParameter.name(), confParameter);
+        return this;
+    }
+
+    public ConfigsSpec add(
             String name,
             boolean required,
             boolean multiple,
@@ -325,7 +333,7 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec add(
+    public ConfigsSpec add(
             String name,
             boolean required,
             boolean multiple,
@@ -336,7 +344,7 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec add(String name, boolean required, boolean multiple, Type type) {
+    public ConfigsSpec add(String name, boolean required, boolean multiple, Type type) {
         paramSpec.put(
                 name,
                 new ConfParameter(
@@ -344,7 +352,8 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec add(String name, boolean required, boolean multiple, String suffix, Type type) {
+    public ConfigsSpec add(
+            String name, boolean required, boolean multiple, String suffix, Type type) {
         paramSpec.put(
                 name,
                 new ConfParameter(
@@ -352,7 +361,7 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec add(String name, boolean required, Type type) {
+    public ConfigsSpec add(String name, boolean required, Type type) {
         paramSpec.put(
                 name,
                 new ConfParameter(
@@ -360,7 +369,7 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec add(String name, Type type) {
+    public ConfigsSpec add(String name, Type type) {
         paramSpec.put(
                 name,
                 new ConfParameter(
@@ -368,26 +377,45 @@ class ConfigSpec {
         return this;
     }
 
-    ConfigSpec addConfigSpec(ConfigSpec spec, String enablingKey) {
+    public ConfigsSpec withChildConfigs(ConfigsSpec childConfigSpec) {
+        for (ConfParameter cp : childConfigSpec.paramSpec.values()) {
+            add(
+                    new ConfParameter(
+                            cp.name(),
+                            cp.required(),
+                            cp.multiple(),
+                            cp.suffix(),
+                            cp.type(),
+                            cp.mutable(),
+                            cp.defaultHolder()));
+        }
+        for (ChildSpec childSpec : childConfigSpec.specChildren) {
+            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
+        }
+
+        return this;
+    }
+
+    public ConfigsSpec addChildConfigs(ConfigsSpec spec, String enablingKey) {
         ConfParameter enablingPar = getParameter(enablingKey);
         if (enablingPar == null || !enablingPar.type().equals(BOOL)) {
             throw new ConfigException(
                     "Since no paramerter [%s] of type BOOL has been found, can't add parameters subsection"
                             .formatted(enablingKey));
         }
-        return addConfigSpec(
-                spec, enablingKey, map -> map.getOrDefault(enablingKey, "false").equals("true"));
+        return addChildConfigs(
+                spec, enablingKey, (map, key) -> map.getOrDefault(key, "false").equals("true"));
     }
 
-    static record ChildSpec(
+    private static record ChildSpec(
             String enablingKey,
-            ConfigSpec spec,
-            Function<Map<String, String>, Boolean> evalStrategy) {}
+            ConfigsSpec spec,
+            BiFunction<Map<String, String>, String, Boolean> evalStrategy) {}
 
-    ConfigSpec addConfigSpec(
-            ConfigSpec spec,
+    public ConfigsSpec addChildConfigs(
+            ConfigsSpec spec,
             String enablingKey,
-            Function<Map<String, String>, Boolean> evalStrategy) {
+            BiFunction<Map<String, String>, String, Boolean> evalStrategy) {
         ConfParameter enablingPar = getParameter(enablingKey);
         if (enablingPar == null) {
             throw new ConfigException(
@@ -398,7 +426,7 @@ class ConfigSpec {
         return this;
     }
 
-    ConfParameter getParameter(String name) {
+    public ConfParameter getParameter(String name) {
         ConfParameter parameter = paramSpec.get(name);
         if (parameter != null) {
             return parameter;
@@ -415,7 +443,7 @@ class ConfigSpec {
         return null;
     }
 
-    List<ConfParameter> getByType(Type type) {
+    public List<ConfParameter> getByType(Type type) {
         return Stream.concat(
                         paramSpec.values().stream().filter(p -> p.type().equals(type)),
                         specChildren.stream().flatMap(s -> s.spec().getByType(type).stream()))
@@ -445,7 +473,7 @@ class ConfigSpec {
         return Optional.of(infix);
     }
 
-    Map<String, String> parse(Map<String, String> originals) throws ConfigException {
+    public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.
         Map<String, String> parsedValues = new HashMap<>();
 
@@ -455,7 +483,7 @@ class ConfigSpec {
 
         // Populate the map iterating over the children specs.
         for (ChildSpec trigger : specChildren) {
-            boolean enabled = trigger.evalStrategy().apply(parsedValues);
+            boolean enabled = trigger.evalStrategy().apply(parsedValues, trigger.enablingKey());
             if (enabled) {
                 parsedValues.putAll(trigger.spec().parse(originals));
             }
@@ -463,77 +491,91 @@ class ConfigSpec {
         return parsedValues;
     }
 
-    public ConfigSpec withEncryptionConfigs(String enableKey) {
-        EncryptionConfigs.withEncryptionConfigs(this, enableKey);
-        return this;
-    }
-
-    public ConfigSpec withKeystoreConfigs(String enableKey) {
-        KeystoreConfigs.withKeystoreConfigs(this, enableKey);
-        return this;
-    }
-
-    public ConfigSpec withAuthenticationConfigs(String enableKey) {
+    public ConfigsSpec withAuthenticationConfigs(String enableKey) {
         AuthenticationConfigs.withAuthenticationConfigs(this, enableKey);
         return this;
     }
-}
 
-record ConfParameter(
-        String name,
-        boolean required,
-        boolean multiple,
-        String suffix,
-        ConfigSpec.Type type,
-        boolean mutable,
-        DefaultHolder<String> defaultHolder) {
-
-    String defaultValue() {
-        return defaultHolder().value();
-    }
-
-    void populate(Map<String, String> source, Map<String, String> destination)
-            throws ConfigException {
-        List<String> keys = Collections.singletonList(name());
-        if (multiple()) {
-            keys =
-                    source.keySet().stream()
-                            .filter(
-                                    key -> {
-                                        String[] components = key.split("\\.");
-                                        return components[0].equals(name())
-                                                && (suffix != null
-                                                        ? components[components.length - 1].equals(
-                                                                suffix)
-                                                        : true);
-                                    })
-                            .toList();
-            if (keys.isEmpty() && required()) {
-                String templateReplacement =
-                        Optional.ofNullable(suffix()).map(s -> "." + s).orElse("");
-                throw new ConfigException(
-                        String.format(
-                                "Specify at least one parameter [%s.<...>%s]",
-                                name, templateReplacement));
-            }
+    public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
+        ConfigsSpec newSpec = new ConfigsSpec();
+        for (ConfParameter cp : paramSpec.values()) {
+            newSpec.add(
+                    new ConfParameter(
+                            nameSpace + "." + cp.name(),
+                            cp.required(),
+                            cp.multiple(),
+                            cp.suffix(),
+                            cp.type(),
+                            cp.mutable(),
+                            cp.defaultHolder()));
+        }
+        for (ChildSpec childSpec : specChildren) {
+            ConfigsSpec spec = childSpec.spec();
+            newSpec.addChildConfigs(
+                    spec.newSpecWithNameSpace(nameSpace),
+                    nameSpace + "." + childSpec.enablingKey(),
+                    childSpec.evalStrategy());
         }
 
-        for (String key : keys) {
-            if (required()) {
-                if (!source.containsKey(key)) {
+        return newSpec;
+    }
+
+    public static record ConfParameter(
+            String name,
+            boolean required,
+            boolean multiple,
+            String suffix,
+            ConfigsSpec.Type type,
+            boolean mutable,
+            DefaultHolder<String> defaultHolder) {
+
+        public String defaultValue() {
+            return defaultHolder().value();
+        }
+
+        void populate(Map<String, String> source, Map<String, String> destination)
+                throws ConfigException {
+            List<String> keys = Collections.singletonList(name());
+            if (multiple()) {
+                keys =
+                        source.keySet().stream()
+                                .filter(
+                                        key -> {
+                                            String[] components = key.split("\\.");
+                                            return components[0].equals(name())
+                                                    && (suffix != null
+                                                            ? components[components.length - 1]
+                                                                    .equals(suffix)
+                                                            : true);
+                                        })
+                                .toList();
+                if (keys.isEmpty() && required()) {
+                    String templateReplacement =
+                            Optional.ofNullable(suffix()).map(s -> "." + s).orElse("");
                     throw new ConfigException(
-                            String.format("Missing required parameter [%s]", key));
+                            String.format(
+                                    "Specify at least one parameter [%s.<...>%s]",
+                                    name, templateReplacement));
                 }
             }
 
-            if (source.containsKey(key)) {
-                String paramValue = source.get(key);
-                if ((paramValue != null && !type.isValid(paramValue))
-                        || paramValue == null
-                        || paramValue.isBlank()) {
-                    throw new ConfigException(type().formatErrorMessage(key, paramValue));
+            for (String key : keys) {
+                if (required()) {
+                    if (!source.containsKey(key)) {
+                        throw new ConfigException(
+                                String.format("Missing required parameter [%s]", key));
+                    }
                 }
-                destination.put(key, type.getValue(paramValue));
+
+                if (source.containsKey(key)) {
+                    String paramValue = source.get(key);
+                    if ((paramValue != null && !type.isValid(paramValue))
+                            || paramValue == null
+                            || paramValue.isBlank()) {
+                        throw new ConfigException(type().formatErrorMessage(key, paramValue));
+                    }
+                    destination.put(key, type.getValue(paramValue));
+                }
             }
         }
     }

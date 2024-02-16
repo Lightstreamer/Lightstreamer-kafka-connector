@@ -17,13 +17,14 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.DefaultHolder.defaultValue;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka_connector.adapters.config.ConfigSpec.ConfType;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.apache.kafka.common.config.SaslConfigs;
 
@@ -46,13 +47,13 @@ public class AuthenticationConfigs {
             "authentication.gssapi.kerberos.service.name";
     public static final String GSSAPI_PRINCIPAL = "authentication.gssapi.principal";
 
-    private static ConfigSpec CONFIG_SPEC;
+    private static ConfigsSpec CONFIG_SPEC;
 
-    private static ConfigSpec GSSAPI_CONFIG_SEPC;
+    private static ConfigsSpec GSSAPI_CONFIG_SEPC;
 
     static {
         GSSAPI_CONFIG_SEPC =
-                new ConfigSpec("authentication.gssapi")
+                new ConfigsSpec("authentication.gssapi")
                         .add(GSSAPI_USE_KEY_TAB, false, false, BOOL, defaultValue("false"))
                         .add(GSSAPI_STORE_KEY, false, false, BOOL, defaultValue("false"))
                         .add(GSSAPI_KEY_TAB, false, false, FILE)
@@ -60,7 +61,7 @@ public class AuthenticationConfigs {
                         .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT);
 
         CONFIG_SPEC =
-                new ConfigSpec("authentication")
+                new ConfigsSpec("authentication")
                         .add(
                                 SASL_MECHANISM,
                                 false,
@@ -71,25 +72,22 @@ public class AuthenticationConfigs {
                         .add(PASSWORD, false, false, TEXT)
                         // GSSAPI configuration enabled only if key "authentication.mechanism" is
                         // set to "GSSAPI"
-                        .addConfigSpec(
+                        .addChildConfigs(
                                 GSSAPI_CONFIG_SEPC,
                                 SASL_MECHANISM,
-                                map ->
-                                        SaslMechanism.GSSAPI
-                                                .toString()
-                                                .equals(map.get(SASL_MECHANISM)));
+                                (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)));
     }
 
-    static ConfigSpec configSpec() {
+    static ConfigsSpec configSpec() {
         return CONFIG_SPEC;
     }
 
-    static ConfigSpec gssapiConfigSpec() {
+    static ConfigsSpec gssapiConfigSpec() {
         return GSSAPI_CONFIG_SEPC;
     }
 
-    static void withAuthenticationConfigs(ConfigSpec config, String enablingKey) {
-        config.addConfigSpec(CONFIG_SPEC, enablingKey);
+    public static void withAuthenticationConfigs(ConfigsSpec config, String enablingKey) {
+        config.addChildConfigs(CONFIG_SPEC, enablingKey);
     }
 
     static Properties addAuthentication(ConnectorConfig config) {
