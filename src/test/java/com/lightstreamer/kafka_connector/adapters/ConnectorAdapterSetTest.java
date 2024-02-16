@@ -120,20 +120,7 @@ public class ConnectorAdapterSetTest {
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
-        TableInfo[] tables = new TableInfo[1];
-        TableInfo table =
-                new TableInfo(
-                        0,
-                        Mode.DISTINCT,
-                        "item",
-                        "CONNECTOR",
-                        "field",
-                        1,
-                        1,
-                        "selector",
-                        new String[] {"item1", "item2"},
-                        null);
-        tables[0] = table;
+        TableInfo[] tables = mkTable("CONNECTOR", Mode.DISTINCT);
         connectorMetadataAdapter.notifyNewTables("user", "sessionId", tables);
         Optional<Set<String>> items = connectorMetadataAdapter.itemsBySession("sessionId");
         assertThat(items).isPresent();
@@ -141,27 +128,14 @@ public class ConnectorAdapterSetTest {
     }
 
     @Test
-    void shouldNotHandleConnectorItems() throws Exception {
+    void shouldNotHandleNonConnectorItems() throws Exception {
         doInit();
 
         ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
-        TableInfo[] tables = new TableInfo[1];
-        TableInfo table =
-                new TableInfo(
-                        0,
-                        Mode.DISTINCT,
-                        "item",
-                        "OTHER-ADAPTER",
-                        "field",
-                        1,
-                        1,
-                        "selector",
-                        new String[] {"item1", "item2"},
-                        null);
-        tables[0] = table;
+        TableInfo[] tables = mkTable("OTHER-ADAPTER", Mode.DISTINCT);
         connectorMetadataAdapter.notifyNewTables("user", "sessionId", tables);
         Optional<Set<String>> items = connectorMetadataAdapter.itemsBySession("sessionId");
         assertThat(items.isPresent()).isFalse();
@@ -176,20 +150,7 @@ public class ConnectorAdapterSetTest {
         dataAdapterParams.put(ConnectorConfig.ENABLED, "false");
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
-        TableInfo[] tables = new TableInfo[1];
-        TableInfo table =
-                new TableInfo(
-                        0,
-                        Mode.DISTINCT,
-                        "item",
-                        "CONNECTOR",
-                        "field",
-                        1,
-                        1,
-                        "selector",
-                        new String[] {"item1", "item2"},
-                        null);
-        tables[0] = table;
+        TableInfo[] tables = mkTable("CONNECTOR", Mode.DISTINCT);
         CreditsException ce =
                 assertThrows(
                         CreditsException.class,
@@ -208,20 +169,7 @@ public class ConnectorAdapterSetTest {
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
-        TableInfo[] tables = new TableInfo[1];
-        TableInfo table =
-                new TableInfo(
-                        0,
-                        Mode.COMMAND,
-                        "item",
-                        "CONNECTOR",
-                        "field",
-                        1,
-                        1,
-                        "selector",
-                        new String[] {"item1", "item2"},
-                        null);
-        tables[0] = table;
+        TableInfo[] tables = mkTable("CONNECTOR", Mode.COMMAND);
         CreditsException ce =
                 assertThrows(
                         CreditsException.class,
@@ -258,22 +206,10 @@ public class ConnectorAdapterSetTest {
         CustomAdapter customAdapter = new CustomAdapter();
         doInit(customAdapter);
 
-        TableInfo[] tables = new TableInfo[1];
-        TableInfo table =
-                new TableInfo(
-                        0,
-                        Mode.DISTINCT,
-                        "item",
-                        "OTHER-ADAPTER",
-                        "field",
-                        1,
-                        1,
-                        "selector",
-                        new String[] {"item1", "item2"},
-                        null);
-        tables[0] = table;
+        TableInfo[] tables = mkTable("OTHER-ADAPTER", Mode.COMMAND);
 
-        customAdapter.notifyNewTables("user", "sessionId", tables);                        
+        customAdapter.notifyNewTables("user", "sessionId", tables);
+
         NotifyedNewTables newTables = customAdapter.newTables;
         assertThat(newTables).isNotNull();
         assertThat(newTables.user()).isEqualTo("user");
@@ -286,5 +222,23 @@ public class ConnectorAdapterSetTest {
         assertThat(closedTables).isNotNull();
         assertThat(closedTables.sessionId()).isEqualTo("sessionId");
         assertThat(closedTables.tables()).isEqualTo(tables);
+    }
+
+    private TableInfo[] mkTable(String adapterName, Mode mode) {
+        TableInfo[] tables = new TableInfo[1];
+        TableInfo table =
+                new TableInfo(
+                        0,
+                        mode,
+                        "item",
+                        adapterName,
+                        "field",
+                        1,
+                        1,
+                        "selector",
+                        new String[] {"item1", "item2"},
+                        null);
+        tables[0] = table;
+        return tables;
     }
 }
