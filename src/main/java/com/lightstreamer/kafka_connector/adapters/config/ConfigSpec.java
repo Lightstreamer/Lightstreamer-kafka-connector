@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 class ConfigSpec {
 
@@ -299,7 +300,7 @@ class ConfigSpec {
 
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
-    private final List<SubsectionTrigger> subsections = new ArrayList<>();
+    private final List<ChildSpec> specChildren = new ArrayList<>();
 
     private final String name;
 
@@ -378,7 +379,7 @@ class ConfigSpec {
                 spec, enablingKey, map -> map.getOrDefault(enablingKey, "false").equals("true"));
     }
 
-    static record SubsectionTrigger(
+    static record ChildSpec(
             String enablingKey,
             ConfigSpec spec,
             Function<Map<String, String>, Boolean> evalStrategy) {}
@@ -393,8 +394,7 @@ class ConfigSpec {
                     "Can't add parameters subsection [%s] without the enablig parameter [%s]"
                             .formatted(spec.name, enablingKey));
         }
-        // subsections.put(enablingPar, spec);
-        subsections.add(new SubsectionTrigger(enablingKey, spec, evalStrategy));
+        specChildren.add(new ChildSpec(enablingKey, spec, evalStrategy));
         return this;
     }
 
@@ -404,14 +404,7 @@ class ConfigSpec {
             return parameter;
         }
 
-        // Search in all subsections
-        // for (ConfigSpec s : subsections.values()) {
-        //     parameter = s.getParameter(name);
-        //     if (parameter != null) {
-        //         return parameter;
-        //     }
-        // }
-        for (SubsectionTrigger trigger : subsections) {
+        for (ChildSpec trigger : specChildren) {
             parameter = trigger.spec().getParameter(name);
             if (parameter != null) {
                 return parameter;
@@ -423,13 +416,10 @@ class ConfigSpec {
     }
 
     List<ConfParameter> getByType(Type type) {
-        List<ConfParameter> list1 =
-                new ArrayList<>(
-                        subsections.stream()
-                                .flatMap(s -> s.spec().getByType(type).stream())
-                                .toList());
-        list1.addAll(paramSpec.values().stream().filter(p -> p.type().equals(type)).toList());
-        return list1;
+        return Stream.concat(
+                        paramSpec.values().stream().filter(p -> p.type().equals(type)),
+                        specChildren.stream().flatMap(s -> s.spec().getByType(type).stream()))
+                .toList();
     }
 
     public static Optional<String> extractInfix(ConfParameter param, String value) {
@@ -456,20 +446,15 @@ class ConfigSpec {
     }
 
     Map<String, String> parse(Map<String, String> originals) throws ConfigException {
+        // Final map containing all parsed values.
         Map<String, String> parsedValues = new HashMap<>();
 
         paramSpec.values().stream()
                 .filter(c -> c.mutable())
                 .forEach(c -> c.populate(originals, parsedValues));
 
-        // subsections.forEach(
-        //         (confParameter, confSpec) -> {
-        //             String enabled = parsedValues.getOrDefault(confParameter.name(), "false");
-        //             if (enabled.equals("true")) {
-        //                 parsedValues.putAll(confSpec.parse(originals));
-        //             }
-        //         });
-        for (SubsectionTrigger trigger : subsections) {
+        // Populate the map iterating over the children specs.
+        for (ChildSpec trigger : specChildren) {
             boolean enabled = trigger.evalStrategy().apply(parsedValues);
             if (enabled) {
                 parsedValues.putAll(trigger.spec().parse(originals));

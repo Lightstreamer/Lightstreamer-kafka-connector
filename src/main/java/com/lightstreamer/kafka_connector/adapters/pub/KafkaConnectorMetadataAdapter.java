@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -60,6 +62,11 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         globalConfig = GlobalConfig.newConfig(configDir, params);
         configureLogging(configDir);
         METADATA_ADAPTER = this;
+    }
+
+    // Used only for unit testing.
+    public final Optional<Set<String>> itemsBySession(String sessionId) {
+        return Optional.ofNullable(tablesBySession.get(sessionId)).map(m -> Set.copyOf(m.keySet()));
     }
 
     private void configureLogging(File configDir) throws ConfigException {
@@ -104,26 +111,32 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         }
 
         TableInfo table = tables[0];
-        ConnectionInfo dataAdapterInfo = registeredDataAdapters.get(table.getDataAdapter());
-
-        if (dataAdapterInfo != null) {
-            if (!dataAdapterInfo.enabled()) {
-                throw new CreditsException(
-                        -1,
-                        "DataProvider %s is out of work at the moment"
-                                .formatted(dataAdapterInfo.name()));
-            }
-
-            String[] items = table.getSubscribedItems();
-            for (String item : items) {
-                Map<String, TableInfo> tablesByItem =
-                        tablesBySession.computeIfAbsent(sessionID, id -> new ConcurrentHashMap<>());
-                tablesByItem.put(item, table);
-                log.atDebug().log("Added subscription <{}> to session <{}>", item, sessionID);
-            }
+        Optional<ConnectionInfo> lookUp = lookUp(table.getDataAdapter());
+        if (lookUp.isPresent()) {
+            registerConnectorItems(sessionID, table, lookUp.get());
         }
 
         newTables(user, sessionID, tables);
+    }
+
+    private void registerConnectorItems(
+            String sessionID, TableInfo table, ConnectionInfo connection) throws CreditsException {
+        if (!connection.enabled()) {
+            throw new CreditsException(
+                    -1, "Connection [%s] not enabled".formatted(connection.name()));
+        }
+        if (Mode.COMMAND.equals(table.getMode())) {
+            throw new CreditsException(
+                    -2, "Subscription mode [%s] not allowed".formatted(Mode.COMMAND));
+        }
+
+        String[] items = table.getSubscribedItems();
+        for (String item : items) {
+            Map<String, TableInfo> tables =
+                    tablesBySession.computeIfAbsent(sessionID, id -> new ConcurrentHashMap<>());
+            tables.put(item, table);
+            log.atDebug().log("Added subscription [{}] to session [{}]", item, sessionID);
+        }
     }
 
     @Override
@@ -134,6 +147,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         }
 
         TableInfo table = tables[0];
+
         if (registeredDataAdapters.containsKey(table.getDataAdapter())) {
             String[] items = table.getSubscribedItems();
             Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
@@ -150,8 +164,8 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         registeredDataAdapters.put(connectionName, new ConnectionInfo(connectionName, enabled));
     }
 
-    public final ConnectionInfo lookUp(String connectionName) {
-        return registeredDataAdapters.get(connectionName);
+    public final Optional<ConnectionInfo> lookUp(String connectionName) {
+        return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
     public abstract void newTables(
@@ -160,15 +174,6 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
 
     public abstract void tableClosed(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException;
-
-    @Override
-    public final boolean isModeAllowed(
-            @Nullable String user,
-            @Nonnull String item,
-            @Nonnull String dataAdapter,
-            @Nonnull Mode mode) {
-        return !Mode.COMMAND.equals(mode);
-    }
 
     public static record ConnectionInfo(String name, boolean enabled) {}
 
