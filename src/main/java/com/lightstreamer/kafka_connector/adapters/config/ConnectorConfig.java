@@ -245,8 +245,9 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .withAuthenticationConfigs(ENABLE_AUTHENTICATION)
-                        .addChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION);
+                        // .withAuthenticationConfigs(ENABLE_AUTHENTICATION)
+                        .addChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION)
+                        .addChildConfigs(AuthenticationConfigs.spec(), ENABLE_AUTHENTICATION);
     }
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {

@@ -22,7 +22,6 @@ import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpe
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
 import com.lightstreamer.kafka_connector.adapters.config.AuthenticationConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
-import com.lightstreamer.kafka_connector.adapters.config.EncryptionConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;

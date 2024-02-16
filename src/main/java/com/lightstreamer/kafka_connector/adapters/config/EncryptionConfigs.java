@@ -97,8 +97,7 @@ public class EncryptionConfigs {
                     SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
                     cfg.getText(SSL_TRUSTMANAGER_ALGORITHM));
             props.setProperty(
-                    SecurityConfig.SECURITY_PROVIDERS_CONFIG,
-                    cfg.getText(SECURITY_PROVIDERS));
+                    SecurityConfig.SECURITY_PROVIDERS_CONFIG, cfg.getText(SECURITY_PROVIDERS));
 
             if (cfg.isKeystoreEnabled()) {
                 props.setProperty(

@@ -17,14 +17,10 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
-
+import com.lightstreamer.kafka_connector.adapters.config.nested.AuthenticationCoreConfigs;
+import com.lightstreamer.kafka_connector.adapters.config.nested.GssapiConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
-import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.apache.kafka.common.config.SaslConfigs;
 
@@ -35,55 +31,34 @@ import java.util.Properties;
 
 public class AuthenticationConfigs {
 
-    public static final String SASL_MECHANISM = "authentication.mechanism";
+    public static final String NAME_SPACE = "authentication";
+    public static final String SASL_MECHANISM = adapt(AuthenticationCoreConfigs.SASL_MECHANISM);
 
-    public static final String USERNAME = "authentication.username";
-    public static final String PASSWORD = "authentication.password";
+    public static final String USERNAME = adapt(AuthenticationCoreConfigs.USERNAME);
+    public static final String PASSWORD = adapt(AuthenticationCoreConfigs.PASSWORD);
 
-    public static final String GSSAPI_USE_KEY_TAB = "authentication.gssapi.use.key.tab";
-    public static final String GSSAPI_STORE_KEY = "authentication.gssapi.store.key";
-    public static final String GSSAPI_KEY_TAB = "authentication.gssapi.key.tab";
+    public static final String GSSAPI_USE_KEY_TAB =
+            adapt(AuthenticationCoreConfigs.GSSAPI_USE_KEY_TAB);
+    public static final String GSSAPI_STORE_KEY = adapt(AuthenticationCoreConfigs.GSSAPI_STORE_KEY);
+    public static final String GSSAPI_KEY_TAB = adapt(AuthenticationCoreConfigs.GSSAPI_KEY_TAB);
     public static final String GSSAPI_KERBEROS_SERVICE_NAME =
-            "authentication.gssapi.kerberos.service.name";
-    public static final String GSSAPI_PRINCIPAL = "authentication.gssapi.principal";
+            adapt(AuthenticationCoreConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    public static final String GSSAPI_PRINCIPAL = adapt(AuthenticationCoreConfigs.GSSAPI_PRINCIPAL);
 
-    private static ConfigsSpec CONFIG_SPEC;
+    private static ConfigsSpec CONFIG_SPEC =
+            AuthenticationCoreConfigs.spec()
+                    .addChildConfigs(
+                            GssapiConfigs.spec(),
+                            SASL_MECHANISM,
+                            (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)))
+                    .newSpecWithNameSpace(NAME_SPACE);
 
-    private static ConfigsSpec GSSAPI_CONFIG_SEPC;
-
-    static {
-        GSSAPI_CONFIG_SEPC =
-                new ConfigsSpec("authentication.gssapi")
-                        .add(GSSAPI_USE_KEY_TAB, false, false, BOOL, defaultValue("false"))
-                        .add(GSSAPI_STORE_KEY, false, false, BOOL, defaultValue("false"))
-                        .add(GSSAPI_KEY_TAB, false, false, FILE)
-                        .add(GSSAPI_PRINCIPAL, true, false, TEXT)
-                        .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT);
-
-        CONFIG_SPEC =
-                new ConfigsSpec("authentication")
-                        .add(
-                                SASL_MECHANISM,
-                                false,
-                                false,
-                                ConfType.SASL_MECHANISM,
-                                defaultValue(SaslMechanism.PLAIN.toString()))
-                        .add(USERNAME, false, false, TEXT)
-                        .add(PASSWORD, false, false, TEXT)
-                        // GSSAPI configuration enabled only if key "authentication.mechanism" is
-                        // set to "GSSAPI"
-                        .addChildConfigs(
-                                GSSAPI_CONFIG_SEPC,
-                                SASL_MECHANISM,
-                                (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)));
+    static String adapt(String key) {
+        return NAME_SPACE + "." + key;
     }
 
-    static ConfigsSpec configSpec() {
+    static ConfigsSpec spec() {
         return CONFIG_SPEC;
-    }
-
-    static ConfigsSpec gssapiConfigSpec() {
-        return GSSAPI_CONFIG_SEPC;
     }
 
     public static void withAuthenticationConfigs(ConfigsSpec config, String enablingKey) {

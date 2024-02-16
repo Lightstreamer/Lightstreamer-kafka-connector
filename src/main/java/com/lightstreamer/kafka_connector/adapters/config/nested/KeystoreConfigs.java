@@ -25,7 +25,7 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.Keyst
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
-public class CoreKeystoreConfigs {
+public class KeystoreConfigs {
 
     public static String KEYSTORE_TYPE = "keystore.type";
 

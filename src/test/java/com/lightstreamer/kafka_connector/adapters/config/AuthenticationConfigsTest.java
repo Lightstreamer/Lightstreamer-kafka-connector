@@ -32,7 +32,7 @@ public class AuthenticationConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
-        ConfigsSpec configSpec = AuthenticationConfigs.configSpec();
+        ConfigsSpec configSpec = AuthenticationConfigs.spec();
 
         ConfParameter salsMechanism = configSpec.getParameter(AuthenticationConfigs.SASL_MECHANISM);
         assertThat(salsMechanism.name()).isEqualTo(AuthenticationConfigs.SASL_MECHANISM);
@@ -57,11 +57,6 @@ public class AuthenticationConfigsTest {
         assertThat(password.mutable()).isTrue();
         assertThat(password.defaultValue()).isNull();
         assertThat(password.type()).isEqualTo(TEXT);
-    }
-
-    @Test
-    void shouldReturnGssapConfigSpec() {
-        ConfigsSpec configSpec = AuthenticationConfigs.gssapiConfigSpec();
 
         ConfParameter useKeyTab = configSpec.getParameter(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
         assertThat(useKeyTab.name()).isEqualTo(AuthenticationConfigs.GSSAPI_USE_KEY_TAB);
