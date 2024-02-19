@@ -29,6 +29,7 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.Evalu
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 
@@ -178,6 +179,17 @@ public class SchemaRegistryConfigs {
                         "schema.registry." + SslConfigs.SSL_KEY_PASSWORD_CONFIG,
                         cfg.schemaRegistryKeyPassword());
             }
+        }
+
+        if (cfg.isSchemaRegistryBasicAuthenticationEnabled()) {
+            props.setProperty(
+                    SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE, "USER_INFO");
+            props.setProperty(
+                    SchemaRegistryClientConfig.USER_INFO_CONFIG,
+                    "%s:%s"
+                            .formatted(
+                                    cfg.schemaRegistryBasicAuthenticationUserName(),
+                                    cfg.schemaRegistryBasicAuthenticationPassword()));
         }
         return props.properties();
     }

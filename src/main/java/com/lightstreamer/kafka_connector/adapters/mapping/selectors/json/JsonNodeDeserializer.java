@@ -55,11 +55,11 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
                     deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
                 }
             }
-
-            if (deserializer == null) {
-                deserializer = new KafkaJsonDeserializer<>();
-            }
         }
+        if (deserializer == null) {
+            deserializer = new KafkaJsonDeserializer<>();
+        }
+
         deserializer.configure(config.extendsConsumerProps(props), isKey);
     }
 

@@ -33,6 +33,8 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfP
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
+
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
@@ -593,7 +595,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvaludEvaluatorType() {
+    public void shouldFailDueToInvalidEvaluatorType() {
         Map<String, String> keys =
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_TYPE,
@@ -613,7 +615,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvaludSchemaPath() {
+    public void shouldFailDueToInvalidSchemaPath() {
         Map<String, String> keys =
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
@@ -632,6 +634,29 @@ public class ConnectorConfigTest {
                             "Not found file [%s/invalidSchemaPath] specified in [%s]"
                                     .formatted(adapterDir, entry.getKey()));
         }
+    }
+
+    @Test
+    public void shouldFailDueToMissingSchemaPathForAvro() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value either for [key.evaluator.schema.path] or [schema.registry.url]");
+
+        Map<String, String> configs2 = new HashMap<>();
+        configs2.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "AVRO");
+
+        ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value either for [value.evaluator.schema.path] or [schema.registry.url]");
     }
 
     @Test
@@ -679,60 +704,6 @@ public class ConnectorConfigTest {
                         ConnectorConfig.ITEM_TEMPLATE, e -> e.getKey() + "_" + e.getValue());
         assertThat(values).containsExactly("template1_item1", "template2_item2");
     }
-
-    //     @Test
-    //     public void shouldGetUrl() {
-    //         ConnectorConfig config =
-    //                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-    //                 .isEqualTo("http://key-host:8080/registry");
-    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-    //                 .isEqualTo("http://value-host:8080/registry");
-    //     }
-
-    //     @Test
-    //     public void shouldGetRequiredUrl() {
-    //         ConnectorConfig config =
-    //                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true))
-    //                 .isEqualTo("http://key-host:8080/registry");
-    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
-    //                 .isEqualTo("http://value-host:8080/registry");
-    //     }
-
-    //     @Test
-    //     public void shouldNotGetRequiredHost() {
-    //         ConnectorConfig config = ConnectorConfigProvider.minimal();
-
-    //         String keySchemaRegistryUrl =
-    //                 config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false);
-    //         assertThat(keySchemaRegistryUrl).isNull();
-
-    //         String valuechemaRegistryUrl =
-    //                 config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
-    //         assertThat(valuechemaRegistryUrl).isNull();
-
-    //         ConfigException exception =
-    //                 assertThrows(
-    //                         ConfigException.class,
-    //                         () ->
-    //                                 config.getUrl(
-    //                                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL,
-    // true));
-    //         assertThat(exception.getMessage())
-    //                 .isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
-
-    //         ConfigException exception2 =
-    //                 assertThrows(
-    //                         ConfigException.class,
-    //                         () ->
-    //                                 config.getUrl(
-    //                                         ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
-    // true));
-    //         assertThat(exception2.getMessage())
-    //                 .isEqualTo("Missing required parameter
-    // [value.evaluator.schema.registry.url]");
-    //     }
 
     @Test
     public void shouldGetHostLists() {
@@ -1676,34 +1647,54 @@ public class ConnectorConfigTest {
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION, "true");
 
-        ConfigException ce = assertThrows(
-                ConfigException.class,
-                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.basic.authentication.username]");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [schema.registry.basic.authentication.username]");
 
         updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME, "");
-        ce = assertThrows(
-                ConfigException.class,
-                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [schema.registry.basic.authentication.username]");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [schema.registry.basic.authentication.username]");
 
-        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME, "usernane");
-        ce = assertThrows(
-                ConfigException.class,
-                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.basic.authentication.password]");
+        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME, "username");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [schema.registry.basic.authentication.password]");
 
         updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD, "");
-        ce = assertThrows(
-                ConfigException.class,
-                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [schema.registry.basic.authentication.password]");
-        
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [schema.registry.basic.authentication.password]");
+
         updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD, "password");
-        
+
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isTrue();
         assertThat(config.schemaRegistryBasicAuthenticationUserName()).isEqualTo("username");
         assertThat(config.schemaRegistryBasicAuthenticationPassword()).isEqualTo("password");
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE,
+                        "USER_INFO",
+                        SchemaRegistryClientConfig.USER_INFO_CONFIG,
+                        "username:password");
     }
 }

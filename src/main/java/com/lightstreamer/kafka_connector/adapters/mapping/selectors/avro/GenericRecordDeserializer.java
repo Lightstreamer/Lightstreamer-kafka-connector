@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro;
 
+import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
@@ -44,7 +45,18 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new GenericRecordLocalSchemaDeserializer(config, isKey);
         } else {
-            deserializer = new KafkaAvroDeserializer();
+            if (isKey) {
+                if (config.isSchemaRegistryEnabledForKey()) {
+                    deserializer = new KafkaAvroDeserializer();
+                }
+            } else {
+                if (config.isSchemaRegistryEnabledForValue()) {
+                    deserializer = new KafkaAvroDeserializer();
+                }
+            }
+        }
+        if (deserializer == null) {
+            throw new ConfigException("No AVRO deserializer could be instantiated");
         }
         deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
     }

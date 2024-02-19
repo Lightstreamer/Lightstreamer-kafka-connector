@@ -298,6 +298,33 @@ public final class ConnectorConfig extends AbstractConfig {
                 schemaRegistryTruststorePassword();
             }
         }
+
+        if (getKeyEvaluator().equals(EvaluatorType.AVRO)) {
+            if (!isSchemaRegistryEnabledForKey()) {
+                try {
+                    getFile(KEY_EVALUATOR_SCHEMA_PATH, true);
+                } catch (ConfigException ce) {
+                    throw new ConfigException(
+                            "Specify a valid value either for [%s] or [%s]"
+                                    .formatted(
+                                            KEY_EVALUATOR_SCHEMA_PATH, SchemaRegistryConfigs.URL));
+                }
+            }
+        }
+
+        if (getValueEvaluator().equals(EvaluatorType.AVRO)) {
+            if (!isSchemaRegistryEnabledForValue()) {
+                try {
+                    getFile(VALUE_EVALUATOR_SCHEMA_PATH, true);
+                } catch (ConfigException ce) {
+                    throw new ConfigException(
+                            "Specify a valid value either for [%s] or [%s]"
+                                    .formatted(
+                                            VALUE_EVALUATOR_SCHEMA_PATH,
+                                            SchemaRegistryConfigs.URL));
+                }
+            }
+        }
     }
 
     private Properties initProps() {

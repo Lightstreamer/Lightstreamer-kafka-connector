@@ -230,6 +230,11 @@ public final class NonNullKeyProperties {
         }
 
         @Override
+        public Object get(Object key) {
+            return props.get(key);
+        }
+
+        @Override
         public synchronized void replaceAll(
                 BiFunction<? super Object, ? super Object, ?> function) {
             props.replaceAll(function);
