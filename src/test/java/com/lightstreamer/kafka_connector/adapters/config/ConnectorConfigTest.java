@@ -214,26 +214,6 @@ public class ConnectorConfigTest {
         assertThat(fieldMapping.defaultValue()).isNull();
         assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter keyEvaluatorSchemaRegistryUrl =
-                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(keyEvaluatorSchemaRegistryUrl.name())
-                .isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(keyEvaluatorSchemaRegistryUrl.required()).isFalse();
-        assertThat(keyEvaluatorSchemaRegistryUrl.multiple()).isFalse();
-        assertThat(keyEvaluatorSchemaRegistryUrl.mutable()).isTrue();
-        assertThat(keyEvaluatorSchemaRegistryUrl.defaultValue()).isNull();
-        assertThat(keyEvaluatorSchemaRegistryUrl.type()).isEqualTo(ConfType.URL);
-
-        ConfParameter valueEvaluatorSchemaRegistryUrl =
-                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(valueEvaluatorSchemaRegistryUrl.name())
-                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL);
-        assertThat(valueEvaluatorSchemaRegistryUrl.required()).isFalse();
-        assertThat(valueEvaluatorSchemaRegistryUrl.multiple()).isFalse();
-        assertThat(valueEvaluatorSchemaRegistryUrl.mutable()).isTrue();
-        assertThat(valueEvaluatorSchemaRegistryUrl.defaultValue()).isNull();
-        assertThat(valueEvaluatorSchemaRegistryUrl.type()).isEqualTo(ConfType.URL);
-
         ConfParameter itemInfoName = configSpec.getParameter(ConnectorConfig.ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ConnectorConfig.ITEM_INFO_NAME);
         assertThat(itemInfoName.required()).isFalse();
@@ -367,14 +347,9 @@ public class ConnectorConfigTest {
         standardParams.put(
                 ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
                 valueSchemaFile.getFileName().toString());
-        standardParams.put(
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
-                "http://value-host:8080/registry");
         standardParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
         standardParams.put(
                 ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
-        standardParams.put(
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://key-host:8080/registry");
         standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
         standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -613,10 +588,8 @@ public class ConnectorConfigTest {
         updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, type);
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
-        assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
-                .isEqualTo(EvaluatorType.valueOf(type));
-        assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
-                .isEqualTo(EvaluatorType.valueOf(type));
+        assertThat(config.getValueEvaluator()).isEqualTo(EvaluatorType.valueOf(type));
+        assertThat(config.getKeyEvaluator()).isEqualTo(EvaluatorType.valueOf(type));
     }
 
     @Test
@@ -707,56 +680,59 @@ public class ConnectorConfigTest {
         assertThat(values).containsExactly("template1_item1", "template2_item2");
     }
 
-    @Test
-    public void shouldGetUrl() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-                .isEqualTo("http://key-host:8080/registry");
-        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-                .isEqualTo("http://value-host:8080/registry");
-    }
+    //     @Test
+    //     public void shouldGetUrl() {
+    //         ConnectorConfig config =
+    //                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+    //                 .isEqualTo("http://key-host:8080/registry");
+    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+    //                 .isEqualTo("http://value-host:8080/registry");
+    //     }
 
-    @Test
-    public void shouldGetRequiredUrl() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true))
-                .isEqualTo("http://key-host:8080/registry");
-        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
-                .isEqualTo("http://value-host:8080/registry");
-    }
+    //     @Test
+    //     public void shouldGetRequiredUrl() {
+    //         ConnectorConfig config =
+    //                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true))
+    //                 .isEqualTo("http://key-host:8080/registry");
+    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true))
+    //                 .isEqualTo("http://value-host:8080/registry");
+    //     }
 
-    @Test
-    public void shouldNotGetRequiredHost() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    //     @Test
+    //     public void shouldNotGetRequiredHost() {
+    //         ConnectorConfig config = ConnectorConfigProvider.minimal();
 
-        String keySchemaRegistryUrl =
-                config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false);
-        assertThat(keySchemaRegistryUrl).isNull();
+    //         String keySchemaRegistryUrl =
+    //                 config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false);
+    //         assertThat(keySchemaRegistryUrl).isNull();
 
-        String valuechemaRegistryUrl =
-                config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
-        assertThat(valuechemaRegistryUrl).isNull();
+    //         String valuechemaRegistryUrl =
+    //                 config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
+    //         assertThat(valuechemaRegistryUrl).isNull();
 
-        ConfigException exception =
-                assertThrows(
-                        ConfigException.class,
-                        () ->
-                                config.getUrl(
-                                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, true));
-        assertThat(exception.getMessage())
-                .isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
+    //         ConfigException exception =
+    //                 assertThrows(
+    //                         ConfigException.class,
+    //                         () ->
+    //                                 config.getUrl(
+    //                                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL,
+    // true));
+    //         assertThat(exception.getMessage())
+    //                 .isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
 
-        ConfigException exception2 =
-                assertThrows(
-                        ConfigException.class,
-                        () ->
-                                config.getUrl(
-                                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, true));
-        assertThat(exception2.getMessage())
-                .isEqualTo("Missing required parameter [value.evaluator.schema.registry.url]");
-    }
+    //         ConfigException exception2 =
+    //                 assertThrows(
+    //                         ConfigException.class,
+    //                         () ->
+    //                                 config.getUrl(
+    //                                         ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL,
+    // true));
+    //         assertThat(exception2.getMessage())
+    //                 .isEqualTo("Missing required parameter
+    // [value.evaluator.schema.registry.url]");
+    //     }
 
     @Test
     public void shouldGetHostLists() {
@@ -803,10 +779,8 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultEvaluator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE))
-                .isEqualTo(EvaluatorType.STRING);
-        assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
-                .isEqualTo(EvaluatorType.STRING);
+        assertThat(config.getKeyEvaluator()).isEqualTo(EvaluatorType.STRING);
+        assertThat(config.getValueEvaluator()).isEqualTo(EvaluatorType.STRING);
 
         assertThat(config.isSchemaRegistryEnabledForKey()).isFalse();
         assertThat(config.isSchemaRegistryEnabledForKey()).isFalse();
@@ -828,14 +802,14 @@ public class ConnectorConfigTest {
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
     }
 
-    @Test
-    public void shouldNotGetNonExistingNonRequiredHost() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-                .isNull();
-        assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-                .isNull();
-    }
+    //     @Test
+    //     public void shouldNotGetNonExistingNonRequiredHost() {
+    //         ConnectorConfig config = ConnectorConfigProvider.minimal();
+    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+    //                 .isNull();
+    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
+    //                 .isNull();
+    //     }
 
     @Test
     public void shouldGetDirectory() {
@@ -881,17 +855,24 @@ public class ConnectorConfigTest {
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isEncryptionEnabled()).isFalse();
-        assertThrows(ConfigException.class, () -> config.isKeystoreEnabled());
-        assertThrows(ConfigException.class, () -> config.getEnabledProtocols());
-        assertThrows(ConfigException.class, () -> config.getEnabledProtocolsAsStr());
-        assertThrows(ConfigException.class, () -> config.getSslProtocol());
-        assertThrows(ConfigException.class, () -> config.getTrustStoreType());
-        assertThrows(ConfigException.class, () -> config.getTrustStorePath());
-        assertThrows(ConfigException.class, () -> config.getTrustStorePassword());
-        assertThrows(ConfigException.class, () -> config.isHostNameVerificationEnabled());
-        assertThrows(ConfigException.class, () -> config.getCipherSuites());
-        assertThrows(ConfigException.class, () -> config.getCipherSuitesAsStr());
-        assertThrows(ConfigException.class, () -> config.getSslProvider());
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.isKeystoreEnabled(),
+                        () -> config.enabledProtocols(),
+                        () -> config.enabledProtocolsAsStr(),
+                        () -> config.sslProtocol(),
+                        () -> config.truststoreType(),
+                        () -> config.truststorePath(),
+                        () -> config.trusttorePassword(),
+                        () -> config.isHostNameVerificationEnabled(),
+                        () -> config.cipherSuites(),
+                        () -> config.cipherSuitesAsStr(),
+                        () -> config.sslProvider());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage()).isEqualTo("Parameter [encryption.enabled] is not enabled");
+        }
     }
 
     @Test
@@ -946,14 +927,14 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getEnabledProtocols()).containsExactly(TLSv12, TLSv13);
-        assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
-        assertThat(config.getSslProtocol().toString()).isEqualTo("TLSv1.3");
-        assertThat(config.getTrustStoreType().toString()).isEqualTo("JKS");
+        assertThat(config.enabledProtocols()).containsExactly(TLSv12, TLSv13);
+        assertThat(config.enabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
+        assertThat(config.sslProtocol().toString()).isEqualTo("TLSv1.3");
+        assertThat(config.truststoreType().toString()).isEqualTo("JKS");
         assertThat(config.isHostNameVerificationEnabled()).isFalse();
-        assertThat(config.getCipherSuites()).isEmpty();
-        assertThat(config.getCipherSuitesAsStr()).isNull();
-        assertThat(config.getSslProvider()).isNull();
+        assertThat(config.cipherSuites()).isEmpty();
+        assertThat(config.cipherSuitesAsStr()).isNull();
+        assertThat(config.sslProvider()).isNull();
         assertThat(config.isKeystoreEnabled()).isFalse();
 
         Properties props = config.baseConsumerProps();
@@ -1002,19 +983,19 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isEncryptionEnabled()).isTrue();
-        assertThat(config.getEnabledProtocols()).containsExactly(TLSv12);
-        assertThat(config.getEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
-        assertThat(config.getSslProtocol().toString()).isEqualTo("TLSv1.2");
-        assertThat(config.getTrustStoreType().toString()).isEqualTo("PKCS12");
-        assertThat(config.getTrustStorePath()).isEqualTo(trustStoreFile.toString());
-        assertThat(config.getTrustStorePassword()).isEqualTo("truststore-password");
+        assertThat(config.enabledProtocols()).containsExactly(TLSv12);
+        assertThat(config.enabledProtocolsAsStr()).isEqualTo("TLSv1.2");
+        assertThat(config.sslProtocol().toString()).isEqualTo("TLSv1.2");
+        assertThat(config.truststoreType().toString()).isEqualTo("PKCS12");
+        assertThat(config.truststorePath()).isEqualTo(trustStoreFile.toString());
+        assertThat(config.trusttorePassword()).isEqualTo("truststore-password");
         assertThat(config.isHostNameVerificationEnabled()).isTrue();
-        assertThat(config.getCipherSuites())
+        assertThat(config.cipherSuites())
                 .containsExactly(
                         "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
-        assertThat(config.getCipherSuitesAsStr())
+        assertThat(config.cipherSuitesAsStr())
                 .isEqualTo("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
-        assertThat(config.getSslProvider()).isNull();
+        assertThat(config.sslProvider()).isNull();
 
         Properties props = config.baseConsumerProps();
         assertThat(props)
@@ -1201,9 +1182,9 @@ public class ConnectorConfigTest {
 
         List<ThrowingRunnable> runnables =
                 List.of(
-                        () -> config.getAuthenticationMechanism(),
-                        () -> config.getAuthenticationUsername(),
-                        () -> config.getAuthenticationPassword(),
+                        () -> config.authenticationMechanism(),
+                        () -> config.authenticationUsername(),
+                        () -> config.authenticationPassword(),
                         () -> config.isGssapiEnabled(),
                         () -> config.gssapiKerberosServiceName(),
                         () -> config.gssapiKeyTab(),
@@ -1225,7 +1206,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isAuthenticationEnabled()).isTrue();
-        assertThat(config.getAuthenticationMechanism().toString()).isEqualTo("PLAIN");
+        assertThat(config.authenticationMechanism().toString()).isEqualTo("PLAIN");
 
         Properties properties = config.baseConsumerProps();
         assertThat(properties)
@@ -1259,9 +1240,9 @@ public class ConnectorConfigTest {
                         ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
                 assertThat(config.isAuthenticationEnabled()).isTrue();
-                assertThat(config.getAuthenticationMechanism().toString()).isEqualTo(mechanism);
-                assertThat(config.getAuthenticationUsername()).isEqualTo("sasl-username");
-                assertThat(config.getAuthenticationPassword()).isEqualTo("sasl-password");
+                assertThat(config.authenticationMechanism().toString()).isEqualTo(mechanism);
+                assertThat(config.authenticationUsername()).isEqualTo("sasl-username");
+                assertThat(config.authenticationPassword()).isEqualTo("sasl-password");
 
                 Properties properties = config.baseConsumerProps();
                 assertThat(properties)
@@ -1412,5 +1393,257 @@ public class ConnectorConfigTest {
         updatedConfig.put(
                 BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldNotAccessToSchemaRegistrySettings() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+
+        assertThat(config.isSchemaRegistryEnabled()).isFalse();
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.isSchemaRegistryEncryptionEnabled(),
+                        () -> config.schemaRegistryEnabledProtocols(),
+                        () -> config.schemaRegistryEnabledProtocolsAsStr(),
+                        () -> config.schemaRegistrySslProtocol(),
+                        () -> config.schemaRegistryTruststoreType(),
+                        () -> config.schemaRegistryTruststorePath(),
+                        () -> config.schemaRegistryTruststorePassword(),
+                        () -> config.isSchemaRegistryHostNameVerificationEnabled(),
+                        () -> config.schemaRegistryCipherSuites(),
+                        () -> config.schemaRegistryCipherSuitesAsStr(),
+                        () -> config.schemaRegistrySslProvider());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo(
+                            "Neither parameter [key.evaluator.schema.registry.enabled] nor parameter [value.evaluator.schema.registry.enabled] are enabled");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED
+            })
+    public void shouldSpecifyRequiredSchemaRegistryParameters(String evaluatorKey) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(evaluatorKey, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.url]");
+
+        updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldNotAccessToSchemaRegistryEncryptionSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
+        assertThat(config.isSchemaRegistryEncryptionEnabled()).isFalse();
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.schemaRegistryEnabledProtocols(),
+                        () -> config.schemaRegistryEnabledProtocolsAsStr(),
+                        () -> config.schemaRegistrySslProtocol(),
+                        () -> config.schemaRegistryTruststoreType(),
+                        () -> config.schemaRegistryTruststorePath(),
+                        () -> config.schemaRegistryTruststorePassword(),
+                        () -> config.isSchemaRegistryHostNameVerificationEnabled(),
+                        () -> config.schemaRegistryCipherSuites(),
+                        () -> config.schemaRegistryCipherSuitesAsStr(),
+                        () -> config.schemaRegistrySslProvider());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo("Parameter [schema.registry.url] is not set with https protocol");
+        }
+    }
+
+    @Test
+    public void shouldGetDefaultSchemaRegistryEncryptionSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.schemaRegistryUrl()).isEqualTo("https://localhost:8080");
+
+        assertThat(config.isSchemaRegistryEnabled()).isTrue();
+        assertThat(config.schemaRegistryEnabledProtocols()).containsExactly(TLSv12, TLSv13);
+        assertThat(config.schemaRegistryEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
+        assertThat(config.schemaRegistrySslProtocol().toString()).isEqualTo("TLSv1.3");
+        assertThat(config.schemaRegistryTruststoreType().toString()).isEqualTo("JKS");
+        assertThat(config.isSchemaRegistryHostNameVerificationEnabled()).isFalse();
+        assertThat(config.schemaRegistryCipherSuites()).isEmpty();
+        assertThat(config.schemaRegistryCipherSuitesAsStr()).isNull();
+        assertThat(config.schemaRegistrySslProvider()).isNull();
+        assertThat(config.isSchemaRegistryKeystoreEnabled()).isFalse();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        "schema.registry." + SslConfigs.SSL_PROTOCOL_CONFIG,
+                        "TLSv1.3",
+                        "schema.registry." + SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
+                        "TLSv1.2,TLSv1.3",
+                        "schema.registry." + SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                        "JKS",
+                        "schema.registry."
+                                + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+                        "");
+        assertThat(props)
+                .doesNotContainKey("schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG);
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.schemaRegistryKeystorePath(),
+                        () -> config.schemaRegistryKeystorePassword(),
+                        () -> config.schemaRegistryKeystoreType(),
+                        () -> config.schemaRegistryKeyPassword());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo(
+                            "Parameter [schema.registry.encryption.keystore.enabled] is not enabled");
+        }
+    }
+
+    @Test
+    public void shouldOverrideSchemaRegistryEncryptionSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
+        updatedConfig.put(
+                SchemaRegistryConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
+        updatedConfig.put(SchemaRegistryConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
+        updatedConfig.put(SchemaRegistryConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
+        updatedConfig.put(SchemaRegistryConfigs.SSL_PROTOCOL, "TLSv1.2");
+        updatedConfig.put(SchemaRegistryConfigs.TRUSTSTORE_TYPE, "PKCS12");
+        updatedConfig.put(
+                SchemaRegistryConfigs.SSL_CIPHER_SUITES,
+                "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
+        updatedConfig.put(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION, "true");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isSchemaRegistryEncryptionEnabled()).isTrue();
+        assertThat(config.schemaRegistryEnabledProtocols()).containsExactly(TLSv12);
+        assertThat(config.schemaRegistryEnabledProtocolsAsStr()).isEqualTo("TLSv1.2");
+        assertThat(config.schemaRegistrySslProtocol().toString()).isEqualTo("TLSv1.2");
+        assertThat(config.schemaRegistryTruststoreType().toString()).isEqualTo("PKCS12");
+        assertThat(config.schemaRegistryTruststorePath()).isEqualTo(trustStoreFile.toString());
+        assertThat(config.schemaRegistryTruststorePassword()).isEqualTo("truststore-password");
+        assertThat(config.isSchemaRegistryHostNameVerificationEnabled()).isTrue();
+        assertThat(config.schemaRegistryCipherSuites())
+                .containsExactly(
+                        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
+        assertThat(config.schemaRegistryCipherSuitesAsStr())
+                .isEqualTo("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
+        assertThat(config.schemaRegistrySslProvider()).isNull();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .doesNotContainKey(
+                        "schema.registry."
+                                + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG);
+        assertThat(props)
+                .containsAtLeast(
+                        "schema.registry." + SslConfigs.SSL_PROTOCOL_CONFIG,
+                        "TLSv1.2",
+                        "schema.registry." + SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
+                        "TLSv1.2",
+                        "schema.registry." + SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                        "PKCS12",
+                        "schema.registry." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+                        trustStoreFile.toString(),
+                        "schema.registry." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+                        "truststore-password",
+                        "schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG,
+                        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
+    }
+
+    @Test
+    public void shouldGetDefaultSchemaRegistryKeystoreSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
+        updatedConfig.put(
+                SchemaRegistryConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
+        updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_PASSWORD, "keystore-password");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isSchemaRegistryKeystoreEnabled()).isTrue();
+        assertThat(config.schemaRegistryKeystorePath()).isEqualTo(keyStoreFile.toString());
+        assertThat(config.schemaRegistryKeystoreType().toString()).isEqualTo("JKS");
+        assertThat(config.schemaRegistryKeystorePassword()).isEqualTo("keystore-password");
+        assertThat(config.schemaRegistryKeyPassword()).isNull();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                        "JKS",
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                        "keystore-password",
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+                        keyStoreFile.toString());
+        assertThat(props)
+                .doesNotContainKey("schema.registry." + SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+    }
+
+    @Test
+    public void shouldOverrideSchemaRegistryKeystoreSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
+        updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_TYPE, "PKCS12");
+        updatedConfig.put(
+                SchemaRegistryConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
+        updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_PASSWORD, "keystore-password");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isSchemaRegistryKeystoreEnabled()).isTrue();
+        assertThat(config.schemaRegistryKeystoreType().toString()).isEqualTo("PKCS12");
+
+        updatedConfig.put(SchemaRegistryConfigs.KEY_PASSWORD, "");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [schema.registry.encryption.key.password]");
+
+        updatedConfig.put(SchemaRegistryConfigs.KEY_PASSWORD, "key-password");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.schemaRegistryKeyPassword()).isEqualTo("key-password");
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                        "PKCS12",
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                        "keystore-password",
+                        "schema.registry." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+                        keyStoreFile.toString(),
+                        "schema.registry." + SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+                        "key-password");
     }
 }

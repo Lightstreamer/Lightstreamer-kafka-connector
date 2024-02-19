@@ -100,16 +100,12 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return get(configKey, HOST, false);
     }
 
-    public final String getHost(String configKey, boolean forceRequired) {
-        String value = get(configKey, HOST, false);
-        if (forceRequired && value == null) {
-            throw new ConfigException("Missing required parameter [%s]".formatted(configKey));
-        }
-        return value;
-    }
-
     public final String getUrl(String configKey, boolean forceRequired) {
         return get(configKey, URL, forceRequired);
+    }
+
+    public final String getUrl(String configKey) {
+        return get(configKey, URL, false);
     }
 
     public final String getHostsList(String configKey) {

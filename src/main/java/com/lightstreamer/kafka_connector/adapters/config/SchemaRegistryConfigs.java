@@ -21,14 +21,17 @@ import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpe
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.nested.KeystoreConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.nested.TlsConfigs;
-import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 
-import org.apache.kafka.clients.CommonClientConfigs;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
+
 import org.apache.kafka.common.config.SecurityConfig;
 import org.apache.kafka.common.config.SslConfigs;
 
@@ -40,7 +43,6 @@ public class SchemaRegistryConfigs {
     public static final String URL = ns("url");
 
     public static final String ENCRYPTION_NAME_SPACE = ns("encryption");
-    public static final String ENABLE_ENCRYTPTION = nse("enabled");
     public static final String SSL_ENABLED_PROTOCOLS = nse(TlsConfigs.SSL_ENABLED_PROTOCOLS);
     public static final String SSL_PROTOCOL = nse(TlsConfigs.SSL_PROTOCOL);
 
@@ -79,7 +81,6 @@ public class SchemaRegistryConfigs {
         CONFIG_SPEC =
                 new ConfigsSpec("schemaRegistry")
                         .add(URL, true, false, ConfType.URL)
-                        .add(ENABLE_ENCRYTPTION, false, false, BOOL, defaultValue("false"))
                         .add(ENABLE_BASIC_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
                         .withEnabledChildConfigs(
                                 new ConfigsSpec("basicAuthentication")
@@ -88,7 +89,8 @@ public class SchemaRegistryConfigs {
                                 ENABLE_BASIC_AUTHENTICATION)
                         .withEnabledChildConfigs(
                                 TlsConfigs.spec().newSpecWithNameSpace(ENCRYPTION_NAME_SPACE),
-                                ENABLE_ENCRYTPTION);
+                                (map, key) -> map.get(key).startsWith("https"),
+                                URL);
     }
 
     static String ns(String key) {
@@ -104,16 +106,23 @@ public class SchemaRegistryConfigs {
     }
 
     static Properties addSchemaRegistry(ConnectorConfig cfg) {
-        NoNullKeyProperties props = new NoNullKeyProperties();
+        NonNullKeyProperties props = new NonNullKeyProperties();
         if (!cfg.isSchemaRegistryEnabled()) {
             return props.properties();
         }
 
-        SecurityProtocol protocol =
-                SecurityProtocol.retrieve(cfg.isEncryptionEnabled(), cfg.isAuthenticationEnabled());
         props.setProperty(
-                "schema.registry." + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-                protocol.toString());
+                AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
+
+        if (cfg.getKeyEvaluator().equals(EvaluatorType.JSON)) {
+            props.setProperty(
+                    KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
+        }
+        if (cfg.getValueEvaluator().equals(EvaluatorType.JSON)) {
+            props.setProperty(
+                    KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
+        }
+
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(
                     "schema.registry." + SslConfigs.SSL_PROTOCOL_CONFIG,
@@ -126,12 +135,15 @@ public class SchemaRegistryConfigs {
                     cfg.schemaRegistryTruststoreType().toString());
             props.setProperty(
                     "schema.registry." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-                    cfg.schemaRegistryTrustStorePath());
+                    cfg.schemaRegistryTruststorePath());
             props.setProperty(
                     "schema.registry." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-                    cfg.schemaRegistryTrustStorePassword());
-            if (!cfg.isHostNameVerificationEnabled()) {
-                props.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+                    cfg.schemaRegistryTruststorePassword());
+            if (!cfg.isSchemaRegistryHostNameVerificationEnabled()) {
+                props.setProperty(
+                        "schema.registry."
+                                + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+                        "");
             }
             props.setProperty(
                     "schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG,
@@ -158,7 +170,7 @@ public class SchemaRegistryConfigs {
                         cfg.schemaRegistryKeystoreType().toString());
                 props.setProperty(
                         "schema.registry." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-                        cfg.schemaRegistryKeyPassword());
+                        cfg.schemaRegistryKeystorePassword());
                 props.setProperty(
                         "schema.registry." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
                         cfg.schemaRegistryKeystorePath());

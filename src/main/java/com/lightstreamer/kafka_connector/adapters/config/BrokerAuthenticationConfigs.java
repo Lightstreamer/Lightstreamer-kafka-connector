@@ -46,10 +46,10 @@ public class BrokerAuthenticationConfigs {
 
     private static ConfigsSpec CONFIG_SPEC =
             AuthenticationConfigs.cloneSpec()
-                    .addChildConfigs(
+                    .withEnabledChildConfigs(
                             GssapiConfigs.spec(),
-                            AuthenticationConfigs.SASL_MECHANISM,
-                            (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)))
+                            (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)),
+                            AuthenticationConfigs.SASL_MECHANISM)
                     .newSpecWithNameSpace(NAME_SPACE);
 
     static String adapt(String key) {
@@ -67,7 +67,7 @@ public class BrokerAuthenticationConfigs {
     static Properties addAuthentication(ConnectorConfig config) {
         Properties props = new Properties();
         if (config.isAuthenticationEnabled()) {
-            SaslMechanism mechanism = config.getAuthenticationMechanism();
+            SaslMechanism mechanism = config.authenticationMechanism();
             props.setProperty(SaslConfigs.SASL_MECHANISM, mechanism.toString());
             props.setProperty(SaslConfigs.SASL_JAAS_CONFIG, configuredWith(config));
             if (config.isGssapiEnabled()) {
@@ -88,9 +88,9 @@ public class BrokerAuthenticationConfigs {
                     .build();
         }
         return new Jaas()
-                .withMechanism(config.getAuthenticationMechanism())
-                .withUsername(config.getAuthenticationUsername())
-                .withPassword(config.getAuthenticationPassword())
+                .withMechanism(config.authenticationMechanism())
+                .withUsername(config.authenticationUsername())
+                .withPassword(config.authenticationPassword())
                 .build();
     }
 

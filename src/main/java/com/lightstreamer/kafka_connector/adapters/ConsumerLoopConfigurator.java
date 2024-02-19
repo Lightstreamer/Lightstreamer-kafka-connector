@@ -82,8 +82,8 @@ public class ConsumerLoopConfigurator {
         try {
             Selected<?, ?> selected =
                     Selected.with(
-                            makeKeySelectorSupplier(connectorConfig),
-                            makeValueSelectorSupplier(connectorConfig));
+                            mkKeySelectorSupplier(connectorConfig),
+                            mkValueSelectorSupplier(connectorConfig));
 
             Properties props = connectorConfig.baseConsumerProps();
             Deserializer<?> keyDeserializer = selected.keySelectorSupplier().deseralizer();
@@ -136,8 +136,8 @@ public class ConsumerLoopConfigurator {
         return Items.templatesFrom(topicsConfig, selected);
     }
 
-    private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {
-        EvaluatorType evaluator = config.getEvaluator(ConnectorConfig.KEY_EVALUATOR_TYPE);
+    private KeySelectorSupplier<?> mkKeySelectorSupplier(ConnectorConfig config) {
+        EvaluatorType evaluator = config.getKeyEvaluator();
         return switch (evaluator) {
             case AVRO -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
@@ -145,8 +145,8 @@ public class ConsumerLoopConfigurator {
         };
     }
 
-    private ValueSelectorSupplier<?> makeValueSelectorSupplier(ConnectorConfig config) {
-        EvaluatorType evaluatorType = config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE);
+    private ValueSelectorSupplier<?> mkValueSelectorSupplier(ConnectorConfig config) {
+        EvaluatorType evaluatorType = config.getValueEvaluator();
         return switch (evaluatorType) {
             case AVRO -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);

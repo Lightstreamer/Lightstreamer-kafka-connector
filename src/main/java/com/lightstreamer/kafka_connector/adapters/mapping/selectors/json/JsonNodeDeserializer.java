@@ -23,10 +23,8 @@ import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -48,23 +46,17 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new JsonLocalSchemaDeserializer(config, isKey);
         } else {
-            String schemaRegistryUrl =
-                    isKey
-                            ? config.getUrl(
-                                    ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false)
-                            : config.getUrl(
-                                    ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false);
-            if (schemaRegistryUrl != null) {
-                props.put(
-                        KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
-                props.put(
-                        KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE,
-                        JsonNode.class.getName());
-                props.put(
-                        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-                        schemaRegistryUrl);
-                deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
+            if (isKey) {
+                if (config.isSchemaRegistryEnabledForKey()) {
+                    deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
+                }
             } else {
+                if (config.isSchemaRegistryEnabledForValue()) {
+                    deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
+                }
+            }
+
+            if (deserializer == null) {
                 deserializer = new KafkaJsonDeserializer<>();
             }
         }

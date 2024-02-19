@@ -86,6 +86,7 @@
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
         <!-- <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
         <param name="item-template.sample2">sample</param> -->
+        <param name="item-template.sample2">sample-#{key=KEY}</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.topic_0.to">item-template.sample1,item-template.sample2</param>
@@ -94,7 +95,6 @@
         <param name="value.evaluator.schema.registry">AVRO</param>
         
         <param name="schema.registry.url">https://localhost:8081</param>
-        <param name="schema.registry.encryption.enabled">true</param>
 
         <param name="schema.registry.encryption.truststore.path">secrets/kafka.client.truststore.jks</param>
         <param name="schema.registry.encryption.truststore.password">password</param>

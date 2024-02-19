@@ -20,7 +20,6 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
 import org.apache.avro.Schema;
@@ -31,10 +30,9 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.utils.Utils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
 
@@ -42,21 +40,13 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
     private final boolean isKey;
 
     GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
-        Map<String, String> props = new HashMap<>();
         this.isKey = isKey;
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new GenericRecordLocalSchemaDeserializer(config, isKey);
         } else {
-            String schemaRegistryKey =
-                    isKey
-                            ? ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL
-                            : ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL;
-            props.put(
-                    AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-                    config.getUrl(schemaRegistryKey, true));
             deserializer = new KafkaAvroDeserializer();
         }
-        deserializer.configure(config.extendsConsumerProps(props), isKey);
+        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
     }
 
     public boolean isKey() {

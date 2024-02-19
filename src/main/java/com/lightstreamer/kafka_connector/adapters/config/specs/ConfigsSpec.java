@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka_connector.adapters.config.specs;
 
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
-
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
@@ -336,6 +334,31 @@ public class ConfigsSpec {
         }
     }
 
+    public static class EnablingKey {
+
+        private final List<String> keys;
+
+        EnablingKey(String... key) {
+            this.keys = List.of(key);
+        }
+
+        EnablingKey(List<String> keys) {
+            this.keys = List.copyOf(keys);
+        }
+
+        Stream<String> key() {
+            return keys.stream();
+        }
+
+        public static EnablingKey of(String... key) {
+            return new EnablingKey(key);
+        }
+
+        public EnablingKey newNameSpaced(String ns) {
+            return new EnablingKey(key().map(k -> ns + "." + k).toList());
+        }
+    }
+
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
 
     private final List<ChildSpec> specChildren = new ArrayList<>();
@@ -366,7 +389,7 @@ public class ConfigsSpec {
                     paramSpec.put(name, p);
                 });
         for (ChildSpec childSpec : from.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
+            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
     }
 
@@ -383,7 +406,7 @@ public class ConfigsSpec {
                             cp.defaultHolder()));
         }
         for (ChildSpec childSpec : childConfigSpec.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
+            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
 
         return this;
@@ -406,8 +429,8 @@ public class ConfigsSpec {
             ConfigsSpec spec = childSpec.spec();
             newSpec.addChildConfigs(
                     spec.newSpecWithNameSpace(nameSpace),
-                    nameSpace + "." + childSpec.enablingKey(),
-                    childSpec.evalStrategy());
+                    childSpec.evalStrategy(),
+                    childSpec.enablingKey().newNameSpaced(nameSpace));
         }
 
         return newSpec;
@@ -490,32 +513,42 @@ public class ConfigsSpec {
         return this;
     }
 
-    public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, String enablingKey) {
-        ConfParameter enablingPar = getParameter(enablingKey);
-        if (enablingPar == null || !enablingPar.type().equals(BOOL)) {
-            throw new ConfigException(
-                    "Since no paramerter [%s] of type BOOL has been found, can't add parameters subsection"
-                            .formatted(enablingKey));
-        }
-        return addChildConfigs(
-                spec, enablingKey, (map, key) -> map.getOrDefault(key, "false").equals("true"));
-    }
-
     private static record ChildSpec(
-            String enablingKey,
+            EnablingKey enablingKey,
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy) {}
 
+    public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, String enablingKey) {
+        return withEnabledChildConfigs(
+                spec, (map, key) -> map.getOrDefault(key, "false").equals("true"), enablingKey);
+    }
+
+    public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, EnablingKey enablingKey) {
+        return addChildConfigs(
+                spec, (map, key) -> map.getOrDefault(key, "false").equals("true"), enablingKey);
+    }
+
+    public ConfigsSpec withEnabledChildConfigs(
+            ConfigsSpec spec,
+            BiFunction<Map<String, String>, String, Boolean> evalStrategy,
+            String enablingKey) {
+        return addChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
+    }
+
     public ConfigsSpec addChildConfigs(
             ConfigsSpec spec,
-            String enablingKey,
-            BiFunction<Map<String, String>, String, Boolean> evalStrategy) {
-        ConfParameter enablingPar = getParameter(enablingKey);
-        if (enablingPar == null) {
-            throw new ConfigException(
-                    "Can't add parameters subsection [%s] without the enablig parameter [%s]"
-                            .formatted(spec.name, enablingKey));
-        }
+            BiFunction<Map<String, String>, String, Boolean> evalStrategy,
+            EnablingKey enablingKey) {
+        enablingKey
+                .key()
+                .map(s -> getParameter(s))
+                .filter(Objects::nonNull)
+                .findAny()
+                .orElseThrow(
+                        () ->
+                                new ConfigException(
+                                        "Can't add parameters subsection [%s] without the enablig parameter [%s]"
+                                                .formatted(spec.name, enablingKey)));
         specChildren.add(new ChildSpec(enablingKey, spec, evalStrategy));
         return this;
     }
@@ -577,7 +610,9 @@ public class ConfigsSpec {
 
         // Populate the map iterating over the children specs.
         for (ChildSpec trigger : specChildren) {
-            boolean enabled = trigger.evalStrategy().apply(parsedValues, trigger.enablingKey());
+            Stream<String> key = trigger.enablingKey.key();
+            boolean enabled = key.anyMatch(k -> trigger.evalStrategy().apply(parsedValues, k));
+            // boolean enabled = trigger.evalStrategy().apply(parsedValues, trigger.enablingKey());
             if (enabled) {
                 parsedValues.putAll(trigger.spec().parse(originals));
             }

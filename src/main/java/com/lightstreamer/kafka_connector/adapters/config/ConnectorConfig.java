@@ -23,7 +23,6 @@ import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpe
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
-import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.URL;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
@@ -43,7 +42,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
-import com.lightstreamer.kafka_connector.adapters.commons.NoNullKeyProperties;
+import com.lightstreamer.kafka_connector.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
@@ -51,6 +50,7 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslM
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.EnablingKey;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -89,13 +89,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String VALUE_EVALUATOR_SCHEMA_PATH = "value.evaluator.schema.path";
     public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED =
-            "key.evaluator.schema.registry.enabled";
-
-    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_URL =
-            "key.evaluator.schema.registry.url";
-
-    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_URL =
-            "value.evaluator.schema.registry.url";
+            "value.evaluator.schema.registry.enabled";
 
     public static final String ITEM_INFO_NAME = "info.item";
 
@@ -172,8 +166,6 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(ITEM_TEMPLATE, true, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
                         .add(FIELD_MAPPING, true, true, TEXT)
-                        .add(KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
-                        .add(VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false, false, URL)
                         .add(
                                 KEY_EVALUATOR_TYPE,
                                 false,
@@ -263,11 +255,19 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("15000"))
                         .withEnabledChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION)
                         .withEnabledChildConfigs(
-                                BrokerAuthenticationConfigs.spec(), ENABLE_AUTHENTICATION);
+                                BrokerAuthenticationConfigs.spec(), ENABLE_AUTHENTICATION)
+                        .withEnabledChildConfigs(
+                                SchemaRegistryConfigs.spec(),
+                                EnablingKey.of(
+                                        KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                        VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED));
     }
+
+    private final Properties consumerProps;
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
+        this.consumerProps = initProps();
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -278,7 +278,7 @@ public final class ConnectorConfig extends AbstractConfig {
     protected void validate() throws ConfigException {
         if (isEncryptionEnabled()) {
             // If a truststore file is provided, a password must be provided as well
-            getTrustStorePassword();
+            trusttorePassword();
         }
 
         if (isAuthenticationEnabled()) {
@@ -287,23 +287,21 @@ public final class ConnectorConfig extends AbstractConfig {
                 gssapiKeyTab();
             } else {
                 // In case of PLAIN auhentication, credentials must be provided
-                getAuthenticationUsername();
-                getAuthenticationPassword();
+                authenticationUsername();
+                authenticationPassword();
+            }
+        }
+
+        if (isSchemaRegistryEnabled()) {
+            if (isSchemaRegistryEncryptionEnabled()) {
+                // If a truststore file is provided, a password must be provided as well
+                schemaRegistryTruststorePassword();
             }
         }
     }
 
-    static ConfigsSpec configSpec() {
-        return CONFIG_SPEC;
-    }
-
-    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
-        return new ConnectorConfig(
-                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
-    }
-
-    public Properties baseConsumerProps() {
-        NoNullKeyProperties properties = new NoNullKeyProperties();
+    private Properties initProps() {
+        NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
@@ -331,7 +329,22 @@ public final class ConnectorConfig extends AbstractConfig {
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
         properties.putAll(BrokerAuthenticationConfigs.addAuthentication(this));
+        properties.putAll(SchemaRegistryConfigs.addSchemaRegistry(this));
+
         return properties.properties();
+    }
+
+    static ConfigsSpec configSpec() {
+        return CONFIG_SPEC;
+    }
+
+    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
+        return new ConnectorConfig(
+                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
+    }
+
+    public Properties baseConsumerProps() {
+        return consumerProps;
     }
 
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
@@ -346,8 +359,12 @@ public final class ConnectorConfig extends AbstractConfig {
         return extendedProps;
     }
 
-    public final EvaluatorType getEvaluator(String configKey) {
-        return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    public final EvaluatorType getKeyEvaluator() {
+        return EvaluatorType.valueOf(get(KEY_EVALUATOR_TYPE, EVALUATOR, false));
+    }
+
+    public final EvaluatorType getValueEvaluator() {
+        return EvaluatorType.valueOf(get(VALUE_EVALUATOR_TYPE, EVALUATOR, false));
     }
 
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
@@ -425,49 +442,49 @@ public final class ConnectorConfig extends AbstractConfig {
         }
     }
 
-    public List<SslProtocol> getEnabledProtocols() {
-        return SslProtocol.fromValueStr(getEnabledProtocolsAsStr());
+    public List<SslProtocol> enabledProtocols() {
+        return SslProtocol.fromValueStr(enabledProtocolsAsStr());
     }
 
-    public String getEnabledProtocolsAsStr() {
+    public String enabledProtocolsAsStr() {
         checkEncryptionEnabled();
         return get(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
     }
 
-    public SslProtocol getSslProtocol() {
+    public SslProtocol sslProtocol() {
         checkEncryptionEnabled();
         return SslProtocol.fromName(
                 get(EncryptionConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false));
     }
 
-    public KeystoreType getTrustStoreType() {
+    public KeystoreType truststoreType() {
         checkEncryptionEnabled();
         return KeystoreType.valueOf(
                 get(EncryptionConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
-    public String getTrustStorePath() {
+    public String truststorePath() {
         checkEncryptionEnabled();
         return getFile(EncryptionConfigs.TRUSTSTORE_PATH);
     }
 
-    public String getTrustStorePassword() {
+    public String trusttorePassword() {
         checkEncryptionEnabled();
-        boolean isRequired = getTrustStorePath() != null;
+        boolean isRequired = truststorePath() != null;
         return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD, isRequired);
     }
 
-    public List<String> getCipherSuites() {
+    public List<String> cipherSuites() {
         checkEncryptionEnabled();
         return getTextList(EncryptionConfigs.SSL_CIPHER_SUITES);
     }
 
-    public String getCipherSuitesAsStr() {
+    public String cipherSuitesAsStr() {
         checkEncryptionEnabled();
         return get(EncryptionConfigs.SSL_CIPHER_SUITES, ConfType.TEXT_LIST, false);
     }
 
-    public String getSslProvider() {
+    public String sslProvider() {
         checkEncryptionEnabled();
         return getText(EncryptionConfigs.SSL_PROVIDER);
     }
@@ -502,26 +519,26 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(ENABLE_AUTHENTICATION);
     }
 
-    public SaslMechanism getAuthenticationMechanism() {
+    public SaslMechanism authenticationMechanism() {
         checkAuthenticationEnabled();
         return SaslMechanism.valueOf(
                 get(BrokerAuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
     }
 
-    public String getAuthenticationUsername() {
+    public String authenticationUsername() {
         checkAuthenticationEnabled();
         boolean isRequired = !isGssapiEnabled();
         return getText(BrokerAuthenticationConfigs.USERNAME, isRequired);
     }
 
-    public String getAuthenticationPassword() {
+    public String authenticationPassword() {
         checkAuthenticationEnabled();
         boolean isRequired = !isGssapiEnabled();
         return getText(BrokerAuthenticationConfigs.PASSWORD, isRequired);
     }
 
     public boolean isGssapiEnabled() {
-        return getAuthenticationMechanism().equals(SaslMechanism.GSSAPI);
+        return authenticationMechanism().equals(SaslMechanism.GSSAPI);
     }
 
     private void checkGssapi() {
@@ -561,7 +578,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public void checkSchemaRegistryEnabled() {
         if (!isSchemaRegistryEnabled()) {
             throw new ConfigException(
-                    "Parameters [%s] and [%s] are both not enabled"
+                    "Neither parameter [%s] nor parameter [%s] are enabled"
                             .formatted(
                                     KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
                                     VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED));
@@ -569,19 +586,20 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public String schemaRegistryUrl() {
-        return getHost(SchemaRegistryConfigs.URL);
+        checkSchemaRegistryEnabled();
+        return getUrl(SchemaRegistryConfigs.URL);
     }
 
     public boolean isSchemaRegistryEncryptionEnabled() {
         checkSchemaRegistryEnabled();
-        return getBoolean(SchemaRegistryConfigs.ENABLE_ENCRYTPTION);
+        return schemaRegistryUrl().startsWith("https");
     }
 
     public void checkSchemaRegistryEncryptionEnabled() {
         if (!isSchemaRegistryEncryptionEnabled()) {
             throw new ConfigException(
-                    "Parameters [%s] is not enabled"
-                            .formatted(SchemaRegistryConfigs.ENABLE_ENCRYTPTION));
+                    "Parameter [%s] is not set with https protocol"
+                            .formatted(SchemaRegistryConfigs.URL));
         }
     }
 
@@ -590,7 +608,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public String schemaRegistryEnabledProtocolsAsStr() {
-        checkEncryptionEnabled();
+        checkSchemaRegistryEncryptionEnabled();
         return get(
                 SchemaRegistryConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
     }
@@ -607,15 +625,15 @@ public final class ConnectorConfig extends AbstractConfig {
                 get(SchemaRegistryConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
-    public String schemaRegistryTrustStorePath() {
+    public String schemaRegistryTruststorePath() {
         checkSchemaRegistryEncryptionEnabled();
         return getFile(SchemaRegistryConfigs.TRUSTSTORE_PATH);
     }
 
-    public String schemaRegistryTrustStorePassword() {
-        checkSchemaRegistryKeystoreEnabled();
-        boolean isRequired = schemaRegistryTrustStorePath() != null;
-        return getText(SchemaRegistryConfigs.KEYSTORE_PASSWORD, isRequired);
+    public String schemaRegistryTruststorePassword() {
+        checkSchemaRegistryEnabled();
+        boolean isRequired = schemaRegistryTruststorePath() != null;
+        return getText(SchemaRegistryConfigs.TRUSTSTORE_PASSWORD, isRequired);
     }
 
     public List<String> schemaRegistryCipherSuites() {
@@ -651,7 +669,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public void checkSchemaRegistryKeystoreEnabled() {
         if (!isSchemaRegistryKeystoreEnabled()) {
             throw new ConfigException(
-                    "Parameters [%s] is not enabled".formatted(SchemaRegistryConfigs.ENABLE_MTLS));
+                    "Parameter [%s] is not enabled".formatted(SchemaRegistryConfigs.ENABLE_MTLS));
         }
     }
 
