@@ -575,7 +575,7 @@ public final class ConnectorConfig extends AbstractConfig {
         return getText(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
     }
 
-    public void checkSchemaRegistryEnabled() {
+    private void checkSchemaRegistryEnabled() {
         if (!isSchemaRegistryEnabled()) {
             throw new ConfigException(
                     "Neither parameter [%s] nor parameter [%s] are enabled"
@@ -595,7 +595,7 @@ public final class ConnectorConfig extends AbstractConfig {
         return schemaRegistryUrl().startsWith("https");
     }
 
-    public void checkSchemaRegistryEncryptionEnabled() {
+    private void checkSchemaRegistryEncryptionEnabled() {
         if (!isSchemaRegistryEncryptionEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not set with https protocol"
@@ -666,7 +666,7 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(SchemaRegistryConfigs.ENABLE_MTLS);
     }
 
-    public void checkSchemaRegistryKeystoreEnabled() {
+    private void checkSchemaRegistryKeystoreEnabled() {
         if (!isSchemaRegistryKeystoreEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not enabled".formatted(SchemaRegistryConfigs.ENABLE_MTLS));
@@ -687,5 +687,28 @@ public final class ConnectorConfig extends AbstractConfig {
     public String schemaRegistryKeystorePassword() {
         checkSchemaRegistryKeystoreEnabled();
         return getText(SchemaRegistryConfigs.KEYSTORE_PASSWORD);
+    }
+
+    public boolean isSchemaRegistryBasicAuthenticationEnabled() {
+        checkSchemaRegistryEnabled();
+        return getBoolean(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION);
+    }
+
+    private void checkSchemaRegistryBasicAuthentication() {
+        if (!isSchemaRegistryBasicAuthenticationEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not enabled"
+                            .formatted(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION));
+        }
+    }
+
+    public String schemaRegistryBasicAuthenticationUserName() {
+        checkSchemaRegistryBasicAuthentication();
+        return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME);
+    }
+
+    public String schemaRegistryBasicAuthenticationPassword() {
+        checkSchemaRegistryBasicAuthentication();
+        return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
     }
 }

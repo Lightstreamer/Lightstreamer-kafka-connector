@@ -1413,7 +1413,8 @@ public class ConnectorConfigTest {
                         () -> config.isSchemaRegistryHostNameVerificationEnabled(),
                         () -> config.schemaRegistryCipherSuites(),
                         () -> config.schemaRegistryCipherSuitesAsStr(),
-                        () -> config.schemaRegistrySslProvider());
+                        () -> config.schemaRegistrySslProvider(),
+                        () -> config.isSchemaRegistryBasicAuthenticationEnabled());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
@@ -1645,5 +1646,64 @@ public class ConnectorConfigTest {
                         keyStoreFile.toString(),
                         "schema.registry." + SslConfigs.SSL_KEY_PASSWORD_CONFIG,
                         "key-password");
+    }
+
+    @Test
+    public void shouldNotAccessToSchemaRegistryBasicAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isFalse();
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.schemaRegistryBasicAuthenticationUserName(),
+                        () -> config.schemaRegistryBasicAuthenticationPassword());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce.getMessage())
+                    .isEqualTo(
+                            "Parameter [schema.registry.basic.authentication.enabled] is not enabled");
+        }
+    }
+
+    @Test
+    public void shouldGetSchemaRegistryBasicAuthenticationSettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION, "true");
+
+        ConfigException ce = assertThrows(
+                ConfigException.class,
+                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.basic.authentication.username]");
+
+        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME, "");
+        ce = assertThrows(
+                ConfigException.class,
+                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [schema.registry.basic.authentication.username]");
+
+        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME, "usernane");
+        ce = assertThrows(
+                ConfigException.class,
+                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.basic.authentication.password]");
+
+        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD, "");
+        ce = assertThrows(
+                ConfigException.class,
+                () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [schema.registry.basic.authentication.password]");
+        
+        updatedConfig.put(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD, "password");
+        
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isTrue();
+        assertThat(config.schemaRegistryBasicAuthenticationUserName()).isEqualTo("username");
+        assertThat(config.schemaRegistryBasicAuthenticationPassword()).isEqualTo("password");
     }
 }

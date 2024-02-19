@@ -73,7 +73,7 @@ public class SchemaRegistryConfigs {
     public static final String ENABLE_BASIC_AUTHENTICATION = ns("basic.authentication.enabled");
     public static final String BASIC_AUTHENTICATION_USER_NAME = ns("basic.authentication.username");
     public static final String BASIC_AUTHENTICATION_USER_PASSWORD =
-            ns("basic.authentication.passowrd");
+            ns("basic.authentication.password");
 
     private static ConfigsSpec CONFIG_SPEC;
 

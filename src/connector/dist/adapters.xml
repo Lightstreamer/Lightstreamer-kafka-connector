@@ -106,7 +106,7 @@
 
         <param name="schema.registry.basic.authentication.enabled">true</param>
         <param name="schema.registry.basic.authentication.username">true</param>
-        <param name="schema.registry.basic.authentication.passowrd">true</param>
+        <param name="schema.registry.basic.authentication.password">true</param>
 
 
         <param name="encryption.enabled">true</param>
