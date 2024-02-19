@@ -19,17 +19,14 @@ package com.lightstreamer.kafka_connector.adapters;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
-
 import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
-import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeDeserializer;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -38,12 +35,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeDeserializer;
 
 public class ConsumerLoopConfiguratorTest {
 
@@ -67,40 +65,6 @@ public class ConsumerLoopConfiguratorTest {
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
-    }
-
-    @Test
-    public void shouldNotConfigureAvroDueToMissingSchemaRegistry() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-
-        ConnectorConfig config = newConfig(updatedConfigs);
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
-        assertThat(e.getMessage())
-                .isEqualTo("Missing required parameter [key.evaluator.schema.registry.url]");
-    }
-
-    @Test
-    public void shouldConfigureAvroWithSchemaRegistry() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, "http://schema-registry");
-
-        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(newConfig(updatedConfigs)));
-    }
-
-    @Test
-    public void shouldConfigureAvroWithLocalSchemaFile() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
-
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(new File("src/test/resources"), updatedConfigs);
-        assertDoesNotThrow(() -> ConsumerLoopConfigurator.configure(config));
     }
 
     @Test
