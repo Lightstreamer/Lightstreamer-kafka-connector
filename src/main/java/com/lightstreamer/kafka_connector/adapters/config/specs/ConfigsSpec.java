@@ -20,7 +20,6 @@ package com.lightstreamer.kafka_connector.adapters.config.specs;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 
 import com.lightstreamer.kafka_connector.adapters.commons.Either;
-import com.lightstreamer.kafka_connector.adapters.config.BrokerAuthenticationConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -371,6 +370,49 @@ public class ConfigsSpec {
         }
     }
 
+    public ConfigsSpec withChildConfigs(ConfigsSpec childConfigSpec) {
+        for (ConfParameter cp : childConfigSpec.paramSpec.values()) {
+            add(
+                    new ConfParameter(
+                            cp.name(),
+                            cp.required(),
+                            cp.multiple(),
+                            cp.suffix(),
+                            cp.type(),
+                            cp.mutable(),
+                            cp.defaultHolder()));
+        }
+        for (ChildSpec childSpec : childConfigSpec.specChildren) {
+            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
+        }
+
+        return this;
+    }
+
+    public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
+        ConfigsSpec newSpec = new ConfigsSpec();
+        for (ConfParameter cp : paramSpec.values()) {
+            newSpec.add(
+                    new ConfParameter(
+                            nameSpace + "." + cp.name(),
+                            cp.required(),
+                            cp.multiple(),
+                            cp.suffix(),
+                            cp.type(),
+                            cp.mutable(),
+                            cp.defaultHolder()));
+        }
+        for (ChildSpec childSpec : specChildren) {
+            ConfigsSpec spec = childSpec.spec();
+            newSpec.addChildConfigs(
+                    spec.newSpecWithNameSpace(nameSpace),
+                    nameSpace + "." + childSpec.enablingKey(),
+                    childSpec.evalStrategy());
+        }
+
+        return newSpec;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(name, paramSpec, specChildren);
@@ -445,25 +487,6 @@ public class ConfigsSpec {
                 name,
                 new ConfParameter(
                         name, true, false, null, type, true, DefaultHolder.defaultNull()));
-        return this;
-    }
-
-    public ConfigsSpec withChildConfigs(ConfigsSpec childConfigSpec) {
-        for (ConfParameter cp : childConfigSpec.paramSpec.values()) {
-            add(
-                    new ConfParameter(
-                            cp.name(),
-                            cp.required(),
-                            cp.multiple(),
-                            cp.suffix(),
-                            cp.type(),
-                            cp.mutable(),
-                            cp.defaultHolder()));
-        }
-        for (ChildSpec childSpec : childConfigSpec.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.enablingKey(), childSpec.evalStrategy());
-        }
-
         return this;
     }
 
@@ -560,30 +583,6 @@ public class ConfigsSpec {
             }
         }
         return parsedValues;
-    }
-
-    public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
-        ConfigsSpec newSpec = new ConfigsSpec();
-        for (ConfParameter cp : paramSpec.values()) {
-            newSpec.add(
-                    new ConfParameter(
-                            nameSpace + "." + cp.name(),
-                            cp.required(),
-                            cp.multiple(),
-                            cp.suffix(),
-                            cp.type(),
-                            cp.mutable(),
-                            cp.defaultHolder()));
-        }
-        for (ChildSpec childSpec : specChildren) {
-            ConfigsSpec spec = childSpec.spec();
-            newSpec.addChildConfigs(
-                    spec.newSpecWithNameSpace(nameSpace),
-                    nameSpace + "." + childSpec.enablingKey(),
-                    childSpec.evalStrategy());
-        }
-
-        return newSpec;
     }
 
     public static record ConfParameter(

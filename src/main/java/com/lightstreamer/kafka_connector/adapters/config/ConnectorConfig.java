@@ -68,6 +68,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String DATA_ADAPTER_NAME = "data_provider.name";
 
+    public static final String GROUP_ID = "group.id";
+
+    public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
+
     public static final String ITEM_TEMPLATE = "item-template";
 
     public static final String TOPIC_MAPPING = "map";
@@ -78,14 +82,14 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
 
     public static final String KEY_EVALUATOR_SCHEMA_PATH = "key.evaluator.schema.path";
+    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED =
+            "key.evaluator.schema.registry.enabled";
 
     public static final String VALUE_EVALUATOR_TYPE = "value.evaluator.type";
 
     public static final String VALUE_EVALUATOR_SCHEMA_PATH = "value.evaluator.schema.path";
-
-    public static final String GROUP_ID = "group.id";
-
-    public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
+    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED =
+            "key.evaluator.schema.registry.enabled";
 
     public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_URL =
             "key.evaluator.schema.registry.url";
@@ -178,12 +182,24 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
+                                KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
                                 VALUE_EVALUATOR_TYPE,
                                 false,
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(VALUE_EVALUATOR_SCHEMA_PATH, false, false, FILE)
+                        .add(
+                                VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -343,8 +359,20 @@ public final class ConnectorConfig extends AbstractConfig {
         return getFile(KEY_EVALUATOR_SCHEMA_PATH) != null;
     }
 
+    public boolean isSchemaRegistryEnabledForKey() {
+        return getBoolean(KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+    }
+
     public boolean hasValueSchemaFile() {
         return getFile(VALUE_EVALUATOR_SCHEMA_PATH) != null;
+    }
+
+    public boolean isSchemaRegistryEnabledForValue() {
+        return getBoolean(VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+    }
+
+    public boolean isSchemaRegistryEnabled() {
+        return isSchemaRegistryEnabledForKey() || isSchemaRegistryEnabledForValue();
     }
 
     public String getMetadataAdapterName() {
@@ -449,23 +477,23 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);
     }
 
-    public KeystoreType getKeystoreType() {
+    public KeystoreType keystoreType() {
         checkKeystoreEnabled();
         return KeystoreType.valueOf(
                 get(EncryptionConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
-    public String getKeystorePath() {
+    public String keystorePath() {
         checkKeystoreEnabled();
         return getFile(EncryptionConfigs.KEYSTORE_PATH);
     }
 
-    public String getKeystorePassword() {
+    public String keystorePassword() {
         checkKeystoreEnabled();
         return getText(EncryptionConfigs.KEYSTORE_PASSWORD);
     }
 
-    public String getKeyPassword() {
+    public String keyPassword() {
         checkKeystoreEnabled();
         return getText(EncryptionConfigs.KEY_PASSWORD);
     }
@@ -528,5 +556,118 @@ public final class ConnectorConfig extends AbstractConfig {
     public String gssapiKerberosServiceName() {
         checkGssapi();
         return getText(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    }
+
+    public void checkSchemaRegistryEnabled() {
+        if (!isSchemaRegistryEnabled()) {
+            throw new ConfigException(
+                    "Parameters [%s] and [%s] are both not enabled"
+                            .formatted(
+                                    KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                    VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED));
+        }
+    }
+
+    public String schemaRegistryUrl() {
+        return getHost(SchemaRegistryConfigs.URL);
+    }
+
+    public boolean isSchemaRegistryEncryptionEnabled() {
+        checkSchemaRegistryEnabled();
+        return getBoolean(SchemaRegistryConfigs.ENABLE_ENCRYTPTION);
+    }
+
+    public void checkSchemaRegistryEncryptionEnabled() {
+        if (!isSchemaRegistryEncryptionEnabled()) {
+            throw new ConfigException(
+                    "Parameters [%s] is not enabled"
+                            .formatted(SchemaRegistryConfigs.ENABLE_ENCRYTPTION));
+        }
+    }
+
+    public List<SslProtocol> schemaRegistryEnabledProtocols() {
+        return SslProtocol.fromValueStr(schemaRegistryEnabledProtocolsAsStr());
+    }
+
+    public String schemaRegistryEnabledProtocolsAsStr() {
+        checkEncryptionEnabled();
+        return get(
+                SchemaRegistryConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
+    }
+
+    public SslProtocol schemaRegistrySslProtocol() {
+        checkSchemaRegistryEncryptionEnabled();
+        return SslProtocol.fromName(
+                get(SchemaRegistryConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false));
+    }
+
+    public KeystoreType schemaRegistryTruststoreType() {
+        checkSchemaRegistryEncryptionEnabled();
+        return KeystoreType.valueOf(
+                get(SchemaRegistryConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+    }
+
+    public String schemaRegistryTrustStorePath() {
+        checkSchemaRegistryEncryptionEnabled();
+        return getFile(SchemaRegistryConfigs.TRUSTSTORE_PATH);
+    }
+
+    public String schemaRegistryTrustStorePassword() {
+        checkSchemaRegistryKeystoreEnabled();
+        boolean isRequired = schemaRegistryTrustStorePath() != null;
+        return getText(SchemaRegistryConfigs.KEYSTORE_PASSWORD, isRequired);
+    }
+
+    public List<String> schemaRegistryCipherSuites() {
+        checkSchemaRegistryEncryptionEnabled();
+        return getTextList(SchemaRegistryConfigs.SSL_CIPHER_SUITES);
+    }
+
+    public String schemaRegistryCipherSuitesAsStr() {
+        checkSchemaRegistryEncryptionEnabled();
+        return get(SchemaRegistryConfigs.SSL_CIPHER_SUITES, ConfType.TEXT_LIST, false);
+    }
+
+    public String schemaRegistrySslProvider() {
+        checkSchemaRegistryEncryptionEnabled();
+        return getText(SchemaRegistryConfigs.SSL_PROVIDER);
+    }
+
+    public boolean isSchemaRegistryHostNameVerificationEnabled() {
+        checkSchemaRegistryEncryptionEnabled();
+        return getBoolean(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION);
+    }
+
+    public String schemaRegistryKeyPassword() {
+        checkSchemaRegistryKeystoreEnabled();
+        return getText(SchemaRegistryConfigs.KEY_PASSWORD);
+    }
+
+    public boolean isSchemaRegistryKeystoreEnabled() {
+        checkSchemaRegistryEncryptionEnabled();
+        return getBoolean(SchemaRegistryConfigs.ENABLE_MTLS);
+    }
+
+    public void checkSchemaRegistryKeystoreEnabled() {
+        if (!isSchemaRegistryKeystoreEnabled()) {
+            throw new ConfigException(
+                    "Parameters [%s] is not enabled".formatted(SchemaRegistryConfigs.ENABLE_MTLS));
+        }
+    }
+
+    public KeystoreType schemaRegistryKeystoreType() {
+        checkSchemaRegistryKeystoreEnabled();
+        return KeystoreType.valueOf(
+                get(SchemaRegistryConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+    }
+
+    public String schemaRegistryKeystorePath() {
+        checkSchemaRegistryKeystoreEnabled();
+        return getFile(SchemaRegistryConfigs.KEYSTORE_PATH);
+    }
+
+    public String schemaRegistryKeystorePassword() {
+        checkSchemaRegistryKeystoreEnabled();
+        return getText(SchemaRegistryConfigs.KEYSTORE_PASSWORD);
     }
 }

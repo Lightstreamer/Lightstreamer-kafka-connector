@@ -20,11 +20,11 @@ package com.lightstreamer.kafka_connector.adapters.config.specs;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
-import org.junit.jupiter.api.Test;
-
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.Options;
+
+import org.junit.jupiter.api.Test;
 
 public class ConfigSpecTest {
 

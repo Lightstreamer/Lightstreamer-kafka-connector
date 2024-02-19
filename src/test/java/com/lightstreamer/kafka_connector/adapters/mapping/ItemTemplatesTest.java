@@ -34,7 +34,7 @@ import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfi
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
@@ -52,11 +52,10 @@ import java.util.stream.Stream;
 
 public class ItemTemplatesTest {
 
-    private static <K, V> ItemTemplates<K, V> templates(
-            SelectorsSupplier<K, V> selectionsSupplier, String template) {
+    private static <K, V> ItemTemplates<K, V> templates(Selected<K, V> selected, String template) {
         TopicsConfig topicsConfig =
                 TopicsConfig.of(new TopicConfiguration("topic", "item-template", template));
-        return Items.templatesFrom(topicsConfig, selectionsSupplier);
+        return Items.templatesFrom(topicsConfig, selected);
     }
 
     private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(
@@ -98,8 +97,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() {
-        SelectorsSupplier<String, JsonNode> suppliers =
-                jsonValue(ConnectorConfigProvider.minimal());
+        Selected<String, JsonNode> selected = jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two templates.
         TopicsConfig topicsConfig =
@@ -109,7 +107,7 @@ public class ItemTemplatesTest {
                         new TopicConfiguration(
                                 "topic", "template-relatives-#{topic=TOPIC,info=TIMESTAMP}"));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, suppliers);
+        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, selected);
         assertThat(templates.topics()).containsExactly("topic");
 
         Item subcribingItem1 = Items.itemFrom("template-family-<topic=aSpecificTopic>", "");
@@ -141,8 +139,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() {
-        SelectorsSupplier<String, JsonNode> suppliers =
-                jsonValue(ConnectorConfigProvider.minimal());
+        Selected<String, JsonNode> suppliers = jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
         String ordersTemplate = "template-orders-#{topic=TOPIC}";

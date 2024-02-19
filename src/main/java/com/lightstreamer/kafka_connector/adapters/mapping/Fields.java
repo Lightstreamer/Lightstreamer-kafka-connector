@@ -21,7 +21,7 @@ import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Builder;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 public class Fields {
 
     public static <K, V> Selectors<K, V> fromMapping(
-            Map<String, String> fieldsMapping, SelectorsSupplier<K, V> selectorsSupplier) {
+            Map<String, String> fieldsMapping, Selected<K, V> selected) {
 
         class Support {
 
@@ -68,7 +68,7 @@ public class Fields {
             }
         }
 
-        Builder<K, V> builder = Selectors.builder(selectorsSupplier).withSchemaName("fields");
+        Builder<K, V> builder = Selectors.builder(selected).withSchemaName("fields");
         fieldsMapping.entrySet().stream().forEach(e -> Support.fill(builder, e));
         return builder.build();
     }

@@ -29,5 +29,5 @@ public final class ConnectorMetadataAdapter extends KafkaConnectorMetadataAdapte
             throws CreditsException, NotificationException {}
 
     @Override
-    public void tableClosed(String sessionID, TableInfo[] tables) throws NotificationException {}
+    public void tablesClosed(String sessionID, TableInfo[] tables) throws NotificationException {}
 }

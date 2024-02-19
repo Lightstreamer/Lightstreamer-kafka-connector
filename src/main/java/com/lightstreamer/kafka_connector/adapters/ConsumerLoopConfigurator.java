@@ -27,7 +27,7 @@ import com.lightstreamer.kafka_connector.adapters.mapping.Items;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
@@ -80,18 +80,17 @@ public class ConsumerLoopConfigurator {
                 connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, false);
 
         try {
-            SelectorsSupplier<?, ?> selectorsSupplier =
-                    SelectorsSupplier.wrap(
+            Selected<?, ?> selected =
+                    Selected.with(
                             makeKeySelectorSupplier(connectorConfig),
                             makeValueSelectorSupplier(connectorConfig));
 
             Properties props = connectorConfig.baseConsumerProps();
-            Deserializer<?> keyDeserializer = selectorsSupplier.keySelectorSupplier().deseralizer();
-            Deserializer<?> valueDeserializer =
-                    selectorsSupplier.valueSelectorSupplier().deseralizer();
+            Deserializer<?> keyDeserializer = selected.keySelectorSupplier().deseralizer();
+            Deserializer<?> valueDeserializer = selected.valueSelectorSupplier().deseralizer();
 
-            ItemTemplates<?, ?> itemTemplates = initItemTemplates(selectorsSupplier, topicsConfig);
-            Selectors<?, ?> fieldSelectors = initFieldSelectors(selectorsSupplier, fieldsMapping);
+            ItemTemplates<?, ?> itemTemplates = initItemTemplates(selected, topicsConfig);
+            Selectors<?, ?> fieldSelectors = initFieldSelectors(selected, fieldsMapping);
 
             return new DefaultConsumerLoopConfig(
                     connectorConfig.getAdapterName(),
@@ -108,13 +107,13 @@ public class ConsumerLoopConfigurator {
     }
 
     private Selectors<?, ?> initFieldSelectors(
-            SelectorsSupplier<?, ?> selectorsSupplier, Map<String, String> fieldsMapping) {
-        return initFieldSelectorsHelper(selectorsSupplier, fieldsMapping);
+            Selected<?, ?> selected, Map<String, String> fieldsMapping) {
+        return initFieldSelectorsHelper(selected, fieldsMapping);
     }
 
     private <K, V> Selectors<K, V> initFieldSelectorsHelper(
-            SelectorsSupplier<K, V> selectorsSupplier, Map<String, String> fieldsMapping) {
-        return Fields.fromMapping(fieldsMapping, selectorsSupplier);
+            Selected<K, V> selected, Map<String, String> fieldsMapping) {
+        return Fields.fromMapping(fieldsMapping, selected);
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
@@ -128,13 +127,13 @@ public class ConsumerLoopConfigurator {
             implements ConsumerLoopConfig<K, V> {}
 
     private ItemTemplates<?, ?> initItemTemplates(
-            SelectorsSupplier<?, ?> selectorsSupplier, TopicsConfig topicsConfig) {
-        return initItemTemplatesHelper(topicsConfig, selectorsSupplier);
+            Selected<?, ?> selected, TopicsConfig topicsConfig) {
+        return initItemTemplatesHelper(topicsConfig, selected);
     }
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(
-            TopicsConfig topicsConfig, SelectorsSupplier<K, V> selectorsSupplier) {
-        return Items.templatesFrom(topicsConfig, selectorsSupplier);
+            TopicsConfig topicsConfig, Selected<K, V> selected) {
+        return Items.templatesFrom(topicsConfig, selected);
     }
 
     private KeySelectorSupplier<?> makeKeySelectorSupplier(ConnectorConfig config) {

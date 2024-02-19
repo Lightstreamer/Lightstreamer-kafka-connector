@@ -26,7 +26,7 @@ import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRec
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.SelectorsSupplier;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,7 +75,7 @@ public class Items {
     }
 
     public static <K, V> ItemTemplates<K, V> templatesFrom(
-            TopicsConfig topcisConfig, SelectorsSupplier<K, V> selectorsSupplier) {
+            TopicsConfig topcisConfig, Selected<K, V> selected) {
 
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
@@ -83,7 +83,7 @@ public class Items {
                 Result result =
                         ItemExpressionEvaluator.template().eval(topicConfig.itemTemplateValue());
                 Selectors<K, V> selectors =
-                        Selectors.from(selectorsSupplier, result.prefix(), result.params());
+                        Selectors.from(selected, result.prefix(), result.params());
                 templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
             } catch (ExpressionException e) {
                 reThrowInvalidExpression(

@@ -47,6 +47,7 @@
         <param name="encryption.truststore.password">password</param> -->
         <param name="encryption.truststore.path">secrets/kafka.consumer.truststore.jks</param>
         <param name="encryption.truststore.password">confluent</param>
+        <!--<param name="encryption.keystore.enabled">true</param>-->
         <param name="encryption.keystore.path">secrets/kafka.consumer.keystore.jks</param>
         <param name="encryption.keystore.password">confluent</param>
 
@@ -70,7 +71,7 @@
         <!---->
     </data_provider>
 
-    <data_provider name="QuickStartSasl">
+    <data_provider name="QuickStartSchemaRegisry">
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
@@ -78,25 +79,43 @@
 
         <param name="group.id">test</param>
 
-        <param name="enabled">true</param>
+        <param name="enabled">true</param> -->
 
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
-        <param name="item-template.sample2">sample</param>
+        <!-- <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
+        <param name="item-template.sample2">sample</param> -->
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.topic_0.to">item-template.sample1,item-template.sample2</param>
-        <!--<param name="map.sample-topic2.to">item-template.sample2</param>-->
+
+        <param name="value.evaluator.type">AVRO</param>
+        <param name="value.evaluator.schema.registry">AVRO</param>
+        
+        <param name="schema.registry.url">https://localhost:8081</param>
+        <param name="schema.registry.encryption.enabled">true</param>
+
+        <param name="schema.registry.encryption.truststore.path">secrets/kafka.client.truststore.jks</param>
+        <param name="schema.registry.encryption.truststore.password">password</param>
+        <param name="schema.registry.encryption.truststore.password">password</param>
+
+        <param name="schema.registry.encryption.keystore.enabled">true</param>
+        <param name="schema.registry.encryption.keystore.path">secrets/kafka.consumer.keystore.jks</param>
+        <param name="schema.registry.encryption.keystore.password">confluent</param>
+
+        <param name="schema.registry.basic.authentication.enabled">true</param>
+        <param name="schema.registry.basic.authentication.username">true</param>
+        <param name="schema.registry.basic.authentication.passowrd">true</param>
+
 
         <param name="encryption.enabled">true</param>
         <!-- <param name="encryption.truststore.path">secrets/kafka.client.truststore.jks1</param>
         <param name="encryption.truststore.password">password</param> -->
 
-        <param name="authentication.enabled">true</param>
+        <!-- <param name="authentication.enabled">true</param>
         <param name="authentication.username">R5QP6BKBEHPRHEI5</param>
-        <param name="authentication.password">phXcJCcvpcynTwlLJk81XwAeVPyLyKnzmTh/VTXV5kXqyGrEGyvF/sm3btq79A4Y</param>
+        <param name="authentication.password">phXcJCcvpcynTwlLJk81XwAeVPyLyKnzmTh/VTXV5kXqyGrEGyvF/sm3btq79A4Y</param> -->
 
         <!-- FIELDS MAPPING SECTION -->
 
@@ -115,8 +134,7 @@
         <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.offset">#{OFFSET}</param>
 
-        <!---->
-    </data_provider>    
-
+    <!-- </data_provider>  -->
 
 </adapters_conf>
+

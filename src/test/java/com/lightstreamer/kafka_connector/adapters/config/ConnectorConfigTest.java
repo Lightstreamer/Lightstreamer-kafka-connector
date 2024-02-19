@@ -148,6 +148,16 @@ public class ConnectorConfigTest {
         assertThat(keySchemaFile.defaultValue()).isNull();
         assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
 
+        ConfParameter schemaRegistryEnabledForKey =
+                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        assertThat(schemaRegistryEnabledForKey.name())
+                .isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        assertThat(schemaRegistryEnabledForKey.required()).isFalse();
+        assertThat(schemaRegistryEnabledForKey.multiple()).isFalse();
+        assertThat(schemaRegistryEnabledForKey.mutable()).isTrue();
+        assertThat(schemaRegistryEnabledForKey.defaultValue()).isEqualTo("false");
+        assertThat(schemaRegistryEnabledForKey.type()).isEqualTo(ConfType.BOOL);
+
         ConfParameter valueEvaluatorType =
                 configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_TYPE);
         assertThat(valueEvaluatorType.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_TYPE);
@@ -165,6 +175,16 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.mutable()).isTrue();
         assertThat(valueSchemaFile.defaultValue()).isNull();
         assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
+
+        ConfParameter schemaRegistryEnabledForValue =
+                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        assertThat(schemaRegistryEnabledForValue.name())
+                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        assertThat(schemaRegistryEnabledForValue.required()).isFalse();
+        assertThat(schemaRegistryEnabledForValue.multiple()).isFalse();
+        assertThat(schemaRegistryEnabledForValue.mutable()).isTrue();
+        assertThat(schemaRegistryEnabledForValue.defaultValue()).isEqualTo("false");
+        assertThat(schemaRegistryEnabledForValue.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter itemTemplate = configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplate.name()).isEqualTo(ConnectorConfig.ITEM_TEMPLATE);
@@ -787,6 +807,10 @@ public class ConnectorConfigTest {
                 .isEqualTo(EvaluatorType.STRING);
         assertThat(config.getEvaluator(ConnectorConfig.VALUE_EVALUATOR_TYPE))
                 .isEqualTo(EvaluatorType.STRING);
+
+        assertThat(config.isSchemaRegistryEnabledForKey()).isFalse();
+        assertThat(config.isSchemaRegistryEnabledForKey()).isFalse();
+        assertThat(config.isSchemaRegistryEnabled()).isFalse();
     }
 
     @Test
@@ -949,10 +973,10 @@ public class ConnectorConfigTest {
 
         List<ThrowingRunnable> runnables =
                 List.of(
-                        () -> config.getKeystorePath(),
-                        () -> config.getKeystorePassword(),
-                        () -> config.getKeystoreType(),
-                        () -> config.getKeyPassword());
+                        () -> config.keystorePath(),
+                        () -> config.keystorePassword(),
+                        () -> config.keystoreType(),
+                        () -> config.keyPassword());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
@@ -1074,10 +1098,10 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isKeystoreEnabled()).isTrue();
-        assertThat(config.getKeystorePath()).isEqualTo(keyStoreFile.toString());
-        assertThat(config.getKeystoreType().toString()).isEqualTo("JKS");
-        assertThat(config.getKeystorePassword()).isEqualTo("keystore-password");
-        assertThat(config.getKeyPassword()).isNull();
+        assertThat(config.keystorePath()).isEqualTo(keyStoreFile.toString());
+        assertThat(config.keystoreType().toString()).isEqualTo("JKS");
+        assertThat(config.keystorePassword()).isEqualTo("keystore-password");
+        assertThat(config.keyPassword()).isNull();
 
         Properties props = config.baseConsumerProps();
         assertThat(props)
@@ -1101,7 +1125,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.isKeystoreEnabled()).isTrue();
-        assertThat(config.getKeystoreType().toString()).isEqualTo("PKCS12");
+        assertThat(config.keystoreType().toString()).isEqualTo("PKCS12");
 
         updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "");
         ConfigException ce =
@@ -1113,7 +1137,7 @@ public class ConnectorConfigTest {
 
         updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.getKeyPassword()).isEqualTo("key-password");
+        assertThat(config.keyPassword()).isEqualTo("key-password");
 
         Properties props = config.baseConsumerProps();
         assertThat(props)

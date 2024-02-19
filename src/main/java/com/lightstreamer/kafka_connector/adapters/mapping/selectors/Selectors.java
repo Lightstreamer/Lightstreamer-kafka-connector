@@ -32,14 +32,13 @@ import java.util.stream.Stream;
 
 public interface Selectors<K, V> {
 
-    interface SelectorsSupplier<K, V> {
+    interface Selected<K, V> {
 
         KeySelectorSupplier<K> keySelectorSupplier();
 
         ValueSelectorSupplier<V> valueSelectorSupplier();
 
-        static <K, V> SelectorsSupplier<K, V> wrap(
-                KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
+        static <K, V> Selected<K, V> with(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
             return new DefautlSelectorSupplier<>(k, v);
         }
     }
@@ -49,14 +48,13 @@ public interface Selectors<K, V> {
     Schema schema();
 
     static <K, V> Selectors<K, V> from(
-            SelectorsSupplier<K, V> suppliers, String schemaName, Map<String, String> entries)
+            Selected<K, V> selected, String schemaName, Map<String, String> entries)
             throws ExpressionException {
-        return builder(suppliers).withMap(entries).withSchemaName(schemaName).build();
+        return builder(selected).withMap(entries).withSchemaName(schemaName).build();
     }
 
-    public static <K, V> Builder<K, V> builder(SelectorsSupplier<K, V> selectorsSupplier) {
-        return new Builder<>(
-                selectorsSupplier.keySelectorSupplier(), selectorsSupplier.valueSelectorSupplier());
+    public static <K, V> Builder<K, V> builder(Selected<K, V> selected) {
+        return new Builder<>(selected.keySelectorSupplier(), selected.valueSelectorSupplier());
     }
 
     public static class Builder<K, V> {
@@ -271,4 +269,4 @@ class DefaultSelectors<K, V> implements Selectors<K, V> {
 
 record DefautlSelectorSupplier<K, V>(
         KeySelectorSupplier<K> keySelectorSupplier, ValueSelectorSupplier<V> valueSelectorSupplier)
-        implements Selectors.SelectorsSupplier<K, V> {}
+        implements Selectors.Selected<K, V> {}

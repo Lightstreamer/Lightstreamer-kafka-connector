@@ -198,7 +198,7 @@ public class ConnectorAdapterSetTest {
             }
 
             @Override
-            public void tableClosed(String sessionID, TableInfo[] tables)
+            public void tablesClosed(String sessionID, TableInfo[] tables)
                     throws NotificationException {
                 closedTables = new NotifyedCloseTables(sessionID, tables);
             }

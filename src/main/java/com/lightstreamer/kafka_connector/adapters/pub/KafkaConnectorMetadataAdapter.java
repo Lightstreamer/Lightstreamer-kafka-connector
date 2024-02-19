@@ -157,7 +157,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
             }
         }
 
-        tableClosed(sessionID, tables);
+        tablesClosed(sessionID, tables);
     }
 
     private void notifyDataAdapter(String connectionName, boolean enabled) {
@@ -172,7 +172,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws CreditsException, NotificationException;
 
-    public abstract void tableClosed(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
+    public abstract void tablesClosed(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException;
 
     public static record ConnectionInfo(String name, boolean enabled) {}
