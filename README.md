@@ -15,7 +15,7 @@
       - [`logging.configuration.path`](#loggingconfigurationpath)
     - [Connection Settings](#connection-settings)
       - [General Parameters](#general-parameters)
-        - [`data_provider['name']` (_Kafka Connection Name_)](#data_providername-kafka-connection-name)
+        - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
         - [`enable`](#enable)
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
@@ -248,7 +248,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 #### General Parameters
 
-##### `data_provider['name']` (_Kafka Connection Name_)
+##### `data_provider['name']` - _Kafka Connection Name_
 
 _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Connection Name_, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
