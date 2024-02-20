@@ -13,6 +13,14 @@
       - [Connection Configuration](#connection-configuration)
         - [Topic Mapping](#topic-mapping)
         - [Broker Authentication Settings](#broker-authentication-settings)
+          - [**authentication.enabled** (Optional)](#authenticationenabled-optional)
+          - [**authentication.mechanism** (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
+          - [**authentication.gssapi.use.key.tab** (Optional)](#authenticationgssapiusekeytab-optional)
+          - [**authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)](#authenticationgssapikeytab-mandatory-if-a-authenticationgssapiusekeytab-is-true)
+          - [**authentication.gssapi.store.key** (Optional)](#authenticationgssapistorekey-optional)
+          - [**authentication.gssapi.kerberos.service.name** (Mandatory)](#authenticationgssapikerberosservicename-mandatory)
+          - [**authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true-used-)
+          - [**gssapi.use.ticket.cache** (Optional)](#gssapiuseticketcache-optional)
 
 ## Introduction
 
@@ -355,7 +363,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   
 - **encryption.truststore.path** (Optional)
 
-  The path of the truststore file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+  The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
   Example:
 
@@ -365,9 +373,9 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
 
 - **encryption.truststore.password** (Optional)
 
-  The password of the truststore.
+  The password of the trust store.
 
-  If not set, checking the integrity of the truststore file configured will not be possible.
+  If not set, checking the integrity of the trust store file configured will not be possible.
 
   Example:
 
@@ -377,7 +385,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
 
 - **encryption.truststore.type** (Optional)
 
-  The type of the truststore. Can be of the following:
+  The type of the trust store. Can be of the following:
   - `JKS`
   - `PKCS12`
 
@@ -472,7 +480,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
 
 Broker authentication is configured by the parameters with the `authentication` prefix.
 
-- **authentication.enabled** (Optional)
+###### **authentication.enabled** (Optional)
 
   The parameter specifies whether authentication is enabled or not. Can be one of the following:
   - `true`
@@ -486,7 +494,7 @@ Broker authentication is configured by the parameters with the `authentication` 
   <param name="authentication.enabled">true</param>
   ```  
    
-- **authentication.mechanism** (Mandatory if authentication is enabled)
+###### **authentication.mechanism** (Mandatory if authentication is enabled)
 
   The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
@@ -511,32 +519,32 @@ Broker authentication is configured by the parameters with the `authentication` 
 
   In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-  - **authentication.gssapi.use.key.tab** (Optional)
+###### **authentication.gssapi.use.key.tab** (Optional)
     
     The parameter specifies whether a keytab is used or not.
 
     Default value: `false`.
 
-  - **authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)
+###### **authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)
    
     The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  - **authentication.gssapi.store.key** (Optional)
+###### **authentication.gssapi.store.key** (Optional)
   
     The parameter specifies whether to store the principal key or not.
 
     Default value: `false`.
 
-  - **authentication.gssapi.kerberos.service.name** (Mandatory) 
+###### **authentication.gssapi.kerberos.service.name** (Mandatory) 
 
     The name of the Kerberos service.
 
    
-  - **authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
+###### **authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
     
     The name of the principal to be used.
 
-  - **gssapi.use.ticket.cache** (Optional)
+###### **gssapi.use.ticket.cache** (Optional)
     
     The parameter specifies whether to configure the usage of a ticket cache.
 
