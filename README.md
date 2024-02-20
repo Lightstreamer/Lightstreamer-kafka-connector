@@ -381,7 +381,6 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   - `JKS`
   - `PKCS12`
 
-  Default value: `JKS`
 
   Example:
 
@@ -463,7 +462,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   - `JKS`
   - `PKCS12`
 
-  Default value: `JKS`
+  Default value: `JKS`.
 
   Example:
 
@@ -475,30 +474,77 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
 
 Broker authentication is configured by the parameters with the `authentication` prefix.
 
-The Lightstreamer Kafka Connector supports the following authentication methods:
+- (Optional) **authentication.enabled**
 
-- `SASL/PLAIN`
-- `SASL/SCRAM-256`
-- `SASL/SCRAM-512`
-- `SASL/GSSAPI`
+  The parameter specifies whether authentication is enabled or not. Can be one of the following:
+  - `true`
+  - `false`
 
-If no method is provided, authentication against the cluster is disabled.
-
-- (Optional) **encryption.keystore.type**
-
-  The type of the key store. Can be of the following:
-  - `JKS`
-  - `PKCS12`
-
-  Default value: `JKS`
+  Default value: `false`.
 
   Example:
 
   ```xml
-  <param name="encryption.keystore.type">PKCS12</param>
+  <param name="authentication.enabled">true</param>
+  ```  
+   
+- (Mandatory if authentication is enabled) **authentication.mechanism**
+
+  The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+
+  - `PLAIN` (the default value)
+  - `SCRAM-256`
+  - `SCRAM-512`
+  - `GSSAPI`
+
+  In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+
+  - **authentication.username**, the username.
+  - **authentication.password**, the password.
+
+  Example:
+
+  ```xml
+  <param name="authentication.mechanism">SCRAM-256</param>
+  <param name="authentication.username">authorized-kafka-username</param>
+  <param name="authentication.password">authorized-kafka-username-password</param>
   ```
 
+  In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
+  - **authentication.gssapi.use.key.tab** (Optional)
+    
+    The parameter specifies wheter a keytab is used or not.
 
+    Default value: `false`.
 
+  - **authentication.gssapi.key.tab** (Mandatory if a keytab is used)
+   
+    The path to the kaytab file.
 
+  - **authentication.gssapi.store.key** (Optional)
+  
+    The parameter specifies whether to store the key or not
+
+    Default value: `false`.
+
+  - **authentication.gssapi.kerberos.service.name** (Mandatory) 
+
+    The Kerberos service name.
+
+  - **authentication.gssapi.pricipal** (Mandatory)
+    
+    The Kerberos principal.
+
+  Example:
+
+  ```xml
+  <param name="authentication.enabled">true</param>
+  <param name="authentication.mechanism">GSSAPI</param>
+  <param name="authentication.gssapi.use.key.tab"></param>
+  <param name="authentication.gssapi.key.tab"></param>
+  <param name="authentication.gssapi.store.key"></param>
+  <param name="authentication.gssapi.kerberos.service.name"></param>
+  <param name="authentication.gssapi.pricipal"></param>
+  ```
+  
