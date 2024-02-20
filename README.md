@@ -22,7 +22,7 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.1  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
 - A running Kafka Cluster.
 - The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
- 
+
 #### Deploy
 
 Get the deployment package from the [latest release page](releases). Alternatively, check out this repository and run the following command from the project root;
@@ -66,7 +66,7 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
    The _Consumer_ is a simple Lightstreamer Java client that subscribes to the `sample` item to receive real-time data through the fields ....
 
    In the `QuickStart` configuration, the `sample` item is mapped by the Kafka topic `sample-topic` through the following section:
-   
+
    ```xml
    <!-- TOPIC MAPPING SECTION -->
 
@@ -76,7 +76,7 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
    <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
    <param name="map.sample-topic.to">item-template.sample</param>
    ```
-   
+
    Every single event published to `sample-topic` will be processed and then routed by the _Kafka Connector_ to the `sample` item.
 
    The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
@@ -97,15 +97,15 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
    <param name="field.partition">#{PARTITION}</param>
 
    <!-- Extraction of the record offset mapped to the field "offset". -->
-   <param name="field.offset">#{OFFSET}</param>  
+   <param name="field.offset">#{OFFSET}</param>
    ```
-   
+
    To launch the Consumer, execute the provided minimal [`lsclient.java`](src/clients/lsclient.java) script to connect to Lighstreamer and subscribe to `sample`:
 
     ```sh
     jbang run src/clients/lsclient.java --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items sample --fields key,value,partition,offset
     ```
-    
+
     As you can see, you have to specify a few parameters:
 
     - `--address`, the Lightstreamer Server address.
@@ -115,7 +115,7 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
     - `--fields`, the list of requested fields for the items.
 
     **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_, like the _lsclient.java_ script, can interact with it.
-    
+
 4. Publish Events.
 
    From another shell, execute the simple [`kafka-producer.java `](src/clients/kafka-producer.java) script to start publishing events to the Kafka Cluster:
@@ -154,10 +154,10 @@ The following sections will guide you through the configuration details.
 
 - (Mandatory) **Adapter Class**
 
-  The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter. 
+  The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
 
   The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
-  
+
   It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
 
   Example:
@@ -194,14 +194,14 @@ The following sections will guide you through the configuration details.
 
 #### Connection Configuration
 
-The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka clusters. 
+The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka clusters.
 
 Every single connection is configured via the definition of its own Data Adapter through the `data_provider` block. At least one connection must be provided.
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
 - (Optional) **Connection Name**
-  
+
   The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
   The connection name is also used to group all logging messages belonging to the same connection
@@ -214,12 +214,12 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
   Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-- (Optional) **`enable`**
+- (Optional) **`enabled`**
 
-  The `enable` parameter specifies whether this connection is enabled or not. Can be one of the following:
+  The parameter specifies whether this connection is enabled or not. Can be one of the following:
   - `true`
   - `false`
-  
+
   Default value: `true`.
 
   If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
@@ -227,13 +227,13 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   Example:
 
   ```xml
-  <param name="enable">false</param>
+  <param name="enabled">false</param>
   ```
 
 - (Mandatory) **`bootstrap.servers`**
 
   The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
-  
+
   The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
 
   Example:
@@ -241,7 +241,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   ```xml
   <param name="bootstrap.servers">broker:29092,broker:29093</param>
   ```
-  
+
 - (Optional) **`group.id`**
 
   The name of the consumer group this connection belongs to.
@@ -260,11 +260,11 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
   - `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
   - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
-                
+
   Default value: `IGNORE_AND_CONTINUE`.
 
   Example:
-  
+
   ```xml
   <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
   ```
@@ -272,14 +272,14 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 ##### Topic Mapping
 
 
-  
+
 - (Mandatory) **`map.<topic>.to`** and **`item-template.<name>`**
 
-  Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is 
-  
+  Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
+
   Example:
 
-  
+
   ```xml
   <param name="item-template.stock">stock</param>
   <param name="item-template.stock">stock</param>
@@ -294,32 +294,54 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   The parameter specifies whether this connection is encrypted or not. Can be one of the following:
   - `true`
   - `false`
-  
+
   Default value: `false`.
 
   Example:
 
   ```xml
-  <param name="encryption.enable">true</param>
+  <param name="encryption.enabled">true</param>
   ```
 
-- (Optional). **encryption.protocols**
+- (Optional). **encryption.protocol**
+
+  The SSL protocol to be used.
+
+  Default value: `TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+
+  Example:
+
+  ```xml
+  <param name="encryption.protocol">TLSv1.2</param>
+  ```
+
+- (Optional). **encryption.enabled.protocols**
 
   The list of enabled secure communication protocols.
-  - `true`
-  - `false`
-  
+
   Default value: `TLSv1.2,TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
 
   Example:
 
   ```xml
-  <param name="encryption.protocols">TLSv1.3</param>
-  ```  
+  <param name="encryption.enabled.protocols">TLSv1.3</param>
+  ```
 
+- (Optional). **encryption.cipher.suites**
+
+  The list of enabled secure cipher suites.
+
+  Default value: all the available cipher suites in the running JVM.
+
+  Example:
+
+  ```xml
+  <param name="encryption.cipher.suite">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+  ```
+  
 - (Optional). **encryption.truststore.type**
 
-  The type of the trust store. Can be of the folllowing:
+  The type of the trust store. Can be of the following:
   - `JKS`
   - `PKCS12`
 
@@ -328,13 +350,49 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   Example:
 
   ```xml
-  <param name="encryption.prottruststore.type">PKCS12</param>
+  <param name="encryption.truststore.type">PKCS12</param>
+  ```
+
+- (Optional). **encryption.truststore.path**
+
+  The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+
+  Example:
+
+  ```xml
+  <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
+  ```
+
+- (Optional). **encryption.truststore.password**
+
+  The password of the trust store.
+
+  If not set, checking the integrity of the trust store file configured will not be possible.
+
+  Example:
+
+  ```xml
+  <param name="encryption.truststore.password">truststore-password</param>
+  ```
+
+- (Optional). **encryption.hostname.verification**
+
+  The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
+  - `true`
+  - `false`
+
+  Default value: `false`.  
+
+  Example:
+
+  ```xml
+  <param name="encryption.hostname.verification">true</param>
   ```  
 
 ##### Authentication
 
 
-   
+
 
 
 
