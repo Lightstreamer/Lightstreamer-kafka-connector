@@ -11,10 +11,16 @@
     - [Configuration](#configuration)
       - [General Configuration](#general-configuration)
       - [Connection Configuration](#connection-configuration)
-        - [Topic Mapping](#topic-mapping)
+        - [Connection Name (Optional)](#connection-name-optional)
+        - [enabled (Optional)](#enabled-optional)
+        - [bootstrap.servers (Mandatory)](#bootstrapservers-mandatory)
+        - [group.id (Optional)](#groupid-optional)
+        - [record.extraction.error.strategy (Optional)](#recordextractionerrorstrategy-optional)
+        - [Encryption Settings](#encryption-settings)
+          - [encryption.enabled (Optional)](#encryptionenabled-optional)
           - [encryption.protocol (Optional)](#encryptionprotocol-optional)
           - [encryption.enabled.protocols (Optional)](#encryptionenabledprotocols-optional)
-          - [**encryption.cipher.suites** (Optional)](#encryptionciphersuites-optional)
+          - [encryption.cipher.suites (Optional)](#encryptionciphersuites-optional)
           - [encryption.truststore.path (Optional)](#encryptiontruststorepath-optional)
           - [encryption.truststore.password (Optional)](#encryptiontruststorepassword-optional)
           - [encryption.truststore.type (Optional)](#encryptiontruststoretype-optional)
@@ -31,8 +37,10 @@
           - [authentication.gssapi.key.tab (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)](#authenticationgssapikeytab-mandatory-if-a-authenticationgssapiusekeytab-is-true)
           - [authentication.gssapi.store.key (Optional)](#authenticationgssapistorekey-optional)
           - [authentication.gssapi.kerberos.service.name (Mandatory)](#authenticationgssapikerberosservicename-mandatory)
-          - [\*\*authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true-used-)
+          - [authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true)
           - [authentication.gssapi.use.ticket.cache (Optional)](#authenticationgssapiuseticketcache-optional)
+        - [Topic Mapping](#topic-mapping)
+          - [template](#template)
 
 ## Introduction
 
@@ -234,90 +242,74 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-- **Connection Name** (Optional)
+##### Connection Name (Optional)
 
-  The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
+The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
-  The connection name is also used to group all logging messages belonging to the same connection
+The connection name is also used to group all logging messages belonging to the same connection
 
-  Example:
+Example:
 
-  ```xml
-  <data_provider name="BrokerConnection">
-  ```
+```xml
+<data_provider name="BrokerConnection">
+```
 
-  Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
+Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-- **`enabled`** (Optional)
+##### enabled (Optional)
 
-  The parameter specifies whether this connection is enabled or not. Can be one of the following:
-  - `true`
-  - `false`
+The parameter specifies whether this connection is enabled or not. Can be one of the following:
+- `true`
+- `false`
 
-  Default value: `true`.
+Default value: `true`.
 
-  If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
+If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="enabled">false</param>
-  ```
+```xml
+<param name="enabled">false</param>
+```
 
-- **`bootstrap.servers`** (Mandatory)
+##### bootstrap.servers (Mandatory)
 
-  The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
+The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
-  The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="bootstrap.servers">broker:29092,broker:29093</param>
-  ```
+```xml
+<param name="bootstrap.servers">broker:29092,broker:29093</param>
+```
 
-- **`group.id`** (Optional)
+##### group.id (Optional)
 
-  The name of the consumer group this connection belongs to.
+The name of the consumer group this connection belongs to.
 
-  The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
-  Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
+Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
-  ```xml
-  <param name="group.id">kafka-connector-group</param>
-  ```
+```xml
+<param name="group.id">kafka-connector-group</param>
+```
 
-- **`record.extraction.error.strategy`** (Optional)
+##### record.extraction.error.strategy (Optional)
 
-  The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
 
-  - `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-  - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
 
-  Default value: `IGNORE_AND_CONTINUE`.
+Default value: `IGNORE_AND_CONTINUE`.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
-  ```
-
-##### Topic Mapping
-
-
-
-- (Mandatory) **`map.<topic>.to`** and **`item-template.<name>`**
-
-  Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
-
-  Example:
-
-
-  ```xml
-  <param name="item-template.stock">stock</param>
-  <param name="item-template.stock">stock</param>
-
+```xml
+<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+```
 
 ##### Encryption Settings
 
@@ -351,17 +343,17 @@ Example:
 
 ###### encryption.enabled.protocols (Optional)
 
-  The list of enabled secure communication protocols.
+The list of enabled secure communication protocols.
 
-  Default value: `TLSv1.2,TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.2,TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="encryption.enabled.protocols">TLSv1.3</param>
-  ```
+```xml
+<param name="encryption.enabled.protocols">TLSv1.3</param>
+```
 
-###### **encryption.cipher.suites** (Optional)
+###### encryption.cipher.suites (Optional)
 
 The list of enabled secure cipher suites.
 
@@ -551,7 +543,7 @@ Default value: `false`.
 
 The name of the Kerberos service.
 
-###### **authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
+###### authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)
 
 The name of the principal to be used.
 
@@ -581,3 +573,18 @@ Example of configuration with usage of a ticket cache:
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.use.ticket.cache">true</param>
 ```
+
+##### Topic Mapping
+
+
+
+###### template
+
+Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
+
+Example:
+
+
+```xml
+<param name="item-template.stock">stock</param>
+<param name="item-template.stock">stock</param>
