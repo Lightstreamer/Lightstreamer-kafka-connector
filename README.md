@@ -503,6 +503,7 @@ Broker authentication is configured by the parameters with the `authentication` 
   Example:
 
   ```xml
+  <param name="authentication.enabled">true</param>
   <param name="authentication.mechanism">SCRAM-256</param>
   <param name="authentication.username">authorized-kafka-username</param>
   <param name="authentication.password">authorized-kafka-username-password</param>
@@ -557,6 +558,7 @@ Broker authentication is configured by the parameters with the `authentication` 
   ```xml
   <param name="authentication.enabled">true</param>
   <param name="authentication.mechanism">GSSAPI</param>
+  <param name="authentication.gssapi.kerberos.service.name">kafka</param>
   <param name="authentication.gssapi.use.ticket.cache">true</param>
   ```
 
