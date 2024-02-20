@@ -18,31 +18,31 @@
         - [data\_provider.name](#data_providername)
         - [`enable`](#enable)
         - [`bootstrap.servers`](#bootstrapservers)
-        - [group.id](#groupid)
+        - [`group.id`](#groupid)
         - [record.extraction.error.strategy](#recordextractionerrorstrategy)
       - [Encryption](#encryption)
-        - [encryption.enable](#encryptionenable)
-        - [encryption.protocol](#encryptionprotocol)
-        - [encryption.enabled.protocols](#encryptionenabledprotocols)
-        - [encryption.cipher.suites](#encryptionciphersuites)
-        - [encryption.truststore.path](#encryptiontruststorepath)
-        - [encryption.truststore.password](#encryptiontruststorepassword)
-        - [encryption.truststore.type](#encryptiontruststoretype)
-        - [encryption.hostname.verification.enable](#encryptionhostnameverificationenable)
-        - [encryption.keystore.enable](#encryptionkeystoreenable)
-        - [encryption.keystore.path](#encryptionkeystorepath)
-        - [encryption.keystore.password](#encryptionkeystorepassword)
-        - [encryption.keystore.key.password](#encryptionkeystorekeypassword)
-        - [encryption.keystore.type](#encryptionkeystoretype)
+        - [`encryption.enable`](#encryptionenable)
+        - [`encryption.protocol`](#encryptionprotocol)
+        - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
+        - [`encryption.cipher.suites`](#encryptionciphersuites)
+        - [`encryption.truststore.path`](#encryptiontruststorepath)
+        - [`encryption.truststore.password `](#encryptiontruststorepassword-)
+        - [`encryption.truststore.type`](#encryptiontruststoretype)
+        - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
+        - [`encryption.keystore.enable`](#encryptionkeystoreenable)
+        - [`encryption.keystore.path`](#encryptionkeystorepath)
+        - [`encryption.keystore.password`](#encryptionkeystorepassword)
+        - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
+        - [`encryption.keystore.type`](#encryptionkeystoretype)
       - [Broker Authentication](#broker-authentication)
-        - [authentication.enable](#authenticationenable)
-        - [authentication.mechanism (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
-        - [authentication.gssapi.key.tab.enable](#authenticationgssapikeytabenable)
-        - [authentication.gssapi.key.tab.path](#authenticationgssapikeytabpath)
-        - [authentication.gssapi.store.key.enable](#authenticationgssapistorekeyenable)
-        - [authentication.gssapi.kerberos.service.name](#authenticationgssapikerberosservicename)
+        - [`authentication.enable`](#authenticationenable)
+        - [`authentication.mechanism`](#authenticationmechanism)
+        - [`authentication.gssapi.key.tab.enable`](#authenticationgssapikeytabenable)
+        - [`authentication.gssapi.key.tab.path`](#authenticationgssapikeytabpath)
+        - [`authentication.gssapi.store.key.enable`](#authenticationgssapistorekeyenable)
+        - [`authentication.gssapi.kerberos.service.name`](#authenticationgssapikerberosservicename)
         - [authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true)
-        - [authentication.gssapi.ticket.cache.enable](#authenticationgssapiticketcacheenable)
+        - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -290,7 +290,7 @@ Example:
 <param name="bootstrap.servers">broker:29092,broker:29093</param>
 ```
 
-##### group.id
+##### `group.id`
 
 _Optional_. The name of the consumer group this connection belongs to.
 
@@ -321,7 +321,7 @@ Example:
 
 A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
-##### encryption.enable
+##### `encryption.enable`
 
 _Optional_. Enable encryption of this connection. Can be one of the following:
 - `true`
@@ -335,7 +335,7 @@ Example:
 <param name="encryption.enable">true</param>
 ```
 
-##### encryption.protocol
+##### `encryption.protocol`
 
 _Optional_. The SSL protocol to be used.
 
@@ -347,7 +347,7 @@ Example:
 <param name="encryption.protocol">TLSv1.2</param>
 ```
 
-##### encryption.enabled.protocols
+##### `encryption.enabled.protocols`
 
 _Optional_. The list of enabled secure communication protocols.
 
@@ -359,7 +359,7 @@ Example:
 <param name="encryption.enabled.protocols">TLSv1.3</param>
 ```
 
-##### encryption.cipher.suites
+##### `encryption.cipher.suites`
 
 _Optional_. The list of enabled secure cipher suites.
 
@@ -371,7 +371,7 @@ Example:
 <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
 ```
 
-##### encryption.truststore.path
+##### `encryption.truststore.path`
 
 _Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
@@ -381,7 +381,7 @@ Example:
 <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
 ```
 
-##### encryption.truststore.password 
+##### `encryption.truststore.password `
 
 _Optional_. The password of the trust store.
 
@@ -393,7 +393,7 @@ Example:
 <param name="encryption.truststore.password">truststore-password</param>
 ```
 
-##### encryption.truststore.type
+##### `encryption.truststore.type`
 
 _Optional_. The type of the trust store. Can be of the following:
 
@@ -406,7 +406,7 @@ Example:
 <param name="encryption.truststore.type">PKCS12</param>
 ```
 
-##### encryption.hostname.verification.enable
+##### `encryption.hostname.verification.enable`
 
 _Optional_. Enable hostname verification. Can be one of the following:
 
@@ -421,7 +421,7 @@ Example:
 <param name="encryption.hostname.verification.enable">true</param>
 ```
 
-##### encryption.keystore.enable
+##### `encryption.keystore.enable`
 
 _Optional_. Enable a key store. Can be one of the following:
 - `true`
@@ -442,7 +442,7 @@ Example:
 <param name="encryption.keystore.enable">true</param>
 ```
 
-##### encryption.keystore.path
+##### `encryption.keystore.path`
 
 (_Mandatory if key store is enabled_) The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
@@ -452,7 +452,7 @@ Example:
 <param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
 ```
 
-##### encryption.keystore.password
+##### `encryption.keystore.password`
 
 _Optional_. The password of the key store.
 
@@ -464,7 +464,7 @@ Example:
 <param name="encryption.keystore.password">keystore-password</param>
 ```
 
-##### encryption.keystore.key.password
+##### `encryption.keystore.key.password`
 
 _Optional_. The password of the private key in the key store file.
 
@@ -474,7 +474,7 @@ Example:
 <param name="encryption.keystore.key.password">private-key-password</param>
 ```
 
-##### encryption.keystore.type
+##### `encryption.keystore.type`
 
 _Optional_. The type of the key store. Can be of the following:
 
@@ -493,7 +493,7 @@ Example:
 
 Broker authentication is configured by parameters with the `authentication` prefix.
 
-##### authentication.enable
+##### `authentication.enable`
 
 _Optional_. Enable the authentication of this connection against the Kafka Cluster. Can be one of the following:
 - `true`
@@ -507,9 +507,9 @@ Example:
 <param name="authentication.enable">true</param>
 ```
 
-##### authentication.mechanism (Mandatory if authentication is enabled)
+##### `authentication.mechanism`
 
-The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+_Mandatory if authentication is enabled_. The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-256`
@@ -532,25 +532,23 @@ Example:
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-##### authentication.gssapi.key.tab.enable
+##### `authentication.gssapi.key.tab.enable`
 
 _Optional_. Enable the use of a keytab.
 
 Default value: `false`.
 
-##### authentication.gssapi.key.tab.path
+##### `authentication.gssapi.key.tab.path`
 
-(_Mandatory if_ `authentication.gssapi.key.tab.enable` _is_ `true`_)
+_Mandatory if_ `authentication.gssapi.key.tab.enable` _is_ `true`_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
-
-##### authentication.gssapi.store.key.enable
+##### `authentication.gssapi.store.key.enable`
 
 _Optional_. Enable storage of the principal key.
 
 Default value: `false`.
 
-##### authentication.gssapi.kerberos.service.name
+##### `authentication.gssapi.kerberos.service.name`
 
 _Mandatory_. The name of the Kerberos service.
 
@@ -558,7 +556,7 @@ _Mandatory_. The name of the Kerberos service.
 
 The name of the principal to be used.
 
-##### authentication.gssapi.ticket.cache.enable
+##### `authentication.gssapi.ticket.cache.enable`
 
 _Optional_. Enable the use of a ticket cache.
 
