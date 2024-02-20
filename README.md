@@ -214,7 +214,7 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-- (Optional) **Connection Name**
+- **Connection Name** (Optional)
 
   The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
@@ -228,7 +228,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
   Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-- (Optional) **`enabled`**
+- **`enabled`** (Optional)
 
   The parameter specifies whether this connection is enabled or not. Can be one of the following:
   - `true`
@@ -244,7 +244,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="enabled">false</param>
   ```
 
-- (Mandatory) **`bootstrap.servers`**
+- **`bootstrap.servers`** (Mandatory)
 
   The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
@@ -256,7 +256,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="bootstrap.servers">broker:29092,broker:29093</param>
   ```
 
-- (Optional) **`group.id`**
+- **`group.id`** (Optional)
 
   The name of the consumer group this connection belongs to.
 
@@ -268,7 +268,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="group.id">kafka-connector-group</param>
   ```
 
-- (Optional) **`record.extraction.error.strategy`**
+- **`record.extraction.error.strategy`** (Optional)
 
   The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
 
@@ -303,7 +303,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
-- (Optional) **encryption.enabled**
+- **encryption.enabled** (Optional)
 
   The parameter specifies whether this connection is encrypted or not. Can be one of the following:
   - `true`
@@ -317,7 +317,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.enabled">true</param>
   ```
 
-- (Optional) **encryption.protocol**
+- **encryption.protocol** (Optional)
 
   The SSL protocol to be used.
 
@@ -329,7 +329,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.protocol">TLSv1.2</param>
   ```
 
-- (Optional) **encryption.enabled.protocols**
+- **encryption.enabled.protocols** (Optional)
 
   The list of enabled secure communication protocols.
 
@@ -341,7 +341,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.enabled.protocols">TLSv1.3</param>
   ```
 
-- (Optional) **encryption.cipher.suites**
+- **encryption.cipher.suites** (Optional)
 
   The list of enabled secure cipher suites.
 
@@ -353,7 +353,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
   ```
   
-- (Optional) **encryption.truststore.path**
+- **encryption.truststore.path** (Optional)
 
   The path of the truststore file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
@@ -363,7 +363,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
   ```
 
-- (Optional) **encryption.truststore.password**
+- **encryption.truststore.password** (Optional)
 
   The password of the truststore.
 
@@ -375,12 +375,11 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.truststore.password">truststore-password</param>
   ```
 
-- (Optional) **encryption.truststore.type**
+- **encryption.truststore.type** (Optional)
 
   The type of the truststore. Can be of the following:
   - `JKS`
   - `PKCS12`
-
 
   Example:
 
@@ -388,7 +387,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.truststore.type">PKCS12</param>
   ```
 
-- (Optional) **encryption.hostname.verification**
+- **encryption.hostname.verification** (Optional)
 
   The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
   - `true`
@@ -402,7 +401,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.hostname.verification">true</param>
   ```
 
-- (Optional) **encryption.keystore.enabled**
+- **encryption.keystore.enabled** (Optional)
 
   The parameter specifies whether a key store is enabled or not. Can be one of the following:
   - `true`
@@ -415,7 +414,6 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   - `encryption.keystore.type`
   - `encryption.keystore.key.password`
 
-
   Default value: `false`.  
 
   Example:
@@ -424,7 +422,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.keystore.enabled">true</param>
   ```    
 
-- (Mandatory if key store is enabled) **encryption.keystore.path**
+- **encryption.keystore.path** (Mandatory if key store is enabled)
 
   The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
@@ -434,7 +432,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
   ```
 
-- (Optional) **encryption.keystore.password**
+- **encryption.keystore.password** (Optional)
 
   The password of the key store.
 
@@ -446,7 +444,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.keystore.password">keystore-password</param>
   ```
   
-- (Optional) **encryption.keystore.key.password**
+- **encryption.keystore.key.password** (Optional)
 
   The password of the private key in the key store file.
 
@@ -456,7 +454,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.keystore.key.password">private-key-password</param>
   ```
 
-- (Optional) **encryption.keystore.type**
+- **encryption.keystore.type** (Optional)
 
   The type of the key store. Can be of the following:
   - `JKS`
@@ -474,7 +472,7 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
 
 Broker authentication is configured by the parameters with the `authentication` prefix.
 
-- (Optional) **authentication.enabled**
+- **authentication.enabled** (Optional)
 
   The parameter specifies whether authentication is enabled or not. Can be one of the following:
   - `true`
@@ -488,7 +486,7 @@ Broker authentication is configured by the parameters with the `authentication` 
   <param name="authentication.enabled">true</param>
   ```  
    
-- (Mandatory if authentication is enabled) **authentication.mechanism**
+- **authentication.mechanism** (Mandatory if authentication is enabled)
 
   The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
