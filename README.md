@@ -395,7 +395,7 @@ Example:
 
 ##### `encryption.truststore.type`
 
-_Optional_. The type of the trust store. Can be of the following:
+_Optional_. The type of the trust store. Can be one of the following:
 
 - `JKS`
 - `PKCS12`
@@ -476,7 +476,7 @@ Example:
 
 ##### `encryption.keystore.type`
 
-_Optional_. The type of the key store. Can be of the following:
+_Optional_. The type of the key store. Can be one of the following:
 
 - `JKS`
 - `PKCS12`
