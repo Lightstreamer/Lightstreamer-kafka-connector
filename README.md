@@ -16,7 +16,7 @@
     - [Connection Settings](#connection-settings)
       - [General Parameters](#general-parameters)
         - [data\_provider.name](#data_providername)
-        - [enable](#enable)
+        - [`enable`](#enable)
         - [bootstrap.servers](#bootstrapservers)
         - [group.id](#groupid)
         - [record.extraction.error.strategy](#recordextractionerrorstrategy)
@@ -262,7 +262,7 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-##### enable
+##### `enable`
 
 _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
