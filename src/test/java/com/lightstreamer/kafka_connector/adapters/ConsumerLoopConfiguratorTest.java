@@ -19,21 +19,8 @@ package com.lightstreamer.kafka_connector.adapters;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
+
 import static org.junit.Assert.assertThrows;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
@@ -42,6 +29,20 @@ import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeDeserializer;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 public class ConsumerLoopConfiguratorTest {
 

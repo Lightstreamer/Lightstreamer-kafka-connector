@@ -121,7 +121,7 @@ public class SelectorsTest {
                         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
                                 + " [name]"),
                 arguments(
-                        Map.of("name", "VALUE.attrib.-@"),
+                        Map.of("name", "VALUE.attrib.-"),
                         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
                                 + " [name]"),
                 arguments(

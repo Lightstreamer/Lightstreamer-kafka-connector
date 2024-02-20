@@ -113,7 +113,6 @@ public class RecordMapperStringTest {
     @Test
     public void shouldFilter() {
         Selectors<String, String> valueSelectors = selectors("test", Map.of("name", "VALUE"));
-
         Selectors<String, String> keySelectors = selectors("test", Map.of("name", "KEY"));
 
         // Selectors<String, GenericRecord> childSelectors2 =

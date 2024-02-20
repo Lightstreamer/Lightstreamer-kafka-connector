@@ -126,7 +126,8 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializazionWithLocalSchemaTakePrecedenceOverSchemaRegistry() throws IOException {
+    public void shouldDeserializazionWithLocalSchemaTakePrecedenceOverSchemaRegistry()
+            throws IOException {
         Map<String, String> otherConfigs =
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,

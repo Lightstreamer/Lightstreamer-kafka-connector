@@ -270,7 +270,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     log.atDebug().log("Received records");
                     records.forEach(this::consume);
                     consumer.commitAsync();
-                    log.atInfo().log("Comsumed {} records", records.count());
+                    log.atInfo().log("Consumed {} records", records.count());
                 } catch (ValueException ve) {
                     log.atWarn().log("Error while extracting record: {}", ve.getMessage());
                     log.atWarn().log("Applying the {} strategy", errorStrategy);
@@ -307,7 +307,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atDebug().log("Mapped Kafka record");
 
             Set<Item> routable =
-                    config.itemTemplates().routable(mappedRecord, subscribedItems.values());
+                    config.itemTemplates().routes(mappedRecord, subscribedItems.values());
+
+            log.atInfo().log("Routing record to {} items", routable.size());
 
             for (Item sub : routable) {
                 log.atDebug().log("Filtering updates");

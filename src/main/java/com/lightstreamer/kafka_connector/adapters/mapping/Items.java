@@ -49,6 +49,8 @@ public class Items {
 
         Map<String, String> values();
 
+        String valueAt(String key);
+
         boolean matches(Item other);
     }
 
@@ -62,7 +64,7 @@ public class Items {
 
         Set<String> topics();
 
-        public Set<Item> routable(MappedRecord record, Collection<? extends Item> subscribed);
+        public Set<Item> routes(MappedRecord record, Collection<? extends Item> subscribed);
     }
 
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
@@ -119,10 +121,10 @@ public class Items {
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof Item other
-                    && Objects.equals(itemHandle, other.itemHandle())
-                    && Objects.equals(valuesMap, other.values())
-                    && Objects.equals(schema, other.schema());
+            return obj instanceof DefaultItem other
+                    && Objects.equals(itemHandle, other.itemHandle)
+                    && Objects.equals(valuesMap, other.valuesMap)
+                    && Objects.equals(schema, other.schema);
         }
 
         @Override
@@ -141,6 +143,11 @@ public class Items {
         }
 
         @Override
+        public String valueAt(String key) {
+            return valuesMap.get(key);
+        }
+
+        @Override
         public boolean matches(Item other) {
             MatchResult result = schema.matches(other.schema());
             if (!result.matched()) {
@@ -148,7 +155,7 @@ public class Items {
             }
 
             return result.matchedKeys().stream()
-                    .allMatch(key -> valuesMap.get(key).equals(other.values().get(key)));
+                    .allMatch(key -> valueAt(key).equals(other.valueAt(key)));
         }
 
         @Override
@@ -207,20 +214,11 @@ public class Items {
         }
 
         @Override
-        public Set<Item> routable(MappedRecord record, Collection<? extends Item> subscribed) {
-            List<Item> items = expand(record).toList();
-            // Set<Item> s = new HashSet<>();
-            // for (Item item : subscribed) {
-            //     for (Item expanded : items) {
-            //         if (expanded.matches(item)) {
-            //             s.add(item);
-            //         }
-            //     }
-            // }
+        public Set<Item> routes(MappedRecord record, Collection<? extends Item> subscribed) {
+            List<Item> expandeditems = expand(record).toList();
             return subscribed.stream()
-                    .filter(s -> items.stream().anyMatch(e -> matches(s)))
+                    .filter(s -> expandeditems.stream().anyMatch(expanded -> expanded.matches(s)))
                     .collect(Collectors.toSet());
-            // return s;
         }
 
         @Override

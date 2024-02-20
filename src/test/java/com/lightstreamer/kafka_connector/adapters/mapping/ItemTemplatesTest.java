@@ -36,8 +36,10 @@ import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -48,6 +50,7 @@ import org.junit.jupiter.params.provider.CsvFileSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class ItemTemplatesTest {
@@ -55,6 +58,17 @@ public class ItemTemplatesTest {
     private static <K, V> ItemTemplates<K, V> templates(Selected<K, V> selected, String template) {
         TopicsConfig topicsConfig =
                 TopicsConfig.of(new TopicConfiguration("topic", "item-template", template));
+        return Items.templatesFrom(topicsConfig, selected);
+    }
+
+    private static <K, V> ItemTemplates<K, V> templates(
+            Selected<K, V> selected, List<String> template) {
+        List<TopicConfiguration> topicsConfigurations =
+                template.stream()
+                        .map(t -> new TopicConfiguration("topic", "item-template", t))
+                        .toList();
+        TopicsConfig topicsConfig =
+                TopicsConfig.of(topicsConfigurations.toArray(new TopicConfiguration[0]));
         return Items.templatesFrom(topicsConfig, selected);
     }
 
@@ -237,5 +251,70 @@ public class ItemTemplatesTest {
 
         assertThat(first.isPresent()).isTrue();
         assertThat(first.get().matches(subscribedItem)).isEqualTo(exandable);
+    }
+
+    @Test
+    public void shouldRoutesFromOneTemplate() {
+        String template = "item-#{key=KEY,value=VALUE}";
+        ItemTemplates<String, String> templates = templates(SelectorsSuppliers.string(), template);
+        RecordMapper<String, String> mapper =
+                RecordMapper.<String, String>builder().withSelectors(templates.selectors()).build();
+
+        MappedRecord mapped = mapper.map(ConsumerRecords.record("topic", "key", "value"));
+
+        List<Item> routables =
+                List.of(
+                        Items.itemFrom("item", new Object()),
+                        Items.itemFrom("item-<key=key>", new Object()),
+                        Items.itemFrom("item-<key=key,value=value>", new Object()),
+                        Items.itemFrom("item-<value=value>", new Object()));
+
+        List<Item> nonRoutalbes =
+                List.of(
+                        Items.itemFrom("nonRoutable", new Object()),
+                        Items.itemFrom("item-<key=anotherKey>", new Object()),
+                        Items.itemFrom("item-<value=anotherValue>", new Object()));
+
+        List<Item> all = Stream.concat(routables.stream(), nonRoutalbes.stream()).toList();
+
+        Set<Item> routed = templates.routes(mapped, all);
+        assertThat(routed).containsExactlyElementsIn(routables);
+    }
+
+    @Test
+    public void shouldRoutesFromMoreTemplates() {
+        List<String> templateStr =
+                List.of(
+                        "item-#{key=KEY,value=VALUE}",
+                        "item-#{topic=TOPIC}",
+                        "myItem-#{topic=TOPIC}");
+        ItemTemplates<String, String> templates =
+                templates(SelectorsSuppliers.string(), templateStr);
+        RecordMapper<String, String> mapper =
+                RecordMapper.<String, String>builder().withSelectors(templates.selectors()).build();
+
+        MappedRecord mapped = mapper.map(ConsumerRecords.record("topic", "key", "value"));
+
+        List<Item> routables =
+                List.of(
+                        Items.itemFrom("item", new Object()),
+                        Items.itemFrom("item-<key=key>", new Object()),
+                        Items.itemFrom("item-<key=key,value=value>", new Object()),
+                        Items.itemFrom("item-<value=value>", new Object()),
+                        Items.itemFrom("item-<topic=topic>", new Object()),
+                        Items.itemFrom("myItem-<topic=topic>", new Object()));
+
+        List<Item> nonRoutalbes =
+                List.of(
+                        Items.itemFrom("nonRoutable", new Object()),
+                        Items.itemFrom("item-<key=anotherKey>", new Object()),
+                        Items.itemFrom("item-<value=anotherValue>", new Object()),
+                        Items.itemFrom("item-<topic=anotherTopic>", new Object()),
+                        Items.itemFrom("myItem-<topic=anotherTopic>", new Object()));
+
+        List<Item> all = Stream.concat(routables.stream(), nonRoutalbes.stream()).toList();
+
+        Set<Item> routed = templates.routes(mapped, all);
+        assertThat(routed).containsExactlyElementsIn(routables);
     }
 }
