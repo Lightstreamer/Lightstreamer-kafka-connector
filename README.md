@@ -41,7 +41,7 @@
         - [`authentication.gssapi.key.tab.path`](#authenticationgssapikeytabpath)
         - [`authentication.gssapi.store.key.enable`](#authenticationgssapistorekeyenable)
         - [`authentication.gssapi.kerberos.service.name`](#authenticationgssapikerberosservicename)
-        - [authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true)
+        - [authentication.gssapi.pricipal](#authenticationgssapipricipal)
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
@@ -339,7 +339,7 @@ Example:
 
 _Optional_. The SSL protocol to be used.
 
-Default value: `TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
 
 Example:
 
@@ -351,7 +351,7 @@ Example:
 
 _Optional_. The list of enabled secure communication protocols.
 
-Default value: `TLSv1.2,TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.2,TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
 
 Example:
 
@@ -552,9 +552,9 @@ Default value: `false`.
 
 _Mandatory_. The name of the Kerberos service.
 
-##### authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)
+##### authentication.gssapi.pricipal
 
-The name of the principal to be used.
+_Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is enabled_ .The name of the principal to be used.
 
 ##### `authentication.gssapi.ticket.cache.enable`
 
