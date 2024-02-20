@@ -11,7 +11,7 @@
     - [Configuration](#configuration)
       - [General Configuration](#general-configuration)
       - [Connection Configuration](#connection-configuration)
-        - [Connection Name (Optional)](#connection-name-optional)
+        - [Connection Name](#connection-name)
         - [enabled (Optional)](#enabled-optional)
         - [bootstrap.servers (Mandatory)](#bootstrapservers-mandatory)
         - [group.id (Optional)](#groupid-optional)
@@ -242,9 +242,9 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-##### Connection Name (Optional)
+##### Connection Name
 
-The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
+Optional. The Kafka Connector leverages the `name` attribute of the `data_provider` tag as the connection name, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
 The connection name is also used to group all logging messages belonging to the same connection
 
