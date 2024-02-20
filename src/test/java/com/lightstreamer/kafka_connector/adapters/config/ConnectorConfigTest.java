@@ -442,20 +442,6 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Missing required parameter [%s]"
-                                .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
-
-        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
-                .isEqualTo(
-                        "Specify a valid value for parameter [%s]"
-                                .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
-
-        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
-                .isEqualTo(
-                        "Missing required parameter [%s]"
                                 .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
         params.put(ConnectorConfig.DATA_ADAPTER_NAME, "");
@@ -466,6 +452,20 @@ public class ConnectorConfigTest {
                                 .formatted(ConnectorConfig.DATA_ADAPTER_NAME));
 
         params.put(ConnectorConfig.DATA_ADAPTER_NAME, "data_provider_name");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Missing required parameter [%s]"
+                                .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+
+        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+
+        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage())
                 .isEqualTo("Specify at least one parameter [item-template.<...>]");

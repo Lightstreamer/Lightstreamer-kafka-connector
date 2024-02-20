@@ -38,7 +38,7 @@ Check that the final Lightstreamer layout looks like the following:
 LS_HOME/
 ...
 ├── adapters
-│   ├── lightstreamer-kafka-connector-0.1.0
+│   ├── lightstreamer-kafka-connector-<version>
 │   │   ├── README.md
 │   │   ├── adapters.xml
 │   │   ├── log4j.properties
@@ -79,7 +79,7 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
    
    Every single event published to `sample-topic` will be processed and then routed by the _Kafka Connector_ to the `sample` item.
 
-   The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using a set of intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
+   The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
 
    ```xml
    <!-- FIELDS MAPPING SECTION -->
@@ -152,11 +152,31 @@ The following sections will guide you through the configuration details.
   <adapters_conf id="KafkaConnector">
   ```
 
+- (Mandatory) **Adapter Class**
+
+  The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter. 
+
+  The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
+  
+  It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
+
+  Example:
+
+  ```xml
+  ...
+  <metadata_provider>
+      ...
+      <adapter_class>your.custom.class</adapter_class>
+      ...
+  </metadata_provider>
+  ...
+  ```
+
 - (Mandatory) **`logging.configuration.file`**
 
   The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  The parameter is defined inside the `metadata_provider` block.
+  The parameter is specified inside the `metadata_provider` block.
 
   The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
@@ -212,7 +232,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 - (Mandatory) **`bootstrap.servers`**
 
-  The Kafka Cluster address expressed as the list of host/port pairs used to establish the initial connection.
+  The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
   
   The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
 
@@ -224,7 +244,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   
 - (Optional) **`group.id`**
 
-  The consumer group this connection belongs to.
+  The name of the consumer group this connection belongs to.
 
   The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
@@ -239,8 +259,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
 
   - `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-  - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items 
-                  requested by all Lightstreamer clients subscribed to this connection.
+  - `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
                 
   Default value: `IGNORE_AND_CONTINUE`.
 
@@ -249,19 +268,29 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   ```xml
   <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
   ```
-  
-- Item Template
 
-  The `item-template.<template-name>` parameter de
+##### Topic Mapping
+
   
-  Examples:
+- (Mandatory) **`map.<topic>.to`** and **`item-template.<name>`**
+
+  Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is 
+  
+  Example:
 
   
   ```xml
   <param name="item-template.stock">stock</param>
   <param name="item-template.stock">stock</param>
+
+
+##### Encryption
+
+
+##### Authentication
+
+
    
-#### Topic Mappings
 
 
 

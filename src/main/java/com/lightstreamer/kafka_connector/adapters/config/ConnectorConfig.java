@@ -141,8 +141,9 @@ public final class ConnectorConfig extends AbstractConfig {
         CONFIG_SPEC =
                 new ConfigsSpec("root")
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
-                        .add(ENABLED, false, false, BOOL, defaultValue("true"))
                         .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
+                        .add(DATA_ADAPTER_NAME, true, false, TEXT)
+                        .add(ENABLED, false, false, BOOL, defaultValue("true"))
                         .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
                         .add(
                                 GROUP_ID,
@@ -162,7 +163,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                                             params.get(DATA_ADAPTER_NAME),
                                                             suffix);
                                         }))
-                        .add(DATA_ADAPTER_NAME, true, false, TEXT)
                         .add(ITEM_TEMPLATE, true, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
                         .add(FIELD_MAPPING, true, true, TEXT)
