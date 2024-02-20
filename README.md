@@ -12,37 +12,37 @@
     - [Global Settings](#global-settings)
       - [Kafka Connector Identifier](#kafka-connector-identifier)
       - [Adapter Class](#adapter-class)
-      - [logging.configuration.file](#loggingconfigurationfile)
+      - [logging.configuration.path](#loggingconfigurationpath)
     - [Connection Settings](#connection-settings)
       - [General Parameters](#general-parameters)
         - [data\_provider.name](#data_providername)
-        - [enabled](#enabled)
+        - [enable](#enable)
         - [bootstrap.servers](#bootstrapservers)
         - [group.id](#groupid)
         - [record.extraction.error.strategy](#recordextractionerrorstrategy)
       - [Encryption](#encryption)
-        - [encryption.enabled](#encryptionenabled)
+        - [encryption.enable](#encryptionenable)
         - [encryption.protocol](#encryptionprotocol)
         - [encryption.enabled.protocols](#encryptionenabledprotocols)
         - [encryption.cipher.suites](#encryptionciphersuites)
         - [encryption.truststore.path](#encryptiontruststorepath)
         - [encryption.truststore.password](#encryptiontruststorepassword)
         - [encryption.truststore.type](#encryptiontruststoretype)
-        - [encryption.hostname.verification](#encryptionhostnameverification)
-        - [encryption.keystore.enabled](#encryptionkeystoreenabled)
+        - [encryption.hostname.verification.enable](#encryptionhostnameverificationenable)
+        - [encryption.keystore.enable](#encryptionkeystoreenable)
         - [encryption.keystore.path](#encryptionkeystorepath)
         - [encryption.keystore.password](#encryptionkeystorepassword)
         - [encryption.keystore.key.password](#encryptionkeystorekeypassword)
         - [encryption.keystore.type](#encryptionkeystoretype)
       - [Broker Authentication](#broker-authentication)
-        - [authentication.enabled](#authenticationenabled)
+        - [authentication.enable](#authenticationenable)
         - [authentication.mechanism (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
-        - [authentication.gssapi.use.key.tab](#authenticationgssapiusekeytab)
+        - [authentication.gssapi.use.key.tab.enable](#authenticationgssapiusekeytabenable)
         - [authentication.gssapi.key.tab](#authenticationgssapikeytab)
-        - [authentication.gssapi.store.key](#authenticationgssapistorekey)
+        - [authentication.gssapi.store.key.enable](#authenticationgssapistorekeyenable)
         - [authentication.gssapi.kerberos.service.name](#authenticationgssapikerberosservicename)
         - [authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true)
-        - [authentication.gssapi.use.ticket.cache](#authenticationgssapiuseticketcache)
+        - [authentication.gssapi.ticket.cache.enable](#authenticationgssapiticketcacheenable)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -200,43 +200,43 @@ The following sections will guide you through the configuration details.
 
 #### Adapter Class 
 
-  _Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
+_Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
 
-  The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
+The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
 
-  It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
+It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
 
-  Example:
+Example:
 
-  ```xml
-  ...
-  <metadata_provider>
-      ...
-      <adapter_class>your.custom.class</adapter_class>
-      ...
-  </metadata_provider>
-  ...
+```xml
+...
+<metadata_provider>
+    ...
+    <adapter_class>your.custom.class</adapter_class>
+    ...
+</metadata_provider>
+...
   ```
 
-#### logging.configuration.file 
+#### logging.configuration.path
 
-  _Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+_Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  The parameter is specified inside the `metadata_provider` block.
+The parameter is specified inside the `metadata_provider` block.
 
-  The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
+The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
 
-  Example:
+Example:
 
-  ```xml
-  ...
-  <metadata_provider>
-      ...
-      <param name="logging.configuration.file">log4j.properties</param>
-      ...
-  </metadata_provider>
-  ...
-  ```
+```xml
+...
+<metadata_provider>
+    ...
+    <param name="logging.configuration.path">log4j.properties</param>
+    ...
+</metadata_provider>
+...
+```
 
 ### Connection Settings
 
@@ -262,9 +262,9 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-##### enabled
+##### enable
 
-_Optional_. The parameter specifies whether this connection is enabled or not. Can be one of the following:
+_Optional_. Whether this connection is enabled. Can be one of the following:
 - `true`
 - `false`
 
@@ -275,7 +275,7 @@ If disabled, Lightstreamer Server will automatically deny every subscription mad
 Example:
 
 ```xml
-<param name="enabled">false</param>
+<param name="enable">false</param>
 ```
 
 ##### bootstrap.servers
@@ -321,9 +321,9 @@ Example:
 
 A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
-##### encryption.enabled
+##### encryption.enable
 
-_Optional_. The parameter specifies whether this connection is encrypted or not. Can be one of the following:
+_Optional_. Enable encryption of this connection. Can be one of the following:
 - `true`
 - `false`
 
@@ -332,7 +332,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="encryption.enabled">true</param>
+<param name="encryption.enable">true</param>
 ```
 
 ##### encryption.protocol
@@ -406,9 +406,9 @@ Example:
 <param name="encryption.truststore.type">PKCS12</param>
 ```
 
-##### encryption.hostname.verification
+##### encryption.hostname.verification.enable
 
-_Optional_. The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
+_Optional_. Enable hostname verification. Can be one of the following:
 
 - `true`
 - `false`
@@ -418,12 +418,12 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="encryption.hostname.verification">true</param>
+<param name="encryption.hostname.verification.enable">true</param>
 ```
 
-##### encryption.keystore.enabled
+##### encryption.keystore.enable
 
-_Optional_. The parameter specifies whether a key store is enabled or not. Can be one of the following:
+_Optional_. Enable a key store. Can be one of the following:
 - `true`
 - `false`
 
@@ -439,7 +439,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="encryption.keystore.enabled">true</param>
+<param name="encryption.keystore.enable">true</param>
 ```
 
 ##### encryption.keystore.path
@@ -491,11 +491,11 @@ Example:
 
 #### Broker Authentication
 
-Broker authentication is configured by the parameters with the `authentication` prefix.
+Broker authentication is configured by parameters with the `authentication` prefix.
 
-##### authentication.enabled
+##### authentication.enable
 
-_Optional_. The parameter specifies whether authentication is enabled or not. Can be one of the following:
+_Optional_. Enable the authentication of this connection against the Kafka Cluster. Can be one of the following:
 - `true`
 - `false`
 
@@ -504,7 +504,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="authentication.enabled">true</param>
+<param name="authentication.enable">true</param>
 ```
 
 ##### authentication.mechanism (Mandatory if authentication is enabled)
@@ -524,7 +524,7 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 Example:
 
 ```xml
-<param name="authentication.enabled">true</param>
+<param name="authentication.enable">true</param>
 <param name="authentication.mechanism">SCRAM-256</param>
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
@@ -532,21 +532,21 @@ Example:
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-##### authentication.gssapi.use.key.tab 
+##### authentication.gssapi.use.key.tab.enable
 
-_Optional_. The parameter specifies whether a keytab is used or not.
+_Optional_. Enable the use of a keytab.
 
 Default value: `false`.
 
 ##### authentication.gssapi.key.tab 
 
-(_Mandatory if_ `authentication.gssapi.use.key.tab` _is_ `true`_)
+(_Mandatory if_ `authentication.gssapi.key.tab.enable` _is_ `true`_)
 
 The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-##### authentication.gssapi.store.key
+##### authentication.gssapi.store.key.enable
 
-_Optional_. The parameter specifies whether to store the principal key or not.
+_Optional_. Enable storage of the principal key.
 
 Default value: `false`.
 
@@ -558,20 +558,20 @@ _Mandatory_. The name of the Kerberos service.
 
 The name of the principal to be used.
 
-##### authentication.gssapi.use.ticket.cache
+##### authentication.gssapi.ticket.cache.enable
 
-_Optional_. The parameter specifies whether to configure the usage of a ticket cache.
+_Optional_. Enable the use of a ticket cache.
 
 Default value: `false`.
 
 Example:
 
 ```xml
-<param name="authentication.enabled">true</param>
+<param name="authentication.enable">true</param>
 <param name="authentication.mechanism">GSSAPI</param>
-<param name="authentication.gssapi.use.key.tab">true</param>
-<param name="authentication.gssapi.key.tab">gssapi/kafka-connector.keytab</param>
-<param name="authentication.gssapi.store.key">true</param>
+<param name="authentication.gssapi.key.tab.enable">true</param>
+<param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
+<param name="authentication.gssapi.store.key.enable">true</param>
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
 ```
@@ -579,10 +579,10 @@ Example:
 Example of configuration with usage of a ticket cache:
 
 ```xml
-<param name="authentication.enabled">true</param>
+<param name="authentication.enable">true</param>
 <param name="authentication.mechanism">GSSAPI</param>
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
-<param name="authentication.gssapi.use.ticket.cache">true</param>
+<param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
 #### Topic Mapping
