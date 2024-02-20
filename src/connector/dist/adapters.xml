@@ -11,25 +11,70 @@
 <!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
-        <!-- Java class name of the Kafka Connector Metadata Adapter. DO NOT EDIT IT. -->
+        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a custom implementation 
+             by extending the com.lightstreamer.kafka_connector.adapters.pub.KafakConnectorMetadataAdapter class. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter</adapter_class>
 
-        <!-- Mandatory. Path of the configuration file for the log4j-based logging system.
-             The file path is relative to the Kafka Connector deployment directory.
-        -->
+        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder 
+             (LS_HOME/adapters/lightstreamer-kafka-connector). -->
         <param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
 
-    <data_provider name="QuickStart">
+    <!-- Mandatory. The Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
+         Kafka clusters. 
+
+         Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection 
+         configuration must be provided.
+         
+         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
+         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
+         configuration.
+
+         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the connection name, which will 
+         be used by the Clients to request real-time data from this specific Kafka connection through a Subscription object.
+
+         The connection name is also used to group all logging messages belonging to the same connection
+         Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
+    <data_provider name="BrokerConnection">
+        
+        <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
 
-        <!-- The Kafka cluster address -->
-        <!-- <param name="bootstrap.servers">broker:29094</param> -->
-        <param name="bootstrap.servers">kafka-ssl-1:19092</param>
-        <param name="group.id">test</param>
+        <!-- Optional. Enabling flag. Can be one of the following:
+                - "true": Enables the connection.
+                - "false": Disables the connection.
+                Default: "true". -->
+        <!--
+        <param name="enable">false</param>
+        -->        
 
-        <param name="enabled">true</param>
+        <!-- Mandatory. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to 
+             establish the initial connection.
+ 
+             The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers for more details.
+         -->
+        <param name="bootstrap.servers">broker:29092,broker:29093</param>
+
+        <!-- Optional. The name of the consumer group this connection belongs to.
+             The parameter sets the value for the "group.id" key used to configure the internal
+             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
+             
+             Default:  Adapter Set id + the Data Adapter name + randomly generated suffix. -->
+        <!--
+        param name="group.id">kafka-connector-group</param>
+        -->
+
+        <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming records.
+                Can be one of the following:
+                - "IGNORE_AND_CONTINUE": Ignore the error and continue to process the next record.
+                - "FORCE_UNSUBSCRIPTION": Stop processing records and force unsubscription of the items 
+                  requested by all Lightstreamer clients subscribed to this connection.
+                Default: "IGNORE_AND_CONTINUE". -->
+        <!-- 
+        <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+        -->        
 
         <!-- TOPIC MAPPING SECTION -->
 
