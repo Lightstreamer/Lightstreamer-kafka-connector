@@ -12,15 +12,27 @@
       - [General Configuration](#general-configuration)
       - [Connection Configuration](#connection-configuration)
         - [Topic Mapping](#topic-mapping)
+          - [encryption.protocol (Optional)](#encryptionprotocol-optional)
+          - [encryption.enabled.protocols (Optional)](#encryptionenabledprotocols-optional)
+          - [**encryption.cipher.suites** (Optional)](#encryptionciphersuites-optional)
+          - [encryption.truststore.path (Optional)](#encryptiontruststorepath-optional)
+          - [encryption.truststore.password (Optional)](#encryptiontruststorepassword-optional)
+          - [encryption.truststore.type (Optional)](#encryptiontruststoretype-optional)
+          - [encryption.hostname.verification (Optional)](#encryptionhostnameverification-optional)
+          - [encryption.keystore.enabled (Optional)](#encryptionkeystoreenabled-optional)
+          - [encryption.keystore.path (Mandatory if key store is enabled)](#encryptionkeystorepath-mandatory-if-key-store-is-enabled)
+          - [encryption.keystore.password (Optional)](#encryptionkeystorepassword-optional)
+          - [encryption.keystore.key.password (Optional)](#encryptionkeystorekeypassword-optional)
+          - [encryption.keystore.type (Optional)](#encryptionkeystoretype-optional)
         - [Broker Authentication Settings](#broker-authentication-settings)
-          - [**authentication.enabled** (Optional)](#authenticationenabled-optional)
-          - [**authentication.mechanism** (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
-          - [**authentication.gssapi.use.key.tab** (Optional)](#authenticationgssapiusekeytab-optional)
-          - [**authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)](#authenticationgssapikeytab-mandatory-if-a-authenticationgssapiusekeytab-is-true)
-          - [**authentication.gssapi.store.key** (Optional)](#authenticationgssapistorekey-optional)
-          - [**authentication.gssapi.kerberos.service.name** (Mandatory)](#authenticationgssapikerberosservicename-mandatory)
-          - [**authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true-used-)
-          - [**gssapi.use.ticket.cache** (Optional)](#gssapiuseticketcache-optional)
+          - [authentication.enabled (Optional)](#authenticationenabled-optional)
+          - [authentication.mechanism (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
+          - [authentication.gssapi.use.key.tab (Optional)](#authenticationgssapiusekeytab-optional)
+          - [authentication.gssapi.key.tab (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)](#authenticationgssapikeytab-mandatory-if-a-authenticationgssapiusekeytab-is-true)
+          - [authentication.gssapi.store.key (Optional)](#authenticationgssapistorekey-optional)
+          - [authentication.gssapi.kerberos.service.name (Mandatory)](#authenticationgssapikerberosservicename-mandatory)
+          - [\*\*authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true-used-)
+          - [authentication.gssapi.use.ticket.cache (Optional)](#authenticationgssapiuseticketcache-optional)
 
 ## Introduction
 
@@ -311,33 +323,33 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
-- **encryption.enabled** (Optional)
+###### encryption.enabled (Optional)
 
-  The parameter specifies whether this connection is encrypted or not. Can be one of the following:
-  - `true`
-  - `false`
+The parameter specifies whether this connection is encrypted or not. Can be one of the following:
+- `true`
+- `false`
 
-  Default value: `false`.
+Default value: `false`.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="encryption.enabled">true</param>
-  ```
+```xml
+<param name="encryption.enabled">true</param>
+```
 
-- **encryption.protocol** (Optional)
+###### encryption.protocol (Optional)
 
-  The SSL protocol to be used.
+The SSL protocol to be used.
 
-  Default value: `TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="encryption.protocol">TLSv1.2</param>
-  ```
+```xml
+<param name="encryption.protocol">TLSv1.2</param>
+```
 
-- **encryption.enabled.protocols** (Optional)
+###### encryption.enabled.protocols (Optional)
 
   The list of enabled secure communication protocols.
 
@@ -349,226 +361,223 @@ A TCP secure connection to the Kafka cluster is configured through parameters wi
   <param name="encryption.enabled.protocols">TLSv1.3</param>
   ```
 
-- **encryption.cipher.suites** (Optional)
+###### **encryption.cipher.suites** (Optional)
 
-  The list of enabled secure cipher suites.
+The list of enabled secure cipher suites.
 
-  Default value: all the available cipher suites in the running JVM.
+Default value: all the available cipher suites in the running JVM.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-  ```
-  
-- **encryption.truststore.path** (Optional)
+```xml
+<param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+```
 
-  The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+###### encryption.truststore.path (Optional)
 
-  Example:
+The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  ```xml
-  <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
-  ```
+Example:
 
-- **encryption.truststore.password** (Optional)
+```xml
+<param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
+```
 
-  The password of the trust store.
+###### encryption.truststore.password (Optional)
 
-  If not set, checking the integrity of the trust store file configured will not be possible.
+The password of the trust store.
 
-  Example:
+If not set, checking the integrity of the trust store file configured will not be possible.
 
-  ```xml
-  <param name="encryption.truststore.password">truststore-password</param>
-  ```
+Example:
 
-- **encryption.truststore.type** (Optional)
+```xml
+<param name="encryption.truststore.password">truststore-password</param>
+```
 
-  The type of the trust store. Can be of the following:
-  - `JKS`
-  - `PKCS12`
+###### encryption.truststore.type (Optional)
 
-  Example:
+The type of the trust store. Can be of the following:
+- `JKS`
+- `PKCS12`
 
-  ```xml
-  <param name="encryption.truststore.type">PKCS12</param>
-  ```
+Example:
 
-- **encryption.hostname.verification** (Optional)
+```xml
+<param name="encryption.truststore.type">PKCS12</param>
+```
 
-  The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
-  - `true`
-  - `false`
+###### encryption.hostname.verification (Optional)
 
-  Default value: `false`.  
+The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
+- `true`
+- `false`
 
-  Example:
+Default value: `false`.
 
-  ```xml
-  <param name="encryption.hostname.verification">true</param>
-  ```
+Example:
 
-- **encryption.keystore.enabled** (Optional)
+```xml
+<param name="encryption.hostname.verification">true</param>
+```
 
-  The parameter specifies whether a key store is enabled or not. Can be one of the following:
-  - `true`
-  - `false`
+###### encryption.keystore.enabled (Optional)
 
-  If enabled, the following parameters configure the key store settings:
+The parameter specifies whether a key store is enabled or not. Can be one of the following:
+- `true`
+- `false`
 
-  - `encryption.keystore.path`
-  - `encryption.keystore.password`
-  - `encryption.keystore.type`
-  - `encryption.keystore.key.password`
+If enabled, the following parameters configure the key store settings:
 
-  Default value: `false`.  
+- `encryption.keystore.path`
+- `encryption.keystore.password`
+- `encryption.keystore.type`
+- `encryption.keystore.key.password`
 
-  Example:
+Default value: `false`.
 
-  ```xml
-  <param name="encryption.keystore.enabled">true</param>
-  ```    
+Example:
 
-- **encryption.keystore.path** (Mandatory if key store is enabled)
+```xml
+<param name="encryption.keystore.enabled">true</param>
+```
 
-  The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+###### encryption.keystore.path (Mandatory if key store is enabled)
 
-  Example:
+The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-  ```xml
-  <param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
-  ```
+Example:
 
-- **encryption.keystore.password** (Optional)
+```xml
+<param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
+```
 
-  The password of the key store.
+###### encryption.keystore.password (Optional)
 
-  If not set, checking the integrity of the key store file configured will not be possible.
+The password of the key store.
 
-  Example:
+If not set, checking the integrity of the key store file configured will not be possible.
 
-  ```xml
-  <param name="encryption.keystore.password">keystore-password</param>
-  ```
-  
-- **encryption.keystore.key.password** (Optional)
+Example:
 
-  The password of the private key in the key store file.
+```xml
+<param name="encryption.keystore.password">keystore-password</param>
+```
 
-  Example:
+###### encryption.keystore.key.password (Optional)
 
-  ```xml
-  <param name="encryption.keystore.key.password">private-key-password</param>
-  ```
+The password of the private key in the key store file.
 
-- **encryption.keystore.type** (Optional)
+Example:
 
-  The type of the key store. Can be of the following:
-  - `JKS`
-  - `PKCS12`
+```xml
+<param name="encryption.keystore.key.password">private-key-password</param>
+```
 
-  Default value: `JKS`.
+###### encryption.keystore.type (Optional)
 
-  Example:
+The type of the key store. Can be of the following:
+- `JKS`
+- `PKCS12`
 
-  ```xml
-  <param name="encryption.keystore.type">PKCS12</param>
-  ```
+Default value: `JKS`.
+
+Example:
+
+```xml
+<param name="encryption.keystore.type">PKCS12</param>
+```
 
 ##### Broker Authentication Settings
 
 Broker authentication is configured by the parameters with the `authentication` prefix.
 
-###### **authentication.enabled** (Optional)
+###### authentication.enabled (Optional)
 
-  The parameter specifies whether authentication is enabled or not. Can be one of the following:
-  - `true`
-  - `false`
+The parameter specifies whether authentication is enabled or not. Can be one of the following:
+- `true`
+- `false`
 
-  Default value: `false`.
+Default value: `false`.
 
-  Example:
+Example:
 
-  ```xml
-  <param name="authentication.enabled">true</param>
-  ```  
-   
-###### **authentication.mechanism** (Mandatory if authentication is enabled)
+```xml
+<param name="authentication.enabled">true</param>
+```
 
-  The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+###### authentication.mechanism (Mandatory if authentication is enabled)
 
-  - `PLAIN` (the default value)
-  - `SCRAM-256`
-  - `SCRAM-512`
-  - `GSSAPI`
+The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
-  In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+- `PLAIN` (the default value)
+- `SCRAM-256`
+- `SCRAM-512`
+- `GSSAPI`
 
-  - **authentication.username**, the username.
-  - **authentication.password**, the password.
+In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
 
-  Example:
+- **authentication.username**, the username.
+- **authentication.password**, the password.
 
-  ```xml
-  <param name="authentication.enabled">true</param>
-  <param name="authentication.mechanism">SCRAM-256</param>
-  <param name="authentication.username">authorized-kafka-username</param>
-  <param name="authentication.password">authorized-kafka-username-password</param>
-  ```
+Example:
 
-  In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
+```xml
+<param name="authentication.enabled">true</param>
+<param name="authentication.mechanism">SCRAM-256</param>
+<param name="authentication.username">authorized-kafka-username</param>
+<param name="authentication.password">authorized-kafka-username-password</param>
+```
 
-###### **authentication.gssapi.use.key.tab** (Optional)
-    
-    The parameter specifies whether a keytab is used or not.
+In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-    Default value: `false`.
+###### authentication.gssapi.use.key.tab (Optional)
 
-###### **authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)
-   
-    The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+The parameter specifies whether a keytab is used or not.
 
-###### **authentication.gssapi.store.key** (Optional)
-  
-    The parameter specifies whether to store the principal key or not.
+Default value: `false`.
 
-    Default value: `false`.
+###### authentication.gssapi.key.tab (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)
 
-###### **authentication.gssapi.kerberos.service.name** (Mandatory) 
+The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-    The name of the Kerberos service.
+###### authentication.gssapi.store.key (Optional)
 
-   
-###### **authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
-    
-    The name of the principal to be used.
+The parameter specifies whether to store the principal key or not.
 
-###### **gssapi.use.ticket.cache** (Optional)
-    
-    The parameter specifies whether to configure the usage of a ticket cache.
+Default value: `false`.
 
-    Default value: `false`.
+###### authentication.gssapi.kerberos.service.name (Mandatory)
 
-  Example:
+The name of the Kerberos service.
 
-  ```xml
-  <param name="authentication.enabled">true</param>
-  <param name="authentication.mechanism">GSSAPI</param>
-  <param name="authentication.gssapi.use.key.tab">true</param>
-  <param name="authentication.gssapi.key.tab">gssapi/kafka-connector.keytab</param>
-  <param name="authentication.gssapi.store.key">true</param>
-  <param name="authentication.gssapi.kerberos.service.name">kafka</param>
-  <param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
-  ```
+###### **authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
 
-  Example of configuration with usage of a ticket cache:
+The name of the principal to be used.
 
-  ```xml
-  <param name="authentication.enabled">true</param>
-  <param name="authentication.mechanism">GSSAPI</param>
-  <param name="authentication.gssapi.kerberos.service.name">kafka</param>
-  <param name="authentication.gssapi.use.ticket.cache">true</param>
-  ```
+###### authentication.gssapi.use.ticket.cache (Optional)
 
-  
+The parameter specifies whether to configure the usage of a ticket cache.
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="authentication.enabled">true</param>
+<param name="authentication.mechanism">GSSAPI</param>
+<param name="authentication.gssapi.use.key.tab">true</param>
+<param name="authentication.gssapi.key.tab">gssapi/kafka-connector.keytab</param>
+<param name="authentication.gssapi.store.key">true</param>
+<param name="authentication.gssapi.kerberos.service.name">kafka</param>
+<param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
+```
+
+Example of configuration with usage of a ticket cache:
+
+```xml
+<param name="authentication.enabled">true</param>
+<param name="authentication.mechanism">GSSAPI</param>
+<param name="authentication.gssapi.kerberos.service.name">kafka</param>
+<param name="authentication.gssapi.use.ticket.cache">true</param>
+```
