@@ -540,7 +540,7 @@ Default value: `false`.
 
 ##### `authentication.gssapi.key.tab.path`
 
-_Mandatory if_ `authentication.gssapi.key.tab.enable` _is_ `true`_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+_Mandatory if_ [key tab](#authenticationgssapikeytabenable) is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
 ##### `authentication.gssapi.store.key.enable`
 
@@ -554,7 +554,7 @@ _Mandatory_. The name of the Kerberos service.
 
 ##### authentication.gssapi.pricipal
 
-_Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is enabled_ .The name of the principal to be used.
+_Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled .The name of the principal to be used.
 
 ##### `authentication.gssapi.ticket.cache.enable`
 
