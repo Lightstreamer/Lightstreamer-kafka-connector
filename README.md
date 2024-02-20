@@ -271,6 +271,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 ##### Topic Mapping
 
+
   
 - (Mandatory) **`map.<topic>.to`** and **`item-template.<name>`**
 
@@ -286,6 +287,49 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 ##### Encryption
 
+Parameters with the `encryption` prefix configure a secure connection to the Kafka cluster.
+
+- (Optional). **encryption.enabled**
+
+  The parameter specifies whether this connection is encrypted or not. Can be one of the following:
+  - `true`
+  - `false`
+  
+  Default value: `false`.
+
+  Example:
+
+  ```xml
+  <param name="encryption.enable">true</param>
+  ```
+
+- (Optional). **encryption.protocols**
+
+  The list of enabled secure communication protocols.
+  - `true`
+  - `false`
+  
+  Default value: `TLSv1.2,TLSv1.3` where running on Java 11 or newer, `TLSv1.2` otherwise.
+
+  Example:
+
+  ```xml
+  <param name="encryption.protocols">TLSv1.3</param>
+  ```  
+
+- (Optional). **encryption.truststore.type**
+
+  The type of the trust store. Can be of the folllowing:
+  - `JKS`
+  - `PKCS12`
+
+  Default value: `JKS`
+
+  Example:
+
+  ```xml
+  <param name="encryption.prottruststore.type">PKCS12</param>
+  ```  
 
 ##### Authentication
 
