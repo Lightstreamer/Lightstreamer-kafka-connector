@@ -512,37 +512,52 @@ Broker authentication is configured by the parameters with the `authentication` 
 
   - **authentication.gssapi.use.key.tab** (Optional)
     
-    The parameter specifies wheter a keytab is used or not.
+    The parameter specifies whether a keytab is used or not.
 
     Default value: `false`.
 
   - **authentication.gssapi.key.tab** (Mandatory if a keytab is used)
    
-    The path to the kaytab file.
+    The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
   - **authentication.gssapi.store.key** (Optional)
   
-    The parameter specifies whether to store the key or not
+    The parameter specifies whether to store the principal key or not.
 
     Default value: `false`.
 
   - **authentication.gssapi.kerberos.service.name** (Mandatory) 
 
-    The Kerberos service name.
+    The name of the Kerberos service.
 
   - **authentication.gssapi.pricipal** (Mandatory)
     
-    The Kerberos principal.
+    The name of the principal to be used.
+
+  - **gssapi.use.ticket.cache** (Mandatory)
+    
+    The parameter specifies whether to configure the usage of a ticket cache.
+
+    Default value: `false`.
 
   Example:
 
   ```xml
   <param name="authentication.enabled">true</param>
   <param name="authentication.mechanism">GSSAPI</param>
-  <param name="authentication.gssapi.use.key.tab"></param>
-  <param name="authentication.gssapi.key.tab"></param>
-  <param name="authentication.gssapi.store.key"></param>
-  <param name="authentication.gssapi.kerberos.service.name"></param>
-  <param name="authentication.gssapi.pricipal"></param>
+  <param name="authentication.gssapi.use.key.tab">true</param>
+  <param name="authentication.gssapi.key.tab">gssapi/kafka-connector.keytab</param>
+  <param name="authentication.gssapi.store.key">true</param>
+  <param name="authentication.gssapi.kerberos.service.name">kafka</param>
+  <param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
   ```
+
+  Example of configuration with usage of a ticket cache:
+
+  ```xml
+  <param name="authentication.enabled">true</param>
+  <param name="authentication.mechanism">GSSAPI</param>
+  <param name="authentication.gssapi.use.ticket.cache">true</param>
+  ```
+
   
