@@ -275,30 +275,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     @Override
-    protected void validate() throws ConfigException {
-        if (isEncryptionEnabled()) {
-            // If a truststore file is provided, a password must be provided as well
-            trusttorePassword();
-        }
-
-        if (isAuthenticationEnabled()) {
-            if (isGssapiEnabled()) {
-                // If use keytab, a key tab file must be provided
-                gssapiKeyTab();
-            } else {
-                // In case of PLAIN auhentication, credentials must be provided
-                authenticationUsername();
-                authenticationPassword();
-            }
-        }
-
-        if (isSchemaRegistryEnabled()) {
-            if (isSchemaRegistryEncryptionEnabled()) {
-                // If a truststore file is provided, a password must be provided as well
-                schemaRegistryTruststorePassword();
-            }
-        }
-
+    protected final void validate() throws ConfigException {
         if (getKeyEvaluator().equals(EvaluatorType.AVRO)) {
             if (!isSchemaRegistryEnabledForKey()) {
                 try {
@@ -495,10 +472,9 @@ public final class ConnectorConfig extends AbstractConfig {
         return getFile(EncryptionConfigs.TRUSTSTORE_PATH);
     }
 
-    public String trusttorePassword() {
+    public String truststorePassword() {
         checkEncryptionEnabled();
-        boolean isRequired = truststorePath() != null;
-        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD, isRequired);
+        return getText(EncryptionConfigs.TRUSTSTORE_PASSWORD);
     }
 
     public List<String> cipherSuites() {
@@ -582,7 +558,6 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public String gssapiKeyTab() {
-        checkGssapi();
         boolean isRequired = gssapiUseKeyTab();
         return getFile(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, isRequired);
     }
@@ -593,13 +568,18 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public String gssapiPrincipal() {
-        checkGssapi();
-        return getText(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
+        boolean isRequired = !gssapiUseTicketCache();
+        return getText(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, isRequired);
     }
 
     public String gssapiKerberosServiceName() {
         checkGssapi();
         return getText(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    }
+
+    public boolean gssapiUseTicketCache() {
+        checkGssapi();
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
     }
 
     private void checkSchemaRegistryEnabled() {

@@ -126,58 +126,49 @@ public class SchemaRegistryConfigs {
 
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_PROTOCOL_CONFIG,
-                    cfg.schemaRegistrySslProtocol().toString());
+                    ns(SslConfigs.SSL_PROTOCOL_CONFIG), cfg.schemaRegistrySslProtocol().toString());
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG,
+                    ns(SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG),
                     cfg.schemaRegistryEnabledProtocolsAsStr());
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,
+                    ns(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG),
                     cfg.schemaRegistryTruststoreType().toString());
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+                    ns(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
                     cfg.schemaRegistryTruststorePath());
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+                    ns(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
                     cfg.schemaRegistryTruststorePassword());
             if (!cfg.isSchemaRegistryHostNameVerificationEnabled()) {
-                props.setProperty(
-                        "schema.registry."
-                                + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
-                        "");
+                props.setProperty(ns(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG), "");
             }
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG,
-                    cfg.schemaRegistryCipherSuitesAsStr());
+                    ns(SslConfigs.SSL_CIPHER_SUITES_CONFIG), cfg.schemaRegistryCipherSuitesAsStr());
+            props.setProperty(ns(SslConfigs.SSL_PROVIDER_CONFIG), cfg.schemaRegistrySslProvider());
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_PROVIDER_CONFIG,
-                    cfg.schemaRegistrySslProvider());
-            props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
+                    ns(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG),
                     cfg.getText(SSL_EGINE_FACTORY_CLASS));
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG,
+                    ns(SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG),
                     cfg.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
             props.setProperty(
-                    "schema.registry." + SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG,
+                    ns(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG),
                     cfg.getText(SSL_TRUSTMANAGER_ALGORITHM));
             props.setProperty(
-                    "schema.registry." + SecurityConfig.SECURITY_PROVIDERS_CONFIG,
-                    cfg.getText(SECURITY_PROVIDERS));
+                    ns(SecurityConfig.SECURITY_PROVIDERS_CONFIG), cfg.getText(SECURITY_PROVIDERS));
 
             if (cfg.isSchemaRegistryKeystoreEnabled()) {
                 props.setProperty(
-                        "schema.registry." + SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
+                        ns(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG),
                         cfg.schemaRegistryKeystoreType().toString());
                 props.setProperty(
-                        "schema.registry." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+                        ns(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
                         cfg.schemaRegistryKeystorePassword());
                 props.setProperty(
-                        "schema.registry." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+                        ns(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
                         cfg.schemaRegistryKeystorePath());
                 props.setProperty(
-                        "schema.registry." + SslConfigs.SSL_KEY_PASSWORD_CONFIG,
-                        cfg.schemaRegistryKeyPassword());
+                        ns(SslConfigs.SSL_KEY_PASSWORD_CONFIG), cfg.schemaRegistryKeyPassword());
             }
         }
 

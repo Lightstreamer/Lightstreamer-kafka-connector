@@ -159,7 +159,7 @@ public class EncryptionConfigsTest {
         ConfParameter keystorePassword =
                 configSpec.getParameter(EncryptionConfigs.KEYSTORE_PASSWORD);
         assertThat(keystorePassword.name()).isEqualTo(EncryptionConfigs.KEYSTORE_PASSWORD);
-        assertThat(keystorePassword.required()).isTrue();
+        assertThat(keystorePassword.required()).isFalse();
         assertThat(keystorePassword.multiple()).isFalse();
         assertThat(keystorePassword.mutable()).isTrue();
         assertThat(keystorePassword.defaultValue()).isNull();

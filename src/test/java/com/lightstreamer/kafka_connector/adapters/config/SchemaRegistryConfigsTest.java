@@ -170,7 +170,7 @@ public class SchemaRegistryConfigsTest {
         ConfParameter keystorePassword =
                 configSpec.getParameter(SchemaRegistryConfigs.KEYSTORE_PASSWORD);
         assertThat(keystorePassword.name()).isEqualTo(SchemaRegistryConfigs.KEYSTORE_PASSWORD);
-        assertThat(keystorePassword.required()).isTrue();
+        assertThat(keystorePassword.required()).isFalse();
         assertThat(keystorePassword.multiple()).isFalse();
         assertThat(keystorePassword.mutable()).isTrue();
         assertThat(keystorePassword.defaultValue()).isNull();

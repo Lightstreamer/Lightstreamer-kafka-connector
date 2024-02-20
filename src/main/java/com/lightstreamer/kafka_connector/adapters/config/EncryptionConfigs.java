@@ -32,8 +32,10 @@ import java.util.Properties;
 public class EncryptionConfigs {
 
     public static final String NAME_SPACE = "encryption";
-    public static final String SSL_ENABLED_PROTOCOLS = adapt(TlsConfigs.SSL_ENABLED_PROTOCOLS);
+
     public static final String SSL_PROTOCOL = adapt(TlsConfigs.SSL_PROTOCOL);
+    public static final String SSL_ENABLED_PROTOCOLS = adapt(TlsConfigs.SSL_ENABLED_PROTOCOLS);
+    public static final String SSL_CIPHER_SUITES = adapt(TlsConfigs.SSL_CIPHER_SUITES);
 
     public static final String TRUSTSTORE_TYPE = adapt(TlsConfigs.TRUSTSTORE_TYPE);
     public static final String TRUSTSTORE_PATH = adapt(TlsConfigs.TRUSTSTORE_PATH);
@@ -44,7 +46,6 @@ public class EncryptionConfigs {
     public static final String ENABLE_HOSTNAME_VERIFICATION =
             adapt(TlsConfigs.ENABLE_HOSTNAME_VERIFICATION);
 
-    public static final String SSL_CIPHER_SUITES = adapt(TlsConfigs.SSL_CIPHER_SUITES);
     public static final String SSL_PROVIDER = adapt(TlsConfigs.SSL_PROVIDER);
     public static final String SSL_EGINE_FACTORY_CLASS = adapt(TlsConfigs.SSL_EGINE_FACTORY_CLASS);
     public static final String SSL_KEYMANAGER_ALGORITHM =
@@ -81,7 +82,7 @@ public class EncryptionConfigs {
             props.setProperty(
                     SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, cfg.truststoreType().toString());
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, cfg.truststorePath());
-            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, cfg.trusttorePassword());
+            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, cfg.truststorePassword());
             if (!cfg.isHostNameVerificationEnabled()) {
                 props.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
             }

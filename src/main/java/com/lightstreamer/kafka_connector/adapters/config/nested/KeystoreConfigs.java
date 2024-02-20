@@ -33,7 +33,7 @@ public class KeystoreConfigs {
 
     public static String KEYSTORE_PASSWORD = "keystore.password";
 
-    public static String KEY_PASSWORD = "key.password";
+    public static String KEY_PASSWORD = "keystore.key.password";
 
     private static ConfigsSpec CONFIG_SPEC;
 
@@ -47,7 +47,7 @@ public class KeystoreConfigs {
                                 ConfType.KEYSTORE_TYPE,
                                 defaultValue(KeystoreType.JKS.toString()))
                         .add(KEYSTORE_PATH, true, false, FILE)
-                        .add(KEYSTORE_PASSWORD, true, false, TEXT)
+                        .add(KEYSTORE_PASSWORD, false, false, TEXT)
                         .add(KEY_PASSWORD, false, false, TEXT);
     }
 

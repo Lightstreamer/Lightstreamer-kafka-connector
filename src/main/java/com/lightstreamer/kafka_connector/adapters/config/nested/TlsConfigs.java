@@ -39,7 +39,7 @@ public class TlsConfigs {
 
     public static String ENABLE_KESYTORE = "keystore.enabled";
 
-    public static String ENABLE_HOSTNAME_VERIFICATION = ".endpoint.identification.algorithm";
+    public static String ENABLE_HOSTNAME_VERIFICATION = "hostname.verification";
     public static String SSL_CIPHER_SUITES = "cipher.suites";
     public static String SSL_PROVIDER = "provider";
     public static String SSL_EGINE_FACTORY_CLASS = "engine.factory.class";

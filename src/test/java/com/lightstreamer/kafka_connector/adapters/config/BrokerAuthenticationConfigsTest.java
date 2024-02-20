@@ -102,5 +102,15 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(kerberosServiceName.mutable()).isTrue();
         assertThat(kerberosServiceName.defaultValue()).isNull();
         assertThat(kerberosServiceName.type()).isEqualTo(TEXT);
+
+        ConfParameter useTicketCache =
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
+        assertThat(useTicketCache.name())
+                .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
+        assertThat(useTicketCache.required()).isFalse();
+        assertThat(useTicketCache.multiple()).isFalse();
+        assertThat(useTicketCache.mutable()).isTrue();
+        assertThat(useTicketCache.defaultValue()).isEqualTo("false");
+        assertThat(useTicketCache.type()).isEqualTo(BOOL);
     }
 }

@@ -26,22 +26,24 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
 
 public class GssapiConfigs {
 
-    public static final String GSSAPI_USE_KEY_TAB = "gssapi.use.key.tab";
-    public static final String GSSAPI_STORE_KEY = "gssapi.store.key";
-    public static final String GSSAPI_KEY_TAB = "gssapi.key.tab";
     public static final String GSSAPI_KERBEROS_SERVICE_NAME = "gssapi.kerberos.service.name";
+    public static final String GSSAPI_USE_KEY_TAB = "gssapi.use.key.tab";
+    public static final String GSSAPI_KEY_TAB = "gssapi.key.tab";
+    public static final String GSSAPI_STORE_KEY = "gssapi.store.key";
     public static final String GSSAPI_PRINCIPAL = "gssapi.principal";
+    public static final String GSSAPI_USE_TICKET_CACHE = "gssapi.use.ticket.cache";
 
     private static ConfigsSpec GSSAPI_CONFIG_SEPC;
 
     static {
         GSSAPI_CONFIG_SEPC =
                 new ConfigsSpec("gssapi")
+                        .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT)
                         .add(GSSAPI_USE_KEY_TAB, false, false, BOOL, defaultValue("false"))
-                        .add(GSSAPI_STORE_KEY, false, false, BOOL, defaultValue("false"))
                         .add(GSSAPI_KEY_TAB, false, false, FILE)
-                        .add(GSSAPI_PRINCIPAL, true, false, TEXT)
-                        .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT);
+                        .add(GSSAPI_STORE_KEY, false, false, BOOL, defaultValue("false"))
+                        .add(GSSAPI_PRINCIPAL, false, false, TEXT)
+                        .add(GSSAPI_USE_TICKET_CACHE, false, false, BOOL, defaultValue("false"));
     }
 
     public static ConfigsSpec spec() {

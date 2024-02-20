@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka_connector.adapters.config;
 
+import com.lightstreamer.kafka_connector.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.nested.AuthenticationConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.nested.GssapiConfigs;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
@@ -37,12 +38,14 @@ public class BrokerAuthenticationConfigs {
     public static final String USERNAME = adapt(AuthenticationConfigs.USERNAME);
     public static final String PASSWORD = adapt(AuthenticationConfigs.PASSWORD);
 
-    public static final String GSSAPI_USE_KEY_TAB = adapt(GssapiConfigs.GSSAPI_USE_KEY_TAB);
-    public static final String GSSAPI_STORE_KEY = adapt(GssapiConfigs.GSSAPI_STORE_KEY);
-    public static final String GSSAPI_KEY_TAB = adapt(GssapiConfigs.GSSAPI_KEY_TAB);
     public static final String GSSAPI_KERBEROS_SERVICE_NAME =
             adapt(GssapiConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+    public static final String GSSAPI_USE_KEY_TAB = adapt(GssapiConfigs.GSSAPI_USE_KEY_TAB);
+    public static final String GSSAPI_KEY_TAB = adapt(GssapiConfigs.GSSAPI_KEY_TAB);
+    public static final String GSSAPI_STORE_KEY = adapt(GssapiConfigs.GSSAPI_STORE_KEY);
     public static final String GSSAPI_PRINCIPAL = adapt(GssapiConfigs.GSSAPI_PRINCIPAL);
+    public static final String GSSAPI_USE_TICKET_CACHE =
+            adapt(GssapiConfigs.GSSAPI_USE_TICKET_CACHE);
 
     private static ConfigsSpec CONFIG_SPEC =
             AuthenticationConfigs.cloneSpec()
@@ -65,7 +68,7 @@ public class BrokerAuthenticationConfigs {
     }
 
     static Properties addAuthentication(ConnectorConfig config) {
-        Properties props = new Properties();
+        NonNullKeyProperties props = new NonNullKeyProperties();
         if (config.isAuthenticationEnabled()) {
             SaslMechanism mechanism = config.authenticationMechanism();
             props.setProperty(SaslConfigs.SASL_MECHANISM, mechanism.toString());
@@ -75,7 +78,7 @@ public class BrokerAuthenticationConfigs {
                         SaslConfigs.SASL_KERBEROS_SERVICE_NAME, config.gssapiKerberosServiceName());
             }
         }
-        return props;
+        return props.properties();
     }
 
     static String configuredWith(ConnectorConfig config) {
@@ -85,6 +88,7 @@ public class BrokerAuthenticationConfigs {
                     .storeKey(config.gssapiStoreKey())
                     .keyTab(config.gssapiKeyTab())
                     .principal(config.gssapiPrincipal())
+                    .useTicketCache(config.gssapiUseTicketCache())
                     .build();
         }
         return new Jaas()
@@ -103,6 +107,8 @@ public class BrokerAuthenticationConfigs {
         private String keyTab;
 
         private String principal;
+
+        private boolean useTicketCache;
 
         GssapiJaas useKeyTab(boolean useKeyTab) {
             this.useKeyTab = useKeyTab;
@@ -124,15 +130,24 @@ public class BrokerAuthenticationConfigs {
             return this;
         }
 
+        GssapiJaas useTicketCache(boolean useTicketCache) {
+            this.useTicketCache = useTicketCache;
+            return this;
+        }
+
         public String build() {
             StringBuilder sb = new StringBuilder(SaslMechanism.GSSAPI.loginModule());
             sb.append(" required");
-            sb.append(" useKeyTab=").append(String.valueOf(useKeyTab));
-            sb.append(" storeKey=").append(String.valueOf(storeKey));
-            if (keyTab != null) {
-                sb.append(" keyTab='" + keyTab + "'");
+            if (useTicketCache) {
+                sb.append(" useTicketCache=%s".formatted(useTicketCache));
+            } else {
+                sb.append(" useKeyTab=%s storeKey=%s".formatted(useKeyTab, storeKey));
+                if (keyTab != null) {
+                    sb.append(" keyTab='%s'".formatted(keyTab));
+                }
+                sb.append(" principal='%s'".formatted(principal));
             }
-            sb.append(" principal='" + principal + "';");
+            sb.append(";");
             return sb.toString();
         }
     }

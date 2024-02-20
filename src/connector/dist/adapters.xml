@@ -46,7 +46,7 @@
                 - "false": Disables the connection.
                 Default: "true". -->
         <!--
-        <param name="enable">false</param>
+        <param name="enabled">false</param>
         -->        
 
         <!-- Mandatory. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to 
@@ -75,6 +75,9 @@
         <!-- 
         <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
         -->        
+
+        <param name="encryption.enabled">false</param>
+        <param name="encryption.enabled">false</param>
 
         <!-- TOPIC MAPPING SECTION -->
 

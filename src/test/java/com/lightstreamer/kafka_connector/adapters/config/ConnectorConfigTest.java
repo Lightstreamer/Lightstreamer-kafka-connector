@@ -377,8 +377,6 @@ public class ConnectorConfigTest {
     private Map<String, String> encryptionParameters() {
         Map<String, String> encryptionParams = new HashMap<>();
         encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
-        // encryptionParams.put(TlsConfigs.TRUSTSTORE_PATH, trustStoreFile.toString());
-        // encryptionParams.put(TlsConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         return encryptionParams;
     }
 
@@ -386,7 +384,6 @@ public class ConnectorConfigTest {
         Map<String, String> keystoreParams = new HashMap<>();
         keystoreParams.put(EncryptionConfigs.ENABLE_MTLS, "true");
         keystoreParams.put(EncryptionConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
-        keystoreParams.put(EncryptionConfigs.KEYSTORE_PASSWORD, "keystore-password");
         return keystoreParams;
     }
 
@@ -773,15 +770,6 @@ public class ConnectorConfigTest {
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
     }
 
-    //     @Test
-    //     public void shouldNotGetNonExistingNonRequiredHost() {
-    //         ConnectorConfig config = ConnectorConfigProvider.minimal();
-    //         assertThat(config.getUrl(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-    //                 .isNull();
-    //         assertThat(config.getUrl(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_URL, false))
-    //                 .isNull();
-    //     }
-
     @Test
     public void shouldGetDirectory() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
@@ -835,7 +823,7 @@ public class ConnectorConfigTest {
                         () -> config.sslProtocol(),
                         () -> config.truststoreType(),
                         () -> config.truststorePath(),
-                        () -> config.trusttorePassword(),
+                        () -> config.truststorePassword(),
                         () -> config.isHostNameVerificationEnabled(),
                         () -> config.cipherSuites(),
                         () -> config.cipherSuitesAsStr(),
@@ -872,22 +860,6 @@ public class ConnectorConfigTest {
 
         updatedConfig.put(
                 EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [encryption.truststore.password]");
-
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "");
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "password");
-        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
     @Test
@@ -902,6 +874,8 @@ public class ConnectorConfigTest {
         assertThat(config.enabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
         assertThat(config.sslProtocol().toString()).isEqualTo("TLSv1.3");
         assertThat(config.truststoreType().toString()).isEqualTo("JKS");
+        assertThat(config.truststorePassword()).isNull();
+        assertThat(config.truststorePath()).isNull();
         assertThat(config.isHostNameVerificationEnabled()).isFalse();
         assertThat(config.cipherSuites()).isEmpty();
         assertThat(config.cipherSuitesAsStr()).isNull();
@@ -921,6 +895,8 @@ public class ConnectorConfigTest {
                         "JKS",
                         SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
                         "");
+        assertThat(props).doesNotContainKey(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        assertThat(props).doesNotContainKey(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
         assertThat(props).doesNotContainKey(SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
         List<ThrowingRunnable> runnables =
@@ -940,16 +916,23 @@ public class ConnectorConfigTest {
     public void shouldOverrideEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.put(
-                EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
         updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
         updatedConfig.put(EncryptionConfigs.SSL_PROTOCOL, "TLSv1.2");
-        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_TYPE, "PKCS12");
         updatedConfig.put(
                 EncryptionConfigs.SSL_CIPHER_SUITES,
                 "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
         updatedConfig.put(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION, "true");
+        updatedConfig.put(
+                EncryptionConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_TYPE, "PKCS12");
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
+        updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -959,7 +942,7 @@ public class ConnectorConfigTest {
         assertThat(config.sslProtocol().toString()).isEqualTo("TLSv1.2");
         assertThat(config.truststoreType().toString()).isEqualTo("PKCS12");
         assertThat(config.truststorePath()).isEqualTo(trustStoreFile.toString());
-        assertThat(config.trusttorePassword()).isEqualTo("truststore-password");
+        assertThat(config.truststorePassword()).isEqualTo("truststore-password");
         assertThat(config.isHostNameVerificationEnabled()).isTrue();
         assertThat(config.cipherSuites())
                 .containsExactly(
@@ -1022,22 +1005,6 @@ public class ConnectorConfigTest {
                                 + "/aFile] specified in [encryption.keystore.path]");
 
         updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [encryption.keystore.password]");
-
-        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "");
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [encryption.keystore.password]");
-
-        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "password");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1052,7 +1019,7 @@ public class ConnectorConfigTest {
         assertThat(config.isKeystoreEnabled()).isTrue();
         assertThat(config.keystorePath()).isEqualTo(keyStoreFile.toString());
         assertThat(config.keystoreType().toString()).isEqualTo("JKS");
-        assertThat(config.keystorePassword()).isEqualTo("keystore-password");
+        assertThat(config.keystorePassword()).isNull();
         assertThat(config.keyPassword()).isNull();
 
         Properties props = config.baseConsumerProps();
@@ -1060,8 +1027,6 @@ public class ConnectorConfigTest {
                 .containsAtLeast(
                         SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,
                         "JKS",
-                        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-                        "keystore-password",
                         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
                         keyStoreFile.toString());
         assertThat(props).doesNotContainKey(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
@@ -1073,6 +1038,15 @@ public class ConnectorConfigTest {
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.putAll(kesytoreParameters());
         updatedConfig.put(EncryptionConfigs.KEYSTORE_TYPE, "PKCS12");
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [encryption.keystore.password]");
+
+        updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "keystore-password");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1080,12 +1054,13 @@ public class ConnectorConfigTest {
         assertThat(config.keystoreType().toString()).isEqualTo("PKCS12");
 
         updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "");
-        ConfigException ce =
+        ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [encryption.key.password]");
+                .isEqualTo(
+                        "Specify a valid value for parameter [encryption.keystore.key.password]");
 
         updatedConfig.put(EncryptionConfigs.KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1161,7 +1136,8 @@ public class ConnectorConfigTest {
                         () -> config.gssapiKeyTab(),
                         () -> config.gssapiStoreKey(),
                         () -> config.gssapiPrincipal(),
-                        () -> config.gssapiUseKeyTab());
+                        () -> config.gssapiUseKeyTab(),
+                        () -> config.gssapiUseTicketCache());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
@@ -1231,27 +1207,12 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultGssapiAuthenticationRequiredParameters() {
+    public void shouldSpecifyGssapiAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
 
         ConfigException ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [authentication.gssapi.principal]");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "");
-        ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [authentication.gssapi.principal]");
-
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
@@ -1269,6 +1230,22 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter [authentication.gssapi.kerberos.service.name]");
 
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.gssapi.principal]");
+
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.gssapi.principal]");
+
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1288,6 +1265,7 @@ public class ConnectorConfigTest {
         assertThat(config.gssapiStoreKey()).isFalse();
         assertThat(config.gssapiPrincipal()).isEqualTo("kafka-user");
         assertThat(config.gssapiKerberosServiceName()).isEqualTo("kafka");
+        assertThat(config.gssapiUseTicketCache()).isFalse();
 
         Properties props = config.baseConsumerProps();
         assertThat(props)
@@ -1305,8 +1283,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
         updatedConfig.put(
@@ -1335,7 +1313,70 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldOverrideGssapiAuthenticationSettingsWithTicketCache() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE, "true");
+
+        // The following settings should be ignored.
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        assertThat(config.isGssapiEnabled()).isTrue();
+        assertThat(config.gssapiUseTicketCache()).isTrue();
+
+        Properties props = config.baseConsumerProps();
+        assertThat(props)
+                .containsAtLeast(
+                        SaslConfigs.SASL_MECHANISM,
+                        "GSSAPI",
+                        SaslConfigs.SASL_KERBEROS_SERVICE_NAME,
+                        "kafka",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;");
+    }
+
+    @Test
     public void shouldNotValidateWhenKeyTabIsNotSpecified() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab]");
+
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Not found file ["
+                                + adapterDir.toString()
+                                + "/aFile] specified in [authentication.gssapi.key.tab]");
+
+        updatedConfig.put(
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
+    @Test
+    public void shouldNotValidateWhenPrincipalIsNotSpecifiedAndNotUseTicketCache() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -1457,6 +1498,8 @@ public class ConnectorConfigTest {
         assertThat(config.schemaRegistryEnabledProtocolsAsStr()).isEqualTo("TLSv1.2,TLSv1.3");
         assertThat(config.schemaRegistrySslProtocol().toString()).isEqualTo("TLSv1.3");
         assertThat(config.schemaRegistryTruststoreType().toString()).isEqualTo("JKS");
+        assertThat(config.schemaRegistryTruststorePath()).isNull();
+        assertThat(config.schemaRegistryTruststorePassword()).isNull();
         assertThat(config.isSchemaRegistryHostNameVerificationEnabled()).isFalse();
         assertThat(config.schemaRegistryCipherSuites()).isEmpty();
         assertThat(config.schemaRegistryCipherSuitesAsStr()).isNull();
@@ -1600,7 +1643,7 @@ public class ConnectorConfigTest {
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Specify a valid value for parameter [schema.registry.encryption.key.password]");
+                        "Specify a valid value for parameter [schema.registry.encryption.keystore.key.password]");
 
         updatedConfig.put(SchemaRegistryConfigs.KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
