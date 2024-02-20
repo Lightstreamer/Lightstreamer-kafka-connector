@@ -264,7 +264,7 @@ Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
 ##### enable
 
-_Optional_. Whether this connection is enabled. Can be one of the following:
+_Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
 - `false`
 
