@@ -19,7 +19,7 @@
         - [`enable`](#enable)
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
-        - [record.extraction.error.strategy](#recordextractionerrorstrategy)
+        - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Encryption](#encryption)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
@@ -302,7 +302,7 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 <param name="group.id">kafka-connector-group</param>
 ```
 
-##### record.extraction.error.strategy
+##### `record.extraction.error.strategy`
 
 _Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
 
