@@ -154,7 +154,7 @@ The following sections will guide you through the configuration details.
 
 #### General Configuration
 
-- (Mandatory) **Kafka Connector Identifier**
+- **Kafka Connector Identifier** (Mandatory)
 
   The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server through a _LightstreamerClient_ object.
 
@@ -166,7 +166,7 @@ The following sections will guide you through the configuration details.
   <adapters_conf id="KafkaConnector">
   ```
 
-- (Mandatory) **Adapter Class**
+- **Adapter Class** (Mandatory)
 
   The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
 
@@ -186,7 +186,7 @@ The following sections will guide you through the configuration details.
   ...
   ```
 
-- (Mandatory) **`logging.configuration.file`**
+- **`logging.configuration.file`** (Mandatory)
 
   The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
