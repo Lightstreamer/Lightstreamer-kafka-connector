@@ -17,7 +17,7 @@
       - [General Parameters](#general-parameters)
         - [data\_provider.name](#data_providername)
         - [`enable`](#enable)
-        - [bootstrap.servers](#bootstrapservers)
+        - [`bootstrap.servers`](#bootstrapservers)
         - [group.id](#groupid)
         - [record.extraction.error.strategy](#recordextractionerrorstrategy)
       - [Encryption](#encryption)
@@ -278,7 +278,7 @@ Example:
 <param name="enable">false</param>
 ```
 
-##### bootstrap.servers
+##### `bootstrap.servers`
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
