@@ -517,7 +517,7 @@ Broker authentication is configured by the parameters with the `authentication` 
 
     Default value: `false`.
 
-  - **authentication.gssapi.key.tab** (Mandatory if a keytab is used)
+  - **authentication.gssapi.key.tab** (Mandatory if a `authentication.gssapi.use.key.tab` is `true`)
    
     The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
@@ -531,11 +531,12 @@ Broker authentication is configured by the parameters with the `authentication` 
 
     The name of the Kerberos service.
 
-  - **authentication.gssapi.pricipal** (Mandatory)
+   
+  - **authentication.gssapi.pricipal** (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true` used )
     
     The name of the principal to be used.
 
-  - **gssapi.use.ticket.cache** (Mandatory)
+  - **gssapi.use.ticket.cache** (Optional)
     
     The parameter specifies whether to configure the usage of a ticket cache.
 
