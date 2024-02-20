@@ -285,11 +285,11 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
   <param name="item-template.stock">stock</param>
 
 
-##### Encryption
+##### Encryption Settings
 
 Parameters with the `encryption` prefix configure a secure connection to the Kafka cluster.
 
-- (Optional). **encryption.enabled**
+- (Optional) **encryption.enabled**
 
   The parameter specifies whether this connection is encrypted or not. Can be one of the following:
   - `true`
@@ -303,7 +303,7 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   <param name="encryption.enabled">true</param>
   ```
 
-- (Optional). **encryption.protocol**
+- (Optional) **encryption.protocol**
 
   The SSL protocol to be used.
 
@@ -315,7 +315,7 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   <param name="encryption.protocol">TLSv1.2</param>
   ```
 
-- (Optional). **encryption.enabled.protocols**
+- (Optional) **encryption.enabled.protocols**
 
   The list of enabled secure communication protocols.
 
@@ -327,7 +327,7 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   <param name="encryption.enabled.protocols">TLSv1.3</param>
   ```
 
-- (Optional). **encryption.cipher.suites**
+- (Optional) **encryption.cipher.suites**
 
   The list of enabled secure cipher suites.
 
@@ -336,12 +336,34 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   Example:
 
   ```xml
-  <param name="encryption.cipher.suite">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+  <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
   ```
   
-- (Optional). **encryption.truststore.type**
+- (Optional) **encryption.truststore.path**
 
-  The type of the trust store. Can be of the following:
+  The path of the truststore file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+
+  Example:
+
+  ```xml
+  <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
+  ```
+
+- (Optional) **encryption.truststore.password**
+
+  The password of the truststore.
+
+  If not set, checking the integrity of the truststore file configured will not be possible.
+
+  Example:
+
+  ```xml
+  <param name="encryption.truststore.password">truststore-password</param>
+  ```
+
+- (Optional) **encryption.truststore.type**
+
+  The type of the truststore. Can be of the following:
   - `JKS`
   - `PKCS12`
 
@@ -353,29 +375,7 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   <param name="encryption.truststore.type">PKCS12</param>
   ```
 
-- (Optional). **encryption.truststore.path**
-
-  The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
-
-  Example:
-
-  ```xml
-  <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
-  ```
-
-- (Optional). **encryption.truststore.password**
-
-  The password of the trust store.
-
-  If not set, checking the integrity of the trust store file configured will not be possible.
-
-  Example:
-
-  ```xml
-  <param name="encryption.truststore.password">truststore-password</param>
-  ```
-
-- (Optional). **encryption.hostname.verification**
+- (Optional) **encryption.hostname.verification**
 
   The parameter specifies whether hostname verification is enabled or not. Can be one of the following:
   - `true`
@@ -387,7 +387,75 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
 
   ```xml
   <param name="encryption.hostname.verification">true</param>
-  ```  
+  ```
+
+- (Optional) **encryption.keystore.enabled**
+
+  The parameter specifies whether a key store is enabled or not. Can be one of the following:
+  - `true`
+  - `false`
+
+  If enabled, the following parameters configure the key store settings:
+
+  - `encryption.keystore.path`
+  - `encryption.keystore.password`
+  - `encryption.keystore.type`
+  - `encryption.keystore.key.password`
+
+
+  Default value: `false`.  
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.enabled">true</param>
+  ```    
+
+- (Mandatory if key store is enabled) **encryption.keystore.path**
+
+  The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
+  ```
+
+- (Optional) **encryption.keystore.password**
+
+  The password of the key store.
+
+  If not set, checking the integrity of the key store file configured will not be possible.
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.password">keystore-password</param>
+  ```
+  
+- (Optional) **encryption.keystore.key.password**
+
+  The password of the private key in the key store file.
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.key.password">private-key-password</param>
+  ```
+
+- (Optional) **encryption.keystore.type**
+
+  The type of the key store. Can be of the following:
+  - `JKS`
+  - `PKCS12`
+
+  Default value: `JKS`
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.type">PKCS12</param>
+  ```
 
 ##### Authentication
 
