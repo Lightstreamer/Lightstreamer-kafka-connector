@@ -1,5 +1,19 @@
 # Lightstreamer Kafka Connector
 
+- [Lightstreamer Kafka Connector](#lightstreamer-kafka-connector)
+  - [Introduction](#introduction)
+    - [Features](#features)
+    - [Quick Start](#quick-start)
+      - [Requirements](#requirements)
+      - [Deploy](#deploy)
+      - [Configure](#configure)
+    - [Start](#start)
+    - [Configuration](#configuration)
+      - [General Configuration](#general-configuration)
+      - [Connection Configuration](#connection-configuration)
+        - [Topic Mapping](#topic-mapping)
+        - [Broker Authentication Settings](#broker-authentication-settings)
+
 ## Introduction
 
 The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lighstreamer Adapter that enables event streaming from a Kafka broker to the internet.
@@ -287,7 +301,7 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 ##### Encryption Settings
 
-Parameters with the `encryption` prefix configure a secure connection to the Kafka cluster.
+A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
 - (Optional) **encryption.enabled**
 
@@ -457,8 +471,32 @@ Parameters with the `encryption` prefix configure a secure connection to the Kaf
   <param name="encryption.keystore.type">PKCS12</param>
   ```
 
-##### Authentication
+##### Broker Authentication Settings
 
+Broker authentication is configured by the parameters with the `authentication` prefix.
+
+The Lightstreamer Kafka Connector supports the following authentication methods:
+
+- `SASL/PLAIN`
+- `SASL/SCRAM-256`
+- `SASL/SCRAM-512`
+- `SASL/GSSAPI`
+
+If no method is provided, authentication against the cluster is disabled.
+
+- (Optional) **encryption.keystore.type**
+
+  The type of the key store. Can be of the following:
+  - `JKS`
+  - `PKCS12`
+
+  Default value: `JKS`
+
+  Example:
+
+  ```xml
+  <param name="encryption.keystore.type">PKCS12</param>
+  ```
 
 
 
