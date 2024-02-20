@@ -37,8 +37,8 @@
       - [Broker Authentication](#broker-authentication)
         - [authentication.enable](#authenticationenable)
         - [authentication.mechanism (Mandatory if authentication is enabled)](#authenticationmechanism-mandatory-if-authentication-is-enabled)
-        - [authentication.gssapi.use.key.tab.enable](#authenticationgssapiusekeytabenable)
-        - [authentication.gssapi.key.tab](#authenticationgssapikeytab)
+        - [authentication.gssapi.key.tab.enable](#authenticationgssapikeytabenable)
+        - [authentication.gssapi.key.tab.path](#authenticationgssapikeytabpath)
         - [authentication.gssapi.store.key.enable](#authenticationgssapistorekeyenable)
         - [authentication.gssapi.kerberos.service.name](#authenticationgssapikerberosservicename)
         - [authentication.gssapi.pricipal (Mandatory if ticket `authentication.gssapi.use.ticket.cache` is `true`)](#authenticationgssapipricipal-mandatory-if-ticket-authenticationgssapiuseticketcache-is-true)
@@ -532,13 +532,13 @@ Example:
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-##### authentication.gssapi.use.key.tab.enable
+##### authentication.gssapi.key.tab.enable
 
 _Optional_. Enable the use of a keytab.
 
 Default value: `false`.
 
-##### authentication.gssapi.key.tab 
+##### authentication.gssapi.key.tab.path
 
 (_Mandatory if_ `authentication.gssapi.key.tab.enable` _is_ `true`_)
 
