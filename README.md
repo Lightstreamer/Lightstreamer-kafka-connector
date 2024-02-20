@@ -7,7 +7,7 @@
       - [Requirements](#requirements)
       - [Deploy](#deploy)
       - [Configure](#configure)
-    - [Start](#start)
+      - [Start](#start)
     - [Configuration](#configuration)
       - [General Configuration](#general-configuration)
       - [Connection Configuration](#connection-configuration)
@@ -71,7 +71,7 @@ Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka
 - Update the `bootstrap.servers` parameter with the connection string of the Kafka Cluster.
 - Optionally customize the `LS_HOME/adapters//lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
-### Start
+#### Start
 
 1. Launch Lightstreamer Server.
 
