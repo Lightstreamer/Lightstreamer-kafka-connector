@@ -548,7 +548,9 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 - `authentication.username`, the username.
 - `authentication.password`, the password.
 
-###### Example of `PLAIN` authentication:
+###### `PLAIN`
+
+Example:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -557,7 +559,9 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### Example of `SCRAM-256` authentication:
+###### `SCRAM-256`
+
+Example: 
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -566,7 +570,9 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### Example of `SCRAM-512` authentication:
+###### `SCRAM-512`
+
+Example:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -623,7 +629,7 @@ Example:
 ...
 ```
 
-Example of configuration with usage of a ticket cache:
+Example of configuration with the use of a ticket cache:
 
 ```xml
 <param name="authentication.enable">true</param>
