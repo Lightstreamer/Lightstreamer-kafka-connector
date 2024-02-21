@@ -313,11 +313,9 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
 
-- _String_
-- _Avro_
-- _JSON_
-
-which can be used to process separately the Kafka key and Kafka value.
+- _String_.
+- _Avro_.
+- _JSON_.
 
 In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
