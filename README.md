@@ -41,7 +41,7 @@
         - [`authentication.gssapi.key.tab.path`](#authenticationgssapikeytabpath)
         - [`authentication.gssapi.store.key.enable`](#authenticationgssapistorekeyenable)
         - [`authentication.gssapi.kerberos.service.name`](#authenticationgssapikerberosservicename)
-        - [authentication.gssapi.pricipal](#authenticationgssapipricipal)
+        - [`authentication.gssapi.pricipal`](#authenticationgssapipricipal)
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
@@ -555,7 +555,7 @@ Default value: `false`.
 
 _Mandatory_. The name of the Kerberos service.
 
-##### authentication.gssapi.pricipal
+##### `authentication.gssapi.pricipal`
 
 _Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled .The name of the principal to be used.
 
@@ -606,7 +606,7 @@ Example of a plain http url:
 
 ##### Schema Registry Encryption Settings
 
-A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
+A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
 
 - `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
@@ -624,10 +624,10 @@ A secure connection to the Confluent schema registry can be configured through p
 Example:
 
 ```xml
-<!-- Confluent Schema registry URL -->
+<!-- Set the Confluent Schema registry URL -->
 <param name="schema.registry.url">https//localhost:8081</param>
 
-<!-- Encryption settings -->
+<!-- Set general encryption settings -->
 <param name="schema.registry.enabled.protocols">TLSv1.3</param>
 <param name="schema.registry.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
 <param name="schema.registry.urhostname.verification.enable">true</param>
