@@ -43,6 +43,7 @@
         - [`authentication.gssapi.kerberos.service.name`](#authenticationgssapikerberosservicename)
         - [authentication.gssapi.pricipal](#authenticationgssapipricipal)
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
+      - [Schema Registry](#schema-registry)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -582,6 +583,30 @@ Example of configuration with usage of a ticket cache:
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
+
+#### Schema Registry
+
+Schema Registry configuration
+
+The Schema Registry settings support the following parameters:
+
+- schema.registry.encryption.enabled
+- schema.registry.encryption.protocol
+- schema.registry.encryption.enabled.protocols
+- schema.registry.encryption.cipher.suites
+- schema.registry.encryption.cipher.suites
+- schema.registry.encryption.truststore.path
+- schema.registry.encryption.truststore.password
+- schema.registry.truststore.password
+- schema.registry.encryption.truststore.type
+- schema.registry.encryption.encryption.hostname.verification.enable
+- schema.registry.encryption.keystore.enable
+- schema.registry.encryption.keystore.path
+- schema.registry.encryption.keystore.password
+- schema.registry.encryption.keystore.type
+- schema.registry.encryption.keystore.key.password
+
+
 
 #### Topic Mapping
 
