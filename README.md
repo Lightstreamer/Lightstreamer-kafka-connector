@@ -23,10 +23,7 @@
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
         - [`key.evaluator.type` and `value.evaluator.type`](#keyevaluatortype-and-valueevaluatortype)
         - [`key.evaluator.schema.path` and `value.evaluator.schema.path`](#keyevaluatorschemapath-and-valueevaluatorschemapath)
-        - [key.evaluator.schema.registry.enable](#keyevaluatorschemaregistryenable)
-        - [value.evaluator.type](#valueevaluatortype)
-        - [value.evaluator.schema.path](#valueevaluatorschemapath)
-        - [value.evaluator.schema.registry.enable](#valueevaluatorschemaregistryenable)
+        - [`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`](#keyevaluatorschemaregistryenable-and-valueevaluatorschemaregistryenable)
       - [Encryption Parameters](#encryption-parameters)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
@@ -320,14 +317,21 @@ The Lightstreamer Kafka Connector offers wide support for deserializing Kafka re
 - _Avro_
 - _JSON_
 
-which can be specified separately for processing the Kafka key and Kafka value.
+which can be used to process separately the Kafka key and Kafka value.
 
-In particular, for Avro and JSON formats, the Kafka Connector supports message validation, which can be specified (again, separately for key and value) through:
+In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
-- Local schema files, wher
-  It is possible to specify a separate file for key and value.
-- The Confluent Schema Registry, which can be enabled separately for key and value.
-  
+- Local schema files.
+- The Confluent Schema Registry.
+
+Kafka Connector supports independent deserialization of keys and values, which means that:
+
+- Key and value can have different formats.
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`)
+- Message validation against local schemas file must be specified separately for key and value (through the `key.evaluator.schema.path` and `value.evaluator.schema.path`)
+
+**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+
 In case of a validation failure, the Connector can react by ...
 
 ##### `record.extraction.error.strategy`
@@ -361,31 +365,23 @@ Default value: `STRING`
 
 ##### `key.evaluator.schema.path` and `value.evaluator.schema.path`
 
-_Mandatory idftype is AVRO and schema registry is not enabled_.
-The path of the local schema file respectively for the key and a value of a Kakfa record.
+The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
 
 ```xml
 <param name="key.evaluator.schema.path">schema/record_key.json</param>
 <param name="value.evaluator.schema.path">schemas/record_value.json</param>
 ```
 
-##### key.evaluator.schema.registry.enable
+##### `key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`
 
-Enable the use of the [Confluent Schema Registry](#schema-registry) for validating the key of a Kafka record.
-
-_Mandatory if type is AVRO and no schema path is specified_.
+Enable the use of the [Confluent Schema Registry](#schema-registry) for message validation respectively of the Kafka key and the Kafa value.
 
 Default value: `false`
 
 ```xml
 <param name="key.evaluator.schema.registry.enable">true</param>
+<param name="value.evaluator.schema.registry.enable">false</param>
 ```
-
-##### value.evaluator.type
-
-##### value.evaluator.schema.path
-
-##### value.evaluator.schema.registry.enable
 
 #### Encryption Parameters
 
