@@ -606,7 +606,7 @@ Example of a plain http url:
 
 ##### Schema Registry Encryption Settings
 
-A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameter](#encryption) section:
+A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
 
 - `schema.registry.encryption.enabled` (see [encryption.enable](#encryptionenable))
 - `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionenable))
