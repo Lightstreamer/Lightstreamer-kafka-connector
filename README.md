@@ -45,7 +45,7 @@
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
-        - [Schema Registry Encryption Settings](#schema-registry-encryption-settings)
+        - [Encryption Parameters](#encryption-parameters-1)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -604,7 +604,7 @@ Example of a plain http url:
 <param name="schema.registry.url">http//localhost:8081</param>
 ```
 
-##### Schema Registry Encryption Settings
+##### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
 
