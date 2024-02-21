@@ -536,7 +536,7 @@ Example:
 
 ##### `authentication.mechanism`
 
-_Mandatory if authentication is enabled_. The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-256`
