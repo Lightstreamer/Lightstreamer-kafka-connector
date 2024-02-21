@@ -34,15 +34,10 @@
         - [`encryption.keystore.password`](#encryptionkeystorepassword)
         - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
         - [`encryption.keystore.type`](#encryptionkeystoretype)
+        - [Complete Configuration Example](#complete-configuration-example)
       - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
         - [`authentication.mechanism`](#authenticationmechanism)
-        - [`authentication.gssapi.key.tab.enable`](#authenticationgssapikeytabenable)
-        - [`authentication.gssapi.key.tab.path`](#authenticationgssapikeytabpath)
-        - [`authentication.gssapi.store.key.enable`](#authenticationgssapistorekeyenable)
-        - [`authentication.gssapi.kerberos.service.name`](#authenticationgssapikerberosservicename)
-        - [`authentication.gssapi.pricipal`](#authenticationgssapipricipal)
-        - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
@@ -492,6 +487,35 @@ Example:
 <param name="encryption.keystore.type">PKCS12</param>
 ```
 
+##### Complete Configuration Example
+
+The following is a complete example of how to configure encryption through the above parameters.
+
+```xml
+...
+<!-- Enable encryption -->
+<param name="encryption.enable">true</param>
+
+<!-- Set general encryption settings -->
+<param name="encryption.protocol">TLSv1.2</param>
+<param name="encryption.enabled.protocols">TLSv1.2</param>
+<param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="encryption.hostname.verification.enable">true</param>
+
+<!-- If required, configure the trust store to trust the Kafka Cluster certificates -->
+<param name="encryption.truststore.type">JKS</param>
+<param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param></param>
+<param name="encryption.truststore.path">secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
+
+<!-- If mutual TLS is enabled on Kafka Cluster, enable and configure the key store -->
+<param name="encryption.keystore.enable">true</param>
+<param name="encryption.keystore.type">PKCS12</param>
+<param name="encryption.keystore.path">secrets/kafka.connector.encryption.keystore.pkcs12</param>
+<param name="encryption.keystore.password">schemaregistry-keystore-password</param>
+<param name="encryption.keystore.key.password">schemaregistry-private-key-password</param>
+...
+```
+
 #### Broker Authentication Parameters
 
 Broker authentication is configured by parameters with the `authentication` prefix.
@@ -521,8 +545,8 @@ _Mandatory if authentication is enabled_. The SASL mechanism type. The Lightstre
 
 In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
 
-- **authentication.username**, the username.
-- **authentication.password**, the password.
+- `authentication.username`, the username.
+- `authentication.password`, the password.
 
 Example:
 
@@ -535,31 +559,31 @@ Example:
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
-##### `authentication.gssapi.key.tab.enable`
+###### `authentication.gssapi.key.tab.enable`
 
 _Optional_. Enable the use of a keytab.
 
 Default value: `false`.
 
-##### `authentication.gssapi.key.tab.path`
+###### `authentication.gssapi.key.tab.path`
 
 _Mandatory if_ [key tab](#authenticationgssapikeytabenable) is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
-##### `authentication.gssapi.store.key.enable`
+###### `authentication.gssapi.store.key.enable`
 
 _Optional_. Enable storage of the principal key.
 
 Default value: `false`.
 
-##### `authentication.gssapi.kerberos.service.name`
+###### `authentication.gssapi.kerberos.service.name`
 
 _Mandatory_. The name of the Kerberos service.
 
-##### `authentication.gssapi.pricipal`
+###### `authentication.gssapi.pricipal`
 
 _Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled .The name of the principal to be used.
 
-##### `authentication.gssapi.ticket.cache.enable`
+###### `authentication.gssapi.ticket.cache.enable`
 
 _Optional_. Enable the use of a ticket cache.
 
@@ -568,6 +592,7 @@ Default value: `false`.
 Example:
 
 ```xml
+...
 <param name="authentication.enable">true</param>
 <param name="authentication.mechanism">GSSAPI</param>
 <param name="authentication.gssapi.key.tab.enable">true</param>
@@ -575,6 +600,7 @@ Example:
 <param name="authentication.gssapi.store.key.enable">true</param>
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
+...
 ```
 
 Example of configuration with usage of a ticket cache:
@@ -588,7 +614,7 @@ Example of configuration with usage of a ticket cache:
 
 #### Schema Registry
 
-Schema Registry configuration
+...
 
 ##### `schema.registry.url`
 
@@ -628,21 +654,21 @@ Example:
 <param name="schema.registry.url">https//localhost:8081</param>
 
 <!-- Set general encryption settings -->
-<param name="schema.registry.enabled.protocols">TLSv1.3</param>
-<param name="schema.registry.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-<param name="schema.registry.urhostname.verification.enable">true</param>
+<param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
+<param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="schema.registry.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
-<param name="schema.registry.truststore.type">JKS</param>
-<param name="schema.registry.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststire.pkcs12</param></param>
-<param name="schema.registry.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststire.pkcs12</param></param>
+<param name="schema.registry.encryption.truststore.type">JKS</param>
+<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
+<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
 
-<!-- If mutual TLS is enabled on the Confluent Schema registry, configure the key store -->
-<param name="schema.registry.keystore.enable">true</param>
-<param name="schema.registry.keystore.type">PKCS12</param>
-<param name="schema.registry.keystore.path">secrets/kafka.connector.schema.registry.keystore.pkcs12</param>
-<param name="schema.registry.keystore.password">schemaregistry-keystore-password</param>
-<param name="schema.registry.keystore.key.password">schemaregistry-private-key-password</param>
+<!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->
+<param name="schema.registry.encryption.keystore.enable">true</param>
+<param name="schema.registry.encryption.keystore.type">PKCS12</param>
+<param name="schema.registry.encryption.keystore.path">secrets/kafka.connector.schema.registry.encryption.keystore.pkcs12</param>
+<param name="schema.registry.encryption.keystore.password">schemaregistry-keystore-password</param>
+<param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
 ```
 
 #### Topic Mapping
