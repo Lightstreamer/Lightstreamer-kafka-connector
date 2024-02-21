@@ -19,7 +19,14 @@
         - [`enable`](#enable)
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
+      - [Record Evaluation](#record-evaluation)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
+        - [`key.evaluator.type` and `value.evaluator.type`](#keyevaluatortype-and-valueevaluatortype)
+        - [`key.evaluator.schema.path` and `value.evaluator.schema.path`](#keyevaluatorschemapath-and-valueevaluatorschemapath)
+        - [key.evaluator.schema.registry.enable](#keyevaluatorschemaregistryenable)
+        - [value.evaluator.type](#valueevaluatortype)
+        - [value.evaluator.schema.path](#valueevaluatorschemapath)
+        - [value.evaluator.schema.registry.enable](#valueevaluatorschemaregistryenable)
       - [Encryption Parameters](#encryption-parameters)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
@@ -304,6 +311,22 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 <param name="group.id">kafka-connector-group</param>
 ```
 
+
+#### Record Evaluation
+
+The Lightstreamer Kafka Connector offers wide support for deserializing record values and keys. Currently, it allows the following formats:
+
+- String
+- Avro
+- JSON
+
+In particular, for Avro and JSON formats, the Kafka Connector supports message validation, which can be specified through:
+
+- Local schema files.
+- The Confluent Schema Registry.
+
+
+
 ##### `record.extraction.error.strategy`
 
 _Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
@@ -318,6 +341,42 @@ Example:
 ```xml
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
+
+##### `key.evaluator.type` and `value.evaluator.type`
+
+_Optional_. Respectively, the format used to deserialize the key and value of a Kafka record. Can be one of the following:
+
+- `STRING`
+- `AVRO`
+- `JSON`
+
+Default value: `STRING`
+
+```xml
+<param name="key.evaluator.type">JSON</param>
+```
+
+##### `key.evaluator.schema.path` and `value.evaluator.schema.path`
+
+_Mandatory idftype is AVRO and schema registry is not enabled_.
+
+##### key.evaluator.schema.registry.enable
+
+Enable the use of the [Confluent Schema Registry](#schema-registry) for validating the key of a Kafka record.
+
+_Mandatory if type is AVRO and no schema path is specified_.
+
+Default value: `false`
+
+```xml
+<param name="key.evaluator.schema.registry.enable">true</param>
+```
+
+##### value.evaluator.type
+
+##### value.evaluator.schema.path
+
+##### value.evaluator.schema.registry.enable
 
 #### Encryption Parameters
 
