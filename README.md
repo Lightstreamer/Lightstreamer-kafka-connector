@@ -314,18 +314,21 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 #### Record Evaluation
 
-The Lightstreamer Kafka Connector offers wide support for deserializing record values and keys. Currently, it allows the following formats:
+The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
 
-- String
-- Avro
-- JSON
+- _String_
+- _Avro_
+- _JSON_
 
-In particular, for Avro and JSON formats, the Kafka Connector supports message validation, which can be specified through:
+which can be specified separately for processing the Kafka key and Kafka value.
 
-- Local schema files.
-- The Confluent Schema Registry.
+In particular, for Avro and JSON formats, the Kafka Connector supports message validation, which can be specified (again, separately for key and value) through:
 
-
+- Local schema files, wher
+  It is possible to specify a separate file for key and value.
+- The Confluent Schema Registry, which can be enabled separately for key and value.
+  
+In case of a validation failure, the Connector can react by ...
 
 ##### `record.extraction.error.strategy`
 
@@ -344,7 +347,7 @@ Example:
 
 ##### `key.evaluator.type` and `value.evaluator.type`
 
-_Optional_. Respectively, the format used to deserialize the key and value of a Kafka record. Can be one of the following:
+_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
 
 - `STRING`
 - `AVRO`
@@ -359,6 +362,12 @@ Default value: `STRING`
 ##### `key.evaluator.schema.path` and `value.evaluator.schema.path`
 
 _Mandatory idftype is AVRO and schema registry is not enabled_.
+The path of the local schema file respectively for the key and a value of a Kakfa record.
+
+```xml
+<param name="key.evaluator.schema.path">schema/record_key.json</param>
+<param name="value.evaluator.schema.path">schemas/record_value.json</param>
+```
 
 ##### key.evaluator.schema.registry.enable
 
