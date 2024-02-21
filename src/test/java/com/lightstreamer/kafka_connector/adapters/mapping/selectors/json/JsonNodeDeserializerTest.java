@@ -53,7 +53,7 @@ public class JsonNodeDeserializerTest {
     public void shouldDeserializeKeyWithSchemaRegisty() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -76,7 +76,7 @@ public class JsonNodeDeserializerTest {
     public void shouldDeserializeValueWithSchemaRegsitry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -99,9 +99,9 @@ public class JsonNodeDeserializerTest {
     public void shouldDeserializeKeyAndValueWithSchemaRegisstry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");

@@ -92,8 +92,8 @@ public class ConnectorConfigTest {
         assertThat(adapterDir.defaultValue()).isNull();
         assertThat(adapterDir.type()).isEqualTo(ConfType.DIRECTORY);
 
-        ConfParameter enabled = configSpec.getParameter(ConnectorConfig.ENABLED);
-        assertThat(enabled.name()).isEqualTo(ConnectorConfig.ENABLED);
+        ConfParameter enabled = configSpec.getParameter(ConnectorConfig.ENABLE);
+        assertThat(enabled.name()).isEqualTo(ConnectorConfig.ENABLE);
         assertThat(enabled.required()).isFalse();
         assertThat(enabled.multiple()).isFalse();
         assertThat(enabled.mutable()).isTrue();
@@ -151,9 +151,9 @@ public class ConnectorConfigTest {
         assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForKey =
-                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.name())
-                .isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+                .isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.required()).isFalse();
         assertThat(schemaRegistryEnabledForKey.multiple()).isFalse();
         assertThat(schemaRegistryEnabledForKey.mutable()).isTrue();
@@ -179,9 +179,9 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForValue =
-                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.name())
-                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.required()).isFalse();
         assertThat(schemaRegistryEnabledForValue.multiple()).isFalse();
         assertThat(schemaRegistryEnabledForValue.mutable()).isTrue();
@@ -252,9 +252,8 @@ public class ConnectorConfigTest {
         assertThat(autoOffsetReset.defaultValue()).isEqualTo("latest");
         assertThat(autoOffsetReset.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter encryptionEnabed =
-                configSpec.getParameter(ConnectorConfig.ENABLE_ENCRYTPTION);
-        assertThat(encryptionEnabed.name()).isEqualTo(ConnectorConfig.ENABLE_ENCRYTPTION);
+        ConfParameter encryptionEnabed = configSpec.getParameter(ConnectorConfig.ENCYRPTION_ENABLE);
+        assertThat(encryptionEnabed.name()).isEqualTo(ConnectorConfig.ENCYRPTION_ENABLE);
         assertThat(encryptionEnabed.required()).isFalse();
         assertThat(encryptionEnabed.multiple()).isFalse();
         assertThat(encryptionEnabed.mutable()).isTrue();
@@ -262,8 +261,8 @@ public class ConnectorConfigTest {
         assertThat(encryptionEnabed.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter authenticationEnabled =
-                configSpec.getParameter(ConnectorConfig.ENABLE_AUTHENTICATION);
-        assertThat(authenticationEnabled.name()).isEqualTo(ConnectorConfig.ENABLE_AUTHENTICATION);
+                configSpec.getParameter(ConnectorConfig.AUTHENTICATION_ENABLE);
+        assertThat(authenticationEnabled.name()).isEqualTo(ConnectorConfig.AUTHENTICATION_ENABLE);
         assertThat(authenticationEnabled.required()).isFalse();
         assertThat(authenticationEnabled.multiple()).isFalse();
         assertThat(authenticationEnabled.mutable()).isTrue();
@@ -376,7 +375,7 @@ public class ConnectorConfigTest {
 
     private Map<String, String> encryptionParameters() {
         Map<String, String> encryptionParams = new HashMap<>();
-        encryptionParams.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
+        encryptionParams.put(ConnectorConfig.ENCYRPTION_ENABLE, "true");
         return encryptionParams;
     }
 
@@ -389,7 +388,7 @@ public class ConnectorConfigTest {
 
     private Map<String, String> authenticationParameters() {
         Map<String, String> authParams = new HashMap<>();
-        authParams.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        authParams.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         authParams.put(BrokerAuthenticationConfigs.USERNAME, "sasl-username");
         authParams.put(BrokerAuthenticationConfigs.PASSWORD, "sasl-password");
         return authParams;
@@ -725,7 +724,7 @@ public class ConnectorConfigTest {
         assertThat(config.isEnabled()).isTrue();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLED, "false");
+        updatedConfig.put(ConnectorConfig.ENABLE, "false");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isEnabled()).isFalse();
     }
@@ -830,14 +829,15 @@ public class ConnectorConfigTest {
                         () -> config.sslProvider());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage()).isEqualTo("Parameter [encryption.enabled] is not enabled");
+            assertThat(ce.getMessage())
+                    .isEqualTo("Encryption is not enabled. Check parameter [encryption.enable]");
         }
     }
 
     @Test
     public void shouldSpecifyEncryptionParametersWhenRequired() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_ENCRYTPTION, "true");
+        updatedConfig.put(ConnectorConfig.ENCYRPTION_ENABLE, "true");
 
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "");
         ConfigException ce =
@@ -908,7 +908,8 @@ public class ConnectorConfigTest {
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
-                    .isEqualTo("Parameter [encryption.keystore.enabled] is not enabled");
+                    .isEqualTo(
+                            "Key store is not enabled. Check parameter [encryption.keystore.enable]");
         }
     }
 
@@ -1082,7 +1083,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyPlainAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
 
         ConfigException ce =
                 assertThrows(
@@ -1141,7 +1142,8 @@ public class ConnectorConfigTest {
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
-                    .isEqualTo("Parameter [authentication.enabled] is not enabled");
+                    .isEqualTo(
+                            "Authentication is not enabled. Check parameter [authentication.enable]");
         }
     }
 
@@ -1209,7 +1211,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyGssapiAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
 
         ConfigException ce =
@@ -1252,7 +1254,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
@@ -1281,14 +1283,15 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY, "true");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE, "true");
         updatedConfig.put(
-                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH,
+                keyTabFile.getFileName().toString());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1315,17 +1318,18 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideGssapiAuthenticationSettingsWithTicketCache() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE, "true");
 
         // The following settings should be ignored.
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY, "true");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE, "true");
         updatedConfig.put(
-                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH,
+                keyTabFile.getFileName().toString());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1346,20 +1350,20 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotValidateWhenKeyTabIsNotSpecified() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE, "true");
 
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab]");
+                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab.path]");
 
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH, "aFile");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1368,30 +1372,31 @@ public class ConnectorConfigTest {
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
-                                + "/aFile] specified in [authentication.gssapi.key.tab]");
+                                + "/aFile] specified in [authentication.gssapi.key.tab.path]");
 
         updatedConfig.put(
-                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH,
+                keyTabFile.getFileName().toString());
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
     @Test
     public void shouldNotValidateWhenPrincipalIsNotSpecifiedAndNotUseTicketCache() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.ENABLE_AUTHENTICATION, "true");
+        updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME, "kafka");
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE, "true");
 
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce.getMessage())
-                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab]");
+                .isEqualTo("Missing required parameter [authentication.gssapi.key.tab.path]");
 
-        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, "aFile");
+        updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH, "aFile");
         ce =
                 assertThrows(
                         ConfigException.class,
@@ -1400,10 +1405,11 @@ public class ConnectorConfigTest {
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
-                                + "/aFile] specified in [authentication.gssapi.key.tab]");
+                                + "/aFile] specified in [authentication.gssapi.key.tab.path]");
 
         updatedConfig.put(
-                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, keyTabFile.getFileName().toString());
+                BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH,
+                keyTabFile.getFileName().toString());
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
@@ -1431,15 +1437,15 @@ public class ConnectorConfigTest {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
                     .isEqualTo(
-                            "Neither parameter [key.evaluator.schema.registry.enabled] nor parameter [value.evaluator.schema.registry.enabled] are enabled");
+                            "Neither parameter [key.evaluator.schema.registry.enable] nor parameter [value.evaluator.schema.registry.enable] are enabled");
         }
     }
 
     @ParameterizedTest
     @ValueSource(
             strings = {
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED
+                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE
             })
     public void shouldSpecifyRequiredSchemaRegistryParameters(String evaluatorKey) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1458,7 +1464,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotAccessToSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1487,7 +1493,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1531,14 +1537,14 @@ public class ConnectorConfigTest {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
                     .isEqualTo(
-                            "Parameter [schema.registry.encryption.keystore.enabled] is not enabled");
+                            "Parameter [schema.registry.encryption.keystore.enable] is not enabled");
         }
     }
 
     @Test
     public void shouldOverrideSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(
                 SchemaRegistryConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
@@ -1592,7 +1598,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
         updatedConfig.put(
@@ -1623,7 +1629,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_TYPE, "PKCS12");
@@ -1665,7 +1671,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotAccessToSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1686,7 +1692,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED, "true");
+        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION, "true");
 

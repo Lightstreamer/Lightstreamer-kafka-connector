@@ -147,7 +147,7 @@ public class ConnectorAdapterSetTest {
 
         ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
-        dataAdapterParams.put(ConnectorConfig.ENABLED, "false");
+        dataAdapterParams.put(ConnectorConfig.ENABLE, "false");
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
         TableInfo[] tables = mkTable("CONNECTOR", Mode.DISTINCT);

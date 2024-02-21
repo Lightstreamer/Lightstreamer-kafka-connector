@@ -37,9 +37,9 @@ public class TlsConfigs {
     public static String TRUSTSTORE_PATH = "truststore.path";
     public static String TRUSTSTORE_PASSWORD = "truststore.password";
 
-    public static String ENABLE_KESYTORE = "keystore.enabled";
+    public static String KESYTORE_ENABLE = "keystore.enable";
 
-    public static String ENABLE_HOSTNAME_VERIFICATION = "hostname.verification";
+    public static String HOSTNAME_VERIFICATION_ENABLE = "hostname.verification.enable";
     public static String SSL_CIPHER_SUITES = "cipher.suites";
     public static String SSL_PROVIDER = "provider";
     public static String SSL_EGINE_FACTORY_CLASS = "engine.factory.class";
@@ -74,7 +74,7 @@ public class TlsConfigs {
                         .add(TRUSTSTORE_PATH, false, false, FILE)
                         .add(TRUSTSTORE_PASSWORD, false, false, TEXT)
                         .add(
-                                ENABLE_HOSTNAME_VERIFICATION,
+                                HOSTNAME_VERIFICATION_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -86,8 +86,8 @@ public class TlsConfigs {
                         .add(SSL_SECURE_RANDOM_IMPLEMENTATION, false, false, TEXT)
                         .add(SSL_TRUSTMANAGER_ALGORITHM, false, false, TEXT)
                         .add(SECURITY_PROVIDERS, false, false, TEXT)
-                        .add(ENABLE_KESYTORE, false, false, ConfType.BOOL, defaultValue("false"))
-                        .withEnabledChildConfigs(KeystoreConfigs.spec(), ENABLE_KESYTORE);
+                        .add(KESYTORE_ENABLE, false, false, ConfType.BOOL, defaultValue("false"))
+                        .withEnabledChildConfigs(KeystoreConfigs.spec(), KESYTORE_ENABLE);
     }
 
     public static ConfigsSpec spec() {

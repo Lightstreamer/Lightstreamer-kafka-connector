@@ -59,8 +59,8 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(password.type()).isEqualTo(TEXT);
 
         ConfParameter useKeyTab =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
-        assertThat(useKeyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
+        assertThat(useKeyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
         assertThat(useKeyTab.required()).isFalse();
         assertThat(useKeyTab.multiple()).isFalse();
         assertThat(useKeyTab.mutable()).isTrue();
@@ -68,16 +68,17 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(useKeyTab.type()).isEqualTo(BOOL);
 
         ConfParameter storeKey =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
-        assertThat(storeKey.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
+        assertThat(storeKey.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
         assertThat(storeKey.required()).isFalse();
         assertThat(storeKey.multiple()).isFalse();
         assertThat(storeKey.mutable()).isTrue();
         assertThat(storeKey.defaultValue()).isEqualTo("false");
         assertThat(storeKey.type()).isEqualTo(BOOL);
 
-        ConfParameter keyTab = configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB);
-        assertThat(keyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB);
+        ConfParameter keyTab =
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH);
+        assertThat(keyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH);
         assertThat(keyTab.required()).isFalse();
         assertThat(keyTab.multiple()).isFalse();
         assertThat(keyTab.mutable()).isTrue();
@@ -87,7 +88,7 @@ public class BrokerAuthenticationConfigsTest {
         ConfParameter principal =
                 configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
         assertThat(principal.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
-        assertThat(principal.required()).isTrue();
+        assertThat(principal.required()).isFalse();
         assertThat(principal.multiple()).isFalse();
         assertThat(principal.mutable()).isTrue();
         assertThat(principal.defaultValue()).isNull();
@@ -104,9 +105,9 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(kerberosServiceName.type()).isEqualTo(TEXT);
 
         ConfParameter useTicketCache =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
+                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
         assertThat(useTicketCache.name())
-                .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
+                .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
         assertThat(useTicketCache.required()).isFalse();
         assertThat(useTicketCache.multiple()).isFalse();
         assertThat(useTicketCache.mutable()).isTrue();

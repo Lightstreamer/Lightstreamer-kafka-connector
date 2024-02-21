@@ -51,10 +51,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     AbstractConfig(ConfigsSpec spec, Map<String, String> configs) {
         this.configSpec = spec;
         this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
-        validate();
+        postValidate();
     }
 
-    protected void validate() throws ConfigException {}
+    protected void postValidate() throws ConfigException {}
 
     public final Map<String, String> configuration() {
         return this.configuration;

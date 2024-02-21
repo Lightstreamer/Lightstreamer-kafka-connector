@@ -40,12 +40,13 @@ public class BrokerAuthenticationConfigs {
 
     public static final String GSSAPI_KERBEROS_SERVICE_NAME =
             adapt(GssapiConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
-    public static final String GSSAPI_USE_KEY_TAB = adapt(GssapiConfigs.GSSAPI_USE_KEY_TAB);
-    public static final String GSSAPI_KEY_TAB = adapt(GssapiConfigs.GSSAPI_KEY_TAB);
-    public static final String GSSAPI_STORE_KEY = adapt(GssapiConfigs.GSSAPI_STORE_KEY);
+    public static final String GSSAPI_KEY_TAB_ENABLE = adapt(GssapiConfigs.GSSAPI_KEY_TAB_ENABLE);
+    public static final String GSSAPI_KEY_TAB_PATH = adapt(GssapiConfigs.GSSAPI_KEY_TAB_PATH);
+    public static final String GSSAPI_STORE_KEY_ENABLE =
+            adapt(GssapiConfigs.GSSAPI_STORE_KEY_ENABLE);
     public static final String GSSAPI_PRINCIPAL = adapt(GssapiConfigs.GSSAPI_PRINCIPAL);
-    public static final String GSSAPI_USE_TICKET_CACHE =
-            adapt(GssapiConfigs.GSSAPI_USE_TICKET_CACHE);
+    public static final String GSSAPI_TICKET_CACHE_ENABLE =
+            adapt(GssapiConfigs.GSSAPI_TICKET_CACHE_ENABLE);
 
     private static ConfigsSpec CONFIG_SPEC =
             AuthenticationConfigs.cloneSpec()

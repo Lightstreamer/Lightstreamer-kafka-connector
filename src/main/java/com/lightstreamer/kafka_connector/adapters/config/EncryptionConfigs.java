@@ -41,10 +41,10 @@ public class EncryptionConfigs {
     public static final String TRUSTSTORE_PATH = adapt(TlsConfigs.TRUSTSTORE_PATH);
     public static final String TRUSTSTORE_PASSWORD = adapt(TlsConfigs.TRUSTSTORE_PASSWORD);
 
-    public static final String ENABLE_MTLS = adapt(TlsConfigs.ENABLE_KESYTORE);
+    public static final String ENABLE_MTLS = adapt(TlsConfigs.KESYTORE_ENABLE);
 
     public static final String ENABLE_HOSTNAME_VERIFICATION =
-            adapt(TlsConfigs.ENABLE_HOSTNAME_VERIFICATION);
+            adapt(TlsConfigs.HOSTNAME_VERIFICATION_ENABLE);
 
     public static final String SSL_PROVIDER = adapt(TlsConfigs.SSL_PROVIDER);
     public static final String SSL_EGINE_FACTORY_CLASS = adapt(TlsConfigs.SSL_EGINE_FACTORY_CLASS);

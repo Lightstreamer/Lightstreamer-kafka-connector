@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
 
-    public static final String ENABLED = "enabled";
+    public static final String ENABLE = "enable";
 
     public static final String DATA_ADAPTER_NAME = "data_provider.name";
 
@@ -82,14 +82,14 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
 
     public static final String KEY_EVALUATOR_SCHEMA_PATH = "key.evaluator.schema.path";
-    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED =
-            "key.evaluator.schema.registry.enabled";
+    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
+            "key.evaluator.schema.registry.enable";
 
     public static final String VALUE_EVALUATOR_TYPE = "value.evaluator.type";
 
     public static final String VALUE_EVALUATOR_SCHEMA_PATH = "value.evaluator.schema.path";
-    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED =
-            "value.evaluator.schema.registry.enabled";
+    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
+            "value.evaluator.schema.registry.enable";
 
     public static final String ITEM_INFO_NAME = "info.item";
 
@@ -98,9 +98,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
 
-    public static final String ENABLE_ENCRYTPTION = "encryption.enabled";
+    public static final String ENCYRPTION_ENABLE = "encryption.enable";
 
-    public static final String ENABLE_AUTHENTICATION = "authentication.enabled";
+    public static final String AUTHENTICATION_ENABLE = "authentication.enable";
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -143,7 +143,7 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
                         .add(DATA_ADAPTER_NAME, true, false, TEXT)
-                        .add(ENABLED, false, false, BOOL, defaultValue("true"))
+                        .add(ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
                         .add(
                                 GROUP_ID,
@@ -174,7 +174,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
-                                KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -187,7 +187,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(VALUE_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
-                                VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                                VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -200,8 +200,8 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
-                        .add(ENABLE_ENCRYTPTION, false, false, BOOL, defaultValue("false"))
-                        .add(ENABLE_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
+                        .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
+                        .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
                                 CONSUMER_AUTO_OFFSET_RESET_CONFIG,
                                 false,
@@ -253,14 +253,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("15000"))
-                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENABLE_ENCRYTPTION)
+                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCYRPTION_ENABLE)
                         .withEnabledChildConfigs(
-                                BrokerAuthenticationConfigs.spec(), ENABLE_AUTHENTICATION)
+                                BrokerAuthenticationConfigs.spec(), AUTHENTICATION_ENABLE)
                         .withEnabledChildConfigs(
                                 SchemaRegistryConfigs.spec(),
                                 EnablingKey.of(
-                                        KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
-                                        VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED));
+                                        KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
     }
 
     private final Properties consumerProps;
@@ -275,7 +275,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     @Override
-    protected final void validate() throws ConfigException {
+    protected final void postValidate() throws ConfigException {
         if (getKeyEvaluator().equals(EvaluatorType.AVRO)) {
             if (!isSchemaRegistryEnabledForKey()) {
                 try {
@@ -381,7 +381,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isSchemaRegistryEnabledForKey() {
-        return getBoolean(KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        return getBoolean(KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
     }
 
     public boolean hasValueSchemaFile() {
@@ -389,7 +389,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isSchemaRegistryEnabledForValue() {
-        return getBoolean(VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED);
+        return getBoolean(VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
     }
 
     public boolean isSchemaRegistryEnabled() {
@@ -405,7 +405,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEnabled() {
-        return getBoolean(ENABLED);
+        return getBoolean(ENABLE);
     }
 
     public String getItemInfoName() {
@@ -417,7 +417,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEncryptionEnabled() {
-        return getBoolean(ENABLE_ENCRYTPTION);
+        return getBoolean(ENCYRPTION_ENABLE);
     }
 
     public boolean isKeystoreEnabled() {
@@ -428,21 +428,23 @@ public final class ConnectorConfig extends AbstractConfig {
     private void checkEncryptionEnabled() {
         if (!isEncryptionEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not enabled".formatted(ENABLE_ENCRYTPTION));
+                    "Encryption is not enabled. Check parameter [%s]".formatted(ENCYRPTION_ENABLE));
         }
     }
 
     private void checkKeystoreEnabled() {
         if (!isKeystoreEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not enabled".formatted(EncryptionConfigs.ENABLE_MTLS));
+                    "Key store is not enabled. Check parameter [%s]"
+                            .formatted(EncryptionConfigs.ENABLE_MTLS));
         }
     }
 
     private void checkAuthenticationEnabled() {
         if (!isAuthenticationEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not enabled".formatted(ENABLE_AUTHENTICATION));
+                    "Authentication is not enabled. Check parameter [%s]"
+                            .formatted(AUTHENTICATION_ENABLE));
         }
     }
 
@@ -519,7 +521,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isAuthenticationEnabled() {
-        return getBoolean(ENABLE_AUTHENTICATION);
+        return getBoolean(AUTHENTICATION_ENABLE);
     }
 
     public SaslMechanism authenticationMechanism() {
@@ -547,24 +549,24 @@ public final class ConnectorConfig extends AbstractConfig {
     private void checkGssapi() {
         if (!isGssapiEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not set to GSSAPI"
+                    "GSSAPI is not configured. Checl parameter [%s]"
                             .formatted(BrokerAuthenticationConfigs.SASL_MECHANISM));
         }
     }
 
     public boolean gssapiUseKeyTab() {
         checkGssapi();
-        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_USE_KEY_TAB);
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
     }
 
     public String gssapiKeyTab() {
         boolean isRequired = gssapiUseKeyTab();
-        return getFile(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB, isRequired);
+        return getFile(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH, isRequired);
     }
 
     public boolean gssapiStoreKey() {
         checkGssapi();
-        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY);
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
     }
 
     public String gssapiPrincipal() {
@@ -579,7 +581,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean gssapiUseTicketCache() {
         checkGssapi();
-        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_USE_TICKET_CACHE);
+        return getBoolean(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
     }
 
     private void checkSchemaRegistryEnabled() {
@@ -587,8 +589,8 @@ public final class ConnectorConfig extends AbstractConfig {
             throw new ConfigException(
                     "Neither parameter [%s] nor parameter [%s] are enabled"
                             .formatted(
-                                    KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
-                                    VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED));
+                                    KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                    VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
         }
     }
 

@@ -36,9 +36,9 @@ public class GenericRecordDeserializerTest {
     public void shouldDeserializeWithSchemaRegistry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -59,7 +59,7 @@ public class GenericRecordDeserializerTest {
     public void shouldDeserializeKeyWithSchemaRegistryValueWithLocalSchema() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
@@ -85,7 +85,7 @@ public class GenericRecordDeserializerTest {
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -130,9 +130,9 @@ public class GenericRecordDeserializerTest {
             throws IOException {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLED,
+                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080",
