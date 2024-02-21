@@ -608,7 +608,6 @@ Example of a plain http url:
 
 A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
 
-- `schema.registry.encryption.enabled` (see [encryption.enable](#encryptionenable))
 - `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
 - `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
@@ -622,7 +621,29 @@ A secure connection to the Confluent schema registry can be configured through p
 - `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
 - `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
+Example:
 
+```xml
+<!-- Confluent Schema registry URL -->
+<param name="schema.registry.url">https//localhost:8081</param>
+
+<!-- Encryption settings -->
+<param name="schema.registry.enabled.protocols">TLSv1.3</param>
+<param name="schema.registry.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="schema.registry.urhostname.verification.enable">true</param>
+
+<!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
+<param name="schema.registry.truststore.type">JKS</param>
+<param name="schema.registry.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststire.pkcs12</param></param>
+<param name="schema.registry.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststire.pkcs12</param></param>
+
+<!-- If mutual TLS is enabled on the Confluent Schema registry, configure the key store -->
+<param name="schema.registry.keystore.enable">true</param>
+<param name="schema.registry.keystore.type">PKCS12</param>
+<param name="schema.registry.keystore.path">secrets/kafka.connector.schema.registry.keystore.pkcs12</param>
+<param name="schema.registry.keystore.password">schemaregistry-keystore-password</param>
+<param name="schema.registry.keystore.key.password">schemaregistry-private-key-password</param>
+```
 
 #### Topic Mapping
 
