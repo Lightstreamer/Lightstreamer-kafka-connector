@@ -548,11 +548,29 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 - `authentication.username`, the username.
 - `authentication.password`, the password.
 
-Example:
+Example of `PLAIN` authentication:
+
+```xml
+<param name="authentication.enable">true</param>
+<param name="authentication.mechanism">PLAIN</param>
+<param name="authentication.username">authorized-kafka-user</param>
+<param name="authentication.password">authorized-kafka-user-password</param>
+```
+
+Example of `SCRAM-256` authentication:
 
 ```xml
 <param name="authentication.enable">true</param>
 <param name="authentication.mechanism">SCRAM-256</param>
+<param name="authentication.username">authorized-kafka-usee</param>
+<param name="authentication.password">authorized-kafka-user-password</param>
+```
+
+Example of `SCRAM-512` authentication:
+
+```xml
+<param name="authentication.enable">true</param>
+<param name="authentication.mechanism">SCRAM-512</param>
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
