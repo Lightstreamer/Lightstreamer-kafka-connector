@@ -38,7 +38,7 @@
       - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
         - [`authentication.mechanism`](#authenticationmechanism)
-        - [Examples](#examples)
+        - [GSSAPI Configuration Examples](#gssapi-configuration-examples)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
@@ -590,7 +590,7 @@ _Optional_. Enable the use of a ticket cache.
 
 Default value: `false`.
 
-##### Examples
+##### GSSAPI Configuration Examples
 
 ```xml
 ...
