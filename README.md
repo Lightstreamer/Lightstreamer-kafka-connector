@@ -44,6 +44,8 @@
         - [authentication.gssapi.pricipal](#authenticationgssapipricipal)
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Schema Registry](#schema-registry)
+        - [`schema.registry.url`](#schemaregistryurl)
+        - [Encryption Settings](#encryption-settings)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -588,7 +590,25 @@ Example of configuration with usage of a ticket cache:
 
 Schema Registry configuration
 
-The Schema Registry settings support the following parameters:
+##### `schema.registry.url`
+
+_Mandatory_. The URL of the Confluent schema registry. An encrypted connection is enabled by specifying the `https` protocol.
+
+
+Example of a plain http url:
+
+```xml
+<!-- Use https to enable secure connection to the registry
+<param name="schema.registry.url">https://localhost:8081</param>
+-->
+<param name="schema.registry.url">http//localhost:8081</param>
+```
+
+##### Encryption Settings
+
+If the schema.r
+
+The Schema Registry encryption  settings are settings support the following parameters:
 
 - schema.registry.encryption.enabled
 - schema.registry.encryption.protocol
