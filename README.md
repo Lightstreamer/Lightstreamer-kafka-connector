@@ -507,7 +507,7 @@ The following is a complete example of how to configure encryption through the a
 <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param></param>
 <param name="encryption.truststore.path">secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
 
-<!-- If mutual TLS is enabled on Kafka Cluster, enable and configure the key store -->
+<!-- If mutual TLS is enabled on the Kafka Cluster, enable and configure the key store -->
 <param name="encryption.keystore.enable">true</param>
 <param name="encryption.keystore.type">PKCS12</param>
 <param name="encryption.keystore.path">secrets/kafka.connector.encryption.keystore.pkcs12</param>
@@ -548,7 +548,7 @@ In the case of `PLAIN`, `SCRAM-256`, and `SCRAM-512` mechanisms, the credentials
 - `authentication.username`, the username.
 - `authentication.password`, the password.
 
-Example of `PLAIN` authentication:
+###### Example of `PLAIN` authentication:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -557,7 +557,7 @@ Example of `PLAIN` authentication:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-Example of `SCRAM-256` authentication:
+###### Example of `SCRAM-256` authentication:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -566,7 +566,7 @@ Example of `SCRAM-256` authentication:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-Example of `SCRAM-512` authentication:
+###### Example of `SCRAM-512` authentication:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -574,6 +574,8 @@ Example of `SCRAM-512` authentication:
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
+
+###### GSSAPI Authentication
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
