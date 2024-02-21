@@ -41,7 +41,7 @@
           - [`PLAIN`](#plain)
           - [`SCRAM-256`](#scram-256)
           - [`SCRAM-512`](#scram-512)
-          - [GSSAPI Authentication](#gssapi-authentication)
+          - [`GSSAPI`](#gssapi)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
@@ -585,7 +585,7 @@ Example:
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
 
-###### GSSAPI Authentication
+###### `GSSAPI`
 
 In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
 
