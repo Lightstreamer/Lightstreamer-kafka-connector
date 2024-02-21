@@ -20,7 +20,7 @@
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
-      - [Encryption](#encryption)
+      - [Encryption Parameters](#encryption-parameters)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
         - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
@@ -34,7 +34,7 @@
         - [`encryption.keystore.password`](#encryptionkeystorepassword)
         - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
         - [`encryption.keystore.type`](#encryptionkeystoretype)
-      - [Broker Authentication](#broker-authentication)
+      - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
         - [`authentication.mechanism`](#authenticationmechanism)
         - [`authentication.gssapi.key.tab.enable`](#authenticationgssapikeytabenable)
@@ -45,7 +45,7 @@
         - [`authentication.gssapi.ticket.cache.enable`](#authenticationgssapiticketcacheenable)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
-        - [Encryption Settings](#encryption-settings)
+        - [Schema Registry Encryption Settings](#schema-registry-encryption-settings)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
 
@@ -320,7 +320,7 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-#### Encryption
+#### Encryption Parameters
 
 A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
 
@@ -492,7 +492,7 @@ Example:
 <param name="encryption.keystore.type">PKCS12</param>
 ```
 
-#### Broker Authentication
+#### Broker Authentication Parameters
 
 Broker authentication is configured by parameters with the `authentication` prefix.
 
@@ -604,27 +604,23 @@ Example of a plain http url:
 <param name="schema.registry.url">http//localhost:8081</param>
 ```
 
-##### Encryption Settings
+##### Schema Registry Encryption Settings
 
-If the schema.r
+A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameter](#encryption) section:
 
-The Schema Registry encryption  settings are settings support the following parameters:
-
-- schema.registry.encryption.enabled
-- schema.registry.encryption.protocol
-- schema.registry.encryption.enabled.protocols
-- schema.registry.encryption.cipher.suites
-- schema.registry.encryption.cipher.suites
-- schema.registry.encryption.truststore.path
-- schema.registry.encryption.truststore.password
-- schema.registry.truststore.password
-- schema.registry.encryption.truststore.type
-- schema.registry.encryption.encryption.hostname.verification.enable
-- schema.registry.encryption.keystore.enable
-- schema.registry.encryption.keystore.path
-- schema.registry.encryption.keystore.password
-- schema.registry.encryption.keystore.type
-- schema.registry.encryption.keystore.key.password
+- `schema.registry.encryption.enabled` (see [encryption.enable](#encryptionenable))
+- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionenable))
+- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenable))
+- `schema.registry.encryption.cipher.suites` (see [encryption.enable](#encryptionenable))
+- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptionenable))
+- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptionenable))
+- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptionenable))
+- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionenable))
+- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionenable))
+- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionenable))
+- `schema.registry.encryption.keystore.password` (see [encryption.enable](#encryptionenable))
+- `schema.registry.encryption.keystore.type` (see [encryption.enable](#encryptionenable))
+- `schema.registry.encryption.keystore.key.password` (see [encryption.enable](#encryptionenable))
 
 
 
