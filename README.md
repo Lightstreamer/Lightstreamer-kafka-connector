@@ -609,18 +609,18 @@ Example of a plain http url:
 A secure connection to the Confluent schema registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
 
 - `schema.registry.encryption.enabled` (see [encryption.enable](#encryptionenable))
-- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionenable))
-- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenable))
-- `schema.registry.encryption.cipher.suites` (see [encryption.enable](#encryptionenable))
-- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptionenable))
-- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptionenable))
-- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptionenable))
-- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionenable))
-- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionenable))
-- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionenable))
-- `schema.registry.encryption.keystore.password` (see [encryption.enable](#encryptionenable))
-- `schema.registry.encryption.keystore.type` (see [encryption.enable](#encryptionenable))
-- `schema.registry.encryption.keystore.key.password` (see [encryption.enable](#encryptionenable))
+- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
+- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
+- `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
+- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
+- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
+- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
+- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
+- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
+- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
+- `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
 
 
