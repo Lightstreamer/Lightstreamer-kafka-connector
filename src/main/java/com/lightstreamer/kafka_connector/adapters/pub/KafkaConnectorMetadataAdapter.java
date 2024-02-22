@@ -62,6 +62,10 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         globalConfig = GlobalConfig.newConfig(configDir, params);
         configureLogging(configDir);
         METADATA_ADAPTER = this;
+        doInit(params, configDir);
+    }
+
+    protected void doInit(Map params, File configDir) throws MetadataProviderException {
     }
 
     // Used only for unit testing.
@@ -116,7 +120,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
             registerConnectorItems(sessionID, table, lookUp.get());
         }
 
-        newTables(user, sessionID, tables);
+        onUnsubscription(user, sessionID, tables);
     }
 
     private void registerConnectorItems(
@@ -157,7 +161,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
             }
         }
 
-        tablesClosed(sessionID, tables);
+        onUnsubscription(sessionID, tables);
     }
 
     private void notifyDataAdapter(String connectionName, boolean enabled) {
@@ -168,11 +172,11 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
-    public abstract void newTables(
+    public abstract void onUnsubscription(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws CreditsException, NotificationException;
 
-    public abstract void tablesClosed(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
+    public abstract void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException;
 
     public static record ConnectionInfo(String name, boolean enabled) {}

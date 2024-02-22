@@ -29,6 +29,7 @@ import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeDeserializer;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -70,10 +71,9 @@ public class ConsumerLoopConfiguratorTest {
 
     @Test
     public void shouldNotConfigureDueToInvalidTemplateReference() {
-        Map<String, String> updatedConfigs = basicParameters();
-        updatedConfigs.put("map.topic1.to", "no-valid-item-template");
-
-        ConnectorConfig config = newConfig(updatedConfigs);
+        Map<String, String> updatedConfigs = Map.of("map.topic1.to", "no-valid-item-template");
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
         ConfigException e =
                 assertThrows(
                         ConfigException.class,
@@ -85,10 +85,10 @@ public class ConsumerLoopConfiguratorTest {
 
     @Test
     public void shouldNotConfigureDueToInvalidFieldMappingExpression() {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put("field.fieldName1", "VALUE");
+        Map<String, String> updatedConfigs = Map.of("field.fieldName1", "VALUE");
 
-        ConnectorConfig config = newConfig(updatedConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
         ConfigException e =
                 assertThrows(
                         ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
@@ -100,7 +100,7 @@ public class ConsumerLoopConfiguratorTest {
     @ParameterizedTest
     @ValueSource(strings = {"VALUE", "#{UNRECOGNIZED}"})
     public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        Map<String, String> updatedConfigs = ConnectorConfigProvider.minimalConfigParams();
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
         updatedConfigs.put("field.fieldName1", expression);
@@ -136,7 +136,7 @@ public class ConsumerLoopConfiguratorTest {
                 "item-#{}}"
             })
     public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
-        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        Map<String, String> updatedConfigs = ConnectorConfigProvider.minimalConfigParams();
         updatedConfigs.put("item-template.template1", expression);
 
         ConnectorConfig config = newConfig(updatedConfigs);

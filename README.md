@@ -5,6 +5,7 @@
   - [Features](#features)
   - [Quick Start](#quick-start)
     - [Requirements](#requirements)
+    - [Installation](#installation)
     - [Deploy](#deploy)
     - [Configure](#configure)
     - [Start](#start)
@@ -70,9 +71,13 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 ### Requirements
 
+- Insert Docker compose example with a minimal webclient
+
+### Installation
+
 - JDK version 17 or later.
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.1  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
-- A running Kafka Cluster.
+- A running Kafka broker or Kafka Cluster. Choose between Confluend Cloud e Kafka Broker
 - The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
 
 ### Deploy
@@ -81,7 +86,7 @@ Get the deployment package from the [latest release page](releases). Alternative
 
 `./gradlew distribuite`
 
-which generated the `build/distributions/lightstreamer-kafka-connector-<version>.zip` bundle.
+which generates the `build/distributions/lightstreamer-kafka-connector-<version>.zip` bundle.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Check that the final Lightstreamer layout looks like the following:
@@ -313,9 +318,9 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
 
-- _String_.
-- _Avro_.
-- _JSON_.
+- _String_
+- _Avro_
+- _JSON_
 
 In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
@@ -325,8 +330,8 @@ In particular, the Kafka Connector supports message validation for Avro and JSON
 Kafka Connector supports independent deserialization of keys and values, which means that:
 
 - Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`)
-- Message validation against local schemas file must be specified separately for key and value (through the `key.evaluator.schema.path` and `value.evaluator.schema.path`)
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`key.evaluator.schema.registry.enable`](#) and `value.evaluator.schema.registry.enable`)
+- Message validation against local schema files must be specified separately for key and value (through the `key.evaluator.schema.path` and `value.evaluator.schema.path`)
 
 **NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 

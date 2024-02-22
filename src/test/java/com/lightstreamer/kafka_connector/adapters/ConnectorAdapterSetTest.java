@@ -192,13 +192,13 @@ public class ConnectorAdapterSetTest {
             NotifyedCloseTables closedTables;
 
             @Override
-            public void newTables(String user, String sessionID, TableInfo[] tables)
+            public void onUnsubscription(String user, String sessionID, TableInfo[] tables)
                     throws CreditsException, NotificationException {
                 newTables = new NotifyedNewTables(user, sessionID, tables);
             }
 
             @Override
-            public void tablesClosed(String sessionID, TableInfo[] tables)
+            public void onUnsubscription(String sessionID, TableInfo[] tables)
                     throws NotificationException {
                 closedTables = new NotifyedCloseTables(sessionID, tables);
             }

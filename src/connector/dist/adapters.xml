@@ -116,32 +116,36 @@
         <!---->
     </data_provider>
 
-    <data_provider name="QuickStartSchemaRegisry">
+    <data_provider name="QuickStart">
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
         <!--<param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>-->
-        <param name="bootstrap.servers">localhost:9092</param>
+        <param name="bootstrap.servers">broker:29092</param>
 
         <param name="group.id">test</param>
 
-        <param name="enabled">true</param>
+        <param name="enable">true</param>
 
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
         <!-- <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
         <param name="item-template.sample2">sample</param> -->
-        <param name="item-template.sample1">sample-#{key=KEY}</param>
+        <param name="item-template.sample1">sample-#{key=KEY.name}</param>
         <param name="item-template.sample2">sample-#{value=VALUE}</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.avro-topic-1.to">item-template.sample1</param>
 
+        <param name="key.evaluator.type">AVRO</param>
+        <!-- <param name="key.evaluator.schema.registry.enable">true</param> -->
+        <param name="key.evaluator.schema.path">user-key.avsc</param>
         <param name="value.evaluator.type">AVRO</param>
-        <param name="value.evaluator.schema.registry.enable">enabled</param>
+        <!-- <param name="value.evaluator.schema.registry.enable">true</param> -->
+        <param name="value.evaluator.schema.path">user-value.avsc</param>
         
-        <param name="schema.registry.url">https://localhost:8081</param>
+        <!-- <param name="schema.registry.url">http://schema-registry:8081</param> -->
 
         <!--<param name="schema.registry.encryption.truststore.path">secrets/kafka.client.truststore.jks</param>
         <param name="schema.registry.encryption.truststore.password">password</param>
@@ -171,10 +175,10 @@
         <!-- FIELDS MAPPING SECTION -->
 
         <!-- Extraction of the record key mapped to the field "key". -->
-        <param name="field.key">#{KEY}</param>
+        <param name="field.key">#{KEY.name}</param>
 
         <!-- Extraction of the record value mapped to the field "value". -->
-        <param name="field.value">#{VALUE}</param>
+        <param name="field.value">#{VALUE.name}</param>
 
         <!-- Extraction of the record timestamp to the field "ts". -->
         <param name="field.ts">#{TIMESTAMP}</param>
