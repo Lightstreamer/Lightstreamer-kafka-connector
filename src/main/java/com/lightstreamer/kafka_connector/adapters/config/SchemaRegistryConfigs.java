@@ -51,9 +51,9 @@ public class SchemaRegistryConfigs {
     public static final String TRUSTSTORE_PATH = nse(TlsConfigs.TRUSTSTORE_PATH);
     public static final String TRUSTSTORE_PASSWORD = nse(TlsConfigs.TRUSTSTORE_PASSWORD);
 
-    public static final String ENABLE_MTLS = nse(TlsConfigs.KESYTORE_ENABLE);
+    public static final String KEYSTORE_ENABLE = nse(TlsConfigs.KESYTORE_ENABLE);
 
-    public static final String ENABLE_HOSTNAME_VERIFICATION =
+    public static final String HOSTNAME_VERIFICATION_ENANLE =
             nse(TlsConfigs.HOSTNAME_VERIFICATION_ENABLE);
 
     public static final String SSL_CIPHER_SUITES = nse(TlsConfigs.SSL_CIPHER_SUITES);

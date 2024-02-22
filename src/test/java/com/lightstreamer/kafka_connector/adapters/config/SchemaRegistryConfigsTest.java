@@ -76,9 +76,9 @@ public class SchemaRegistryConfigsTest {
         assertThat(trustStorePassword.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter enableHostNameVerification =
-                configSpec.getParameter(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION);
+                configSpec.getParameter(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
         assertThat(enableHostNameVerification.name())
-                .isEqualTo(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION);
+                .isEqualTo(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
         assertThat(enableHostNameVerification.required()).isFalse();
         assertThat(enableHostNameVerification.multiple()).isFalse();
         assertThat(enableHostNameVerification.mutable()).isTrue();

@@ -276,29 +276,25 @@ public final class ConnectorConfig extends AbstractConfig {
 
     @Override
     protected final void postValidate() throws ConfigException {
-        if (getKeyEvaluator().equals(EvaluatorType.AVRO)) {
-            if (!isSchemaRegistryEnabledForKey()) {
-                try {
-                    getFile(KEY_EVALUATOR_SCHEMA_PATH, true);
-                } catch (ConfigException ce) {
-                    throw new ConfigException(
-                            "Specify a valid value either for [%s] or [%s]"
-                                    .formatted(
-                                            KEY_EVALUATOR_SCHEMA_PATH, SchemaRegistryConfigs.URL));
-                }
-            }
-        }
+        checkAvroSchemaConfig(true);
+        checkAvroSchemaConfig(false);
+    }
 
-        if (getValueEvaluator().equals(EvaluatorType.AVRO)) {
-            if (!isSchemaRegistryEnabledForValue()) {
+    private void checkAvroSchemaConfig(boolean isKey) {
+        String schemaPathKey = isKey ? KEY_EVALUATOR_SCHEMA_PATH : VALUE_EVALUATOR_SCHEMA_PATH;
+        String evaluatorKey = isKey ? KEY_EVALUATOR_TYPE : VALUE_EVALUATOR_TYPE;
+        String schemaEnabledKey =
+                isKey
+                        ? KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
+                        : VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
+        if (getEvaluator(evaluatorKey).equals(EvaluatorType.AVRO)) {
+            if (!getBoolean(schemaEnabledKey)) {
                 try {
-                    getFile(VALUE_EVALUATOR_SCHEMA_PATH, true);
+                    getFile(schemaPathKey, true);
                 } catch (ConfigException ce) {
                     throw new ConfigException(
                             "Specify a valid value either for [%s] or [%s]"
-                                    .formatted(
-                                            VALUE_EVALUATOR_SCHEMA_PATH,
-                                            SchemaRegistryConfigs.URL));
+                                    .formatted(schemaPathKey, schemaEnabledKey));
                 }
             }
         }
@@ -369,6 +365,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final EvaluatorType getValueEvaluator() {
         return EvaluatorType.valueOf(get(VALUE_EVALUATOR_TYPE, EVALUATOR, false));
+    }
+
+    public final EvaluatorType getEvaluator(String configKey) {
+        return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
     }
 
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
@@ -662,7 +662,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryHostNameVerificationEnabled() {
         checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION);
+        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
     }
 
     public String schemaRegistryKeyPassword() {
@@ -672,13 +672,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryKeystoreEnabled() {
         checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.ENABLE_MTLS);
+        return getBoolean(SchemaRegistryConfigs.KEYSTORE_ENABLE);
     }
 
     private void checkSchemaRegistryKeystoreEnabled() {
         if (!isSchemaRegistryKeystoreEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not enabled".formatted(SchemaRegistryConfigs.ENABLE_MTLS));
+                    "Parameter [%s] is not enabled"
+                            .formatted(SchemaRegistryConfigs.KEYSTORE_ENABLE));
         }
     }
 

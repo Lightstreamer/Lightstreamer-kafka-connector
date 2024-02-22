@@ -17,17 +17,18 @@
 
 package producer;
 
-import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.serialization.StringSerializer;
 
 import picocli.CommandLine.Option;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +46,13 @@ public class Producer implements Runnable {
     private String topic;
 
     @Option(
+            names = "--config-path",
+            description = "The configuration file path",
+            required = false,
+            defaultValue = "src/clients/producer/simple-config.properties")
+    private String configPath;
+
+    @Option(
             names = "--period",
             description = "The interval in ms between two successive executions",
             required = false,
@@ -55,22 +63,15 @@ public class Producer implements Runnable {
         // BasicConfigurator.configure();
         // Create producer configs
         Properties properties = new Properties();
+        System.out.println(Paths.get(".").toAbsolutePath());
+        try (InputStream is = Files.newInputStream(Paths.get(this.configPath))) {
+            properties.load(is);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        properties.setProperty(
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.setProperty(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        properties.setProperty(
-                SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "secrets/kafka.client.truststore.jks");
-        // properties.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "password");
-        // properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-        // ssl.truststore.password=test1234
         // Create and start the producer.
-        properties.setProperty(SaslConfigs.SASL_MECHANISM, "PLAIN");
-        properties.setProperty(
-                SaslConfigs.SASL_JAAS_CONFIG,
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='admin-secret';");
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties); ) {
             int key = 0;
@@ -81,7 +82,7 @@ public class Producer implements Runnable {
                                 .mapToObj(Character::toString)
                                 .collect(Collectors.joining());
 
-                String keyString = null; // String.valueOf(key++);
+                String keyString = String.valueOf(key++);
                 ProducerRecord<String, String> record =
                         new ProducerRecord<String, String>(this.topic, keyString, message);
                 producer.send(
@@ -94,8 +95,11 @@ public class Producer implements Runnable {
                                     return;
                                 }
                                 System.out.printf(
-                                        "Sent record [%s]%n to topic [%s] and partition [%d]%n",
-                                        record.value(), record.topic(), record.partition());
+                                        "Sent record [key=%s,value=%s]%n to topic [%s]]%n",
+                                        record.key(),
+                                        record.value(),
+                                        record.topic(),
+                                        record.partition());
                             }
                         });
                 TimeUnit.MILLISECONDS.sleep(this.periodMs);

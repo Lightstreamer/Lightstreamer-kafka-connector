@@ -642,7 +642,7 @@ public class ConnectorConfigTest {
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Specify a valid value either for [key.evaluator.schema.path] or [schema.registry.url]");
+                        "Specify a valid value either for [key.evaluator.schema.path] or [key.evaluator.schema.registry.enable]");
 
         Map<String, String> configs2 = new HashMap<>();
         configs2.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "AVRO");
@@ -652,7 +652,7 @@ public class ConnectorConfigTest {
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Specify a valid value either for [value.evaluator.schema.path] or [schema.registry.url]");
+                        "Specify a valid value either for [value.evaluator.schema.path] or [value.evaluator.schema.registry.enable]");
     }
 
     @Test
@@ -1555,7 +1555,7 @@ public class ConnectorConfigTest {
         updatedConfig.put(
                 SchemaRegistryConfigs.SSL_CIPHER_SUITES,
                 "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
-        updatedConfig.put(SchemaRegistryConfigs.ENABLE_HOSTNAME_VERIFICATION, "true");
+        updatedConfig.put(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE, "true");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1600,7 +1600,7 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
-        updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
+        updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_ENABLE, "true");
         updatedConfig.put(
                 SchemaRegistryConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_PASSWORD, "keystore-password");
@@ -1631,7 +1631,7 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
-        updatedConfig.put(SchemaRegistryConfigs.ENABLE_MTLS, "true");
+        updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_TYPE, "PKCS12");
         updatedConfig.put(
                 SchemaRegistryConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());

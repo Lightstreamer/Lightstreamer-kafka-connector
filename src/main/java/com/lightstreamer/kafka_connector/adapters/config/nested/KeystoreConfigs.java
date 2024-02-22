@@ -28,11 +28,8 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfT
 public class KeystoreConfigs {
 
     public static String KEYSTORE_TYPE = "keystore.type";
-
     public static String KEYSTORE_PATH = "keystore.path";
-
     public static String KEYSTORE_PASSWORD = "keystore.password";
-
     public static String KEY_PASSWORD = "keystore.key.password";
 
     private static ConfigsSpec CONFIG_SPEC;

@@ -76,9 +76,6 @@
         <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
         -->        
 
-        <param name="encryption.enabled">false</param>
-        <param name="encryption.enabled">false</param>
-
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
@@ -89,7 +86,7 @@
         <param name="map.sample-topic.to">item-template.sample1,item-template.sample2</param>
         <!--<param name="map.sample-topic2.to">item-template.sample2</param>-->
 
-        <param name="encryption.enable">true</param>
+        <!-- <param name="encryption.enable">true</param> -->
         <!--<param name="encryption.security.protocol">SSL</param>-->
         <!-- <param name="encryption.truststore.path">secrets/kafka.client.truststore.jks1</param>
         <param name="encryption.truststore.password">password</param> -->
@@ -123,28 +120,30 @@
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
-        <param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>
+        <!--<param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>-->
+        <param name="bootstrap.servers">localhost:9092</param>
 
         <param name="group.id">test</param>
 
-        <param name="enabled">true</param> -->
+        <param name="enabled">true</param>
 
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
         <!-- <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
         <param name="item-template.sample2">sample</param> -->
-        <param name="item-template.sample2">sample-#{key=KEY}</param>
+        <param name="item-template.sample1">sample-#{key=KEY}</param>
+        <param name="item-template.sample2">sample-#{value=VALUE}</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-        <param name="map.topic_0.to">item-template.sample1,item-template.sample2</param>
+        <param name="map.avro-topic-1.to">item-template.sample1</param>
 
         <param name="value.evaluator.type">AVRO</param>
-        <param name="value.evaluator.schema.registry">AVRO</param>
+        <param name="value.evaluator.schema.registry.enable">enabled</param>
         
         <param name="schema.registry.url">https://localhost:8081</param>
 
-        <param name="schema.registry.encryption.truststore.path">secrets/kafka.client.truststore.jks</param>
+        <!--<param name="schema.registry.encryption.truststore.path">secrets/kafka.client.truststore.jks</param>
         <param name="schema.registry.encryption.truststore.password">password</param>
         <param name="schema.registry.encryption.truststore.password">password</param>
 
@@ -155,11 +154,15 @@
         <param name="schema.registry.basic.authentication.enabled">true</param>
         <param name="schema.registry.basic.authentication.username">true</param>
         <param name="schema.registry.basic.authentication.password">true</param>
+        -->
 
 
+        <!--
         <param name="encryption.enabled">true</param>
-        <!-- <param name="encryption.truststore.path">secrets/kafka.client.truststore.jks1</param>
-        <param name="encryption.truststore.password">password</param> -->
+        <param name="encryption.truststore.path">secrets/kafka.client.truststore.jks1</param>
+        <param name="encryption.truststore.password">password</param>
+        -->
+
 
         <!-- <param name="authentication.enabled">true</param>
         <param name="authentication.username">R5QP6BKBEHPRHEI5</param>
@@ -182,7 +185,7 @@
         <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.offset">#{OFFSET}</param>
 
-    <!-- </data_provider>  -->
+    </data_provider> 
 
 </adapters_conf>
 
