@@ -1,0 +1,6 @@
+FROM eclipse-temurin:11
+ARG VERSION
+RUN mkdir /opt/producer
+
+COPY deploy/lightstreamer-kafka-connector-samples-all-0.1.0.jar  /opt/producer/lightstreamer-kafka-connector-samples-all.jar
+CMD ["java", "-jar", "/opt/producer/lightstreamer-kafka-connector-samples-all.jar"]

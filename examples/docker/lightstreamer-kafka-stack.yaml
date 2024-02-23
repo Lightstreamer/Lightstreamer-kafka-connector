@@ -8,18 +8,21 @@ services:
     #   - kafka
     ports:
       - 8080:8080
-    networks:
-      - kafka-network
+    # networks:
+    #   - kafka-network
     volumes:
       - type: bind
-        source: deploy/connector
-        target: /lightstreamer/adapters/kafka-connector
-      - type: bind
-        source: deploy/conf/lightstreamer_conf.xml
-        target: /lightstreamer/conf/lightstreamer_conf.xml
+        source: build/install/lightstreamer-kafka-connector
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector
+      # - type: bind
+      #   source: deploy/conf/lightstreamer_conf.xml
+      #   target: /lightstreamer/conf/lightstreamer_conf.xml
       - type: bind
         source: deploy/conf/lightstreamer_log_conf.xml
         target: /lightstreamer/conf/lightstreamer_log_conf.xml
+      - type: bind
+        source: secrets
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector/secrets
 
   # kafka:
   #   image: 'docker.io/bitnami/kafka:latest'
@@ -38,5 +41,7 @@ services:
 
 networks:
   kafka-network:
+    name: lightstreamer-kafka-connector_default
+    # name: kafka-cluster-ssl_default
     external: true
-      # name: kafka-network
+      

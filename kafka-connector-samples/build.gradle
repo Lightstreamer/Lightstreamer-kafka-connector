@@ -1,0 +1,33 @@
+plugins {
+    id 'lightstreamer-kafka-connector'
+    id 'java'
+}
+
+dependencies {
+    implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
+    implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
+    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
+    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
+    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
+    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': "com.lightstreamer.kafka_connector.samples.producer.Producer"
+    }
+    archiveBaseName = rootProject.name + "-samples"
+    archiveAppendix = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.compileClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    with jar
+}
+
+task distribuite(type: Copy) {
+    from fatJar
+    into "$rootDir/$deployDirName"
+}
