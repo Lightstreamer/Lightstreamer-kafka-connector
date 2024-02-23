@@ -1,1 +1,2 @@
 rootProject.name = 'lightstreamer-kafka-connector'
+include 'connector'

@@ -29,5 +29,6 @@ public final class ConnectorMetadataAdapter extends KafkaConnectorMetadataAdapte
             throws CreditsException, NotificationException {}
 
     @Override
-    public void onUnsubscription(String sessionID, TableInfo[] tables) throws NotificationException {}
+    public void onUnsubscription(String sessionID, TableInfo[] tables)
+            throws NotificationException {}
 }

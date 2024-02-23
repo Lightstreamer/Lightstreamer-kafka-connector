@@ -23,7 +23,6 @@ import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
-import com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter;
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
@@ -65,8 +64,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         doInit(params, configDir);
     }
 
-    protected void doInit(Map params, File configDir) throws MetadataProviderException {
-    }
+    protected void doInit(Map params, File configDir) throws MetadataProviderException {}
 
     // Used only for unit testing.
     public final Optional<Set<String>> itemsBySession(String sessionId) {
@@ -76,7 +74,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
     private void configureLogging(File configDir) throws ConfigException {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
-        this.log = LoggerFactory.getLogger(ConnectorMetadataAdapter.class);
+        this.log = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
     }
 
     public static final MetadataListener listener(String dataProviderName, boolean enabled) {

@@ -1,10 +1,10 @@
 plugins {
     id 'java-library'
-    id 'eclipse'
-    id 'distribution'
-    id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
-    id("com.diffplug.spotless") version "6.25.0"
+    id 'java-library-distribution'
+    id("com.diffplug.spotless")
 }
+
+group = 'com.lightstreamer.kafka_connector'
 
 spotless {
     format 'misc', {
@@ -47,8 +47,6 @@ spotless {
     }
 }
 
-version = '0.1.0'
-
 repositories {
     mavenCentral()
     maven {
@@ -61,14 +59,6 @@ dependencies {
     testImplementation('org.junit.jupiter:junit-jupiter')
     testImplementation "com.google.truth:truth:1.2.0"
     testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
-
-    implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
-    implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-
-    implementation group:'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-    implementation group:'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-    implementation group:'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-    implementation group:'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 }
 
 java {
@@ -79,58 +69,4 @@ java {
 
 tasks.named('test') {
     useJUnitPlatform()
-}
-
-task deployAdapters(type: Copy) {
-    dependsOn 'cleanDeploy'
-
-    into "deploy"
-
-    from (jar) {
-        into "connector/lib"
-    }
-
-    from (configurations.runtimeClasspath) {
-        into "connector/lib"
-        exclude "ls-adapter-inprocess*"
-        exclude "jsr305*"
-    }
-
-    from ("examples/quickstart") {
-        into "connector"
-    }
-}
-
-task deploy(type: Copy) {
-    dependsOn 'deployAdapters'
-    into "deploy/conf"
-    from ("examples/conf")
-}
-
-task cleanDeploy(type: Delete) {
-    delete "deploy"
-}
-
-sourceSets.main.java.srcDirs += ['src/clients/java']
-
-distributions {
-    connector {
-        distributionBaseName =  rootProject.name
-
-        contents {
-            from(jar) {
-                into "lib"
-            }
-
-            from (configurations.runtimeClasspath) {
-                into "lib"
-                exclude "ls-adapter-inprocess*"
-                exclude "jsr305*"
-            }
-        }
-    }
-}
-
-task distribuite {
-    dependsOn connectorDistZip
 }

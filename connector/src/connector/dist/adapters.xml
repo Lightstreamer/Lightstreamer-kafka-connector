@@ -125,7 +125,7 @@
 
         <param name="group.id">test</param>
 
-        <param name="enable">true</param>
+        <param name="enable">disable</param>
 
         <!-- TOPIC MAPPING SECTION -->
 
