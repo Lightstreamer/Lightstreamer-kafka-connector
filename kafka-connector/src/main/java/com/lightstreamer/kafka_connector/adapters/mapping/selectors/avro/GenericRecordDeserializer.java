@@ -74,6 +74,11 @@ public class GenericRecordDeserializer implements Deserializer<GenericRecord> {
         GenericRecord deserialize = (GenericRecord) deserializer.deserialize(topic, data);
         return deserialize;
     }
+
+    @Override
+    public void close() {
+        deserializer.close();
+    }
 }
 
 class GenericRecordLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<GenericRecord> {

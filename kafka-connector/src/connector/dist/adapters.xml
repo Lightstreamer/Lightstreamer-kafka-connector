@@ -120,47 +120,54 @@
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
-        <!--<param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>-->
         <param name="bootstrap.servers">broker:29092</param>
-
-        <param name="group.id">test</param>
-
+        <param name="group.id">quick_start</param>
         <param name="enable">true</param>
 
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <!-- <param name="item-template.sample1">sample-#{partition=PARTITION}</param>
-        <param name="item-template.sample2">sample</param> -->
-        <param name="item-template.sample1">sample-#{key=KEY.name}</param>
-        <param name="item-template.sample2">sample-#{value=VALUE}</param>
+        <param name="item-template.stock">stock-#{name=KEY}</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-        <param name="map.avro-topic-1.to">item-template.sample1</param>
+        <param name="map.stocks.to">item-template.stock</param>
 
-        <param name="key.evaluator.type">AVRO</param>
-        <!-- <param name="key.evaluator.schema.registry.enable">true</param> -->
-        <param name="key.evaluator.schema.path">user-key.avsc</param>
-        <param name="value.evaluator.type">AVRO</param>
-        <!-- <param name="value.evaluator.schema.registry.enable">true</param> -->
-        <param name="value.evaluator.schema.path">user-value.avsc</param>
+        <param name="key.evaluator.type">STRING</param>
+        <param name="value.evaluator.type">JSON</param>
 
         <!-- FIELDS MAPPING SECTION -->
 
-        <!-- Extraction of the record key mapped to the field "key". -->
-        <param name="field.key">#{KEY.name}</param>
-
         <!-- Extraction of the record value mapped to the field "value". -->
-        <param name="field.value">#{VALUE.name}</param>
+        <param name="field.stock_name">#{VALUE.name}</param>
 
         <!-- Extraction of the record timestamp to the field "ts". -->
-        <param name="field.ts">#{TIMESTAMP}</param>
+        <param name="field.time">#{TIMESTAMP}</param>
 
         <!-- Extraction of the record partition mapped to the field "partition". -->
-        <param name="field.partition">#{PARTITION}</param>
+        <param name="field.timestamp">#{PARTITION}</param>
 
         <!-- Extraction of the record offset mapped to the field "offset". -->
-        <param name="field.offset">#{OFFSET}</param>
+        <param name="field.last_price">#{OFFSET}</param>
+
+        <param name="field.ask">#{VALUE.ask}</param>
+
+        <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+
+        <param name="field.bid">#{VALUE.bid}</param>
+
+        <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+
+        <param name="field.pct_change">#{VALUE.pct_change}</param>
+
+        <param name="field.min">#{VALUE.min}</param>
+
+        <param name="field.max">#{VALUE.max}</param>
+
+        <param name="field.ref_price">#{VALUE.ref_price}</param>
+
+        <param name="field.open_price">#{VALUE.open_price}</param>
+
+        <param name="field.item_status">#{VALUE.item_status}</param>
 
     </data_provider> 
 

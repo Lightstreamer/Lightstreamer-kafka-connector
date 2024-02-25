@@ -31,3 +31,8 @@ task distribuite(type: Copy) {
     from fatJar
     into "$rootDir/$deployDirName"
 }
+
+task quickStart(type: Copy) {
+    from (fatJar)
+    into "$rootDir/$quickstartDeployDirName"
+}

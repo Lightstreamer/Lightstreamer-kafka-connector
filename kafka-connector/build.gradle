@@ -12,38 +12,6 @@ dependencies {
     implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 }
 
-task deployAdapters(type: Copy) {
-    dependsOn 'cleanDeploy'
-
-    into "deploy"
-
-    from (jar) {
-        into "connector/lib"
-    }
-
-    from (configurations.runtimeClasspath) {
-        into "connector/lib"
-        exclude "ls-adapter-inprocess*"
-        exclude "jsr305*"
-    }
-
-    from ("examples/quickstart") {
-        into "connector"
-    }
-}
-
-task deploy(type: Copy) {
-    dependsOn 'deployAdapters'
-    into "deploy/conf"
-    from ("examples/conf")
-}
-
-task cleanDeploy(type: Delete) {
-    delete "deploy"
-}
-
-sourceSets.main.java.srcDirs += ['src/clients/java']
-
 javadoc {
     include '**/pub/KafkaConnectorMetadataAdapter.java'
     exclude '**/pub/*ConnectionInfo*'
@@ -74,4 +42,9 @@ distributions {
 task distribuite(type: Copy) {
     from (connectorDistZip)
     into "$rootDir/$deployDirName"
+}
+
+task quickStart(type: Copy) {
+    from (connectorDistZip)
+    into "$rootDir/$quickstartDeployDirName"
 }

@@ -108,13 +108,6 @@ public class SchemaRegistryConfigs {
 
     static Properties addSchemaRegistry(ConnectorConfig cfg) {
         NonNullKeyProperties props = new NonNullKeyProperties();
-        if (!cfg.isSchemaRegistryEnabled()) {
-            return props.properties();
-        }
-
-        props.setProperty(
-                AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
-
         if (cfg.getKeyEvaluator().equals(EvaluatorType.JSON)) {
             props.setProperty(
                     KafkaJsonSchemaDeserializerConfig.JSON_KEY_TYPE, JsonNode.class.getName());
@@ -123,6 +116,13 @@ public class SchemaRegistryConfigs {
             props.setProperty(
                     KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class.getName());
         }
+
+        if (!cfg.isSchemaRegistryEnabled()) {
+            return props.properties();
+        }
+
+        props.setProperty(
+                AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
 
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(

@@ -181,7 +181,7 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
     }
 
     /**
-     * Only used for unit testing
+     * Only used for unit testing.
      *
      * @hidden
      */

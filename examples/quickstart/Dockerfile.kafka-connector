@@ -1,8 +1,8 @@
 FROM lightstreamer
 
-ARG version
+COPY deploy/lightstreamer-kafka-connector-*.zip /tmp/lightstreamer-kafka-connector.zip
+COPY web /lightstreamer/pages/QuickStart
 
-COPY deploy/lightstreamer-kafka-connector-${version}.zip /tmp/lightstreamer-kafka-connector.zip
 USER root
 RUN apt-get -y update; \
     apt-get install -y unzip; \

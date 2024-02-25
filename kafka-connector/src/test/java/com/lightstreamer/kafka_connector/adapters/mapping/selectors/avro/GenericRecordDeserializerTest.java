@@ -56,7 +56,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithSchemaRegistryValueWithLocalSchema() {
+    public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
         Map<String, String> otherConfigs =
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -104,7 +104,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeWithLocalSchema() throws IOException {
+    public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
         Map<String, String> otherConfigs =
                 Map.of(
                         ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,

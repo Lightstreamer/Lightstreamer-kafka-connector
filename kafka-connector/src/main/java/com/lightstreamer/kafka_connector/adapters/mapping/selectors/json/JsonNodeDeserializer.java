@@ -75,6 +75,11 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
     public JsonNode deserialize(String topic, byte[] data) {
         return deserializer.deserialize(topic, data);
     }
+
+    @Override
+    public void close() {
+        deserializer.close();
+    }
 }
 
 class JsonLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
