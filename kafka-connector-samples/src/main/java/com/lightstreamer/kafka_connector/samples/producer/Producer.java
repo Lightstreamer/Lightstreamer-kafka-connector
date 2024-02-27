@@ -66,9 +66,9 @@ public class Producer implements Runnable, ExternalFeedListener {
     }
 
     @Override
-    public void onEvent(Stock stock, boolean b) {
+    public void onEvent(Stock stock) {
         ProducerRecord<String, Stock> record =
-                new ProducerRecord<>(this.topic, stock.name.replace(' ', '-'), stock);
+                new ProducerRecord<>(this.topic, stock.name().replace(' ', '-'), stock);
         producer.send(
                 record,
                 new Callback() {

@@ -73,7 +73,7 @@ public class RecordMapperStringTest {
     }
 
     @Test
-    public void shoulMapEmpty() {
+    public void shouldMapEmpty() {
         RecordMapper<String, String> mapper = builder().build();
 
         ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
@@ -84,7 +84,7 @@ public class RecordMapperStringTest {
     }
 
     @Test
-    public void shoulMapWithValues() {
+    public void shouldMapWithValues() {
         RecordMapper<String, String> mapper =
                 builder()
                         .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
@@ -115,23 +115,10 @@ public class RecordMapperStringTest {
         Selectors<String, String> valueSelectors = selectors("test", Map.of("name", "VALUE"));
         Selectors<String, String> keySelectors = selectors("test", Map.of("name", "KEY"));
 
-        // Selectors<String, GenericRecord> childSelectors2 =
-        //         selectors(
-        //                 "test",
-        //                 Map.of(
-        //                         "secondChildName",
-        //                         "VALUE.children[1].name",
-        //                         "grandChildName",
-        //                         "VALUE.children[1].children[1].name"));
-
         RecordMapper<String, String> mapper =
-                builder()
-                        .withSelectors(valueSelectors)
-                        .withSelectors(keySelectors)
-                        // .withSelectors(childSelectors2)
-                        .build();
+                builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", null);
+        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
@@ -140,9 +127,24 @@ public class RecordMapperStringTest {
 
         Map<String, String> firstChildName = mappedRecord.filter(keySelectors);
         assertThat(firstChildName).containsExactly("name", "");
+    }
 
-        // Map<String, String> otherPeopleNames = mappedRecord.filter(childSelectors2);
-        // assertThat(otherPeopleNames)
-        //         .containsExactly("secondChildName", "anna", "grandChildName", "terence");
+    @Test
+    public void shouldFilterNulls() {
+        Selectors<String, String> valueSelectors = selectors("test", Map.of("name", "VALUE"));
+        Selectors<String, String> keySelectors = selectors("test", Map.of("name", "KEY"));
+
+        RecordMapper<String, String> mapper =
+                builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
+
+        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", null);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
+
+        Map<String, String> parentName = mappedRecord.filter(valueSelectors);
+        assertThat(parentName).containsExactly("name", null);
+
+        Map<String, String> firstChildName = mappedRecord.filter(keySelectors);
+        assertThat(firstChildName).containsExactly("name", "");
     }
 }

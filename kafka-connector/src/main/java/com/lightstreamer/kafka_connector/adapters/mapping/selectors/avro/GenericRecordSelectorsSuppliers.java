@@ -169,7 +169,7 @@ public class GenericRecordSelectorsSuppliers {
             LinkedNode<NodeEvaluator<GenericRecord, Object>> currentNode = linkedNode;
             while (currentNode != null) {
                 if (value == null) {
-                    ValueException.throwNullObject(currentNode.previous().value().name());
+                    ValueException.throwFieldNotFound(currentNode.value().name());
                     continue;
                 }
                 if (value instanceof GenericRecord genericRecord) {
@@ -185,7 +185,7 @@ public class GenericRecordSelectorsSuppliers {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            String text = value != null ? value.toString() : "NULL";
+            String text = value != null ? value.toString() : null;
             return Value.of(name(), text);
         }
     }

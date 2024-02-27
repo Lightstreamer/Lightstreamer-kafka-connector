@@ -141,13 +141,13 @@
         <param name="field.stock_name">#{VALUE.name}</param>
 
         <!-- Extraction of the record timestamp to the field "ts". -->
-        <param name="field.time">#{TIMESTAMP}</param>
+        <param name="field.time">#{VALUE.time}</param>
 
         <!-- Extraction of the record partition mapped to the field "partition". -->
-        <param name="field.timestamp">#{PARTITION}</param>
+        <param name="field.timestamp">#{VALUE.timestamp}</param>
 
         <!-- Extraction of the record offset mapped to the field "offset". -->
-        <param name="field.last_price">#{OFFSET}</param>
+        <param name="field.last_price">#{VALUE.last_price}</param>
 
         <param name="field.ask">#{VALUE.ask}</param>
 

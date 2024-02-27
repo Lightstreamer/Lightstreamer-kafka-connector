@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -120,11 +121,12 @@ class DefaultMappedRecord implements MappedRecord {
 
     @Override
     public Map<String, String> filter(Selectors<?, ?> selectors) {
-        return valuesContainers.stream()
+        Map<String, String> eventsMap = new HashMap<>();
+        valuesContainers.stream()
                 .filter(container -> container.selectors().equals(selectors))
                 .flatMap(container -> container.values().stream())
-                .filter(v -> v.text() != null)
-                .collect(Collectors.toMap(Value::name, Value::text));
+                .forEach(value -> eventsMap.put(value.name(), value.text()));
+        return eventsMap;
     }
 
     @Override

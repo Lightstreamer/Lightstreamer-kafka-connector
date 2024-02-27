@@ -19,10 +19,12 @@ package com.lightstreamer.kafka_connector.samples.producer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,7 +37,7 @@ public class FeedSimluator {
 
     public interface ExternalFeedListener {
 
-        void onEvent(Stock stock, boolean b);
+        void onEvent(Stock stock);
     }
 
     private static final Timer dispatcher = new Timer();
@@ -108,7 +110,7 @@ public class FeedSimluator {
     };
 
     /** Used to keep the contexts of the 30 stocks. */
-    private final ArrayList<StockProducer> stockGenerators = new ArrayList<>();
+    private final List<StockProducer> stockGenerators = new ArrayList<>();
 
     private ExternalFeedListener listener;
 
@@ -117,11 +119,11 @@ public class FeedSimluator {
      * external broadcast feed.
      */
     public void start() {
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 10; i++) {
             StockProducer stock = new StockProducer(i);
             stockGenerators.add(stock);
-            long waitTime = stock.computeNextWaitTime();
-            scheduleGenerator(stock, waitTime);
+            // long waitTime = stock.computeNextWaitTime();
+            scheduleGenerator(stock, 0);
         }
     }
 
@@ -135,7 +137,7 @@ public class FeedSimluator {
     /**
      * Generates new values and sends a new update event at the time the producer declared to do it.
      */
-    private void scheduleGenerator(final StockProducer stock, long waitTime) {
+    private void scheduleGenerator(StockProducer stock, long waitTime) {
         dispatcher.schedule(
                 new TimerTask() {
                     public void run() {
@@ -143,7 +145,7 @@ public class FeedSimluator {
                         synchronized (stock) {
                             stock.computeNewValues();
                             if (listener != null) {
-                                listener.onEvent(stock.getCurrentValues(false), false);
+                                listener.onEvent(stock.getCurrentValues(true));
                             }
                             nextWaitTime = stock.computeNextWaitTime();
                         }
@@ -234,71 +236,62 @@ public class FeedSimluator {
          * is not strict).
          */
         public Stock getCurrentValues(boolean fullData) {
-            Stock stock = new Stock();
-            stock.name = name;
-            final HashMap<String, String> event = new HashMap<String, String>();
+            HashMap<String, String> event = new HashMap<String, String>();
 
-            String format = "HH:mm:ss";
-            SimpleDateFormat formatter = new SimpleDateFormat(format);
-            Date now = new Date();
-            event.put("time", formatter.format(now));
-            event.put("timestamp", Long.toString(now.getTime()));
-            stock.time = formatter.format(now);
-            stock.timestamp = Long.toString(now.getTime());
+            LocalDateTime now = LocalDateTime.now();
+            event.put("time", now.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+            event.put("timestamp", String.valueOf(now.toInstant(ZoneOffset.UTC).toEpochMilli()));
             addDecField("last_price", last, event);
-            stock.last_price = addDecField(last);
             if (other > last) {
                 addDecField("ask", other, event);
-                stock.ask = addDecField(other);
                 addDecField("bid", last, event);
-                stock.bid = addDecField(last);
             } else {
                 addDecField("ask", last, event);
-                stock.ask = addDecField(last);
                 addDecField("bid", other, event);
-                stock.bid = addDecField(other);
             }
             int quantity;
             quantity = uniform(1, 200) * 500;
             event.put("bid_quantity", Integer.toString(quantity));
-            stock.bid_quantity = Integer.toString(quantity);
 
             quantity = uniform(1, 200) * 500;
             event.put("ask_quantity", Integer.toString(quantity));
-            stock.ask_quantity = Integer.toString(quantity);
 
             double var = (last - ref) / (double) ref * 100;
             addDecField("pct_change", (int) (var * 100), event);
-            stock.pct_change = addDecField((int) (var * 100));
             if ((last == min) || fullData) {
                 addDecField("min", min, event);
-                stock.min = addDecField(min);
             }
             if ((last == max) || fullData) {
                 addDecField("max", max, event);
-                stock.max = addDecField(max);
             }
             if (fullData) {
                 event.put("stock_name", name);
                 addDecField("ref_price", ref, event);
-                stock.ref_price = addDecField(ref);
                 addDecField("open_price", open, event);
-                stock.open_price = addDecField(open);
                 // since it's a simulator the item is always active
                 event.put("item_status", "active");
-                stock.item_status = "active";
             }
-            return stock;
+            return new Stock(
+                    name,
+                    event.get("time"),
+                    event.get("timestamp"),
+                    event.get("last_price"),
+                    event.get("ask"),
+                    event.get("bid"),
+                    event.get("bid_quantity"),
+                    event.get("ask_quantity"),
+                    event.get("pct_change"),
+                    event.get("min"),
+                    event.get("max"),
+                    event.get("ref_price"),
+                    event.get("open_price"),
+                    event.get("item_status"));
         }
 
         private void addDecField(String fld, int val100, HashMap<String, String> target) {
             double val = (((double) val100) / 100);
             String buf = Double.toString(val);
             target.put(fld, buf);
-        }
-
-        private String addDecField(int val100) {
-            return Double.toString((((double) val100) / 100));
         }
 
         private long gaussian(double mean, double stddev) {
@@ -312,20 +305,19 @@ public class FeedSimluator {
         }
     }
 
-    public static class Stock {
-        @JsonProperty public String name;
-        @JsonProperty public String time;
-        @JsonProperty public String timestamp;
-        @JsonProperty public String last_price;
-        @JsonProperty public String ask;
-        @JsonProperty public String bid;
-        @JsonProperty public String bid_quantity;
-        @JsonProperty public String ask_quantity;
-        @JsonProperty public String pct_change;
-        @JsonProperty public String min;
-        @JsonProperty public String max;
-        @JsonProperty public String ref_price;
-        @JsonProperty public String open_price;
-        @JsonProperty public String item_status;
-    }
+    public static record Stock(
+            @JsonProperty String name,
+            @JsonProperty String time,
+            @JsonProperty String timestamp,
+            @JsonProperty String last_price,
+            @JsonProperty String ask,
+            @JsonProperty String bid,
+            @JsonProperty String bid_quantity,
+            @JsonProperty String ask_quantity,
+            @JsonProperty String pct_change,
+            @JsonProperty String min,
+            @JsonProperty String max,
+            @JsonProperty String ref_price,
+            @JsonProperty String open_price,
+            @JsonProperty String item_status) {}
 }

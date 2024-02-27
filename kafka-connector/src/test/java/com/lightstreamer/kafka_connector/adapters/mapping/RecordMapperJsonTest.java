@@ -79,7 +79,7 @@ public class RecordMapperJsonTest {
     }
 
     @Test
-    public void shoulMapEmpty() {
+    public void shouldMapEmpty() {
         RecordMapper<String, JsonNode> mapper = builder().build();
 
         ConsumerRecord<String, JsonNode> kafkaRecord =
@@ -91,7 +91,7 @@ public class RecordMapperJsonTest {
     }
 
     @Test
-    public void shoulMapWithValues() {
+    public void shouldMapWithValues() {
         RecordMapper<String, JsonNode> mapper =
                 builder()
                         .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
@@ -157,5 +157,27 @@ public class RecordMapperJsonTest {
         Map<String, String> otherPeopleNames = mappedRecord.filter(childSelectors2);
         assertThat(otherPeopleNames)
                 .containsExactly("secondChildName", "anna", "grandChildName", "terence");
+    }
+
+    @Test
+    public void shouldFilterWithNullValues() {
+        Selectors<String, JsonNode> selectors =
+                selectors(
+                        "test",
+                        Map.of(
+                                "name",
+                                "VALUE.children[0].name",
+                                "signature",
+                                "VALUE.children[0].signature"));
+
+        RecordMapper<String, JsonNode> mapper = builder().withSelectors(selectors).build();
+
+        ConsumerRecord<String, JsonNode> kafkaRecord =
+                ConsumerRecords.record("", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
+
+        Map<String, String> parentName = mappedRecord.filter(selectors);
+        assertThat(parentName).containsExactly("name", "alex", "signature", null);
     }
 }

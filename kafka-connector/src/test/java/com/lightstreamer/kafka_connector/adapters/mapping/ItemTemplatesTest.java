@@ -120,11 +120,11 @@ public class ItemTemplatesTest {
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, selected);
         assertThat(templates.topics()).containsExactly("topic");
 
-        Item subcribingItem1 = Items.itemFrom("template-family-<topic=aSpecificTopic>", "");
+        Item subcribingItem1 = Items.itemFrom("template-family-[topic=aSpecificTopic]", "");
         assertThat(templates.matches(subcribingItem1)).isTrue();
 
         Item subcribingItem2 =
-                Items.itemFrom("template-relatives-<topic=anotherSpecificTopic>", "");
+                Items.itemFrom("template-relatives-[topic=anotherSpecificTopic]", "");
         assertThat(templates.matches(subcribingItem2)).isTrue();
 
         RecordMapper<String, JsonNode> mapper =
@@ -163,7 +163,7 @@ public class ItemTemplatesTest {
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, suppliers);
         assertThat(templates.topics()).containsExactly("new_orders", "past_orders");
 
-        Item subcribingItem = Items.itemFrom("template-orders-<topic=aSpecifgicTopic>", "");
+        Item subcribingItem = Items.itemFrom("template-orders-[topic=aSpecifgicTopic]", "");
         assertThat(templates.matches(subcribingItem)).isTrue();
 
         RecordMapper<String, JsonNode> mapper =
@@ -255,13 +255,13 @@ public class ItemTemplatesTest {
                         List.of("item-#{key=KEY,value=VALUE}"),
                         List.of(
                                 Items.itemFrom("item", new Object()),
-                                Items.itemFrom("item-<key=key>", new Object()),
-                                Items.itemFrom("item-<key=key,value=value>", new Object()),
-                                Items.itemFrom("item-<value=value>", new Object())),
+                                Items.itemFrom("item-[key=key]", new Object()),
+                                Items.itemFrom("item-[key=key,value=value]", new Object()),
+                                Items.itemFrom("item-[value=value]", new Object())),
                         List.of(
                                 Items.itemFrom("nonRoutable", new Object()),
-                                Items.itemFrom("item-<key=anotherKey>", new Object()),
-                                Items.itemFrom("item-<value=anotherValue>", new Object()))),
+                                Items.itemFrom("item-[key=anotherKey]", new Object()),
+                                Items.itemFrom("item-[value=anotherValue]", new Object()))),
                 arguments(
                         List.of(
                                 "item-#{key=KEY,value=VALUE}",
@@ -269,17 +269,17 @@ public class ItemTemplatesTest {
                                 "myItem-#{topic=TOPIC}"),
                         List.of(
                                 Items.itemFrom("item", new Object()),
-                                Items.itemFrom("item-<key=key>", new Object()),
-                                Items.itemFrom("item-<key=key,value=value>", new Object()),
-                                Items.itemFrom("item-<value=value>", new Object()),
-                                Items.itemFrom("item-<topic=topic>", new Object()),
-                                Items.itemFrom("myItem-<topic=topic>", new Object())),
+                                Items.itemFrom("item-[key=key]", new Object()),
+                                Items.itemFrom("item-[key=key,value=value]", new Object()),
+                                Items.itemFrom("item-[value=value]", new Object()),
+                                Items.itemFrom("item-[topic=topic]", new Object()),
+                                Items.itemFrom("myItem-[topic=topic]", new Object())),
                         List.of(
                                 Items.itemFrom("nonRoutable", new Object()),
-                                Items.itemFrom("item-<key=anotherKey>", new Object()),
-                                Items.itemFrom("item-<value=anotherValue>", new Object()),
-                                Items.itemFrom("item-<topic=anotherTopic>", new Object()),
-                                Items.itemFrom("myItem-<topic=anotherTopic>", new Object()))));
+                                Items.itemFrom("item-[key=anotherKey]", new Object()),
+                                Items.itemFrom("item-[value=anotherValue]", new Object()),
+                                Items.itemFrom("item-[topic=anotherTopic]", new Object()),
+                                Items.itemFrom("myItem-[topic=anotherTopic]", new Object()))));
     }
 
     @ParameterizedTest

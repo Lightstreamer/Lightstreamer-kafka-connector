@@ -148,7 +148,7 @@ public class JsonNodeSelectorsSuppliers {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            String text = !node.isNull() ? node.asText() : "NULL";
+            String text = !node.isNull() ? node.asText() : null;
             return Value.of(name(), text);
         }
     }

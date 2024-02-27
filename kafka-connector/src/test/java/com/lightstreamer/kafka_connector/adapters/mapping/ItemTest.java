@@ -105,7 +105,7 @@ public class ItemTest {
 						item-first | item-first
 						item_123_  | item_123_
 						item-      | item-
-						prefix-<>  | prefix
+						prefix-[]  | prefix
 						""")
     public void shouldMakeWithEmptySchemaKeys(String input, String expectedPrefix) {
         Object handle = new Object();
@@ -124,14 +124,14 @@ public class ItemTest {
             textBlock =
                     """
 						INPUT                     | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
-						item-<name=field1>        | item            | name          | field1
-						item-first-<height=12.34> | item-first      | height        | 12.34
-						item_123_-<test=\\>       | item_123_       | test          | \\
-						item-<test="">            | item            | test          | ""
-						prefix-<test=>>           | prefix          | test          | >
-						item-<test=value,>        | item            | test          | value
+						item-[name=field1]        | item            | name          | field1
+						item-first-[height=12.34] | item-first      | height        | 12.34
+						item_123_-[test=\\]       | item_123_       | test          | \\
+						item-[test=""]            | item            | test          | ""
+						prefix-[test=]]           | prefix          | test          | ]
+						item-[test=value,]        | item            | test          | value
 						item-                     | item-           |               |
-						item-<>                   | item            |               |
+						item-[]                   | item            |               |
 						""")
     public void shouldMakeWithValue(
             String input, String expectedPrefix, String expectedName, String expectedValue) {
@@ -155,7 +155,7 @@ public class ItemTest {
             textBlock =
                     """
 						INPUT                            | EXPECTED_NAME1 | EXPECTED_VALUE1 | EXPECTED_NAME2 | EXPECTED_VALUE2
-						item-<name1=field1,name2=field2> | name1          | field1          | name2          | field2
+						item-[name1=field1,name2=field2] | name1          | field1          | name2          | field2
 						""")
     public void shouldMakeWithMoreValues(
             String input, String name1, String val1, String name2, String value2) {

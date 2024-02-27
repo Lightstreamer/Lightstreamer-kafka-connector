@@ -31,16 +31,16 @@ public class JsonNodeProvider {
     public static JsonNode RECORD = new JsonNodeProvider().newNode();
 
     private ObjectNode newNode() {
-        List<Value> parentJoeChildren =
+        List<Value> joeChildren =
                 new ArrayList<>(
                         List.of(
                                 new Value("alex"),
                                 new Value(
                                         "anna", List.of(new Value("gloria"), new Value("terence"))),
                                 new Value("serena")));
-        parentJoeChildren.add(null);
+        joeChildren.add(null);
 
-        Value value = new Value("joe", parentJoeChildren);
+        Value value = new Value("joe", joeChildren);
         value.signature = new byte[] {97, 98, 99, 100};
 
         ObjectNode node = new ObjectMapper().valueToTree(value);

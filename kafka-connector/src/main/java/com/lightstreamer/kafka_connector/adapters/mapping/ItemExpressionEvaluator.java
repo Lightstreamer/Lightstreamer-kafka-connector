@@ -46,7 +46,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")),
 
     SUBSCRIBED(
-            Pattern.compile("([a-zA-Z0-9_-]+)(-<(.*)>)?"),
+            Pattern.compile("([a-zA-Z0-9_-]+)(-\\[(.*)\\])?"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?"));
 
     private final Pattern gobal;
