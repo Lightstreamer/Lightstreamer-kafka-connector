@@ -52,6 +52,18 @@ public class ConsumerRecords {
         return record(null, value);
     }
 
+    public static ConsumerRecord<Object, ?> fromKey(Object key) {
+        return record(key, null);
+    }
+
+    public static ConsumerRecord<?, Object> fromValue(Object value) {
+        return record(null, value);
+    }
+
+    public static ConsumerRecord<?, Integer> fromIntValue(int value) {
+        return record(null, value);
+    }
+
     public static <K, V> ConsumerRecord<K, V> record(K key, V value) {
         return new ConsumerRecord<K, V>(
                 "record-topic",

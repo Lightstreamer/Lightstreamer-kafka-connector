@@ -31,6 +31,7 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Se
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.string.StringSelectorSuppliers;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -137,11 +138,12 @@ public class ConsumerLoopConfigurator {
     }
 
     private KeySelectorSupplier<?> mkKeySelectorSupplier(ConnectorConfig config) {
-        EvaluatorType evaluator = config.getKeyEvaluator();
-        return switch (evaluator) {
+        EvaluatorType evaluatorType = config.getKeyEvaluator();
+        return switch (evaluatorType) {
             case AVRO -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
             case STRING -> StringSelectorSuppliers.keySelectorSupplier();
+            default -> OthersSelectorSuppliers.keySelectorSupplier(evaluatorType);
         };
     }
 
@@ -151,6 +153,7 @@ public class ConsumerLoopConfigurator {
             case AVRO -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
             case STRING -> StringSelectorSuppliers.valueSelectorSupplier();
+            default -> OthersSelectorSuppliers.valueSelectorSupplier(evaluatorType);
         };
     }
 }

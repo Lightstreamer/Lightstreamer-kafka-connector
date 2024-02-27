@@ -127,15 +127,16 @@
         <!-- TOPIC MAPPING SECTION -->
 
         <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <param name="item-template.stock">stock-#{name=KEY}</param>
+        <param name="item-template.stock">stock-#{index=KEY}</param>
 
         <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
         <param name="map.stocks.to">item-template.stock</param>
 
-        <param name="key.evaluator.type">STRING</param>
+        <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
 
         <!-- FIELDS MAPPING SECTION -->
+        <param name="field.index">#{KEY}</param>
 
         <!-- Extraction of the record value mapped to the field "value". -->
         <param name="field.stock_name">#{VALUE.name}</param>

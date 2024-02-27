@@ -185,7 +185,7 @@ public class GenericRecordSelectorsSuppliers {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            String text = value != null ? value.toString() : null;
+            String text = Objects.toString(value, null);
             return Value.of(name(), text);
         }
     }

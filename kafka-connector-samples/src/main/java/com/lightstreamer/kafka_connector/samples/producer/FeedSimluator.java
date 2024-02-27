@@ -37,7 +37,7 @@ public class FeedSimluator {
 
     public interface ExternalFeedListener {
 
-        void onEvent(Stock stock);
+        void onEvent(int stockIndex, Stock stock);
     }
 
     private static final Timer dispatcher = new Timer();
@@ -137,19 +137,21 @@ public class FeedSimluator {
     /**
      * Generates new values and sends a new update event at the time the producer declared to do it.
      */
-    private void scheduleGenerator(StockProducer stock, long waitTime) {
+    private void scheduleGenerator(StockProducer stockProducer, long waitTime) {
         dispatcher.schedule(
                 new TimerTask() {
                     public void run() {
                         long nextWaitTime;
-                        synchronized (stock) {
-                            stock.computeNewValues();
+                        synchronized (stockProducer) {
+                            stockProducer.computeNewValues();
                             if (listener != null) {
-                                listener.onEvent(stock.getCurrentValues(true));
+                                listener.onEvent(
+                                        stockProducer.index + 1,
+                                        stockProducer.getCurrentValues(true));
                             }
-                            nextWaitTime = stock.computeNextWaitTime();
+                            nextWaitTime = stockProducer.computeNextWaitTime();
                         }
-                        scheduleGenerator(stock, nextWaitTime);
+                        scheduleGenerator(stockProducer, nextWaitTime);
                     }
                 },
                 waitTime);
@@ -157,6 +159,7 @@ public class FeedSimluator {
 
     /** Manages the current state and generates update events for a single stock. */
     private static class StockProducer {
+        private final int index;
         private final int open, ref;
         private final double mean, stddev;
         private final String name;
@@ -164,6 +167,7 @@ public class FeedSimluator {
 
         /** Initializes stock data based on the already prepared values. */
         public StockProducer(int itemPos) {
+            this.index = itemPos;
             // All prices are converted in integer form to simplify the
             // management; they will be converted back before being sent
             // in the update events

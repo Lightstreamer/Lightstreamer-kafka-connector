@@ -46,10 +46,10 @@ public class StringSelectorsTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-						EXPRESSION, EXPECTED
-						VALUE,      joe
-						VALUE,      alex
-						""")
+                        EXPRESSION, EXPECTED
+                        VALUE,      joe
+                        VALUE,      alex
+                        """)
     public void shouldExtractValue(String expression, String expected) {
         ValueSelector<String> selector = valueSelector(expression);
         assertThat(selector.name()).isEqualTo("name");
@@ -61,10 +61,10 @@ public class StringSelectorsTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-						EXPRESSION, EXPECTED
-						KEY,        joe
-						KEY,        alex
-						""")
+                        EXPRESSION, EXPECTED
+                        KEY,        joe
+                        KEY,        alex
+                        """)
     public void shouldExtractKey(String expression, String expected) {
         KeySelector<String> selector = keySelector(expression);
         assertThat(selector.name()).isEqualTo("name");

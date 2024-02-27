@@ -579,7 +579,22 @@ public class ConnectorConfigTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"AVRO", "STRING", "JSON"})
+    @ValueSource(
+            strings = {
+                "AVRO",
+                "STRING",
+                "JSON",
+                "INTEGER",
+                "SHORT",
+                "FLOAT",
+                "LONG",
+                "UUID",
+                "DOUBLE",
+                "BOOLEAN",
+                "BYTES",
+                "BYTE_ARRAY",
+                "BYTE_BUFFER"
+            })
     public void shouldGetEvaluator(String type) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, type);

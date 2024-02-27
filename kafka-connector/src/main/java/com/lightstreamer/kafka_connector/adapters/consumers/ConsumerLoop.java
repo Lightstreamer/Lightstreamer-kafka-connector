@@ -300,6 +300,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         protected void consume(ConsumerRecord<K, V> record) {
             log.atDebug().log("Mapping incoming Kafka record");
+            log.atTrace().log("Kafka record: {}", record.toString());
             MappedRecord mappedRecord = recordRemapper.map(record);
 
             // Logging the mapped record is expensive, log lazly it only at trace level.

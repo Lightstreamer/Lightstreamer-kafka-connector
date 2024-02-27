@@ -149,7 +149,17 @@ public class ConfigTypes {
     public enum EvaluatorType {
         AVRO,
         JSON,
-        STRING;
+        STRING,
+        INTEGER,
+        BOOLEAN,
+        BYTE_ARRAY,
+        BYTE_BUFFER,
+        BYTES,
+        DOUBLE,
+        FLOAT,
+        LONG,
+        SHORT,
+        UUID;
 
         public static Set<String> names() {
             return enumNames(values());

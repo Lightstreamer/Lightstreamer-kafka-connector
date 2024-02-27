@@ -57,7 +57,7 @@ public class Producer implements Runnable, ExternalFeedListener {
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
 
         // Create the producer
-        producer = new KafkaProducer<String, Stock>(properties);
+        producer = new KafkaProducer<>(properties);
 
         // Create and start the feed simulator.
         FeedSimluator simulator = new FeedSimluator();
@@ -66,9 +66,9 @@ public class Producer implements Runnable, ExternalFeedListener {
     }
 
     @Override
-    public void onEvent(Stock stock) {
+    public void onEvent(int stockIndex, Stock stock) {
         ProducerRecord<String, Stock> record =
-                new ProducerRecord<>(this.topic, stock.name().replace(' ', '-'), stock);
+                new ProducerRecord<>(this.topic, String.valueOf(stockIndex), stock);
         producer.send(
                 record,
                 new Callback() {
