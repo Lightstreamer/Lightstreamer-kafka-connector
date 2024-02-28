@@ -3,12 +3,13 @@ version: '2'
 services:
   lightstreamer:
     container_name: lightstreamer
-    build:
-      dockerfile: Dockerfile.kafka-connector
+    image: lightstreamer-kafka-connector-0.1.0
     depends_on:
       - producer
     ports:
       - 8080:8080
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
 
   producer:
     container_name: producer
@@ -17,7 +18,6 @@ services:
     build:
       dockerfile: Dockerfile.producer
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
-
 
   broker:
     image: confluentinc/confluent-local:latest
