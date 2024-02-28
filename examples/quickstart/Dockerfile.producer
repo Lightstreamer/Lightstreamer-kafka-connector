@@ -1,6 +1,6 @@
 FROM eclipse-temurin:17
 
 RUN mkdir /opt/producer
-COPY deploy/lightstreamer-kafka-connector-samples-all-*.jar  /opt/producer/lightstreamer-kafka-connector-samples-all.jar
+COPY tmp/lightstreamer-kafka-connector-samples-all-*.jar  /opt/producer/lightstreamer-kafka-connector-samples-all.jar
 
 ENTRYPOINT ["java", "-jar", "/opt/producer/lightstreamer-kafka-connector-samples-all.jar"]

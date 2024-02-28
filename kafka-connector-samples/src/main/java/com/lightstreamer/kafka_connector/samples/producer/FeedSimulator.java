@@ -24,23 +24,25 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Simulates an external data feed that supplies quote values for all the stocks needed for the
  * demo.
  */
-public class FeedSimluator {
+public class FeedSimulator {
 
     public interface ExternalFeedListener {
 
         void onEvent(int stockIndex, Stock stock);
     }
 
-    private static final Timer dispatcher = new Timer();
     private static final Random random = new Random();
 
     /**
@@ -112,7 +114,15 @@ public class FeedSimluator {
     /** Used to keep the contexts of the 30 stocks. */
     private final List<StockProducer> stockGenerators = new ArrayList<>();
 
-    private ExternalFeedListener listener;
+    /** The internal listener for the update events. */
+    private final ExternalFeedListener listener;
+
+    private ScheduledExecutorService scheduler;
+
+    public FeedSimulator(ExternalFeedListener listener) {
+        this.listener = listener;
+        scheduler = Executors.newScheduledThreadPool(4);
+    }
 
     /**
      * Starts generating update events for the stocks. Sumulates attaching and reading from an
@@ -122,39 +132,29 @@ public class FeedSimluator {
         for (int i = 0; i < 10; i++) {
             StockProducer stock = new StockProducer(i);
             stockGenerators.add(stock);
-            // long waitTime = stock.computeNextWaitTime();
-            scheduleGenerator(stock, 0);
+            long waitTime = 0; // stock.computeNextWaitTime();
+            scheduleGenerator(stock, waitTime);
         }
-    }
-
-    /**
-     * Sets an internal listener for the update events. Since now, the update events were ignored.
-     */
-    public void setFeedListener(ExternalFeedListener listener) {
-        this.listener = listener;
     }
 
     /**
      * Generates new values and sends a new update event at the time the producer declared to do it.
      */
     private void scheduleGenerator(StockProducer stockProducer, long waitTime) {
-        dispatcher.schedule(
-                new TimerTask() {
-                    public void run() {
-                        long nextWaitTime;
-                        synchronized (stockProducer) {
-                            stockProducer.computeNewValues();
-                            if (listener != null) {
-                                listener.onEvent(
-                                        stockProducer.index + 1,
-                                        stockProducer.getCurrentValues(true));
-                            }
-                            nextWaitTime = stockProducer.computeNextWaitTime();
-                        }
-                        scheduleGenerator(stockProducer, nextWaitTime);
+        scheduler.schedule(
+                () -> {
+                    long nextWaitTime;
+                    synchronized (stockProducer) {
+                        stockProducer.computeNewValues();
+                        listener.onEvent(
+                                stockProducer.index + 1, stockProducer.getCurrentValues(true));
+
+                        nextWaitTime = stockProducer.computeNextWaitTime();
                     }
+                    scheduleGenerator(stockProducer, nextWaitTime);
                 },
-                waitTime);
+                waitTime,
+                TimeUnit.MILLISECONDS);
     }
 
     /** Manages the current state and generates update events for a single stock. */
@@ -324,4 +324,25 @@ public class FeedSimluator {
             @JsonProperty String ref_price,
             @JsonProperty String open_price,
             @JsonProperty String item_status) {}
+
+    public static void main(String[] args) {
+        Set<Integer> st = new HashSet<>();
+        FeedSimulator sim =
+                new FeedSimulator(
+                        new ExternalFeedListener() {
+
+                            @Override
+                            public void onEvent(int stockIndex, Stock stock) {
+                                if (st.add(stockIndex)) {
+                                    System.out.println("Added stockIndex " + stockIndex);
+                                }
+                                System.out.println(stock);
+                                if (st.size() == 10) {
+                                    System.out.println("Complete!");
+                                    // System.exit(0);
+                                }
+                            }
+                        });
+        sim.start();
+    }
 }

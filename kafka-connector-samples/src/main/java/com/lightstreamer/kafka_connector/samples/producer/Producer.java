@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka_connector.samples.producer;
 
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimluator.ExternalFeedListener;
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimluator.Stock;
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.ExternalFeedListener;
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.Stock;
 
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
 
@@ -60,8 +60,7 @@ public class Producer implements Runnable, ExternalFeedListener {
         producer = new KafkaProducer<>(properties);
 
         // Create and start the feed simulator.
-        FeedSimluator simulator = new FeedSimluator();
-        simulator.setFeedListener(this);
+        FeedSimulator simulator = new FeedSimulator(this);
         simulator.start();
     }
 

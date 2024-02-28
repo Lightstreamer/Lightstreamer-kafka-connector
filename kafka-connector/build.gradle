@@ -43,8 +43,3 @@ task distribuite(type: Copy) {
     from (connectorDistZip)
     into "$rootDir/$deployDirName"
 }
-
-task quickStart(type: Copy) {
-    from (connectorDistZip)
-    into "$rootDir/$quickstartDeployDirName"
-}
