@@ -1,8 +1,8 @@
 ---
 version: '2'
 services:
-  lightstreamer:
-    container_name: lightstreamer
+  kafka-connector:
+    container_name: kafka-connector
     image: lightstreamer-kafka-connector-0.1.0
     depends_on:
       - producer

@@ -10,5 +10,5 @@ if [ $? == 0 ]; then
     # Deploy the Kafka Producer to the tmp folder
     ./gradlew QuickStart
     cd $cwd
-    docker compose up --build 
+    docker compose up --build -d
 fi

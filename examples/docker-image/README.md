@@ -20,7 +20,9 @@ To build the image:
 
 2. Run the command:
 
-   `./build.sh`
+   ```sh
+   ./build.sh
+   ```
 
    which will:
    
@@ -38,8 +40,12 @@ To build the image:
 
 4. Launch the container with:
 
-   `docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>`
+   ```sh
+   docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+   ```
  
 5. Check the logs:
  
-   `docker logs -f kafka-connector`
+   ```sh
+   docker logs -f kafka-connector
+   ```

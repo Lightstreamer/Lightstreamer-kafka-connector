@@ -157,7 +157,8 @@
 </li>
 <li>
 <p>Run the command:</p>
-<p><code>./build.sh</code></p>
+<pre><code class="language-sh">./build.sh
+</code></pre>
 <p>which will:</p>
 <ul>
 <li>create and copy the distribution package to the <code>tmp</code> folder;</li>
@@ -174,11 +175,13 @@ lightstreamer-kafka-connector-0.1.0   latest            f77fc60f7892   13 minute
 </li>
 <li>
 <p>Launch the container with:</p>
-<p><code>docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-&lt;version&gt;</code></p>
+<pre><code class="language-sh">docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-&lt;version&gt;
+</code></pre>
 </li>
 <li>
 <p>Check the logs:</p>
-<p><code>docker logs -f kafka-connector</code></p>
+<pre><code class="language-sh">docker logs -f kafka-connector
+</code></pre>
 </li>
 </ol>
 
