@@ -17,9 +17,9 @@ mkdir -p tmp
 cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip tmp/
 
 echo "Build the Lightstramer Kafka Connector Docker image"
-docker build -t ligthstreamer-kafka-connector-${version} . --build-arg VERSION=${version}
+docker build -t lightstreamer-kafka-connector-${version} . --build-arg VERSION=${version}
 
 if [ $? == 0 ]; then
     echo "Launch the image with:"
-    echo "docker run --name kafka-connector -d -p 8080:8080 ligthstreamer-kafka-connector-${version}"
+    echo "docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-${version}"
 fi

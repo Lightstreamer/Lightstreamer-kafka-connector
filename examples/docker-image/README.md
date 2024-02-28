@@ -33,12 +33,12 @@ To build the image:
    docker image ls kafka-connector-<version>
 
    REPOSITORY                            TAG               IMAGE ID       CREATED          SIZE
-   ligthstreamer-kafka-connector-0.1.0   latest            f77fc60f7892   13 minutes ago   602MB
+   lightstreamer-kafka-connector-0.1.0   latest            f77fc60f7892   13 minutes ago   602MB
    ```
 
 4. Launch the container with:
 
-   `docker run --name kafka-connector -d -p 8080:8080 ligthstreamer-kafka-connector-<version>`
+   `docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>`
  
 5. Check the logs:
  
