@@ -81,14 +81,22 @@ To provide a complete application stack, the demo is based on _Docker Compose_. 
 3. The web client, mounted on the Lightreamer service.
 4. A native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-sample](kafka-connector-samples/) submodule of the project root.
 
-To run the example:
+To run the demo:
 
 1. Make sure you have Docker Compose and Java 17 (or later) installed on your local machine.
 2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following command
    
-   `launch_quickstart.sh`
+   ```sh
+   ./launch_quickstart.sh
+   ```
 
 3. Point your browser to [http://localhost:8080](http://localhost:8080).
+
+4. To shutdown Docker Compose and clean up all temporary resources:
+ 
+   ```sh
+   ./shutdown_quickstart.sh
+   ```
 
 After a few moments, the user interface starts displaying the real-time stock data.
 
@@ -103,7 +111,9 @@ After a few moments, the user interface starts displaying the real-time stock da
 
 Get the deployment package from the [latest release page](releases). Alternatively, check out this repository and run the following command from the project root;
 
-`./gradlew distribuite`
+```sh
+./gradlew distribuite
+```
 
 which generates the `build/distributions/lightstreamer-kafka-connector-<version>.zip` bundle.
 
