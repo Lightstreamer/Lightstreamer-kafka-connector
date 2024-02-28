@@ -27,7 +27,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -45,14 +45,14 @@ public class Producer implements Runnable, ExternalFeedListener {
     @Option(names = "--topic", description = "The target topic", required = true)
     private String topic;
 
-    private KafkaProducer<String, Stock> producer;
+    private KafkaProducer<Integer, Stock> producer;
 
     public void run() {
         // Create producer configs
         Properties properties = new Properties();
         properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         properties.setProperty(
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         properties.setProperty(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
 
@@ -67,8 +67,7 @@ public class Producer implements Runnable, ExternalFeedListener {
 
     @Override
     public void onEvent(int stockIndex, Stock stock) {
-        ProducerRecord<String, Stock> record =
-                new ProducerRecord<>(this.topic, String.valueOf(stockIndex), stock);
+        ProducerRecord<Integer, Stock> record = new ProducerRecord<>(this.topic, stockIndex, stock);
         producer.send(
                 record,
                 new Callback() {
