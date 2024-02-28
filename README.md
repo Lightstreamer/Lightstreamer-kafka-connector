@@ -4,7 +4,6 @@
   - [Introduction](#introduction)
   - [Features](#features)
   - [Quick Start](#quick-start)
-    - [Requirements](#requirements)
   - [Installation](#installation)
     - [Deploy](#deploy)
     - [Configure](#configure)
@@ -69,35 +68,34 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 ## Quick Start
 
-To quickly showcase how the Lighstreamer Kafka Connector works, you can run simply run the example you can run from the [`examples/quickstart`](examples/quickstart/) folder.
+To showcase the functioning of the Lighstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the required stuff to quickly set up a slightly modified version of the well-known [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo, which displays real-time market data received from Lightstreamer Server.
 
-The example application is a slightly modified version of the well-known [Stock List demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), where an events stream of simulated market data is injected from Kafka to a simple web client through the Ligthstreamer Kafka Connector.
+![quick-start-diagram](quickstart-diagram.png)
 
-Following is the general architecture:
+As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through the Ligthstreamer Kafka Connector.
 
-![quick-start-diagarm](quickstart-diagram.png)
+To provide a complete application stack, the demo is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yaml) comprises the following services:
 
+1. A Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
+2. Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/)
+3. The web client, mounted on the Lightreamer service.
+4. A native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-sample](kafka-connector-samples/) submodule of the project root.
 
-
-NOTE: For the sake of simplicity, Lightstrem
-The example is based on Docker Compose, composed of the following services:
-
-1. A single node Kafka broker.
-2. A Lighstreamer Server instance with the Kafka Connector.
-3. A native Kafka Producer.
-  
 To run the example:
-1. Ensure you have Docker Compose and Java 17 installed on your local machine.
-2. 
 
-### Requirements
+1. Make sure you have Docker Compose and Java 17 (or later) installed on your local machine.
+2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following command
+   
+   `launch_quickstart.sh`
 
-- Insert Docker compose example with a minimal webclient
+3. Point your browser to [http://localhost:8080](http://localhost:8080).
+
+After a few moments, the user interface starts displaying the real-time stock data.
 
 ## Installation
 
 - JDK version 17 or later.
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.1  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
 - A running Kafka broker or Kafka Cluster. Choose between Confluent Cloud e Kafka Broker
 - The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
 
