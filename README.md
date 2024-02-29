@@ -4,7 +4,9 @@
   - [Introduction](#introduction)
   - [Features](#features)
   - [Quick Start](#quick-start)
+    - [Run](#run)
   - [Installation](#installation)
+    - [Requirements](#requirements)
     - [Deploy](#deploy)
     - [Configure](#configure)
     - [Start](#start)
@@ -68,29 +70,33 @@ The Kafka Connector allows to move high volume data out of Kafka by leveraging t
 
 ## Quick Start
 
-To showcase the functioning of the Lighstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the required stuff to quickly set up a slightly modified version of the well-known [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo, which displays real-time market data received from Lightstreamer Server.
+To rapidly showcase the functioning of the Lighstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
 
 ![quick-start-diagram](quickstart-diagram.png)
 
 As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through the Ligthstreamer Kafka Connector.
 
-To provide a complete application stack, the demo is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yaml) comprises the following services:
+To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yaml) comprises the following services:
 
 1. A Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
 2. Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/)
 3. The web client, mounted on the Lightreamer service.
-4. A native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-sample](kafka-connector-samples/) submodule of the project root.
+4. A native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of the project root.
 
-To run the demo:
+### Run
 
-1. Make sure you have Docker Compose and Java 17 (or later) installed on your local machine.
-2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following command
+To run the app:
+
+1. Make sure you have Docker, Docker Compose, and Java 17 (or later) installed on your local machine.
+2. From the [`examples/quickstart`](examples/quickstart/) folder, run the command:
    
    ```sh
    ./launch_quickstart.sh
    ```
 
-3. Point your browser to [http://localhost:8080](http://localhost:8080).
+3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
+   
+   After a few moments, the user interface starts displaying the real-time stock data.
 
 4. To shutdown Docker Compose and clean up all temporary resources:
  
@@ -98,13 +104,15 @@ To run the demo:
    ./shutdown_quickstart.sh
    ```
 
-After a few moments, the user interface starts displaying the real-time stock data.
-
 ## Installation
 
+This section will guide you through the installation of the Lightstreamer Kafka Connector to get it up in a very short time.
+
+### Requirements
+
 - JDK version 17 or later.
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2  or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
-- A running Kafka broker or Kafka Cluster. Choose between Confluent Cloud e Kafka Broker
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
+- A running Kafka broker or Kafka Cluster.
 - The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
 
 ### Deploy
