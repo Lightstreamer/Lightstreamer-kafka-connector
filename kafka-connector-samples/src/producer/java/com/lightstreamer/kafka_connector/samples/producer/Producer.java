@@ -32,7 +32,9 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public class Producer implements Runnable, ExternalFeedListener {
 
@@ -46,6 +48,10 @@ public class Producer implements Runnable, ExternalFeedListener {
     private String topic;
 
     private KafkaProducer<Integer, Stock> producer;
+
+    Set<Integer> st = new HashSet<>();
+
+    volatile boolean keepCount = true;
 
     public void run() {
         // Create producer configs
@@ -66,6 +72,17 @@ public class Producer implements Runnable, ExternalFeedListener {
 
     @Override
     public void onEvent(int stockIndex, Stock stock) {
+        if (keepCount) {
+            if (st.add(stockIndex)) {
+                System.out.println("Added stockIndex " + stockIndex);
+            }
+            System.out.println(stock);
+            if (st.size() == 10) {
+                System.out.println("Complete!");
+                // System.exit(0);
+                keepCount = false;
+            }
+        }
         ProducerRecord<Integer, Stock> record = new ProducerRecord<>(this.topic, stockIndex, stock);
         producer.send(
                 record,
@@ -77,8 +94,8 @@ public class Producer implements Runnable, ExternalFeedListener {
                             return;
                         }
                         System.out.printf(
-                                "Sent record [key=%s,value=%s]%n to topic [%s]]%n",
-                                record.key(), record.value(), record.topic(), record.partition());
+                                "Sent record [key = %d, offset = %d, partition = %d]%n",
+                                record.key(), metadata.offset(), record.partition());
                     }
                 });
     }
