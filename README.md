@@ -5,10 +5,11 @@
   - [Features](#features)
   - [Quick Start](#quick-start)
     - [Run](#run)
-  - [Installation](#installation)
+  - [Getting Started](#getting-started)
     - [Requirements](#requirements)
     - [Deploy](#deploy)
     - [Configure](#configure)
+      - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
     - [Start](#start)
   - [Configuration](#configuration)
     - [Global Settings](#global-settings)
@@ -40,7 +41,7 @@
         - [`encryption.keystore.password`](#encryptionkeystorepassword)
         - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
         - [`encryption.keystore.type`](#encryptionkeystoretype)
-        - [Complete Configuration Example](#complete-configuration-example)
+        - [Complete Encryption Configuration Example](#complete-encryption-configuration-example)
       - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
         - [`authentication.mechanism`](#authenticationmechanism)
@@ -112,16 +113,15 @@ To run the app:
    ./stop.sh
    ```
 
-## Installation
+## Getting Started
 
-This section will guide you through the installation of the Lightstreamer Kafka Connector to get it up in a very short time.
+This section will guide you through the installation of the Lightstreamer Kafka Connector to get it up and running in a very short time.
 
 ### Requirements
 
 - JDK version 17 or later.
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
 - A running Kafka broker or Kafka Cluster.
-- The [JBang](https://www.jbang.dev/documentation/guide/latest/installation.html) tool for running the consumer/producer example clients.
 
 ### Deploy
 
@@ -131,7 +131,7 @@ Get the deployment package from the [latest release page](releases). Alternative
 ./gradlew distribuite
 ```
 
-which generates the `build/distributions/lightstreamer-kafka-connector-<version>.zip` bundle.
+which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Check that the final Lightstreamer layout looks like the following:
@@ -154,10 +154,37 @@ LS_HOME/
 
 ### Configure
 
-Edit the `QuickStart` configuration in the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file as follows:
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [Quick Start](#quick-start) app), which can be customized in all its aspects as per your requirements.
 
-- Update the `bootstrap.servers` parameter with the connection string of the Kafka Cluster.
-- Optionally customize the `LS_HOME/adapters//lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+To quickly complete the installation and verify the integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
+
+- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka.
+
+  ```xml
+  <param name="bootstrap.servers">kafka.connection.string</param>
+  ```
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+
+You can get more details about all possible settings in the [Configuration](#configuration) section.
+
+#### Connection with Confluent Cloud
+
+If your target Kafka cluster is Confluent Cloud, you need to properly configure `TLS 1.2` encryption and `SASL_PLAIN`, as follows:
+
+```xml
+<param name="encryption.enable">true</param>
+<param name="encryption.protocol">TLSv1.2</param>
+<param name="encryption.hostname.verification.enable">true</param>
+
+<param name="authentication.enable">true</param>
+<param name="authentication.mechanism">PLAIN</param>
+<param name="authentication.username">API.key</param>
+<param name="authentication.password">secret</param>
+...
+```
+
+where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+
 
 ### Start
 
@@ -401,14 +428,27 @@ Example:
 
 _Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
 
-- `STRING`
 - `AVRO`
 - `JSON`
+- `STRING`
+- `INTEGER`
+- `BOOLEAN`
+- `BYTE_ARRAY`
+- `BYTE_BUFFER`
+- `BYTES`
+- `DOUBLE`
+- `FLOAT`
+- `LONG`
+- `SHORT`
+- `UUID`
 
 Default value: `STRING`
 
+Examples:
+
 ```xml
-<param name="key.evaluator.type">JSON</param>
+<param name="key.evaluator.type">INTEGER</param>
+<param name="value.evaluator.type">JSON</param>
 ```
 
 ##### `key.evaluator.schema.path` and `value.evaluator.schema.path`
@@ -451,7 +491,9 @@ Example:
 
 ##### `encryption.protocol`
 
-_Optional_. The SSL protocol to be used.
+_Optional_. The SSL protocol to be used. Can be one of the following:
+- `TLSv1.2`
+- `TLSv1.3`
 
 Default value: `TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
 
@@ -603,7 +645,7 @@ Example:
 <param name="encryption.keystore.type">PKCS12</param>
 ```
 
-##### Complete Configuration Example
+##### Complete Encryption Configuration Example
 
 The following is a complete example of how to configure encryption through the above parameters.
 
