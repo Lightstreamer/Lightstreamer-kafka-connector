@@ -1,23 +1,16 @@
 #!/bin/bash
-
-# Set the root project directory
-projectDir=../../
-
-# Alias to the local gradlew command
-_gradle="${projectDir}/gradlew --project-dir ${projectDir}"
-
+source ../utils/helpers.sh
+SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+TMP_DIR=${SCRIPT_DIR}/tmp
 # Generate the distribution
-echo "Making the distribution"
+echo "Making the distribution package"
 $_gradle distribuite
 
-# Get the current version
-version=$($_gradle properties -q --console=plain | grep '^version:' | awk '{ printf $2}')
-
-mkdir -p tmp
-cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip tmp/
+rm -fr  ${TMP_DIR}; mkdir ${TMP_DIR}
+cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip ${TMP_DIR}
 
 echo "Build the Lightstramer Kafka Connector Docker image"
-docker build -t lightstreamer-kafka-connector-${version} . --build-arg VERSION=${version}
+docker build -t lightstreamer-kafka-connector-${version} $SCRIPT_DIR --build-arg VERSION=${version}
 
 if [ $? == 0 ]; then
     echo "Launch the image with:"

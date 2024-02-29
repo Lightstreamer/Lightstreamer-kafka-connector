@@ -71,7 +71,6 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-
-task cleanQuickStart(type: Delete) {
-    delete "$rootDir/$quickstartDeployDirName"
+clean {
+    delete "$rootDir/$deployDirName"
 }

@@ -1,14 +1,15 @@
 # Start form the Official Lightstramer Server image
 FROM lightstreamer
 
-# The Kafka Connector version
+# The Kafka Connector project version
 ARG VERSION
 
-ENV KAFKA_CONNECTOR=lightstreamer-kafka-connector-${VERSION}
-ENV DEPLOY_DIR=/lightstreamer/adapters/${KAFKA_CONNECTOR}
+ENV KAFKA_CONNECTOR_NAME=lightstreamer-kafka-connector-${VERSION}
+ENV KAFKA_CONNECTOR_ZIP=${KAFKA_CONNECTOR_NAME}.zip
+ENV DEPLOY_DIR=/lightstreamer/adapters/${KAFKA_CONNECTOR_NAME}
 
 # Copy the distribution package 
-COPY tmp/${KAFKA_CONNECTOR}.zip /tmp/${KAFKA_CONNECTOR}.zip
+COPY tmp/${KAFKA_CONNECTOR_ZIP} /tmp/${KAFKA_CONNECTOR_ZIP}
 # Copy custom resources
 COPY resources /tmp/resources
 
@@ -17,7 +18,7 @@ USER root
 RUN apt-get -y update; \
     apt-get install -y unzip; \
     # Unzip the distribution package into to Lightstreamer's adapters fodler.
-    unzip /tmp/${KAFKA_CONNECTOR}.zip -d /lightstreamer/adapters; \
+    unzip /tmp/${KAFKA_CONNECTOR_ZIP} -d /lightstreamer/adapters; \
     # Copy the custom resources
     cp /tmp/resources/* ${DEPLOY_DIR}; \
     # Fix ownership

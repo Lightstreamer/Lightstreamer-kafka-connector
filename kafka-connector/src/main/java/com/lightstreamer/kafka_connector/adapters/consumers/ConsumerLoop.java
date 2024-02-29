@@ -225,7 +225,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             // Check the actual available topics on Kafka.
             try (Admin admin = AdminClient.create(config.consumerProperties())) {
                 ListTopicsOptions options = new ListTopicsOptions();
-                options.timeoutMs(5000);
+                options.timeoutMs(30000);
                 ListTopicsResult listTopics = admin.listTopics(options);
                 boolean notAllPresent = false;
 

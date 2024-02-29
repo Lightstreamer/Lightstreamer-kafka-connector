@@ -745,6 +745,20 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldOverrideAutoOffset() {
+        ConnectorConfig config =
+                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getText(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG))
+                .isEqualTo("earliest");
+        assertThat(config.baseConsumerProps())
+                .containsAtLeast(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    }
+
+    @Test
     public void shouldGetEncryptionEnabled() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());

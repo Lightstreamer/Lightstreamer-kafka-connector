@@ -1,6 +1,9 @@
 FROM eclipse-temurin:17
 
-RUN mkdir /opt/producer
-COPY tmp/lightstreamer-kafka-connector-samples-all-*.jar  /opt/producer/lightstreamer-kafka-connector-samples-all.jar
+# The Kafka Connector project version
+ARG VERSION
 
-ENTRYPOINT ["java", "-jar", "/opt/producer/lightstreamer-kafka-connector-samples-all.jar"]
+# Copy the Produer jar
+COPY tmp/lightstreamer-kafka-connector-samples-all-${VERSION}.jar /usr/app/producer.jar
+
+ENTRYPOINT ["java", "-jar", "/usr/app/producer.jar"]
