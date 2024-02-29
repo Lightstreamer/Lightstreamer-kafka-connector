@@ -6,10 +6,12 @@ rm -fr tmp; mkdir -p tmp
 ../docker-image/build.sh
 
 if [ $? == 0 ]; then
-     cp ../../deploy/lightstreamer-kafka-connector-samples-all-${version}.jar tmp/
+     # Generate the producer jar
+     $_gradle distribuiteProducer
+     cp ../../deploy/lightstreamer-kafka-connector-samples-producer-all-${version}.jar tmp/
      # Export the version env variable to be used by Compose
      export version
      docker compose up --build -d
      sleep 20
-     echo "Service started. Now you can point your browers to http://localhost:8080/QuickStart to see real-time data."
+     echo "Service started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data."
  fi

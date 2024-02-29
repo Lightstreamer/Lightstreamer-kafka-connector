@@ -46,7 +46,7 @@ import javax.annotation.Nullable;
  *
  * @see java.base/java.io
  */
-public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
+public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
@@ -189,12 +189,12 @@ public abstract class KafkaConnectorMetadataAdapter extends LiteralBasedProvider
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
-    public abstract void onUnsubscription(
+    public void onUnsubscription(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
-            throws CreditsException, NotificationException;
+            throws CreditsException, NotificationException {}
 
-    public abstract void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
-            throws NotificationException;
+    public void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
+            throws NotificationException {}
 
     /**
      * Only used internally.

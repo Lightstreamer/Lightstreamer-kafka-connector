@@ -169,7 +169,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 #### Connection with Confluent Cloud
 
-If your target Kafka cluster is Confluent Cloud, you need to properly configure `TLS 1.2` encryption and `SASL_PLAIN`, as follows:
+If your target Kafka cluster is Confluent Cloud, you need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
 
 ```xml
 <param name="encryption.enable">true</param>
@@ -194,19 +194,30 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    The _Consumer_ is a simple Lightstreamer Java client that subscribes to the `sample` item to receive real-time data through the fields ....
 
-   In the `QuickStart` configuration, the `sample` item is mapped by the Kafka topic `sample-topic` through the following section:
+   In the `QuickStart` configuration, the `stock` item is mapped by the Kafka topic `sample-topic` through the following section:
 
    ```xml
    <!-- TOPIC MAPPING SECTION -->
 
    <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-   <param name="item-template.sample">sample</param>
+   <param name="item-template.stock">stock-#{index=KEY}</param>
 
    <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-   <param name="map.sample-topic.to">item-template.sample</param>
+   <param name="map.sample-topic.to">item-template.stock</param>
    ```
 
-   Every single event published to `sample-topic` will be processed and then routed by the _Kafka Connector_ to the `sample` item.
+   Every single Kafka record published to the topic `stocks` will be processed and then routed by the _Kafka Connector_ to all the items subscribed in the form:
+   
+   `stock-[index=<stock-index>]`
+   
+   For example, all the following items
+   
+   ```java
+   stock-[index=1]
+   stock-[index=2]
+   ...
+   stock-[index=10]
+   ```
 
    The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
 
@@ -229,11 +240,19 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    <param name="field.offset">#{OFFSET}</param>
    ```
 
-   To launch the Consumer, execute the provided minimal [`lsclient.java`](src/clients/lsclient.java) script to connect to Lighstreamer and subscribe to `sample`:
+   Before launching the Consumer, you need to build it:
 
-    ```sh
-    jbang run src/clients/lsclient.java --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items sample --fields key,value,partition,offset
-    ```
+   ```sh
+   ./gradlew distribuiteConsumer 
+   ```
+
+   which generates the `lightstreamer-kafka-connector-samples-consumer-all-<version>.jar` under the deploy folder.
+
+   Then, launch it with:
+   
+   ```sh
+   java -jar deploy/lightstreamer-kafka-connector-samples-consumer-all-<version>.jar  --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   ```
 
     As you can see, you have to specify a few parameters:
 
@@ -245,7 +264,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
     **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_, like the _lsclient.java_ script, can interact with it.
 
-4. Publish Events.
+3. Publish Events.
 
    From another shell, execute the simple [`kafka-producer.java `](src/clients/kafka-producer.java) script to start publishing events to the Kafka Cluster:
 
@@ -255,7 +274,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    which will send a simple random string every 250 ms to the `sample-topic`.
 
-5. Check Consumed Events.
+4. Check Consumed Events.
 
    After starting the publisher, from the consumer shell, you should immediately see the real-time updates flowing from the consumer shell:
 

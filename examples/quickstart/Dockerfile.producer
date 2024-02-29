@@ -4,6 +4,6 @@ FROM eclipse-temurin:17
 ARG VERSION
 
 # Copy the Produer jar
-COPY tmp/lightstreamer-kafka-connector-samples-all-${VERSION}.jar /usr/app/producer.jar
+COPY tmp/lightstreamer-kafka-connector-samples-producer-all-${VERSION}.jar /usr/app/producer.jar
 
 ENTRYPOINT ["java", "-jar", "/usr/app/producer.jar"]
