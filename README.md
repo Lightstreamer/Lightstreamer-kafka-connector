@@ -284,11 +284,11 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
-   which will send a simple random string every 250 ms to the `sample-topic`.
+   ![producer_video](producer.gif)
 
 4. Check Consumed Events.
 
-   After starting the publisher, from the consumer shell, you should immediately see the real-time updates flowing from the consumer shell:
+   After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
    ![consumer_video](consumer.gif)
 
