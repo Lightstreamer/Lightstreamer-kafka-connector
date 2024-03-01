@@ -24,9 +24,11 @@ import com.lightstreamer.client.SubscriptionListener;
 
 import picocli.CommandLine.Option;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class LsClient implements Runnable {
 
@@ -68,23 +70,40 @@ public class LsClient implements Runnable {
             required = true)
     private String[] fields;
 
+    private String prepareEventRow(int firstColumnWidht, int otherColumnWidth) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < fields.length; i++) {
+            int width = i == 0? firstColumnWidht:otherColumnWidth;
+            sb.append("%s = %" + width + "s");
+            if (i < fields.length - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return  sb.toString();        
+    }
+
     @Override
     public void run() {
+        String eventRow = prepareEventRow(17, 7);
         LightstreamerClient client = new LightstreamerClient(this.host, this.adapterSet);
-        client.addListener(Listeners.clientListener());
-        client.connect();
 
         Consumer<ItemUpdate> cons =
                 obj -> {
-                    String update =
-                            Arrays.stream(fields)
-                                    .map(
-                                            field ->
-                                                    String.format(
-                                                            "[%s] = <%s>",
-                                                            field, obj.getValue(field)))
-                                    .collect(Collectors.joining(","));
-                    System.out.printf("Received: %s%n", obj.getFields());
+                    try {
+                        Map<Integer, String> f = obj.getFieldsByPosition();
+                        List<Object> args = new ArrayList<>();
+                        for (Entry<Integer, String> entry : f.entrySet()) {
+                            args.add(fields[entry.getKey() - 1]);
+                            args.add(entry.getValue());
+                        }
+
+                        String update = eventRow.formatted(args.toArray());
+                        System.out.printf("Update: %s%n", update);
+                    } catch (RuntimeException e) {
+                        e.printStackTrace();
+                    }
                 };
         SubscriptionListener listener = Listeners.subscriptionListener(cons);
         for (String item : this.items) {
@@ -93,5 +112,9 @@ public class LsClient implements Runnable {
             sub.addListener(listener);
             client.subscribe(sub);
         }
+
+        client.addListener(Listeners.clientListener());
+        client.connect();
+
     }
 }
