@@ -253,24 +253,24 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    Then, launch it with:
    
    ```sh
-   java -jar deploy/lightstreamer-kafka-connector-samples-consumer-all-<version>.jar  --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   java -jar deploy/lightstreamer-kafka-connector-samples-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
-    As you can see, you have to specify a few parameters:
+   As you can see, you have to specify a few parameters:
 
-    - `--address`, the Lightstreamer Server address.
-    - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder.
-    - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
-    - `--items`, the list of items to subscribe to.
-    - `--fields`, the list of requested fields for the items.
+   - `--address`, the Lightstreamer Server address.
+   - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder.
+   - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
+   - `--items`, the list of items to subscribe to.
+   - `--fields`, the list of requested fields for the items.
 
-    **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
+   **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
 
 3. Publish Events.
 
    The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
-   Before launching the producer, you first need to build it. Open a new shell an execute command:
+   Before launching the producer, you first need to build it. Open a new shell and execute the command:
 
    ```sh
    ./gradlew distribuiteProducer 
@@ -290,7 +290,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    After starting the publisher, from the consumer shell, you should immediately see the real-time updates flowing from the consumer shell:
 
-   INSERT VIDEO HERE
+   ![consumer_video](consumer.gif)
 
 ## Configuration
 
