@@ -1,10 +1,30 @@
 plugins {
     id 'lightstreamer-kafka-connector'
     id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
+    id 'maven-publish'
 }
 
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/lightstreamer/lightstreamer-kafka-connector")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+
 dependencies {
-    implementation group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
+    api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
     implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
     implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
     implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'

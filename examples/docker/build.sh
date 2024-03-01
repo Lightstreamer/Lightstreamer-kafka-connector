@@ -2,6 +2,7 @@
 source ../utils/helpers.sh
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 TMP_DIR=${SCRIPT_DIR}/tmp
+
 # Generate the distribution
 echo "Making the distribution package"
 $_gradle distribuite

@@ -5,7 +5,7 @@
   - [Features](#features)
   - [Quick Start](#quick-start)
     - [Run](#run)
-  - [Getting Started](#getting-started)
+  - [Installation](#installation)
     - [Requirements](#requirements)
     - [Deploy](#deploy)
     - [Configure](#configure)
@@ -54,6 +54,7 @@
         - [Encryption Parameters](#encryption-parameters-1)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
+    - [Metadata Adapter Customization](#metadata-adapter-customization)
 
 ## Introduction
 
@@ -113,7 +114,7 @@ To run the app:
    ./stop.sh
    ```
 
-## Getting Started
+## Installation
 
 This section will guide you through the installation of the Lightstreamer Kafka Connector to get it up and running in a very short time.
 
@@ -156,7 +157,7 @@ LS_HOME/
 
 Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [Quick Start](#quick-start) app), which can be customized in all its aspects as per your requirements.
 
-To quickly complete the installation and verify the integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
+To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
 - Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka.
 
@@ -169,7 +170,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 #### Connection with Confluent Cloud
 
-If your target Kafka cluster is Confluent Cloud, you need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
+If your target Kafka cluster is Confluent Cloud, you also need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
 
 ```xml
 <param name="encryption.enable">true</param>
@@ -185,68 +186,69 @@ If your target Kafka cluster is Confluent Cloud, you need to properly configure 
 
 where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
-
 ### Start
 
 1. Launch Lightstreamer Server.
 
 2. Attach a Lightstreamer Consumer.
 
-   The _Consumer_ is a simple Lightstreamer Java client that subscribes to the `sample` item to receive real-time data through the fields ....
+   The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple 
+   Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
-   In the `QuickStart` configuration, the `stock` item is mapped by the Kafka topic `sample-topic` through the following section:
+   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper support to realize a mapping between Kafka topics and Lighstreamer items.
+
+   The `QuickStart` factory configuration comes with a simple mapping through the following settings:
+
+   - An item template
+     ```xml
+     <param name="item-template.stock">stock-#{index=KEY}</param>
+     ```
+     
+     which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The optional _Bindable Selector Keys_ syntax used here, denoted within `#{...}`, can bind 
+     every part of a Kafka Record to a variable set of input parameters. In this case, the input parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
+
+   - A topic mapping
+     ```xml
+     <param name="map.stocks.to">item-template.stock</param>
+     ```
+     which maps the topic `stocks` to the item names.
+
+   This configuration instructs the Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+      
+   - `stock`, the item `stock`.
+   - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`.
+   - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`.
+   - ...
+   - `stock-[index=<any record key>]`
+   
+   The _Kafka Connector_ will then route the event to any matched item.
+
+   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{..}`) through which each part of a Kafka Record can be extracted. In this case, the VALUE predefined constant extracts the value part of Kakfa records.
 
    ```xml
-   <!-- TOPIC MAPPING SECTION -->
-
-   <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-   <param name="item-template.stock">stock-#{index=KEY}</param>
-
-   <!-- Map the Kafka topic "sample-topic" to the previous defined "sample" item template. -->
-   <param name="map.sample-topic.to">item-template.stock</param>
+   <param name="field.stock_name">#{VALUE.name}</param>
+   <param name="field.last_price">#{VALUE.last_price}</param>
+   <param name="field.ask">#{VALUE.ask}</param>
+   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+   <param name="field.bid">#{VALUE.bid}</param>
+   <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+   <param name="field.pct_change">#{VALUE.pct_change}</param>
+   <param name="field.min">#{VALUE.min}</param>
+   <param name="field.max">#{VALUE.max}</param>
+   <param name="field.ref_price">#{VALUE.ref_price}</param>
+   <param name="field.open_price">#{VALUE.open_price}</param>
+   <param name="field.item_status">#{VALUE.item_status}</param>
    ```
 
-   Every single Kafka record published to the topic `stocks` will be processed and then routed by the _Kafka Connector_ to all the items subscribed in the form:
-   
-   `stock-[index=<stock-index>]`
-   
-   For example, all the following items
-   
-   ```java
-   stock-[index=1]
-   stock-[index=2]
-   ...
-   stock-[index=10]
-   ```
+   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-   The following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{}`)  through which each part of a Kafka Record can be extracted.
-
-   ```xml
-   <!-- FIELDS MAPPING SECTION -->
-
-   <!-- Extraction of the record key mapped to the field "key". -->
-   <param name="field.key">#{KEY}</param>
-
-   <!-- Extraction of the record value mapped to the field "value". -->
-   <param name="field.value">#{VALUE}</param>
-
-   <!-- Extraction of the record timestamp to the field "ts". -->
-   <param name="field.ts">#{TIMESTAMP}</param>
-
-   <!-- Extraction of the record partition mapped to the field "partition". -->
-   <param name="field.partition">#{PARTITION}</param>
-
-   <!-- Extraction of the record offset mapped to the field "offset". -->
-   <param name="field.offset">#{OFFSET}</param>
-   ```
-
-   Before launching the Consumer, you need to build it:
+   Before launching the consumer, you first need to build it with the command:
 
    ```sh
    ./gradlew distribuiteConsumer 
    ```
 
-   which generates the `lightstreamer-kafka-connector-samples-consumer-all-<version>.jar` under the deploy folder.
+   which generates the `lightstreamer-kafka-connector-samples-consumer-all-<version>.jar` under the `deploy` folder.
 
    Then, launch it with:
    
@@ -257,19 +259,29 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
     As you can see, you have to specify a few parameters:
 
     - `--address`, the Lightstreamer Server address.
-    -  `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to look at the KafakConnector deployed into the `adapters` folder.
+    - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder.
     - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
     - `--items`, the list of items to subscribe to.
     - `--fields`, the list of requested fields for the items.
 
-    **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_, like the _lsclient.java_ script, can interact with it.
+    **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
 
 3. Publish Events.
 
-   From another shell, execute the simple [`kafka-producer.java `](src/clients/kafka-producer.java) script to start publishing events to the Kafka Cluster:
+   The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
+
+   Before launching the producer, you first need to build it. Open a new shell an execute command:
 
    ```sh
-   jbang src/clients/kafka-producer.java --bootstrap-servers <kafka_cluster_address> --topic sample-topic
+   ./gradlew distribuiteProducer 
+   ```
+
+   which generates the `lightstreamer-kafka-connector-samples-producer-all-<version>.jar` under the `deploy` folder.
+
+   Then, launch it with:
+
+   ```sh
+   java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
    which will send a simple random string every 250 ms to the `sample-topic`.
@@ -307,6 +319,8 @@ _Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` b
 The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
 
 It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
+
+See the [Metadata Adapter Customization](#meta) section for more details.
 
 Example:
 
@@ -888,3 +902,7 @@ Example:
 ```xml
 <param name="item-template.stock">stock</param>
 <param name="item-template.stock">stock</param>
+```
+
+### Metadata Adapter Customization
+

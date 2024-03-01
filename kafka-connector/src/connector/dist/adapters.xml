@@ -73,6 +73,7 @@
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
+        
 
         <!-- Optional. Enable this connection configuration. Can be one of the following:
              - true
@@ -133,11 +134,23 @@
 
         <!-- TOPIC MAPPING SECTION -->
 
-        <!-- Define the "stock" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+        <!-- Define the "stock" item-template, which specifies the format of the item name to be used 
+             by the Lighstreamer Client subscription.
+             
+             All item name in the following formats:
+             stock
+             stock-[index=1]
+             stock-[index=2]
+             ...
+             stock-[index=N]
+
+         -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
 
         <!-- Map the Kafka topic "stocks" to the previous defined "stock" item template. -->
         <param name="map.stocks.to">item-template.stock</param>
+
+        <param name="item-template.stock">stock-#{index=KEY}</param>
 
         <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
@@ -149,8 +162,6 @@
         <param name="field.partition">#{PARTITION}</param>
 
         <!-- Extraction of the record value mapped to the field "value". -->
-        <param name="field.stock_name">#{VALUE.name}</param>
-
         <!-- Extraction of the record timestamp to the field "ts". -->
         <param name="field.time">#{VALUE.time}</param>
 
@@ -158,6 +169,7 @@
         <param name="field.timestamp">#{VALUE.timestamp}</param>
 
         <!-- Extraction of the record offset mapped to the field "offset". -->
+        <param name="field.stock_name">#{VALUE.name}</param>
         <param name="field.last_price">#{VALUE.last_price}</param>
         <param name="field.ask">#{VALUE.ask}</param>
         <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
