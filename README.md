@@ -302,7 +302,6 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-
 4. Check Consumed Events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
