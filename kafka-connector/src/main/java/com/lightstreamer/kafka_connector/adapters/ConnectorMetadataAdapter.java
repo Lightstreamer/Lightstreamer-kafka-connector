@@ -25,7 +25,7 @@ import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdap
 public final class ConnectorMetadataAdapter extends KafkaConnectorMetadataAdapter {
 
     @Override
-    public void onUnsubscription(String user, String sessionID, TableInfo[] tables)
+    public void onSubscription(String user, String sessionID, TableInfo[] tables)
             throws CreditsException, NotificationException {}
 
     @Override

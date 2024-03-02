@@ -122,6 +122,8 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     public void notifyNewTables(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws CreditsException, NotificationException {
+        onSubscription(user, sessionID, tables);
+
         if (tables.length > 1) {
             throw new RuntimeException();
         }
@@ -131,8 +133,6 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         if (lookUp.isPresent()) {
             registerConnectorItems(sessionID, table, lookUp.get());
         }
-
-        onUnsubscription(user, sessionID, tables);
     }
 
     private void registerConnectorItems(
@@ -169,7 +169,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
             for (String item : items) {
                 tablesByItem.remove(item);
-                log.atDebug().log("Removed subscription <{}> from session {}", item, sessionID);
+                log.atDebug().log("Removed subscription [{}] from session [{}]", item, sessionID);
             }
         }
 
@@ -181,7 +181,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     }
 
     /**
-     * Only used for unit testing.
+     * Used only for unit testing.
      *
      * @hidden
      */
@@ -189,7 +189,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
-    public void onUnsubscription(
+    public void onSubscription(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws CreditsException, NotificationException {}
 
@@ -197,7 +197,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             throws NotificationException {}
 
     /**
-     * Only used internally.
+     * Used only internally.
      *
      * @hidden
      */

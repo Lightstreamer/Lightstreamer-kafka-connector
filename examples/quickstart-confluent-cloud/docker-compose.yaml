@@ -1,0 +1,23 @@
+---
+version: '2'
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - producer
+    ports:
+      - 8080:8080
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+
+  producer:
+    container_name: producer
+    build:
+      dockerfile: Dockerfile.producer
+      args:
+        VERSION: ${version}
+    volumes:
+      - ./producer.properties:/usr/app/producer.properties
+    command: ["--bootstrap-servers", "pkc-z9doz.eu-west-1.aws.confluent.cloud:9092", "--topic", "topic_0", "--config-file", "/usr/app/producer.properties"]

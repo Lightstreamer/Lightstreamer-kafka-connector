@@ -1,7 +1,7 @@
 plugins {
-    id 'java-library'
     id 'java-library-distribution'
-    id("com.diffplug.spotless")
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
 }
 
 group = 'com.lightstreamer.kafka_connector'
@@ -18,7 +18,7 @@ spotless {
         greclipse()
     }
     java {
-        target 'src/main/**/*.java','src/test/**/*.java','src/clients/*/**.java'
+        target 'src/main/**/*.java','src/producer/**/*.java','src/consumer/**/*.java','src/clients/*/**.java'
         googleJavaFormat()
                 .aosp()
                 .reorderImports(true)
@@ -52,6 +52,7 @@ repositories {
     maven {
         url "https://packages.confluent.io/maven"
     }
+
 }
 
 dependencies {

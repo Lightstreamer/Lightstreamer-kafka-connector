@@ -17,10 +17,11 @@
 
 package com.lightstreamer.kafka_connector.samples.producer;
 
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.ExternalFeedListener;
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.Stock;
-
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Properties;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -29,12 +30,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.ExternalFeedListener;
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.Stock;
+
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
-
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
 
 public class Producer implements Runnable, ExternalFeedListener {
 
@@ -47,15 +48,27 @@ public class Producer implements Runnable, ExternalFeedListener {
     @Option(names = "--topic", description = "The target topic", required = true)
     private String topic;
 
+    @Option(names = "--config-file", description = "Optional producer config file", required = false)
+    private String configFile;
+
     private KafkaProducer<Integer, Stock> producer;
-
-    Set<Integer> st = new HashSet<>();
-
-    volatile boolean keepCount = true;
 
     public void run() {
         // Create producer configs
         Properties properties = new Properties();
+        if (configFile != null) {
+            if (!Files.exists(Paths.get(configFile))) {
+                System.err.println("Unable to find the specifed configuration file " + configFile);
+                System.exit(-1);
+            }
+            try(InputStream is = Files.newInputStream(Paths.get(configFile))) {
+                properties.load(is);
+            } catch (IOException e ) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+        }
+        
         properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         properties.setProperty(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
@@ -72,17 +85,6 @@ public class Producer implements Runnable, ExternalFeedListener {
 
     @Override
     public void onEvent(int stockIndex, Stock stock) {
-        if (keepCount) {
-            if (st.add(stockIndex)) {
-                System.out.println("Added stockIndex " + stockIndex);
-            }
-            System.out.println(stock);
-            if (st.size() == 10) {
-                System.out.println("Complete!");
-                // System.exit(0);
-                keepCount = false;
-            }
-        }
         ProducerRecord<Integer, Stock> record = new ProducerRecord<>(this.topic, stockIndex, stock);
         producer.send(
                 record,
@@ -93,9 +95,10 @@ public class Producer implements Runnable, ExternalFeedListener {
                             System.err.println("Send failed");
                             return;
                         }
+                        String reducedValueStr = record.value().toString().substring(0, 35) + "...";
                         System.out.printf(
-                                "Sent record [key = %d, offset = %d, partition = %d]%n",
-                                record.key(), metadata.offset(), record.partition());
+                                "Sent record [key = %2d, offset = %6d, value = %s]%n",
+                                record.key(), metadata.offset(), reducedValueStr);
                     }
                 });
     }

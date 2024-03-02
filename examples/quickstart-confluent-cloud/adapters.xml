@@ -56,7 +56,18 @@
              The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers for more details.
          -->
-        <param name="bootstrap.servers">broker:29092</param>
+        <!-- <param name="bootstrap.servers">broker:29092</param> -->
+        <param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>
+
+        <param name="encryption.enable">true</param>
+        <param name="encryption.protocol">TLSv1.2</param>
+        <param name="encryption.hostname.verification.enable">true</param>
+
+        <param name="authentication.enable">true</param>
+        <param name="authentication.mechanism">PLAIN</param>
+        <param name="authentication.username">R5QP6BKBEHPRHEI5</param>
+        <param name="authentication.password">phXcJCcvpcynTwlLJk81XwAeVPyLyKnzmTh/VTXV5kXqyGrEGyvF/sm3btq79A4Y</param>        
+        
 
         <!-- Optional. The name of the consumer group this connection belongs to.
              The parameter sets the value for the "group.id" key used to configure the internal

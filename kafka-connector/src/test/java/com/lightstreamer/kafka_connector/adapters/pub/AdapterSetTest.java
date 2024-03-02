@@ -193,7 +193,7 @@ public class AdapterSetTest {
             NotifyedCloseTables closedTables;
 
             @Override
-            public void onUnsubscription(String user, String sessionID, TableInfo[] tables)
+            public void onSubscription(String user, String sessionID, TableInfo[] tables)
                     throws CreditsException, NotificationException {
                 newTables = new NotifyedNewTables(user, sessionID, tables);
             }

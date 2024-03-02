@@ -74,14 +74,14 @@ public class LsClient implements Runnable {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         for (int i = 0; i < fields.length; i++) {
-            int width = i == 0? firstColumnWidht:otherColumnWidth;
+            int width = i == 0 ? firstColumnWidht : otherColumnWidth;
             sb.append("%s = %" + width + "s");
             if (i < fields.length - 1) {
                 sb.append(", ");
             }
         }
         sb.append("]");
-        return  sb.toString();        
+        return sb.toString();
     }
 
     @Override
@@ -115,6 +115,5 @@ public class LsClient implements Runnable {
 
         client.addListener(Listeners.clientListener());
         client.connect();
-
     }
 }

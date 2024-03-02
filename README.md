@@ -11,6 +11,7 @@
     - [Configure](#configure)
       - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
     - [Start](#start)
+      - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
   - [Configuration](#configuration)
     - [Global Settings](#global-settings)
       - [`adapter_conf['id']` - _Kafka Connector identifier_](#adapter_confid---kafka-connector-identifier)
@@ -155,7 +156,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [Quick Start](#quick-start) app), which can be customized in all its aspects as per your requirements.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [Quick Start](#quick-start) app), which can be customized in all its aspects as per your requirements. Obviously, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -284,7 +285,23 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
-   ![producer_video](producer.gif)
+   #### Publishing with Confluent Cloud
+
+   If your target Kafka cluster is Confluent Cloud, you also need to provide a properties file that includes encryption and authentication settings, as follows:
+
+   ```java
+   security.protocol=SASL_SSL
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='API.key' password='secret';
+   sasl.mechanism=PLAIN
+   ...
+   ```
+
+   where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+
+   ```sh
+   java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   ```
+
 
 4. Check Consumed Events.
 
