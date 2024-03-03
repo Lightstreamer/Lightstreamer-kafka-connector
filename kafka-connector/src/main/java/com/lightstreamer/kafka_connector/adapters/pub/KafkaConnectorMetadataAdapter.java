@@ -66,10 +66,10 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         globalConfig = GlobalConfig.newConfig(configDir, params);
         configureLogging(configDir);
         METADATA_ADAPTER = this;
-        doInit(params, configDir);
+        postInit(params, configDir);
     }
 
-    protected void doInit(Map params, File configDir) throws MetadataProviderException {}
+    protected void postInit(Map params, File configDir) throws MetadataProviderException {}
 
     /**
      * Only used for unit testing.

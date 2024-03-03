@@ -16,6 +16,7 @@ services:
     depends_on:
       - broker
     build:
+      context: ../compose-templates
       dockerfile: Dockerfile.producer
       args:
         VERSION: ${version}

@@ -39,7 +39,7 @@
     <data_provider name="QuickStart">
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
         
 
         <!-- Optional. Enable this connection configuration. Can be one of the following:

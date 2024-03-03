@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+
+<!--
+    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
+
+
+    A very simple variable-expansion feature is available; see
+    <enable_expansion_for_adapters_config> in the Server's main configuration file.
+-->
+
+<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
+<adapters_conf id="KafkaConnector">
+    <metadata_provider>
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
+        <param name="logging.configuration.path">log4j.properties</param>
+
+    </metadata_provider>
+
+    <data_provider name="QuickStart">
+        <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+
+        <param name="bootstrap.servers">broker:29094</param>
+
+        <param name="encryption.enable">true</param>
+        <param name="encryption.protocol">TLSv1.2</param>
+        <param name="encryption.truststore.type">PKCS12</param>
+        <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param>
+        <param name="encryption.truststore.password">password</param>
+        <param name="encryption.hostname.verification.enable">false</param>
+        
+        <param name="group.id">quick-start-group</param>
+
+        <param name="item-template.stock">stock-#{index=KEY}</param>
+        <param name="map.stocks.to">item-template.stock</param>
+
+        <param name="key.evaluator.type">INTEGER</param>
+        <param name="value.evaluator.type">JSON</param>
+        <param name="consumer.auto.offset.reset">earliest</param>
+
+        <!-- FIELDS MAPPING SECTION -->
+        <param name="field.ts">#{TIMESTAMP}</param>
+        <param name="field.topic">#{TOPIC}</param>
+        <param name="field.offset">#{OFFSET}</param>
+        <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Extraction of the record offset mapped to the field "offset". -->
+        <param name="field.timestamp">#{VALUE.timestamp}</param>
+        <param name="field.time">#{VALUE.time}</param>
+        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.last_price">#{VALUE.last_price}</param>
+        <param name="field.ask">#{VALUE.ask}</param>
+        <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+        <param name="field.bid">#{VALUE.bid}</param>
+        <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+        <param name="field.pct_change">#{VALUE.pct_change}</param>
+        <param name="field.min">#{VALUE.min}</param>
+        <param name="field.max">#{VALUE.max}</param>
+        <param name="field.ref_price">#{VALUE.ref_price}</param>
+        <param name="field.open_price">#{VALUE.open_price}</param>
+        <param name="field.item_status">#{VALUE.item_status}</param>
+    </data_provider>
+
+</adapters_conf>
+

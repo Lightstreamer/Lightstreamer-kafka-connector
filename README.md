@@ -79,7 +79,7 @@ To rapidly showcase the functioning of the Lighstreamer Kafka Connector, the [`e
 
 As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through the Ligthstreamer Kafka Connector.
 
-To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yaml) comprises the following services:
+To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
 1. A Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
 2. Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/).
@@ -605,6 +605,8 @@ _Optional_. The type of the trust store. Can be one of the following:
 - `JKS`
 - `PKCS12`
 
+Default: JKS
+
 Example:
 
 ```xml
@@ -712,7 +714,6 @@ The following is a complete example of how to configure encryption through the a
 <!-- If required, configure the trust store to trust the Kafka Cluster certificates -->
 <param name="encryption.truststore.type">JKS</param>
 <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param></param>
-<param name="encryption.truststore.path">secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
 
 <!-- If mutual TLS is enabled on the Kafka Cluster, enable and configure the key store -->
 <param name="encryption.keystore.enable">true</param>
@@ -892,8 +893,7 @@ Example:
 <param name="schema.registry.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
-<param name="schema.registry.encryption.truststore.type">JKS</param>
-<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
+<param name="schema.registry.encryption.truststore.type">PKCS12</param>
 <param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->

@@ -37,7 +37,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-public final class ConnectorDataAdapter implements SmartDataProvider {
+public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
 
@@ -49,7 +49,7 @@ public final class ConnectorDataAdapter implements SmartDataProvider {
 
     private MetadataListener metadataAdapter;
 
-    public ConnectorDataAdapter() {}
+    public KafkaConnectorDataAdapter() {}
 
     @Override
     @SuppressWarnings("unchecked")

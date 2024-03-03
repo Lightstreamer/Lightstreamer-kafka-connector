@@ -19,25 +19,8 @@ package com.lightstreamer.kafka_connector.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
-
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import com.lightstreamer.interfaces.metadata.CreditsException;
-import com.lightstreamer.interfaces.metadata.MetadataProviderException;
-import com.lightstreamer.interfaces.metadata.Mode;
-import com.lightstreamer.interfaces.metadata.NotificationException;
-import com.lightstreamer.interfaces.metadata.TableInfo;
-import com.lightstreamer.kafka_connector.adapters.ConnectorDataAdapter;
-import com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter;
-import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
-import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
-import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
-import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,10 +30,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.lightstreamer.interfaces.metadata.CreditsException;
+import com.lightstreamer.interfaces.metadata.MetadataProviderException;
+import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.interfaces.metadata.NotificationException;
+import com.lightstreamer.interfaces.metadata.TableInfo;
+import com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter;
+import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
+import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka_connector.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
+import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
+
 public class AdapterSetTest {
 
     private Path adapterDir;
-    private ConnectorMetadataAdapter connectorMetadataAdapter;
+    private KafkaConnectorMetadataAdapter connectorMetadataAdapter;
     private HashMap<String, String> metadataAdapterParams;
     private Path loggingConfigurationFile;
 
@@ -59,7 +57,7 @@ public class AdapterSetTest {
         adapterDir = Files.createTempDirectory("adapter_dir");
         loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
 
-        connectorMetadataAdapter = new ConnectorMetadataAdapter();
+        connectorMetadataAdapter = new KafkaConnectorMetadataAdapter();
 
         metadataAdapterParams = new HashMap<>();
         metadataAdapterParams.put("adapters_conf.id", "KAFKA");
@@ -92,12 +90,12 @@ public class AdapterSetTest {
     void shouldInit() throws MetadataProviderException {
         doInit();
 
-        ConnectorDataAdapter connectorDataAdapter1 = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         assertDoesNotThrow(
                 () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
 
-        ConnectorDataAdapter connectorDataAdapter2 = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams2 =
                 ConnectorConfigProvider.minimalConfigParamsWith(
                         Map.of(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR2"));
@@ -117,7 +115,7 @@ public class AdapterSetTest {
     void shouldHandleConnectorItems() throws Exception {
         doInit();
 
-        ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
@@ -132,7 +130,7 @@ public class AdapterSetTest {
     void shouldNotHandleNonConnectorItems() throws Exception {
         doInit();
 
-        ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
@@ -146,7 +144,7 @@ public class AdapterSetTest {
     void shouldDenyNotRegisteredConnection() throws Exception {
         doInit();
 
-        ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         dataAdapterParams.put(ConnectorConfig.ENABLE, "false");
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
@@ -166,7 +164,7 @@ public class AdapterSetTest {
     void shouldDenyCommandSubscription() throws Exception {
         doInit();
 
-        ConnectorDataAdapter connectorDataAdapter = new ConnectorDataAdapter();
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 

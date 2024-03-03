@@ -15,6 +15,7 @@ services:
   producer:
     container_name: producer
     build:
+      context: ../compose-templates
       dockerfile: Dockerfile.producer
       args:
         VERSION: ${version}
