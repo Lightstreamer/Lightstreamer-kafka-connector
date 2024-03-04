@@ -1,14 +1,5 @@
 <?xml version="1.0"?>
 
-<!--
-    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
-
-
-    A very simple variable-expansion feature is available; see
-    <enable_expansion_for_adapters_config> in the Server's main configuration file.
--->
-
-<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
         <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
@@ -22,12 +13,13 @@
         <param name="bootstrap.servers">broker:29094</param>
         <param name="group.id">quick-start-group</param>
 
+        <!-- Enable Encryption-->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.2</param>
+        <param name="encryption.hostname.verification.enable">false</param>
         <param name="encryption.truststore.type">PKCS12</param>
         <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param>
         <param name="encryption.truststore.password">password</param>
-        <param name="encryption.hostname.verification.enable">false</param>
 
         <param name="item-template.stock">stock-#{index=KEY}</param>
         <param name="map.stocks.to">item-template.stock</param>

@@ -115,7 +115,6 @@
         <param name="item-template.stock">stock-#{index=KEY}</param>
 
         <!-- Map the Kafka topic "stocks" to the previous defined "stock" item template. -->
-        <!-- <param name="map.stocks.to">item-template.stock</param> -->
         <param name="map.stocks.to">item-template.stock</param>
 
         <param name="key.evaluator.type">INTEGER</param>

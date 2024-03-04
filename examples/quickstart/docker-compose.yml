@@ -24,6 +24,7 @@ services:
 
   broker:
     image: confluentinc/confluent-local:latest
+    hostname: broker
     container_name: broker
     ports:
       - "9092:9092"
