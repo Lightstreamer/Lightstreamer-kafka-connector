@@ -19,6 +19,8 @@ RUN apt-get -y update; \
     apt-get install -y unzip; \
     # Unzip the distribution package into to Lightstreamer's adapters fodler.
     unzip /tmp/${KAFKA_CONNECTOR_ZIP} -d /lightstreamer/adapters; \
+    # Set the env prefix for referencing environment variables in adapters.xml
+    sed -i -e 's/env_prefix=""/env_prefix="env."/' /lightstreamer/conf/lightstreamer_conf.xml; \
     # Copy the custom resources
     cp /tmp/resources/* ${DEPLOY_DIR}; \
     # Fix ownership

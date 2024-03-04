@@ -20,6 +20,7 @@
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <param name="bootstrap.servers">broker:29094</param>
+        <param name="group.id">quick-start-group</param>
 
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.2</param>
@@ -27,8 +28,6 @@
         <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param>
         <param name="encryption.truststore.password">password</param>
         <param name="encryption.hostname.verification.enable">false</param>
-        
-        <param name="group.id">quick-start-group</param>
 
         <param name="item-template.stock">stock-#{index=KEY}</param>
         <param name="map.stocks.to">item-template.stock</param>
