@@ -51,18 +51,4 @@ public class KeystoreConfigs {
     static ConfigsSpec spec() {
         return CONFIG_SPEC;
     }
-
-    // static Properties addKeystore(ConnectorConfig config) {
-    //     NoNullKeyProperties props = new NoNullKeyProperties();
-    //     if (config.isKeystoreEnabled()) {
-    //         props.setProperty(
-    //                 SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, config.getKeystoreType().toString());
-    //         props.setProperty(
-    //                 SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, config.getKeystorePassword());
-    //         props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getKeystorePath());
-    //         props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getKeyPassword());
-    //     }
-
-    //     return props.properties();
-    // }
 }

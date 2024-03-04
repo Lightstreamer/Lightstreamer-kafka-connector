@@ -26,7 +26,7 @@ services:
       - source: producer.properties
         target: /usr/app/producer.properties        
     volumes:
-      - ./secrets/client/kafka.client.truststore.pkcs12:/usr/app/secrets/kafka.client.truststore.pkcs12
+      - ./secrets/producer:/usr/app/secrets
     command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
   broker:
@@ -45,9 +45,13 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_SSL_KEYSTORE_FILENAME: kafka.broker.keystore.pkcs12
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: broker_truststore_credentials
+      KAFKA_SSL_KEYSTORE_FILENAME: broker.keystore.jks
       KAFKA_SSL_KEYSTORE_CREDENTIALS: broker_keystore_credentials
       KAFKA_SSL_KEY_CREDENTIALS: broker_key_credentials
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: " "
+      KAFKA_SSL_CLIENT_AUTH: required
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
       KAFKA_LISTENERS: 'CLIENT_SSL://broker:29094,CLIENT_SSL_HOST://0.0.0.0:9094,PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
@@ -77,7 +81,11 @@ configs:
   producer.properties:
     content: |
       security.protocol=SSL
-      ssl.truststore.type=PKCS12
-      ssl.truststore.location=/usr/app/secrets/kafka.client.truststore.pkcs12
-      ssl.truststore.password=password
-      ssl.endpoint.identification.algorithm=  
+      # ssl.truststore.type=PKCS12
+      ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+      ssl.truststore.password=producer-truststore-password
+      # ssl.keystore.type=PKCS12
+      ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+      ssl.keystore.password=producer-password
+      ssl.key.password=producer-password
+      ssl.endpoint.identification.algorithm=
