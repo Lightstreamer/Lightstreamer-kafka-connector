@@ -11,13 +11,13 @@ openssl req -new -newkey rsa:2048 -noenc -x509 -keyout ca.key -out ca.cert -days
 
 for service in broker producer kafka-connector
 do
-    # Add the generated CA to the truststore file.
+    # Add the generated CA to the truststore file
     keytool -keystore $service/$service.truststore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-truststore-password" -storetype jks -noprompt
 
-    # Create the keystore files
+    # Create the keystore file
     keytool -genkey -noprompt -keystore $service/$service.keystore.jks -storetype jks -alias $service -keyalg RSA -validity ${validity} -storepass "$service-password" -keypass "$service-password" -dname "CN=$service.example.lightsteramer.com, OU=Kafka Connector, O=Lighsteramer Srl, C=Italy"
 
-    # Create the CSR
+    # Create the CSR file
     keytool -keystore $service/$service.keystore.jks -alias $service -storetype jks -certreq -file $service/$service.csr -storepass "$service-password"
 
     # Sign the key
@@ -28,7 +28,7 @@ do
     keytool -keystore $service/$service.keystore.jks -storetype jks -alias $service -importcert -file $service/$service.signed -storepass "$service-password" -noprompt
 done
 
-# # Save credentials
+# Save credentials
 echo "broker-password" > broker/broker_keystore_credentials
 echo "broker-password" > broker/broker_key_credentials
 echo "broker-truststore-password" > broker/broker_truststore_credentials
