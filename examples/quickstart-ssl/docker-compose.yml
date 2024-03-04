@@ -11,7 +11,7 @@ services:
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
-      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+      - ./secrets/kafka-connector:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
 
   producer:
     container_name: producer
@@ -22,7 +22,7 @@ services:
         VERSION: ${version}
     volumes:
       - ./producer.properties:/usr/app/producer.properties
-      - ./secrets/kafka.client.truststore.pkcs12:/usr/app/kafka.client.truststore.pkcs12
+      - ./secrets/client/kafka.client.truststore.pkcs12:/usr/app/kafka.client.truststore.pkcs12
     command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
   broker:
@@ -55,7 +55,7 @@ services:
       KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
       CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
     volumes:
-      - ./secrets:/etc/kafka/secrets
+      - ./secrets/broker:/etc/kafka/secrets
 
   # schema-registry:
   #   image: confluentinc/cp-schema-registry:7.5.0
