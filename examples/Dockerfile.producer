@@ -1,9 +1,0 @@
-FROM eclipse-temurin:17
-
-# The Kafka Connector project version
-ARG VERSION
-
-# Copy the Produer jar
-COPY tmp/lightstreamer-kafka-connector-samples-producer-all-${VERSION}.jar /usr/app/producer.jar
-
-ENTRYPOINT ["java", "-jar", "/usr/app/producer.jar"]
