@@ -26,7 +26,7 @@ services:
       - source: producer.properties
         target: /usr/app/producer.properties        
     volumes:
-      - ./secrets/client/kafka.client.truststore.pkcs12:/usr/app/kafka.client.truststore.pkcs12
+      - ./secrets/client/kafka.client.truststore.pkcs12:/usr/app/secrets/kafka.client.truststore.pkcs12
     command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
   broker:
@@ -78,6 +78,6 @@ configs:
     content: |
       security.protocol=SSL
       ssl.truststore.type=PKCS12
-      ssl.truststore.location=/usr/app/kafka.client.truststore.pkcs12
+      ssl.truststore.location=/usr/app/secrets/kafka.client.truststore.pkcs12
       ssl.truststore.password=password
       ssl.endpoint.identification.algorithm=  

@@ -81,10 +81,9 @@ As you can see from the diagram above, in this variant the stream of simulated m
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. A Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
-2. Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/).
-3. The web client, mounted on the Lightreamer service.
-4. A native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository.
+1. _broker_, a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
+2. _kafka-connector_, Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
+4. _producer_, a native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository.
 
 ### Run
 
