@@ -65,7 +65,7 @@ In addition, all services reference the local [`secrets`](secrets/) folder to re
 
 In particular, 
 
-- _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for:
+- _broker_ mounts [`secrets/broker`](secrets/broker/) to `/etc/kafka/secrets` for:
   - the truststore file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks);
   - the keystore file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks);
   - the credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials).
