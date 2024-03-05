@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec.ConfType.FILE;
@@ -45,6 +46,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 import com.lightstreamer.kafka_connector.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SslProtocol;
@@ -104,8 +106,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
-    public static final String CONSUMER_AUTO_OFFSET_RESET_CONFIG =
-            CONNECTOR_PREFIX + AUTO_OFFSET_RESET_CONFIG;
+    public static final String RECORD_CONSUME_FROM = "record.consume.from";
     public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG =
             CONNECTOR_PREFIX + ENABLE_AUTO_COMMIT_CONFIG;
     public static final String CONSUMER_FETCH_MIN_BYTES_CONFIG =
@@ -203,11 +204,11 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
-                                CONSUMER_AUTO_OFFSET_RESET_CONFIG,
+                                RECORD_CONSUME_FROM,
                                 false,
                                 false,
-                                TEXT,
-                                defaultValue("latest"))
+                                CONSUME_FROM,
+                                defaultValue(RecordComsumeFrom.LATEST.toString()))
                         .add(
                                 CONSUMER_ENABLE_AUTO_COMMIT_CONFIG,
                                 false,
@@ -305,8 +306,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
-        properties.setProperty(
-                AUTO_OFFSET_RESET_CONFIG, getText(CONSUMER_AUTO_OFFSET_RESET_CONFIG));
+        properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
         properties.setProperty(
                 ENABLE_AUTO_COMMIT_CONFIG, getBooleanStr(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
         properties.setProperty(FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
@@ -369,6 +369,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final EvaluatorType getEvaluator(String configKey) {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
+    public final RecordComsumeFrom getRecordConsumeFrom() {
+        return RecordComsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {

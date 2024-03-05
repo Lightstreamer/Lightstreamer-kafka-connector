@@ -21,6 +21,7 @@ import com.lightstreamer.kafka_connector.adapters.commons.Either;
 import com.lightstreamer.kafka_connector.adapters.config.ConfigException;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SecurityProtocol;
@@ -121,6 +122,10 @@ public class ConfigsSpec {
         static Options saslMechanisms() {
             return new Options(SaslMechanism.names());
         }
+
+        public static Options consumeEventsFrom() {
+            return new Options(RecordComsumeFrom.names());
+        }
     }
 
     static class ListType implements Type {
@@ -179,6 +184,8 @@ public class ConfigsSpec {
         BOOL(Options.booleans()) {},
 
         EVALUATOR(Options.evaluatorTypes()),
+
+        CONSUME_FROM(Options.consumeEventsFrom()),
 
         ERROR_STRATEGY(Options.errorStrategies()),
 

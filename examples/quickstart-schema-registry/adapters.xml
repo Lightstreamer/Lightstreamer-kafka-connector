@@ -28,7 +28,7 @@
         <param name="map.stocks.to">item-template.stock</param>
 
         <!-- Record consumption settings -->
-        <param name="consumer.auto.offset.reset">earliest</param>
+        <param name="record.consume.from">EARLIEST</param>
         <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
         <param name="value.evaluator.schema.registry.enable">true</param>

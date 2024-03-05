@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigsSpec;
@@ -242,15 +243,15 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter autoOffsetReset =
-                configSpec.getParameter(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG);
-        assertThat(autoOffsetReset.name())
-                .isEqualTo(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG);
-        assertThat(autoOffsetReset.required()).isFalse();
-        assertThat(autoOffsetReset.multiple()).isFalse();
-        assertThat(autoOffsetReset.mutable()).isTrue();
-        assertThat(autoOffsetReset.defaultValue()).isEqualTo("latest");
-        assertThat(autoOffsetReset.type()).isEqualTo(ConfType.TEXT);
+        ConfParameter consumeEventsFrom =
+                configSpec.getParameter(ConnectorConfig.RECORD_CONSUME_FROM);
+        assertThat(consumeEventsFrom.name())
+                .isEqualTo(ConnectorConfig.RECORD_CONSUME_FROM);
+        assertThat(consumeEventsFrom.required()).isFalse();
+        assertThat(consumeEventsFrom.multiple()).isFalse();
+        assertThat(consumeEventsFrom.mutable()).isTrue();
+        assertThat(consumeEventsFrom.defaultValue()).isEqualTo("LATEST");
+        assertThat(consumeEventsFrom.type()).isEqualTo(ConfType.CONSUME_FROM);
 
         ConfParameter encryptionEnabed = configSpec.getParameter(ConnectorConfig.ENCYRPTION_ENABLE);
         assertThat(encryptionEnabed.name()).isEqualTo(ConnectorConfig.ENCYRPTION_ENABLE);
@@ -745,15 +746,15 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideAutoOffset() {
+    public void shouldOverrideConsumeEventsFrom() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG, "earliest");
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_FROM, "EARLIEST");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.getText(ConnectorConfig.CONSUMER_AUTO_OFFSET_RESET_CONFIG))
-                .isEqualTo("earliest");
+        assertThat(config.getRecordConsumeFrom())
+                .isEqualTo(RecordComsumeFrom.EARLIEST);
         assertThat(config.baseConsumerProps())
                 .containsAtLeast(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     }

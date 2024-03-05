@@ -119,7 +119,7 @@
 
         <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
-        <param name="consumer.auto.offset.reset">earliest</param>
+        <param name="record.consume.from">EARLIEST</param>
 
         <!-- FIELDS MAPPING SECTION -->
         <param name="field.ts">#{TIMESTAMP}</param>

@@ -137,6 +137,19 @@ public class ConfigTypes {
         }
     }
 
+    public enum RecordComsumeFrom {
+        LATEST,
+        EARLIEST;
+
+        public String toPropertyValue() {
+            return toString().toLowerCase();
+        }
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
     public enum KeystoreType {
         JKS,
         PKCS12;
