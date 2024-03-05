@@ -5,10 +5,12 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector-${version}
     depends_on:
+      - broker
       - producer
     ports:
       - 8080:8080
     environment:
+      - bootstrap_server=${bootstrap_server}
       - api_key=${api_key}
       - secret=${secret}
     volumes:
@@ -17,6 +19,8 @@ services:
 
   producer:
     container_name: producer
+    depends_on:
+      - broker
     build:
       context: ../compose-templates
       dockerfile: Dockerfile.producer
@@ -25,11 +29,14 @@ services:
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
-    command: ["--bootstrap-servers", "pkc-z9doz.eu-west-1.aws.confluent.cloud:9092", "--topic", "topic_0", "--config-file", "/usr/app/producer.properties"]
+    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "topic_0", "--config-file", "/usr/app/producer.properties"]
 
 configs:
   producer.properties:
     content: |
-      security.protocol=SASL_SSL
-      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";
+      # Configure SASL/PLAIN mechanism
       sasl.mechanism=PLAIN
+      # Enable SSL encryption
+      security.protocol=SASL_SSL
+      # JAAS configuration
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";

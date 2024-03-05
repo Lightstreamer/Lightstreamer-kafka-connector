@@ -2,15 +2,13 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
 
-The [docker-compose.yml](docker-compose.yml) has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry):
+The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
-- _schema-registry_
-  
-  The added service, pointing to the mentioned Docker image, with full configuration of the security settings.
+- New service _schema-registry_, pulled from mentioned Docker image and configured with security settings.
 
 - _kafka-connector_
-
-  The new version of the [`adapters.xml`](./adapters.xml) includes:
+  
+  Adaption of [`adapters.xml`](./adapters.xml) to include:
   - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
@@ -37,10 +35,10 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
 
 - _producer_
 
-   The `producer.properties` configuration file adds the settings required to communicate with the Schema Registry:
+   Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
     
     ```yaml
-    ..
+    ...
     # JSON deserializer with support for the Schema Registry
     value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
     # Schema Registry URL

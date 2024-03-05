@@ -1,14 +1,5 @@
 <?xml version="1.0"?>
 
-<!--
-    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
-
-
-    A very simple variable-expansion feature is available; see
-    <enable_expansion_for_adapters_config> in the Server's main configuration file.
--->
-
-<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
         <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
@@ -18,32 +9,36 @@
      <data_provider name="QuickStart">
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
-        <param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param>
+        <!-- <param name="bootstrap.servers">pkc-z9doz.eu-west-1.aws.confluent.cloud:9092</param> -->
+        <param name="bootstrap.servers">$env.bootstrap_server</param>
+        
         <param name="group.id">quick-start-group</param>
 
+        <!-- Encryption settings -->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.2</param>
         <param name="encryption.hostname.verification.enable">true</param>
 
+        <!-- Authentication settings -->
         <param name="authentication.enable">true</param>
         <param name="authentication.mechanism">PLAIN</param>
         <param name="authentication.username">$env.api_key</param>
         <param name="authentication.password">$env.secret</param>
 
+        <!-- Topics mapping -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
         <param name="map.topic_0.to">item-template.stock</param>
 
+        <!-- Record consumption settings -->
+        <param name="consumer.auto.offset.reset">earliest</param>
         <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
-        <param name="consumer.auto.offset.reset">earliest</param>
 
-        <!-- FIELDS MAPPING SECTION -->
+        <!-- Fields mapping settings -->
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
-
-        <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
         <param name="field.stock_name">#{VALUE.name}</param>

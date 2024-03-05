@@ -4,7 +4,6 @@
     <metadata_provider>
         <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
         <param name="logging.configuration.path">log4j.properties</param>
-
     </metadata_provider>
 
     <data_provider name="QuickStart">
@@ -13,7 +12,7 @@
         <param name="bootstrap.servers">broker:29094</param>
         <param name="group.id">quick-start-group</param>
 
-        <!-- Encryption Settings -->
+        <!-- Encryption settings -->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.3</param>
         <param name="encryption.hostname.verification.enable">false</param>
@@ -24,20 +23,20 @@
         <param name="encryption.keystore.password">kafka-connector-password</param>
         <param name="encryption.keystore.key.password">kafka-connector-password</param>
         
+        <!-- Topics mapping -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
         <param name="map.stocks.to">item-template.stock</param>
 
+        <!-- Record consumption settings -->
+        <param name="consumer.auto.offset.reset">earliest</param>
         <param name="key.evaluator.type">INTEGER</param>
         <param name="value.evaluator.type">JSON</param>
-        <param name="consumer.auto.offset.reset">earliest</param>
 
-        <!-- FIELDS MAPPING SECTION -->
+        <!-- Fields mapping settings -->
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
-
-        <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
         <param name="field.stock_name">#{VALUE.name}</param>
