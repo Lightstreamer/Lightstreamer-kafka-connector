@@ -37,7 +37,7 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
 
 - _producer_
 
-   The new `producer.properties` configuration file adds the settings required to communicate with the Schema Registry:
+   The `producer.properties` configuration file adds the settings required to communicate with the Schema Registry:
     
     ```yaml
     ..

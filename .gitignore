@@ -8,3 +8,5 @@ bin
 .settings
 
 deploy
+tmp
+examples/compose-templates/producer
