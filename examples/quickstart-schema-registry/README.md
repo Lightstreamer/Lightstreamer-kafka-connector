@@ -1,6 +1,6 @@
 # Quick Start with Schema Registry
 
-This folder contains a variant of the [_Quick Start_SSL](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
+This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
 
 The [docker-compose.yml](docker-compose.yml) has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry):
 
@@ -16,7 +16,7 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
 
-  - Configuration of the target Schema Registry url:
+  - Configuration of the target Schema Registry URL:
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
@@ -54,7 +54,7 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
     schema.registry.ssl.key.password=producer-password
     ```  
 
-In addition, the schema-registry references the local [`secrets/schema-registry`](secrets/schema-registry/) folder to retrieve its secrets:
+In addition, the `schema-registry` service references the local [`secrets/schema-registry`](secrets/schema-registry/) folder to retrieve its secrets:
 
 - the truststore file [`schema-registry.truststore.jks`](secrets/schema-registry/schema-registry.truststore.jks);
 - the keystore file [`broker.schema-registry.jks`](secrets/schema-registry/schema-registry.keystore.jks);
