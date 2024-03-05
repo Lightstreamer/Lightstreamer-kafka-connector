@@ -54,7 +54,7 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
     schema.registry.ssl.key.password=producer-password
     ```  
 
-In addition, the `schema-registry` service references the local [`secrets/schema-registry`](secrets/schema-registry/) folder to retrieve its secrets:
+In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve its secrets:
 
 - the truststore file [`schema-registry.truststore.jks`](../compose-templates/secrets/schema-registry/schema-registry.truststore.jks);
 - the keystore file [`broker.schema-registry.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks);
