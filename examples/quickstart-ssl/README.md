@@ -61,11 +61,11 @@ The [docker-compose.yml](docker-compose.yml) has been revised to enable support 
     ```  
   - Changed target broker to new SSL endpoint (`broker:29094`).
 
-In addition, all services reference the local [`secrets`](secrets/) folder to retrieve their secrets:
+In addition, all services reference the local [`secrets`](../compose-templates/secrets/) folder to retrieve their secrets:
 
 In particular, 
 
-- _broker_ mounts [`secrets/broker`](secrets/broker/) to `/etc/kafka/secrets` for:
+- _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for:
   - the truststore file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks);
   - the keystore file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks);
   - the credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials).
