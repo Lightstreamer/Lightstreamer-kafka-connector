@@ -301,6 +301,8 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
+   ![producer_video](producer.gif)
+
 4. Check Consumed Events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
@@ -814,9 +816,9 @@ In the case of `GSSAPI`, the following parameters will be part of the authentica
 
   _Mandatory_. The name of the Kerberos service.
 
-- `authentication.gssapi.pricipal`
+- `authentication.gssapi.principal`
 
-  _Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled .The name of the principal to be used.
+  _Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled. The name of the principal to be used.
 
 - `authentication.gssapi.ticket.cache.enable`
 
@@ -834,7 +836,7 @@ Example:
 <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
 <param name="authentication.gssapi.store.key.enable">true</param>
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
-<param name="authentication.gssapi.pricipal">kafka-connector-1@LIGHTSTREAMER.COM</param>
+<param name="authentication.gssapi.principal">kafka-connector-1@LIGHTSTREAMER.COM</param>
 ...
 ```
 
