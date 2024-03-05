@@ -51,7 +51,7 @@ services:
       KAFKA_SSL_KEYSTORE_CREDENTIALS: broker_keystore_credentials
       KAFKA_SSL_KEY_CREDENTIALS: broker_key_credentials
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: " "
-      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SSL_CLIENT_AUTH: "required"
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
       KAFKA_LISTENERS: 'CLIENT_SSL://broker:29094,CLIENT_SSL_HOST://0.0.0.0:9094,PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
@@ -81,10 +81,8 @@ configs:
   producer.properties:
     content: |
       security.protocol=SSL
-      # ssl.truststore.type=PKCS12
       ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
       ssl.truststore.password=producer-truststore-password
-      # ssl.keystore.type=PKCS12
       ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       ssl.keystore.password=producer-password
       ssl.key.password=producer-password
