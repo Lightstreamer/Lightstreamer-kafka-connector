@@ -450,7 +450,7 @@ In particular, the Kafka Connector supports message validation for Avro and JSON
 Kafka Connector supports independent deserialization of keys and values, which means that:
 
 - Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`key.evaluator.schema.registry.enable`](#) and `value.evaluator.schema.registry.enable`)
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`](#keyevaluatorschemaregistryenable-and-valueevaluatorschemaregistryenable)).
 - Message validation against local schema files must be specified separately for key and value (through the `key.evaluator.schema.path` and `value.evaluator.schema.path`)
 
 **NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
@@ -514,9 +514,11 @@ Enable the use of the [Confluent Schema Registry](#schema-registry) for message 
 
 Default value: `false`
 
+Example:
+
 ```xml
 <param name="key.evaluator.schema.registry.enable">true</param>
-<param name="value.evaluator.schema.registry.enable">false</param>
+<param name="value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### Encryption Parameters
