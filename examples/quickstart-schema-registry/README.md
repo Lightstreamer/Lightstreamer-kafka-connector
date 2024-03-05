@@ -6,12 +6,12 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
 
 - _schema-registry_
   
-  The added service, pointing to the mentioned Docker image, with full configuration of the security settings:
+  The added service, pointing to the mentioned Docker image, with full configuration of the security settings.
 
 - _kafka-connector_
 
   The new version of the [`adapters.xml`](./adapters.xml) includes:
-  - Enabling of the Confluent Schema Registry:
+  - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
