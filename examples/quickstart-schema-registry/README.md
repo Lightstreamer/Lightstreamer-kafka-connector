@@ -4,7 +4,7 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
-- New service _schema-registry_, pulled from mentioned Docker image and configured with security settings.
+- New _schema-registry_ service, pulled from the mentioned Docker image and configured with security settings.
 
 - _kafka-connector_
   
