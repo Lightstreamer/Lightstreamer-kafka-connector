@@ -2,7 +2,7 @@
 
 This folder contains all the resources needed to launch the [_Quick Start_](../../README.md#quick-start) app configured to establish a secure connection with the Kafka broker.
 
-In particular, the [docker-compose.yml](docker-compose.yml) has been revised to enable support for SSL:
+The [docker-compose.yml](docker-compose.yml) has been revised to enable support for SSL:
 
 - _broker_
   - SSL enabled on port 29094.
@@ -29,13 +29,13 @@ In particular, the [docker-compose.yml](docker-compose.yml) has been revised to 
     <param name="encryption.hostname.verification.enable">false</param>
     ```
 
-  - Truststore configuration.
+  - Configuration of the truststore to authenticate the broker.
     ```xml
     <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
     <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
 
-  - Keystore configuration.
+  - Configuration of the keystore for client authentication with the broker.
     ```xml
     <param name="encryption.keystore.enable">true</param>
     <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>

@@ -6,6 +6,7 @@ services:
     image: lightstreamer-kafka-connector-${version}
     depends_on:
       - broker
+      - schema-registry
       - producer
     ports:
       - 8080:8080
@@ -17,7 +18,8 @@ services:
   producer:
     container_name: producer
     depends_on:
-      - broker    
+      - broker
+      - schema-registry
     build:
       context: ../compose-templates
       dockerfile: Dockerfile.producer
@@ -25,7 +27,7 @@ services:
         VERSION: ${version}
     configs:
       - source: producer.properties
-        target: /usr/app/producer.properties        
+        target: /usr/app/producer.properties
     volumes:
       - ./secrets/producer:/usr/app/secrets
     command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
@@ -65,6 +67,28 @@ services:
     volumes:
       - ./secrets/broker:/etc/kafka/secrets
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+      - "8084:8084"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081,https://0.0.0.0:8084'
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/schema-registry/secrets/schema-registry.truststore.jks
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: schema-registry-truststore-password
+      SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: /etc/schema-registry/secrets/schema-registry.keystore.jks
+      SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: schema-registry-password
+      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: schema-registry-password
+      SCHEMA_REGISTRY_SSL_CLIENT_AUTHENTICATION: 'REQUIRED'
+    volumes:
+     - ./secrets/schema-registry:/etc/schema-registry/secrets
+
 configs:
   producer.properties:
     content: |
@@ -75,3 +99,10 @@ configs:
       ssl.keystore.password=producer-password
       ssl.key.password=producer-password
       ssl.endpoint.identification.algorithm=
+      value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+      schema.registry.url=https://schema-registry:8084
+      schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+      schema.registry.ssl.truststore.password=producer-truststore-password
+      schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+      schema.registry.ssl.keystore.password=producer-password
+      schema.registry.ssl.key.password=producer-password

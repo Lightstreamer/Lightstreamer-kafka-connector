@@ -5,6 +5,7 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector-${version}
     depends_on:
+      - broker
       - producer
     ports:
       - 8080:8080

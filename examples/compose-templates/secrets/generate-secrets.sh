@@ -1,14 +1,15 @@
 #!/bin/bash
 rm -f ca.* cert.*
-rm -fr broker producer kafka-connector 
-mkdir -p broker producer kafka-connector 
+services="broker producer kafka-connector schema-registry"
+rm -fr $services
+mkdir -p $services
 
 validity=365
 
 # Create your own CA key
 openssl req -new -newkey rsa:2048 -noenc -x509 -keyout ca.key -out ca.cert -days ${validity} -subj "/C=IT/L=Milan/O=Lightstreamer Srl/CN=www.lightstreamer.com"
 
-for service in broker producer kafka-connector
+for service in $services
 do
     # Add the generated CA to the truststore file
     keytool -keystore $service/$service.truststore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-truststore-password" -noprompt

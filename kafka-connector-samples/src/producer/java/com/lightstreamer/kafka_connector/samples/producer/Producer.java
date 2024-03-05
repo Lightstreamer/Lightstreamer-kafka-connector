@@ -17,11 +17,10 @@
 
 package com.lightstreamer.kafka_connector.samples.producer;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Properties;
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.ExternalFeedListener;
+import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.Stock;
+
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -30,12 +29,14 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.ExternalFeedListener;
-import com.lightstreamer.kafka_connector.samples.producer.FeedSimulator.Stock;
-
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Properties;
 
 public class Producer implements Runnable, ExternalFeedListener {
 
@@ -48,7 +49,10 @@ public class Producer implements Runnable, ExternalFeedListener {
     @Option(names = "--topic", description = "The target topic", required = true)
     private String topic;
 
-    @Option(names = "--config-file", description = "Optional producer config file", required = false)
+    @Option(
+            names = "--config-file",
+            description = "Optional producer config file",
+            required = false)
     private String configFile;
 
     private KafkaProducer<Integer, Stock> producer;
@@ -61,19 +65,22 @@ public class Producer implements Runnable, ExternalFeedListener {
                 System.err.println("Unable to find the specifed configuration file " + configFile);
                 System.exit(-1);
             }
-            try(InputStream is = Files.newInputStream(Paths.get(configFile))) {
+            try (InputStream is = Files.newInputStream(Paths.get(configFile))) {
                 properties.load(is);
-            } catch (IOException e ) {
+            } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(-1);
             }
         }
-        
+
         properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         properties.setProperty(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-        properties.setProperty(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
+        if (!properties.containsKey(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)) {
+            properties.setProperty(
+                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                    KafkaJsonSerializer.class.getName());
+        }
 
         // Create the producer
         producer = new KafkaProducer<>(properties);
@@ -85,22 +92,28 @@ public class Producer implements Runnable, ExternalFeedListener {
 
     @Override
     public void onEvent(int stockIndex, Stock stock) {
-        ProducerRecord<Integer, Stock> record = new ProducerRecord<>(this.topic, stockIndex, stock);
-        producer.send(
-                record,
-                new Callback() {
-                    public void onCompletion(RecordMetadata metadata, Exception e) {
-                        if (e != null) {
-                            e.printStackTrace();
-                            System.err.println("Send failed");
-                            return;
+        try {
+            ProducerRecord<Integer, Stock> record =
+                    new ProducerRecord<>(this.topic, stockIndex, stock);
+            producer.send(
+                    record,
+                    new Callback() {
+                        public void onCompletion(RecordMetadata metadata, Exception e) {
+                            if (e != null) {
+                                e.printStackTrace();
+                                System.err.println("Send failed");
+                                return;
+                            }
+                            String reducedValueStr =
+                                    record.value().toString().substring(0, 35) + "...";
+                            System.out.printf(
+                                    "Sent record [key = %2d, offset = %6d, value = %s]%n",
+                                    record.key(), metadata.offset(), reducedValueStr);
                         }
-                        String reducedValueStr = record.value().toString().substring(0, 35) + "...";
-                        System.out.printf(
-                                "Sent record [key = %2d, offset = %6d, value = %s]%n",
-                                record.key(), metadata.offset(), reducedValueStr);
-                    }
-                });
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
