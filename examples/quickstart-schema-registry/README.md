@@ -33,20 +33,20 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 
    Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
     
-    ```yaml
-    ...
-    # JSON deserializer with support for the Schema Registry
-    value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
-    # Schema Registry URL
-    schema.registry.url=https://schema-registry:8084
-    # Truststore configuration to authenticate the Schema Registry
-    schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
-    schema.registry.ssl.truststore.password=producer-truststore-password
-    # Keystore configuration for client authentication with the Schema Registry
-    schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
-    schema.registry.ssl.keystore.password=producer-password
-    schema.registry.ssl.key.password=producer-password
-    ```  
+   ```yaml
+   ...
+   # JSON deserializer with support for the Schema Registry
+   value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+   # Schema Registry URL
+   schema.registry.url=https://schema-registry:8084
+   # Truststore configuration to authenticate the Schema Registry
+   schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+   schema.registry.ssl.truststore.password=producer-truststore-password
+   # Keystore configuration for client authentication with the Schema Registry
+   schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+   schema.registry.ssl.keystore.password=producer-password
+   schema.registry.ssl.key.password=producer-password
+   ```  
 
 In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve its secrets:
 

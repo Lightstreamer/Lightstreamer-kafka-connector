@@ -5,7 +5,6 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector-${version}
     depends_on:
-      - broker
       - producer
     ports:
       - 8080:8080
@@ -19,8 +18,6 @@ services:
 
   producer:
     container_name: producer
-    depends_on:
-      - broker
     build:
       context: ../compose-templates
       dockerfile: Dockerfile.producer

@@ -39,7 +39,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     <param name="encryption.keystore.key.password">kafka-connector-password</param>
     ```
 - _producer_:
-  - New SSL endpoint (`broker:29094`).
+  - Parameter `--bootstrap-servers` set to the new SSL endpoint (`broker:29094`).
   - Provisioning of the `producer.properties` configuration file to enable SSL support:
     ```yaml
     # Enable SSL

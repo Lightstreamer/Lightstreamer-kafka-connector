@@ -6,7 +6,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - Removal of the _broker_ service, because replaced by the remote Kafka cluster.
 - _kafka-connector_:
-  - Definition of new environment variables to configure the remote endpoint and credentials in the `adapters.xml` trough the _variable-expansion_ feature of Lightstreamer.
+  - Definition of new environment variables to configure the remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer.
     ```yaml
     ...
     environment:
@@ -35,25 +35,34 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.username">$env.api_key</param>
       <param name="authentication.password">$env.secret</param>
       ```
-- _producer_:
 
-   Provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
+    **NOTE**  This example assumes that the topic name is `topic_0` (the default topic provided by Confluent Cloud). If required, update the topic mapping setting by replacing `<confluent_topic_name>` with the appropriate value, as follows (because variable-expansion is not available in the `name` attribute):
+
+    ```xml
+    <param name="map.<confluent_topic_name>.to">item-template.stock</param>
+    ```
+
+- _producer_:
+   - Parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`.
+   - Provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
     
-    ```yaml
-    # Configure SASL/PLAIN mechanism
-    sasl.mechanism=PLAIN
-    # Enable SSL encryption
-    security.protocol=SASL_SSL
-    # JAAS configuration
-    sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";
-    ```  
+   ```yaml
+   # Configure SASL/PLAIN mechanism
+   sasl.mechanism=PLAIN
+   # Enable SSL encryption
+   security.protocol=SASL_SSL
+   # JAAS configuration
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";
+   ```  
+   
+   **NOTE**  If required, update the parameter `--topic` in the `command` attribute with the appropriate value.
 
 ## Run
 
 From this directory, run follow the command:
 
 ```sh
-api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> ./start.sh 
+api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> topic=<topic> ./start.sh 
 ```
 
 where 
