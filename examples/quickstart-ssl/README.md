@@ -44,7 +44,7 @@ The [docker-compose.yml](docker-compose.yml) has been revised to enable support 
     ```
 
 - _producer_
-  - Inclusion of the `producer.properties` configuration file for enabling SSL and configuring truststore and keystore:
+  - The new `producer.properties` configuration file enables SSL support:
     
     ```yaml
     # Enable SSL
