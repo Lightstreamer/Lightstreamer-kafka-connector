@@ -57,12 +57,13 @@ The [docker-compose.yml](docker-compose.yml) has been revised to configure the i
 In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve its secrets:
 
 - the truststore file [`schema-registry.truststore.jks`](../compose-templates/secrets/schema-registry/schema-registry.truststore.jks);
-- the keystore file [`broker.schema-registry.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks);
+- the keystore file [`schema-registry.keystore.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks);
 
 You can regenerate all of them with:
 
 ```sh
 ./generate-secrets.sh
+
 ```
 
 ## Run
