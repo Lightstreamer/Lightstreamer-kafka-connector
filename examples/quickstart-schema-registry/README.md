@@ -6,25 +6,22 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 
 - New _schema-registry_ service, pulled from the mentioned Docker image and configured with security settings.
 
-- _kafka-connector_
+- _kafka-connector_:
   
   Adaption of [`adapters.xml`](./adapters.xml) to include:
   - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
-
   - Configuration of the target Schema Registry URL:
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
-
   - Configuration of the truststore to authenticate the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
     <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-
   - Configuration of the keystore for client authentication with the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.keystore.enable">true</param>
@@ -32,8 +29,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
     <param name="schema.registry.encryption.keystore.key.password">kafka-connector-password</param>
     ```
-
-- _producer_
+- _producer_:
 
    Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
     

@@ -5,8 +5,7 @@ This folder contains a variant of the [_Quick Start_](../quickstart-ssl/README.m
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Confluent Cloud as follows:
 
 - Removal of the _broker_ service, because replaced by the remote Kafka cluster.
-
-- _kafka-connector_
+- _kafka-connector_:
   - Definition of new environment variables to configure the remote endpoint and credentials in the `adapters.xml` trough the _variable-expansion_ feature of Lightstreamer.
     ```yaml
     ...
@@ -36,8 +35,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.username">$env.api_key</param>
       <param name="authentication.password">$env.secret</param>
       ```
-
-- _producer_
+- _producer_:
 
    Provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
     

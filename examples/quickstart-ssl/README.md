@@ -4,7 +4,7 @@ This folder contains all the resources needed to launch the [_Quick Start_](../.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to enable support for SSL, as follows:
 
-- _broker_
+- _broker_:
   - Enabling of SSL enabled on port `29094`.
   - Definition of new environment variables to configure keystore, truststore, client authentication, and secrets:
     - `KAFKA_SSL_TRUSTSTORE_FILENAME`
@@ -13,28 +13,24 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     - `KAFKA_SSL_KEYSTORE_CREDENTIALS`
     - `KAFKA_SSL_KEY_CREDENTIALS`
     - `KAFKA_SSL_CLIENT_AUTH`
-
-- _kafka-connector_
+- _kafka-connector_:
 
   Adaption of [`adapters.xml`](./adapters.xml) to include:
   - New SSL endpoint (`broker:29094`):
     ```xml
     <param name="bootstrap.servers">broker:29094</param>
     ```
-
   - Encryption settings:
     ```xml
     <param name="encryption.enable">true</param>
     <param name="encryption.protocol">TLSv1.2</param>
     <param name="encryption.hostname.verification.enable">false</param>
     ```
-
   - Configuration of the truststore to authenticate the broker:
     ```xml
     <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
     <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-
   - Configuration of the keystore for client authentication with the broker:
     ```xml
     <param name="encryption.keystore.enable">true</param>
@@ -42,8 +38,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     <param name="encryption.keystore.password">kafka-connector-password</param>
     <param name="encryption.keystore.key.password">kafka-connector-password</param>
     ```
-
-- _producer_
+- _producer_:
   - New SSL endpoint (`broker:29094`).
   - Provisioning of the `producer.properties` configuration file to enable SSL support:
     ```yaml
