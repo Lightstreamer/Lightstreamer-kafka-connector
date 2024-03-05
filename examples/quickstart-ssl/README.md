@@ -47,12 +47,16 @@ The [docker-compose.yml](docker-compose.yml) has been revised to enable support 
   - Inclusion of the `producer.properties` configuration file for enabling SSL and configuring truststore and keystore:
     
     ```yaml
+    # Enable SSL
     security.protocol=SSL
+    # Truststore configuration to authenticate the broker
     ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
     ssl.truststore.password=producer-truststore-password
+    # Keystore configuration for client authentication with the broker
     ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
     ssl.keystore.password=producer-password
     ssl.key.password=producer-password
+    # Disable host name verification
     ssl.endpoint.identification.algorithm=
     ```  
   - Changed target broker to new SSL endpoint (`broker:29094`).
