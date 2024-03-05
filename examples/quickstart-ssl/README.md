@@ -5,7 +5,7 @@ This folder contains all the resources needed to launch the [_Quick Start_](../.
 The [docker-compose.yml](docker-compose.yml) file has been revised to enable support for SSL, as follows:
 
 - _broker_
-  - Enabling of SSL enabled on port 29094.
+  - Enabling of SSL enabled on port `29094`.
   - Definition of new environment variables to configure keystore, truststore, client authentication, and secrets:
     - `KAFKA_SSL_TRUSTSTORE_FILENAME`
     - `KAFKA_SSL_TRUSTSTORE_CREDENTIALS`
