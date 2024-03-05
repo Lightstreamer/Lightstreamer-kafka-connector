@@ -77,9 +77,9 @@ In particular,
 You can regenerate all of them with:
 
 ```sh
-./create-ca.sh
+./generate-secrets.sh
 ```
 
 ## Run
 
-From this directory, follow the same instructions you can in the [Quick Start](../../README.md#run) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#run) section of the main README file.
