@@ -52,6 +52,7 @@
           - [`SCRAM-256`](#scram-256)
           - [`SCRAM-512`](#scram-512)
           - [`GSSAPI`](#gssapi)
+        - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
@@ -851,6 +852,10 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
+
+##### Quick Start Confluent Cloud Example
+
+Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
 #### Schema Registry
 
