@@ -39,7 +39,7 @@ javadoc {
 
 distributions {
     connector {
-        distributionBaseName =  rootProject.name
+        distributionBaseName = rootProject.name + '-deploy'
 
         contents {
             from(jar) {
