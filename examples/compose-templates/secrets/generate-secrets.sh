@@ -11,10 +11,10 @@ openssl req -new -newkey rsa:2048 -noenc -x509 -keyout ca.key -out ca.cert -days
 
 for service in $services
 do
-    # Add the generated CA to the truststore file
+    # Add the generated CA to the trsut store file
     keytool -keystore $service/$service.truststore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-truststore-password" -noprompt
 
-    # Create the keystore file
+    # Create the key store file
     keytool -genkey -noprompt -keystore $service/$service.keystore.jks -alias $service -keyalg RSA -validity ${validity} -storepass "$service-password" -keypass "$service-password" -dname "CN=$service.example.lightsteramer.com, OU=Kafka Connector, O=Lighsteramer Srl, C=Italy"
 
     # Create the CSR file
@@ -23,7 +23,7 @@ do
     # Sign the key
     openssl x509 -req -CA ca.cert -CAkey ca.key -in $service/$service.csr -out $service/$service.signed -days ${validity} -CAcreateserial -passin pass:$service-password
 
-    # Import both the certificate of the CA and the signed certificate back into the keystore
+    # Import both the certificate of the CA and the signed certificate back into the key store
     keytool -keystore $service/$service.keystore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-password" -noprompt
     keytool -keystore $service/$service.keystore.jks -alias $service -importcert -file $service/$service.signed -storepass "$service-password" -noprompt
 done

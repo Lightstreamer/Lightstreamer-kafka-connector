@@ -16,7 +16,7 @@ To build the image:
 1. Copy into the [`resources`](resources/) folder any customizable Kafka Connector resource, such as:
    - `adapters.xml`.
    - `log4j.properties` (or any other referenced log configuration file).
-   - Local schema, keystore, and truststore files referenced in `adapters.xml`.
+   - Local schema, key store, and trust store files referenced in `adapters.xml`.
 
 2. Run the command:
 

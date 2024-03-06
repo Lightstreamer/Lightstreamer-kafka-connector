@@ -103,10 +103,10 @@ configs:
       value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
       # Schema Registry URL
       schema.registry.url=https://schema-registry:8084
-      # Truststore configuration to authenticate the Schema Registry
+      # Trust store configuration to authenticate the Schema Registry
       schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
       schema.registry.ssl.truststore.password=producer-truststore-password
-      # Keystore configuration for client authentication with the Schema Registry
+      # Key store configuration for client authentication with the Schema Registry
       schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       schema.registry.ssl.keystore.password=producer-password
       schema.registry.ssl.key.password=producer-password

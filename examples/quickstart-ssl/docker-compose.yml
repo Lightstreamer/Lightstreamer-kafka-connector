@@ -70,10 +70,10 @@ configs:
     content: |
       # Enable SSL
       security.protocol=SSL
-      # Truststore configuration to authenticate the broker
+      # Trust store configuration to authenticate the broker
       ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
       ssl.truststore.password=producer-truststore-password
-      # Keystore configuration for client authentication with the broker
+      # Key store configuration for client authentication with the broker
       ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       ssl.keystore.password=producer-password
       ssl.key.password=producer-password

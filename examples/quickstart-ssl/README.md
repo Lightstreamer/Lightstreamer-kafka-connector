@@ -6,7 +6,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
 
 - _broker_:
   - Enabling of SSL enabled on port `29094`.
-  - Definition of new environment variables to configure keystore, truststore, client authentication, and secrets:
+  - Definition of new environment variables to configure key store, trust store, client authentication, and secrets:
     - `KAFKA_SSL_TRUSTSTORE_FILENAME`
     - `KAFKA_SSL_TRUSTSTORE_CREDENTIALS`
     - `KAFKA_SSL_KEYSTORE_FILENAME`
@@ -26,12 +26,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     <param name="encryption.protocol">TLSv1.2</param>
     <param name="encryption.hostname.verification.enable">false</param>
     ```
-  - Configuration of the truststore to authenticate the broker:
+  - Configuration of the trust store to authenticate the broker:
     ```xml
     <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
     <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-  - Configuration of the keystore for client authentication with the broker:
+  - Configuration of the key store for client authentication with the broker:
     ```xml
     <param name="encryption.keystore.enable">true</param>
     <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
@@ -44,10 +44,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     ```yaml
     # Enable SSL
     security.protocol=SSL
-    # Truststore configuration to authenticate the broker
+    # Trusts tore configuration to authenticate the broker
     ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
     ssl.truststore.password=producer-truststore-password
-    # Keystore configuration for client authentication with the broker
+    # Key tore configuration for client authentication with the broker
     ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
     ssl.keystore.password=producer-password
     ssl.key.password=producer-password
@@ -60,17 +60,17 @@ In addition, all services reference the local [`secrets`](../compose-templates/s
 In particular, 
 
 - _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for:
-  - the truststore file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks);
-  - the keystore file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks);
+  - the trust store file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks);
+  - the key store file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks);
   - the credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials).
 
 - _kafka-connector_ mounts [`secrets/kafka-connector`](../compose-templates/secrets/kafka-connector/) to `LS_KAFKA_CONNECTOR_HOME/secrets` for:
-  -  the truststore file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks);
-  -  the keystore file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks);
+  -  the trust store file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks);
+  -  the key store file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks);
 
 - _producer_ mounts [`secrets/producer`](../compose-templates/secrets/producer/) to `/usr/app/secrets` for:
-  -  the truststore file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks);
-  -  the keystore file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks);
+  -  the trust store file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks);
+  -  the key store file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks);
 
 You can regenerate all of them with:
 

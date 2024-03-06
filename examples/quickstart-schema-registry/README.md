@@ -17,12 +17,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
-  - Configuration of the truststore to authenticate the Schema Registry.
+  - Configuration of the trust store to authenticate the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
     <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-  - Configuration of the keystore for client authentication with the Schema Registry.
+  - Configuration of the key store for client authentication with the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.keystore.enable">true</param>
     <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
@@ -39,10 +39,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
    value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
    # Schema Registry URL
    schema.registry.url=https://schema-registry:8084
-   # Truststore configuration to authenticate the Schema Registry
+   # Trust store configuration to authenticate the Schema Registry
    schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
    schema.registry.ssl.truststore.password=producer-truststore-password
-   # Keystore configuration for client authentication with the Schema Registry
+   # Key store configuration for client authentication with the Schema Registry
    schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
    schema.registry.ssl.keystore.password=producer-password
    schema.registry.ssl.key.password=producer-password
@@ -50,8 +50,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 
 In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve its secrets:
 
-- the truststore file [`schema-registry.truststore.jks`](../compose-templates/secrets/schema-registry/schema-registry.truststore.jks);
-- the keystore file [`schema-registry.keystore.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks);
+- the trust store file [`schema-registry.truststore.jks`](../compose-templates/secrets/schema-registry/schema-registry.truststore.jks);
+- the key store file [`schema-registry.keystore.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks);
 
 You can regenerate all of them with:
 
