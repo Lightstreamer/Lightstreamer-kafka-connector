@@ -25,7 +25,7 @@
         - [`group.id`](#groupid)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
-        - [`record.key.evaluator.type` and `recod.value.evaluator.type`](#recordkeyevaluatortype-and-recodvalueevaluatortype)
+        - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
         - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
@@ -82,7 +82,7 @@ As you can see from the diagram above, in this variant the stream of simulated m
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_, a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).      
+1. _broker_, a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).
 2. _kafka-connector_, Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
 4. _producer_, a native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository.
 
@@ -156,7 +156,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Obviously, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -469,7 +469,7 @@ In case of a validation failure, the Connector can react by ...
 _Optional_. The .... Can be one of the following:
 
 - `LATEST`, Start consuming events from the latest available.
-- `EARLIEST, Start consuming events form the earliest available.
+- `EARLIEST`, Start consuming events from the earliest available.
 
 Default value: `LATEST`.
 
@@ -479,7 +479,7 @@ Example:
 <param name="record.consme.from">EARLIEST</param>
 ```
 
-##### `record.key.evaluator.type` and `recod.value.evaluator.type`
+##### `record.key.evaluator.type` and `record.value.evaluator.type`
 
 _Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
 
@@ -933,7 +933,7 @@ Example:
 
 ##### template
 
-Am item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
+An item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
 
 Example:
 
