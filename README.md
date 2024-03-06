@@ -127,7 +127,7 @@ This section will guide you through the installation of the Lightstreamer Kafka 
 
 ### Deploy
 
-Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/release/latest). Alternatively, check out this repository and run the following command from the project root;
+Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the project root;
 
 ```sh
 ./gradlew distribuite
