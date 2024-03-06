@@ -44,7 +44,7 @@
         - [`encryption.keystore.password`](#encryptionkeystorepassword)
         - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
         - [`encryption.keystore.type`](#encryptionkeystoretype)
-        - [Complete Encryption Configuration Example](#complete-encryption-configuration-example)
+        - [Quick Start SSL Example](#quick-start-ssl-example)
       - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
         - [`authentication.mechanism`](#authenticationmechanism)
@@ -726,7 +726,7 @@ Example:
 <param name="encryption.keystore.type">PKCS12</param>
 ```
 
-##### Complete Encryption Configuration Example
+##### Quick Start SSL Example
 
 Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L15) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
