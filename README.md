@@ -54,6 +54,7 @@
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
+        - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
       - [Topic Mapping](#topic-mapping)
         - [template](#template)
     - [Metadata Adapter Customization](#metadata-adapter-customization)
@@ -845,7 +846,7 @@ Example of a plain http URL:
 
 ##### Encryption Parameters
 
-A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the analogous parameter defined in the [Encryption Parameters](#encryption-parameters) section:
+A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
 
 - `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
@@ -878,6 +879,10 @@ Example:
 <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
 <param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
 ```
+
+##### Quick Start Schema Registry Example
+
+Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L36) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry configuration.
 
 #### Topic Mapping
 
