@@ -192,7 +192,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 1. Launch Lightstreamer Server
   
-   From the LS_HOME directory, run the command: 
+   From the `LS_HOME/bin/unix` directory, run the command: 
 
    ```sh
    ./start_background.sh
