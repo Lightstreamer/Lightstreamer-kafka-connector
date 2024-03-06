@@ -728,7 +728,7 @@ Example:
 
 ##### Complete Encryption Configuration Example
 
-Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#15L) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L15) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 #### Broker Authentication Parameters
 
