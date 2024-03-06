@@ -497,7 +497,7 @@ _Optional_. The format to be used to deserialize respectively the key and value 
 - `SHORT`
 - `UUID`
 
-Default value: `STRING`
+Default value: `STRING`.
 
 Examples:
 
@@ -519,7 +519,7 @@ The path of the local schema file for message validation respectively of the Kaf
 
 Enable the use of the [Confluent Schema Registry](#schema-registry) for message validation respectively of the Kafka key and the Kafa value.
 
-Default value: `false`
+Default value: `false`.
 
 Example:
 
@@ -628,7 +628,7 @@ _Optional_. The type of the trust store. Can be one of the following:
 - `JKS`
 - `PKCS12`
 
-Default: JKS
+Default value: `JKS`.
 
 Example:
 
