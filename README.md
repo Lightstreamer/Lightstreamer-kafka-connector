@@ -20,6 +20,7 @@
     - [Connection Settings](#connection-settings)
       - [General Parameters](#general-parameters)
         - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
+      - [`adapter_class`](#adapter_class-1)
         - [`enable`](#enable)
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
@@ -350,7 +351,7 @@ Example:
     ...
 </metadata_provider>
 ...
-  ```
+```
 
 #### `logging.configuration.path`
 
@@ -395,6 +396,12 @@ Example:
 ```
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
+
+#### `adapter_class`
+
+_Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
+
+Factory value: `com.lightstreamer.kafka_connector.adapters.KafkaConnectorAdapter`.
 
 ##### `enable`
 
@@ -721,31 +728,7 @@ Example:
 
 ##### Complete Encryption Configuration Example
 
-The following is a complete example of how to configure encryption through the above parameters.
-
-```xml
-...
-<!-- Enable encryption -->
-<param name="encryption.enable">true</param>
-
-<!-- Set general encryption settings -->
-<param name="encryption.protocol">TLSv1.2</param>
-<param name="encryption.enabled.protocols">TLSv1.2</param>
-<param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-<param name="encryption.hostname.verification.enable">true</param>
-
-<!-- If required, configure the trust store to trust the Kafka Cluster certificates -->
-<param name="encryption.truststore.type">JKS</param>
-<param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param></param>
-
-<!-- If mutual TLS is enabled on the Kafka Cluster, enable and configure the key store -->
-<param name="encryption.keystore.enable">true</param>
-<param name="encryption.keystore.type">PKCS12</param>
-<param name="encryption.keystore.path">secrets/kafka.connector.encryption.keystore.pkcs12</param>
-<param name="encryption.keystore.password">schemaregistry-keystore-password</param>
-<param name="encryption.keystore.key.password">schemaregistry-private-key-password</param>
-...
-```
+Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml) file [_Quick Start SSL_](examples/quickstart-ssl/) app app folder you can find a concrete encryption configuration in 
 
 #### Broker Authentication Parameters
 
@@ -838,7 +821,7 @@ In the case of `GSSAPI`, the following parameters will be part of the authentica
 
 - `authentication.gssapi.principal`
 
-  _Mandatory if [ticket cache](#authenticationgssapiticketcacheenable) is disabled. The name of the principal to be used.
+  _Mandatory_ if [ticket cache](#authenticationgssapiticketcacheenable) is disabled. The name of the principal to be used.
 
 - `authentication.gssapi.ticket.cache.enable`
 
