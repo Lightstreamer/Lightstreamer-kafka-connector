@@ -56,6 +56,7 @@
         - [Encryption Parameters](#encryption-parameters-1)
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
       - [Topic Mapping](#topic-mapping)
+        - [Data Extraction](#data-extraction)
         - [template](#template)
     - [Metadata Adapter Customization](#metadata-adapter-customization)
 
@@ -894,7 +895,22 @@ Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L3
 
 As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
 
-To allow great flexibility and extend the possibility of usage, the Connector allows to
+To extend the availability of Kafka events streams to a potentially huge amount of connected devices to Lighstreamer, the Kafka Connector allows great flexibility in routing and manipulation strategies.
+
+A Kafka record can be analyzed in all its aspects to extract only the relevant information that can be used
+- route to the designated Lightstreamer Items
+- remapped to the selected Lightstreamer Fields
+
+##### Data Extraction
+
+Information from a Kafka record can be extracted through a special dot syntax, which uses predefined constants to reference every part of the structure:
+
+- `KEY`, the key
+- `VALUE`, the value
+- `TIMESTAMP`, the timestamp
+- `OFFSET`, the offset
+- `PARTITION`, the partition
+
 
 
 ##### template
