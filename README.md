@@ -43,7 +43,6 @@
         - [`encryption.keystore.path`](#encryptionkeystorepath)
         - [`encryption.keystore.password`](#encryptionkeystorepassword)
         - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
-        - [`encryption.keystore.type`](#encryptionkeystoretype)
         - [Quick Start SSL Example](#quick-start-ssl-example)
       - [Broker Authentication Parameters](#broker-authentication-parameters)
         - [`authentication.enable`](#authenticationenable)
@@ -460,7 +459,7 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
 - Local schema files.
-- The Confluent Schema Registry.
+- The _Confluent Schema Registry_.
 
 Kafka Connector supports independent deserialization of keys and values, which means that:
 
@@ -525,7 +524,7 @@ The path of the local schema file for message validation respectively of the Kaf
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-Enable the use of the [Confluent Schema Registry](#schema-registry) for message validation respectively of the Kafka key and the Kafa value.
+Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
 
 Default value: `false`.
 
@@ -553,7 +552,7 @@ Example:
 
 #### Encryption Parameters
 
-A TCP secure connection to the Kafka cluster is configured through parameters with the `encryption` prefix.
+A TCP secure connection to Kafka is configured through parameters with the `encryption` prefix.
 
 ##### `encryption.enable`
 
@@ -669,7 +668,6 @@ If enabled, the following parameters configure the key store settings:
 
 - `encryption.keystore.path`
 - `encryption.keystore.password`
-- `encryption.keystore.type`
 - `encryption.keystore.key.password`
 
 Default value: `false`.
@@ -712,28 +710,13 @@ Example:
 <param name="encryption.keystore.key.password">private-key-password</param>
 ```
 
-##### `encryption.keystore.type`
-
-_Optional_. The type of the key store. Can be one of the following:
-
-- `JKS`
-- `PKCS12`
-
-Default value: `JKS`.
-
-Example:
-
-```xml
-<param name="encryption.keystore.type">PKCS12</param>
-```
-
 ##### Quick Start SSL Example
 
 Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L15) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 #### Broker Authentication Parameters
 
-Broker authentication is configured by parameters with the `authentication` prefix.
+Broker authentication is configured through parameters with the `authentication` prefix.
 
 ##### `authentication.enable`
 
@@ -859,14 +842,16 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 #### Schema Registry
 
+A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
+
+Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_(https://docs.confluent.io/platform/current/schema-registry/index.html)], through the configuration of parameters with the `schema.registry` prefix.
 ...
 
 ##### `schema.registry.url`
 
-_Mandatory_. The URL of the Confluent schema registry. An encrypted connection is enabled by specifying the `https` protocol.
+_Mandatory_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
 
-
-Example of a plain http url:
+Example of a plain http URL:
 
 ```xml
 <!-- Use https to enable secure connection to the registry
@@ -889,7 +874,6 @@ A secure connection to the Confluent Schema Registry can be configured through p
 - `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
 - `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
 - `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
-- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
 - `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
 Example:
@@ -904,14 +888,12 @@ Example:
 <param name="schema.registry.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
-<param name="schema.registry.encryption.truststore.type">PKCS12</param>
-<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
+<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.jks</param></param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->
 <param name="schema.registry.encryption.keystore.enable">true</param>
-<param name="schema.registry.encryption.keystore.type">PKCS12</param>
-<param name="schema.registry.encryption.keystore.path">secrets/kafka.connector.schema.registry.encryption.keystore.pkcs12</param>
-<param name="schema.registry.encryption.keystore.password">schemaregistry-keystore-password</param>
+<param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
 <param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
 ```
 

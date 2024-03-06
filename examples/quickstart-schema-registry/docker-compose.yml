@@ -84,7 +84,7 @@ services:
       SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: schema-registry-truststore-password
       SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: /etc/schema-registry/secrets/schema-registry.keystore.jks
       SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: schema-registry-password
-      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: schema-registry-password
+      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: schema-registry-private-key-password
       SCHEMA_REGISTRY_SSL_CLIENT_AUTHENTICATION: 'REQUIRED'
     volumes:
      - ./secrets/schema-registry:/etc/schema-registry/secrets
@@ -92,12 +92,15 @@ services:
 configs:
   producer.properties:
     content: |
+      # Enable SSL
       security.protocol=SSL
+      # Trust store configuration to authenticate the broker
       ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
       ssl.truststore.password=producer-truststore-password
+      # Key store configuration for client authentication with the broker
       ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       ssl.keystore.password=producer-password
-      ssl.key.password=producer-password
+      ssl.key.password=producer-private-key-password
       ssl.endpoint.identification.algorithm=
       # JSON deserializer with support for the Schema Registry
       value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
@@ -109,4 +112,4 @@ configs:
       # Key store configuration for client authentication with the Schema Registry
       schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       schema.registry.ssl.keystore.password=producer-password
-      schema.registry.ssl.key.password=producer-password
+      schema.registry.ssl.key.password=producer-private-key-password

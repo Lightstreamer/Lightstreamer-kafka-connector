@@ -21,7 +21,7 @@
         <param name="encryption.keystore.enable">true</param>
         <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
         <param name="encryption.keystore.password">kafka-connector-password</param>
-        <param name="encryption.keystore.key.password">kafka-connector-password</param>
+        <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
         
         <!-- Topics mapping -->
         <param name="item-template.stock">stock-#{index=KEY}</param>

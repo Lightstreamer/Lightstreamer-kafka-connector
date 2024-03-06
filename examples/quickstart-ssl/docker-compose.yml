@@ -76,5 +76,5 @@ configs:
       # Key store configuration for client authentication with the broker
       ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
       ssl.keystore.password=producer-password
-      ssl.key.password=producer-password
+      ssl.key.password=producer-private-key-password
       ssl.endpoint.identification.algorithm=

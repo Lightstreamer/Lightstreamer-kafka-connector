@@ -5,9 +5,8 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
 - New _schema-registry_ service, pulled from the mentioned Docker image and configured with security settings.
-
 - _kafka-connector_:
-  
+
   Adaption of [`adapters.xml`](./adapters.xml) to include:
   - Enabling of the Schema Registry:
     ```xml
@@ -27,7 +26,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     <param name="schema.registry.encryption.keystore.enable">true</param>
     <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
     <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-    <param name="schema.registry.encryption.keystore.key.password">kafka-connector-password</param>
+    <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
     ```
 - _producer_:
 
@@ -45,7 +44,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
    # Key store configuration for client authentication with the Schema Registry
    schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
    schema.registry.ssl.keystore.password=producer-password
-   schema.registry.ssl.key.password=producer-password
+   schema.registry.ssl.key.password=producer-private-key-password
    ```  
 
 In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve its secrets:
@@ -57,7 +56,6 @@ You can regenerate all of them with:
 
 ```sh
 ./generate-secrets.sh
-
 ```
 
 ## Run
