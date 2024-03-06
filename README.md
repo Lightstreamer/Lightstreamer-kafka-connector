@@ -24,11 +24,11 @@
         - [`bootstrap.servers`](#bootstrapservers)
         - [`group.id`](#groupid)
       - [Record Evaluation](#record-evaluation)
-        - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `recod.value.evaluator.type`](#recordkeyevaluatortype-and-recodvalueevaluatortype)
         - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
+        - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Encryption Parameters](#encryption-parameters)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
@@ -441,9 +441,13 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
 
-- _String_
-- _Avro_
+- _Apache Avro_
 - _JSON_
+- _String_
+- _Integer_
+- _Float_
+
+and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
 
 In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
@@ -459,21 +463,6 @@ Kafka Connector supports independent deserialization of keys and values, which m
 **NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
 In case of a validation failure, the Connector can react by ...
-
-##### `record.extraction.error.strategy`
-
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
-
-- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
-
-Default value: `IGNORE_AND_CONTINUE`.
-
-Example:
-
-```xml
-<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
-```
 
 ##### `record.consume.from`
 
@@ -537,6 +526,21 @@ Example:
 ```xml
 <param name="record.key.evaluator.schema.registry.enable">true</param>
 <param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+##### `record.extraction.error.strategy`
+
+_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+
+- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+
+Default value: `IGNORE_AND_CONTINUE`.
+
+Example:
+
+```xml
+<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
 #### Encryption Parameters
