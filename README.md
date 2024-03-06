@@ -828,7 +828,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_(https://docs.confluent.io/platform/current/schema-registry/index.html)], through the configuration of parameters with the `schema.registry` prefix.
+Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the `schema.registry` prefix.
 ...
 
 ##### `schema.registry.url`
