@@ -25,9 +25,10 @@
         - [`group.id`](#groupid)
       - [Record Evaluation](#record-evaluation)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
-        - [`key.evaluator.type` and `value.evaluator.type`](#keyevaluatortype-and-valueevaluatortype)
-        - [`key.evaluator.schema.path` and `value.evaluator.schema.path`](#keyevaluatorschemapath-and-valueevaluatorschemapath)
-        - [`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`](#keyevaluatorschemaregistryenable-and-valueevaluatorschemaregistryenable)
+        - [`record.consume.from`](#recordconsumefrom)
+        - [`record.key.evaluator.type` and `recod.value.evaluator.type`](#recordkeyevaluatortype-and-recodvalueevaluatortype)
+        - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
+        - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
       - [Encryption Parameters](#encryption-parameters)
         - [`encryption.enable`](#encryptionenable)
         - [`encryption.protocol`](#encryptionprotocol)
@@ -126,7 +127,7 @@ This section will guide you through the installation of the Lightstreamer Kafka 
 
 ### Deploy
 
-Get the deployment package from the [latest release page](releases). Alternatively, check out this repository and run the following command from the project root;
+Get the deployment package from the [latest release page](releases/tag/v0.1.0). Alternatively, check out this repository and run the following command from the project root;
 
 ```sh
 ./gradlew distribuite
@@ -452,8 +453,8 @@ In particular, the Kafka Connector supports message validation for Avro and JSON
 Kafka Connector supports independent deserialization of keys and values, which means that:
 
 - Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`](#keyevaluatorschemaregistryenable-and-valueevaluatorschemaregistryenable)).
-- Message validation against local schema files must be specified separately for key and value (through the `key.evaluator.schema.path` and `value.evaluator.schema.path`)
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
+- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
 
 **NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
@@ -474,7 +475,22 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-##### `key.evaluator.type` and `value.evaluator.type`
+##### `record.consume.from`
+
+_Optional_. The .... Can be one of the following:
+
+- `LATEST`, Start consuming events from the latest available.
+- `EARLIEST, Start consuming events form the earliest available.
+
+Default value: `LATEST`.
+
+Example:
+
+```xml
+<param name="record.consme.from">EARLIEST</param>
+```
+
+##### `record.key.evaluator.type` and `recod.value.evaluator.type`
 
 _Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
 
@@ -497,20 +513,20 @@ Default value: `STRING`
 Examples:
 
 ```xml
-<param name="key.evaluator.type">INTEGER</param>
-<param name="value.evaluator.type">JSON</param>
+<param name="record.key.evaluator.type">INTEGER</param>
+<param name="record.value.evaluator.type">JSON</param>
 ```
 
-##### `key.evaluator.schema.path` and `value.evaluator.schema.path`
+##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
 The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
 
 ```xml
-<param name="key.evaluator.schema.path">schema/record_key.json</param>
-<param name="value.evaluator.schema.path">schemas/record_value.json</param>
+<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
 ```
 
-##### `key.evaluator.schema.registry.enable` and `value.evaluator.schema.registry.enable`
+##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
 Enable the use of the [Confluent Schema Registry](#schema-registry) for message validation respectively of the Kafka key and the Kafa value.
 
@@ -519,8 +535,8 @@ Default value: `false`
 Example:
 
 ```xml
-<param name="key.evaluator.schema.registry.enable">true</param>
-<param name="value.evaluator.schema.registry.enable">true</param>
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### Encryption Parameters
