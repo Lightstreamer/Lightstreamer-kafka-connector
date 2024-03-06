@@ -203,7 +203,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple 
    Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
-   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper support to realize a mapping between Kafka topics and Lighstreamer items.
+   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
 
    The `QuickStart` factory configuration comes with a simple mapping through the following settings:
 
@@ -892,7 +892,10 @@ Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L3
 
 #### Topic Mapping
 
-As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector 
+As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
+
+To allow great flexibility and extend the possibility of usage, the Connector allows to
+
 
 ##### template
 
