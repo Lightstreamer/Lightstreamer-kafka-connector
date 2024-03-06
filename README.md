@@ -892,7 +892,7 @@ Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L3
 
 #### Topic Mapping
 
-As anticipated in the [_Installation_][#_Installation_] section, Lightstreamer Kafka Connector 
+As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector 
 
 ##### template
 
