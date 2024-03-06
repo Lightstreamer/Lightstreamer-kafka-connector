@@ -129,7 +129,7 @@ This section will guide you through the installation of the Lightstreamer Kafka 
 
 ### Deploy
 
-Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the project root;
+Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the project root:
 
 ```sh
 ./gradlew distribuite
@@ -138,7 +138,7 @@ Get the deployment package from the [latest release page](https://github.com/Lig
 which generates the `lightstreamer-kafka-connector-deploy-<version>.zip` bundle under the `deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
-Check that the final Lightstreamer layout looks like the following:
+Finally, check that the Lightstreamer layout looks like the following:
 
 ```sh
 LS_HOME/
@@ -905,13 +905,13 @@ A Kafka record can be analyzed in all its aspects to extract only the relevant i
 
 Kafka Connector provides a special syntax to be used in the configuration file to extract information from a Kafka record. Such a syntax, denoted within `#{...}`, uses predefined constants to reference every part of the record structure:
 
-- `#{KEY}`, the key
-- `#{VALUE}`, the value
-- `#{TIMESTAMP}`, the timestamp
-- `#{OFFSET}`, the offset
-- `#{PARTITION}`, the partition
+- `#{KEY}`, the key;
+- `#{VALUE}`, the value;
+- `#{TIMESTAMP}`, the timestamp;
+- `#{OFFSET}`, the offset;
+- `#{PARTITION}`, the partition;
 
-So for example 
+In addition, in the case of _non-scalar_ format for key or value
 
 
 ##### template
