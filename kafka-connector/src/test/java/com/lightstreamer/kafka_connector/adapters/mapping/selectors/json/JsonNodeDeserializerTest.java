@@ -40,7 +40,7 @@ public class JsonNodeDeserializerTest {
         String s = "{\"stock_name\":\"Ations Europe\"}";
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON"));
+                        Map.of(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON"));
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, false)) {
             deser.deserialize("topic", s.getBytes());
         }
@@ -51,9 +51,9 @@ public class JsonNodeDeserializerTest {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                ConnectorConfig.KEY_EVALUATOR_TYPE,
+                                ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
                                 "JSON",
-                                ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                                ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
                                 "JSON"));
         try (JsonNodeDeserializer deser = new JsonNodeDeserializer(config, true)) {
             assertThat(deser.deserializerClassName())
@@ -70,9 +70,9 @@ public class JsonNodeDeserializerTest {
     public void shouldGeKeyDeserializerWithSchemaRegistry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -95,9 +95,9 @@ public class JsonNodeDeserializerTest {
     public void shouldGetValueDeserializerWithSchemaRegsitry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -120,13 +120,13 @@ public class JsonNodeDeserializerTest {
     public void shouldGetKeyAndVaueDeserializeWithSchemaRegisstry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -150,9 +150,9 @@ public class JsonNodeDeserializerTest {
         Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         keySchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
@@ -176,9 +176,9 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         valueSchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
@@ -203,13 +203,13 @@ public class JsonNodeDeserializerTest {
         Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         keySchemaFile.toFile().getName(),
-                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
                         "JSON",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         valueSchemaFile.toFile().getName());
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);

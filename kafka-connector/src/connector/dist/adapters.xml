@@ -95,8 +95,8 @@
              - UUID
              Default: STRING -->
         <!--
-        <param name="key.evaluator.type">JSON</param>
-        <param name="value.evaluator.type">JSON</param>
+        <param name="record.key.evaluator.type">JSON</param>
+        <param name="record.value.evaluator.type">JSON</param>
         -->
 
         <!-- TOPIC MAPPING SECTION -->
@@ -117,8 +117,8 @@
         <!-- Map the Kafka topic "stocks" to the previous defined "stock" item template. -->
         <param name="map.stocks.to">item-template.stock</param>
 
-        <param name="key.evaluator.type">INTEGER</param>
-        <param name="value.evaluator.type">JSON</param>
+        <param name="record.key.evaluator.type">INTEGER</param>
+        <param name="record.value.evaluator.type">JSON</param>
         <param name="record.consume.from">EARLIEST</param>
 
         <!-- FIELDS MAPPING SECTION -->

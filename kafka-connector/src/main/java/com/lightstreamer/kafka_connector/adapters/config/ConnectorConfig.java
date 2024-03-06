@@ -81,24 +81,24 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String FIELD_MAPPING = "field";
 
-    public static final String KEY_EVALUATOR_TYPE = "key.evaluator.type";
+    public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
+    public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
+            "record.key.evaluator.schema.path";
+    public static final String RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
+            "record.key.evaluator.schema.registry.enable";
 
-    public static final String KEY_EVALUATOR_SCHEMA_PATH = "key.evaluator.schema.path";
-    public static final String KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
-            "key.evaluator.schema.registry.enable";
+    public static final String RECORD_VALUE_EVALUATOR_TYPE = "record.value.evaluator.type";
+    public static final String RECORD_VALUE_EVALUATOR_SCHEMA_PATH =
+            "record.value.evaluator.schema.path";
+    public static final String RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
+            "record.value.evaluator.schema.registry.enable";
 
-    public static final String VALUE_EVALUATOR_TYPE = "value.evaluator.type";
-
-    public static final String VALUE_EVALUATOR_SCHEMA_PATH = "value.evaluator.schema.path";
-    public static final String VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
-            "value.evaluator.schema.registry.enable";
+    public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
+            "record.extraction.error.strategy";
 
     public static final String ITEM_INFO_NAME = "info.item";
 
     public static final String ITEM_INFO_FIELD = "info.field";
-
-    public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
-            "record.extraction.error.strategy";
 
     public static final String ENCYRPTION_ENABLE = "encryption.enable";
 
@@ -168,27 +168,27 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
-                                KEY_EVALUATOR_TYPE,
+                                RECORD_KEY_EVALUATOR_TYPE,
                                 false,
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
+                        .add(RECORD_KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
-                                KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 false,
                                 false,
                                 BOOL,
                                 defaultValue("false"))
                         .add(
-                                VALUE_EVALUATOR_TYPE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
                                 false,
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(VALUE_EVALUATOR_SCHEMA_PATH, false, false, FILE)
+                        .add(RECORD_VALUE_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
-                                VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -260,8 +260,8 @@ public final class ConnectorConfig extends AbstractConfig {
                         .withEnabledChildConfigs(
                                 SchemaRegistryConfigs.spec(),
                                 EnablingKey.of(
-                                        KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                        VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
+                                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
     }
 
     private final Properties consumerProps;
@@ -282,12 +282,13 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
-        String schemaPathKey = isKey ? KEY_EVALUATOR_SCHEMA_PATH : VALUE_EVALUATOR_SCHEMA_PATH;
-        String evaluatorKey = isKey ? KEY_EVALUATOR_TYPE : VALUE_EVALUATOR_TYPE;
+        String schemaPathKey =
+                isKey ? RECORD_KEY_EVALUATOR_SCHEMA_PATH : RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
+        String evaluatorKey = isKey ? RECORD_KEY_EVALUATOR_TYPE : RECORD_VALUE_EVALUATOR_TYPE;
         String schemaEnabledKey =
                 isKey
-                        ? KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
-                        : VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
+                        ? RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
+                        : RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
         if (getEvaluator(evaluatorKey).equals(EvaluatorType.AVRO)) {
             if (!getBoolean(schemaEnabledKey)) {
                 try {
@@ -360,11 +361,11 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public final EvaluatorType getKeyEvaluator() {
-        return EvaluatorType.valueOf(get(KEY_EVALUATOR_TYPE, EVALUATOR, false));
+        return EvaluatorType.valueOf(get(RECORD_KEY_EVALUATOR_TYPE, EVALUATOR, false));
     }
 
     public final EvaluatorType getValueEvaluator() {
-        return EvaluatorType.valueOf(get(VALUE_EVALUATOR_TYPE, EVALUATOR, false));
+        return EvaluatorType.valueOf(get(RECORD_VALUE_EVALUATOR_TYPE, EVALUATOR, false));
     }
 
     public final EvaluatorType getEvaluator(String configKey) {
@@ -381,19 +382,19 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean hasKeySchemaFile() {
-        return getFile(KEY_EVALUATOR_SCHEMA_PATH) != null;
+        return getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH) != null;
     }
 
     public boolean isSchemaRegistryEnabledForKey() {
-        return getBoolean(KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+        return getBoolean(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
     }
 
     public boolean hasValueSchemaFile() {
-        return getFile(VALUE_EVALUATOR_SCHEMA_PATH) != null;
+        return getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH) != null;
     }
 
     public boolean isSchemaRegistryEnabledForValue() {
-        return getBoolean(VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+        return getBoolean(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
     }
 
     public boolean isSchemaRegistryEnabled() {
@@ -593,8 +594,8 @@ public final class ConnectorConfig extends AbstractConfig {
             throw new ConfigException(
                     "Neither parameter [%s] nor parameter [%s] are enabled"
                             .formatted(
-                                    KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                    VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
+                                    RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                    RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE));
         }
     }
 

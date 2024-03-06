@@ -32,8 +32,8 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
     protected AbstractLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
         String schemaFileKey =
                 isKey
-                        ? ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH
-                        : ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH;
+                        ? ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH
+                        : ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
         String schemaFileName = config.getFile(schemaFileKey);
         if (schemaFileName == null) {
             // Neve happens

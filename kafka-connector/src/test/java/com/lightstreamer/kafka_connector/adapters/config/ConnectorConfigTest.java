@@ -134,8 +134,8 @@ public class ConnectorConfigTest {
         assertThat(groupId.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter keyEvaluatorType =
-                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_TYPE);
-        assertThat(keyEvaluatorType.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_TYPE);
+                configSpec.getParameter(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE);
+        assertThat(keyEvaluatorType.name()).isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
         assertThat(keyEvaluatorType.multiple()).isFalse();
         assertThat(keyEvaluatorType.mutable()).isTrue();
@@ -143,8 +143,8 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
         ConfParameter keySchemaFile =
-                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH);
-        assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH);
+                configSpec.getParameter(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         assertThat(keySchemaFile.required()).isFalse();
         assertThat(keySchemaFile.multiple()).isFalse();
         assertThat(keySchemaFile.mutable()).isTrue();
@@ -152,9 +152,9 @@ public class ConnectorConfigTest {
         assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForKey =
-                configSpec.getParameter(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.getParameter(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.name())
-                .isEqualTo(ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                .isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.required()).isFalse();
         assertThat(schemaRegistryEnabledForKey.multiple()).isFalse();
         assertThat(schemaRegistryEnabledForKey.mutable()).isTrue();
@@ -162,8 +162,8 @@ public class ConnectorConfigTest {
         assertThat(schemaRegistryEnabledForKey.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter valueEvaluatorType =
-                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_TYPE);
-        assertThat(valueEvaluatorType.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_TYPE);
+                configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE);
+        assertThat(valueEvaluatorType.name()).isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE);
         assertThat(valueEvaluatorType.required()).isFalse();
         assertThat(valueEvaluatorType.multiple()).isFalse();
         assertThat(valueEvaluatorType.mutable()).isTrue();
@@ -171,8 +171,8 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
         ConfParameter valueSchemaFile =
-                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH);
-        assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH);
+                configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
         assertThat(valueSchemaFile.required()).isFalse();
         assertThat(valueSchemaFile.multiple()).isFalse();
         assertThat(valueSchemaFile.mutable()).isTrue();
@@ -180,9 +180,9 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForValue =
-                configSpec.getParameter(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.name())
-                .isEqualTo(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                .isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.required()).isFalse();
         assertThat(schemaRegistryEnabledForValue.multiple()).isFalse();
         assertThat(schemaRegistryEnabledForValue.mutable()).isTrue();
@@ -345,13 +345,13 @@ public class ConnectorConfigTest {
     private Map<String, String> standardParameters() {
         Map<String, String> standardParams = new HashMap<>();
         standardParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        standardParams.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "STRING");
+        standardParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "STRING");
         standardParams.put(
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                 valueSchemaFile.getFileName().toString());
-        standardParams.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
+        standardParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "JSON");
         standardParams.put(
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
+                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
         standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
         standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -598,8 +598,8 @@ public class ConnectorConfigTest {
             })
     public void shouldGetEvaluator(String type) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.KEY_EVALUATOR_TYPE, type);
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, type);
+        updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, type);
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, type);
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getValueEvaluator()).isEqualTo(EvaluatorType.valueOf(type));
@@ -610,10 +610,10 @@ public class ConnectorConfigTest {
     public void shouldFailDueToInvalidEvaluatorType() {
         Map<String, String> keys =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_TYPE,
-                        "[key.evaluator.type]",
-                        ConnectorConfig.VALUE_EVALUATOR_TYPE,
-                        "[value.evaluator.type]");
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE,
+                        "[record.key.evaluator.type]",
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE,
+                        "[record.value.evaluator.type]");
         for (Map.Entry<String, String> entry : keys.entrySet()) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
             updatedConfig.put(entry.getKey(), "invalidType");
@@ -630,9 +630,9 @@ public class ConnectorConfigTest {
     public void shouldFailDueToInvalidSchemaPath() {
         Map<String, String> keys =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         "[key.evaluator.schema.path]",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         "[value.evaluator.schema.path]");
         for (Map.Entry<String, String> entry : keys.entrySet()) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -651,24 +651,24 @@ public class ConnectorConfigTest {
     @Test
     public void shouldFailDueToMissingSchemaPathForAvro() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
+        configs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
 
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Specify a valid value either for [key.evaluator.schema.path] or [key.evaluator.schema.registry.enable]");
+                        "Specify a valid value either for [record.key.evaluator.schema.path] or [record.key.evaluator.schema.registry.enable]");
 
         Map<String, String> configs2 = new HashMap<>();
-        configs2.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "AVRO");
+        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
 
         ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Specify a valid value either for [value.evaluator.schema.path] or [value.evaluator.schema.registry.enable]");
+                        "Specify a valid value either for [record.value.evaluator.schema.path] or [record.value.evaluator.schema.registry.enable]");
     }
 
     @Test
@@ -810,17 +810,17 @@ public class ConnectorConfigTest {
     public void shouldGetFiles() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getFile(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH))
+        assertThat(config.getFile(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH))
                 .isEqualTo(keySchemaFile.toString());
-        assertThat(config.getFile(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH))
+        assertThat(config.getFile(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH))
                 .isEqualTo(valueSchemaFile.toString());
     }
 
     @Test
     public void shouldGetNotExistingNonRequiredFiles() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
-        assertThat(config.getFile(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH)).isNull();
-        assertThat(config.getFile(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH)).isNull();
+        assertThat(config.getFile(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH)).isNull();
+        assertThat(config.getFile(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH)).isNull();
     }
 
     @Test
@@ -1467,15 +1467,15 @@ public class ConnectorConfigTest {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
                     .isEqualTo(
-                            "Neither parameter [key.evaluator.schema.registry.enable] nor parameter [value.evaluator.schema.registry.enable] are enabled");
+                            "Neither parameter [record.key.evaluator.schema.registry.enable] nor parameter [record.value.evaluator.schema.registry.enable] are enabled");
         }
     }
 
     @ParameterizedTest
     @ValueSource(
             strings = {
-                ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE
+                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE
             })
     public void shouldSpecifyRequiredSchemaRegistryParameters(String evaluatorKey) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1494,7 +1494,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotAccessToSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1523,7 +1523,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1574,7 +1574,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(
                 SchemaRegistryConfigs.TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
@@ -1628,7 +1628,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetDefaultSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_ENABLE, "true");
         updatedConfig.put(
@@ -1659,7 +1659,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "https://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.KEYSTORE_TYPE, "PKCS12");
@@ -1701,7 +1701,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotAccessToSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1722,7 +1722,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION, "true");
 

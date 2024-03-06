@@ -101,8 +101,8 @@ public class ConsumerLoopConfiguratorTest {
     @ValueSource(strings = {"VALUE", "#{UNRECOGNIZED}"})
     public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
         Map<String, String> updatedConfigs = ConnectorConfigProvider.minimalConfigParams();
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
         updatedConfigs.put("field.fieldName1", expression);
 
         ConnectorConfig config =
@@ -187,10 +187,10 @@ public class ConsumerLoopConfiguratorTest {
         updatedConfigs.put("item-template.template2", "item2");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
         updatedConfigs.put("map.topic2.to", "item-template.template1");
-        updatedConfigs.put(ConnectorConfig.KEY_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
-        updatedConfigs.put(ConnectorConfig.VALUE_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
 
         ConsumerLoopConfig<?, ?> loopConfig =
                 ConsumerLoopConfigurator.configure(newConfig(updatedConfigs));

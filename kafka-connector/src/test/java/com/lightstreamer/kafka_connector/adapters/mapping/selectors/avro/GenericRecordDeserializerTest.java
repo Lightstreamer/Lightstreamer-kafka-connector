@@ -36,9 +36,9 @@ public class GenericRecordDeserializerTest {
     public void shouldDeserializeWithSchemaRegistry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -59,9 +59,9 @@ public class GenericRecordDeserializerTest {
     public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -83,9 +83,9 @@ public class GenericRecordDeserializerTest {
     public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080");
@@ -107,9 +107,9 @@ public class GenericRecordDeserializerTest {
     public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc");
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
@@ -130,15 +130,15 @@ public class GenericRecordDeserializerTest {
             throws IOException {
         Map<String, String> otherConfigs =
                 Map.of(
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         SchemaRegistryConfigs.URL,
                         "http://localhost:8080",
-                        ConnectorConfig.KEY_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                         "value.avsc",
-                        ConnectorConfig.VALUE_EVALUATOR_SCHEMA_PATH,
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc");
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);

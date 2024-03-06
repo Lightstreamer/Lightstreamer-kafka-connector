@@ -29,8 +29,8 @@
 
         <!-- Record consumption settings -->
         <param name="record.consume.from">EARLIEST</param>
-        <param name="key.evaluator.type">INTEGER</param>
-        <param name="value.evaluator.type">JSON</param>
+        <param name="record.key.evaluator.type">INTEGER</param>
+        <param name="record.value.evaluator.type">JSON</param>
 
         <!-- Fields mapping settings -->
         <param name="field.ts">#{TIMESTAMP}</param>
