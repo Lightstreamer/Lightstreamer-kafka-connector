@@ -53,7 +53,7 @@ public class ItemTest {
     @ParameterizedTest
     @MethodSource("matching")
     public void shouldMatch(
-            Map<String, String> values1, Map<String, String> values2, List<String> xpectedKey) {
+            Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
         Item item1 = Items.itemFrom("source", "item", values1);
         Item item2 = Items.itemFrom("source", "item", values2);
         assertThat(item1.matches(item2)).isTrue();
@@ -64,10 +64,6 @@ public class ItemTest {
                 arguments(Map.of("n1", "1"), Map.of("n1", "1"), List.of("n1")),
                 arguments(
                         Map.of("n1", "1", "n2", "2"),
-                        Map.of("n1", "1", "n2", "2"),
-                        List.of("n1", "n2")),
-                arguments(
-                        Map.of("n1", "1", "n2", "2", "n3", "3"),
                         Map.of("n1", "1", "n2", "2"),
                         List.of("n1", "n2")));
     }
@@ -83,6 +79,7 @@ public class ItemTest {
     static Stream<Arguments> notMatching() {
         return Stream.of(
                 arguments(Map.of("n1", "1"), Map.of("n2", "2")),
+                arguments(Map.of("n1", "1", "n2", "2", "n3", "3"),Map.of("n1", "1", "n2", "2")),
                 arguments(Map.of("key", "value1"), Map.of("key", "value2")));
     }
 

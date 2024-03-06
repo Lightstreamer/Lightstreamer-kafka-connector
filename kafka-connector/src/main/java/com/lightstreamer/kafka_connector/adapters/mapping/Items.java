@@ -24,7 +24,6 @@ import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfi
 import com.lightstreamer.kafka_connector.adapters.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Schema.MatchResult;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 
@@ -149,13 +148,11 @@ public class Items {
 
         @Override
         public boolean matches(Item other) {
-            MatchResult result = schema.matches(other.schema());
-            if (!result.matched()) {
+            if (!schema.matches(other.schema())) {
                 return false;
             }
 
-            return result.matchedKeys().stream()
-                    .allMatch(key -> valueAt(key).equals(other.valueAt(key)));
+            return schema.keys().stream().allMatch(key -> valueAt(key).equals(other.valueAt(key)));
         }
 
         @Override
@@ -196,7 +193,7 @@ public class Items {
         }
 
         public boolean matches(Item item) {
-            return schema.matches(item.schema()).matched();
+            return schema.matches(item.schema());
         }
     }
 

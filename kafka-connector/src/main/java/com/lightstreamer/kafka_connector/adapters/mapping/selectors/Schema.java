@@ -18,12 +18,9 @@
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 public interface Schema {
-
-    record MatchResult(Set<String> matchedKeys, boolean matched) {}
 
     Set<String> keys();
 
@@ -33,17 +30,8 @@ public interface Schema {
         return keys().isEmpty();
     }
 
-    public default MatchResult matches(Schema other) {
-        if (!name().equals(other.name())) {
-            return new MatchResult(Collections.emptySet(), false);
-        }
-        Set<String> thisKeys = keys();
-        Set<String> otherKeys = other.keys();
-
-        HashSet<String> matchedKeys = new HashSet<>(thisKeys);
-        matchedKeys.retainAll(otherKeys);
-
-        return new MatchResult(matchedKeys, thisKeys.containsAll(otherKeys));
+    public default boolean matches(Schema other) {
+        return this.equals(other);
     }
 
     static Schema from(String name, Set<String> keys) {
