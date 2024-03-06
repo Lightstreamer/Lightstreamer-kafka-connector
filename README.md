@@ -903,14 +903,15 @@ A Kafka record can be analyzed in all its aspects to extract only the relevant i
 
 ##### Data Extraction
 
-Information from a Kafka record can be extracted through a special dot syntax, which uses predefined constants to reference every part of the structure:
+Kafka Connector provides a special syntax to be used in the configuration file to extract information from a Kafka record. Such a syntax, denoted within `#{...}`, uses predefined constants to reference every part of the record structure:
 
-- `KEY`, the key
-- `VALUE`, the value
-- `TIMESTAMP`, the timestamp
-- `OFFSET`, the offset
-- `PARTITION`, the partition
+- `#{KEY}`, the key
+- `#{VALUE}`, the value
+- `#{TIMESTAMP}`, the timestamp
+- `#{OFFSET}`, the offset
+- `#{PARTITION}`, the partition
 
+So for example 
 
 
 ##### template
