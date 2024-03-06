@@ -134,7 +134,7 @@ Get the deployment package from the [latest release page](https://github.com/Lig
 ./gradlew distribuite
 ```
 
-which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `deploy` folder.
+which generates the `lightstreamer-kafka-connector-deploy-<version>.zip` bundle under the `deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Check that the final Lightstreamer layout looks like the following:
@@ -681,7 +681,7 @@ Example:
 
 ##### `encryption.keystore.path`
 
-(_Mandatory if key store is enabled_) The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+_Mandatory if key store is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
 
 Example:
 
