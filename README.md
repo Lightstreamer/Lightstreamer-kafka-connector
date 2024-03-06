@@ -190,7 +190,13 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 ### Start
 
-1. Launch Lightstreamer Server.
+1. Launch Lightstreamer Server
+  
+   From the LS_HOME directory, run the command: 
+
+   ```sh
+   ./start_background.sh
+   ```
 
 2. Attach a Lightstreamer Consumer.
 
@@ -886,7 +892,7 @@ Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L3
 
 #### Topic Mapping
 
-
+As anticipated in the Introduction section, Lightstreamer Kafka Connector 
 
 ##### template
 
