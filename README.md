@@ -57,6 +57,7 @@
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
       - [Topic Mapping](#topic-mapping)
         - [Data Extraction](#data-extraction)
+        - [template](#template)
     - [Metadata Adapter Customization](#metadata-adapter-customization)
 
 ## Introduction
@@ -924,32 +925,25 @@ In addition, you may leverage the _square bracket_ notation to access:
   KEY.attribute1Name[i].attribute2Name...
   VALUE.attribute1Name[i].attribute2Name...
   ```
-  where `i` is a 0-indexed value
+  where `i` is a 0-indexed value.
 
 - key-based attributes:
 
   ```js
-  KEY.attribute1Name[keyName].attribute2Name...
-  VALUE.attribute1Name[keyName].attribute2Name...
+  KEY.attribute1Name['keyName'].attribute2Name...
+  VALUE.attribute1Name['keyName'].attribute2Name...
   ```
   where `keyName` is a string value.
 
-
-The _square bracket notation_ can be used to access indexed attributes:
-
-attribute[0-indexed-value]
-
-In addition, yoy access
-
-
-
-#{<root-element>.<expression>}
-```
-expression: attrib
-where:
-- _`root-element`_ is one of the _Extraction Key_ `KEY` or `VALUE`
-- _`expression`_ can be any sequence of dot-separated field names
-
+  > [!TIP]
+  > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent. The following expression are equivalent: 
+  >
+  > ```js
+  > VALUE.myProperty.myChild.childProperty
+  > ```
+  > ```js
+  > VALUE.myProperty['myChild'].childProperty
+  > ```
 
 > [!IMPORTANT] 
 > Currently, it is required that the top-level element of either a record key or record value is:
