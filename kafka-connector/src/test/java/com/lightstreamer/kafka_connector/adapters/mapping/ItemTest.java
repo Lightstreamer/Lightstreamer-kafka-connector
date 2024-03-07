@@ -79,7 +79,7 @@ public class ItemTest {
     static Stream<Arguments> notMatching() {
         return Stream.of(
                 arguments(Map.of("n1", "1"), Map.of("n2", "2")),
-                arguments(Map.of("n1", "1", "n2", "2", "n3", "3"),Map.of("n1", "1", "n2", "2")),
+                arguments(Map.of("n1", "1", "n2", "2", "n3", "3"), Map.of("n1", "1", "n2", "2")),
                 arguments(Map.of("key", "value1"), Map.of("key", "value2")));
     }
 

@@ -105,7 +105,6 @@
              by the Lighstreamer Client subscription.
              
              All item name in the following formats:
-             stock
              stock-[index=1]
              stock-[index=2]
              ...

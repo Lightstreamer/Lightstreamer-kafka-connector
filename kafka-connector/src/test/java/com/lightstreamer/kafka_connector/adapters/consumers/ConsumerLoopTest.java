@@ -26,6 +26,7 @@ import com.lightstreamer.kafka_connector.adapters.ConsumerLoopConfigurator.Consu
 import com.lightstreamer.kafka_connector.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka_connector.adapters.config.InfoItem;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
+import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items;
@@ -114,7 +115,8 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 public class ConsumerLoopTest {
 
     private static TestConsumerLoopTest consumerLoopTest() {
-        TopicConfiguration t = new TopicConfiguration("aTopic", "anItemTemplate");
+        TopicConfiguration t =
+                new TopicConfiguration("aTopic", ItemReference.forSimpleName("anItemTemplate"));
         TopicsConfig topicsConfig = TopicsConfig.of(t);
         ConsumerLoopConfig<String, String> c = new TestLoopConfig(topicsConfig);
 

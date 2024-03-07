@@ -20,6 +20,7 @@ package com.lightstreamer.kafka_connector.adapters.mapping;
 import static com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException.reThrowInvalidExpression;
 
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
+import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
@@ -80,15 +81,22 @@ public class Items {
 
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
-            try {
-                Result result =
-                        ItemExpressionEvaluator.template().eval(topicConfig.itemTemplateValue());
+            ItemReference itemReference = topicConfig.itemReference();
+            if (itemReference.isTemplate()) {
+                try {
+                    Result result =
+                            ItemExpressionEvaluator.template().eval(itemReference.templateValue());
+                    Selectors<K, V> selectors =
+                            Selectors.from(selected, result.prefix(), result.params());
+                    templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
+                } catch (ExpressionException e) {
+                    reThrowInvalidExpression(
+                            e, itemReference.templateKey(), itemReference.templateValue());
+                }
+            } else {
                 Selectors<K, V> selectors =
-                        Selectors.from(selected, result.prefix(), result.params());
+                        Selectors.from(selected, itemReference.itemName(), Collections.emptyMap());
                 templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
-            } catch (ExpressionException e) {
-                reThrowInvalidExpression(
-                        e, topicConfig.itemTemplateKey(), topicConfig.itemTemplateValue());
             }
         }
         return new DefaultItemTemplates<>(templates);

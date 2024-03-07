@@ -32,13 +32,9 @@ import java.util.regex.Pattern;
 
 public class SelectorExpressionParser<K, V> {
 
-    public static String SELECTION_REGEX = "\\#\\{(.*)\\}";
-
-    private static Pattern SELECTOR_PATTERN = Pattern.compile(SELECTION_REGEX);
+    public static String SELECTION_REGEX = "\\#\\{(.+)\\}";
 
     private static Pattern INDEXES = Pattern.compile("\\[(?:'([^']*)'|(\\d+))\\]");
-
-    // Pattern.compile("\\['([^']*)'\\]");
 
     public interface NodeEvaluator<K, V> {
         String name();

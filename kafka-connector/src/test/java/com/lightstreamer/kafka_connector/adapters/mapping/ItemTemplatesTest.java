@@ -31,6 +31,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
+import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
@@ -49,6 +50,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +64,11 @@ public class ItemTemplatesTest {
             Selected<K, V> selected, String... template) {
         TopicConfiguration[] topicsConfigurations =
                 Stream.of(template)
-                        .map(t -> new TopicConfiguration("topic", "item-template", t))
+                        .map(
+                                t ->
+                                        new TopicConfiguration(
+                                                "topic",
+                                                ItemReference.forTemplate("item-template", t)))
                         .toArray(s -> new TopicConfiguration[s]);
         TopicsConfig topicsConfig = TopicsConfig.of(topicsConfigurations);
         return Items.templatesFrom(topicsConfig, selected);
@@ -105,6 +111,21 @@ public class ItemTemplatesTest {
                                 + " evaluating [item-template]: <No duplicated keys are allowed>");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"item-first", "item_123_", "item-", "prefix-#{}"})
+    public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
+        ExpressionException e =
+                assertThrows(
+                        ExpressionException.class,
+                        () -> mkItemTemplates(string(), templateExpression));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Found the invalid expression ["
+                                + templateExpression
+                                + "] while"
+                                + " evaluating [item-template]: <Invalid template expression>");
+    }
+
     @Test
     public void shouldOneToMany() {
         Selected<String, JsonNode> selected = jsonValue(ConnectorConfigProvider.minimal());
@@ -113,18 +134,26 @@ public class ItemTemplatesTest {
         TopicsConfig topicsConfig =
                 TopicsConfig.of(
                         new TopicConfiguration(
-                                "topic", "template-family-#{topic=TOPIC,info=PARTITION}"),
+                                "topic",
+                                ItemReference.forTemplate(
+                                        "", "template-family-#{topic=TOPIC,info=PARTITION}")),
                         new TopicConfiguration(
-                                "topic", "template-relatives-#{topic=TOPIC,info=TIMESTAMP}"));
+                                "topic",
+                                ItemReference.forTemplate(
+                                        "", "template-relatives-#{topic=TOPIC,info=TIMESTAMP}")));
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, selected);
         assertThat(templates.topics()).containsExactly("topic");
 
-        Item subcribingItem1 = Items.itemFrom("template-family-[topic=aSpecificTopic,info=aSpecificPartition]", "");
+        Item subcribingItem1 =
+                Items.itemFrom(
+                        "template-family-[topic=aSpecificTopic,info=aSpecificPartition]", "");
         assertThat(templates.matches(subcribingItem1)).isTrue();
 
         Item subcribingItem2 =
-                Items.itemFrom("template-relatives-[topic=anotherSpecificTopic,info=aSpecificTimestamp]", "");
+                Items.itemFrom(
+                        "template-relatives-[topic=anotherSpecificTopic,info=aSpecificTimestamp]",
+                        "");
         assertThat(templates.matches(subcribingItem2)).isTrue();
 
         RecordMapper<String, JsonNode> mapper =
@@ -152,7 +181,8 @@ public class ItemTemplatesTest {
         Selected<String, JsonNode> suppliers = jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
-        String ordersTemplate = "template-orders-#{topic=TOPIC}";
+        ItemReference ordersTemplate =
+                ItemReference.forTemplate("", "template-orders-#{topic=TOPIC}");
 
         // Two topics mapping the template.
         TopicsConfig topicsConfig =
@@ -261,8 +291,7 @@ public class ItemTemplatesTest {
                                 Items.itemFrom("item-[key=key]", new Object()),
                                 Items.itemFrom("item-[key=anotherKey]", new Object()),
                                 Items.itemFrom("item-[value=anotherValue]", new Object())),
-                                Items.itemFrom("nonRoutable", new Object())
-                                ),
+                        Items.itemFrom("nonRoutable", new Object())),
                 arguments(
                         List.of(
                                 "item-#{key=KEY,value=VALUE}",
@@ -272,8 +301,7 @@ public class ItemTemplatesTest {
                                 Items.itemFrom("item-[key=key,value=value]", new Object()),
                                 Items.itemFrom("item-[value=value,key=key]", new Object()),
                                 Items.itemFrom("item-[topic=topic]", new Object()),
-                                Items.itemFrom("myItem-[topic=topic]", new Object())
-                                ),
+                                Items.itemFrom("myItem-[topic=topic]", new Object())),
                         List.of(
                                 Items.itemFrom("nonRoutable", new Object()),
                                 Items.itemFrom("item-[key=anotherKey]", new Object()),
@@ -282,8 +310,7 @@ public class ItemTemplatesTest {
                                 Items.itemFrom("item", new Object()),
                                 Items.itemFrom("item-[key=key]", new Object()),
                                 Items.itemFrom("item-[value=value]", new Object()),
-                                Items.itemFrom("myItem-[topic=anotherTopic]", new Object())))
-                                );
+                                Items.itemFrom("myItem-[topic=anotherTopic]", new Object()))));
     }
 
     @ParameterizedTest

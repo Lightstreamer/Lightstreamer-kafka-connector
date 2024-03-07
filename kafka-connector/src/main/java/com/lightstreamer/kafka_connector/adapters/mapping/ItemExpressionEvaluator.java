@@ -42,8 +42,13 @@ public interface ItemExpressionEvaluator {
 enum ItemEvaluator implements ItemExpressionEvaluator {
     TEMPLATE(
             Pattern.compile(
-                    "(^[a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")?$"),
-            Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")),
+                    "(^[a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")$"),
+            Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")) {
+        
+        String errorMessage() {
+            return "Invalid template expression";
+        }
+    },
 
     SUBSCRIBED(
             Pattern.compile("([a-zA-Z0-9_-]+)(-\\[(.*)\\])?"),
@@ -58,13 +63,17 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
         this.local = local;
     }
 
+    String errorMessage() {
+        return "Invalid Item";
+    }
+
     /**
      * @throws ExpressionException
      */
     public Result eval(String expression) throws ExpressionException {
         Matcher matcher = gobal.matcher(expression);
         if (!matcher.matches()) {
-            throw new ExpressionException("Invalid item");
+            throw new ExpressionException(errorMessage());
         }
         Map<String, String> queryParams = new HashMap<>();
         String prefix = matcher.group(1);
@@ -84,7 +93,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
                 previousEnd = m.end();
             }
             if (previousEnd < queryString.length()) {
-                throw new ExpressionException("Invalid item");
+                throw new ExpressionException(errorMessage());
             }
         }
 

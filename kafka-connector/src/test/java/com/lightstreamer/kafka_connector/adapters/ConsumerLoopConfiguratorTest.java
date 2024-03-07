@@ -63,15 +63,16 @@ public class ConsumerLoopConfiguratorTest {
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
-        adapterParams.put("item-template.template1", "item1-#{}");
+        adapterParams.put("item-template.template1", "item1-#{partition=PARTITION}");
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
     }
 
-    @Test
-    public void shouldNotConfigureDueToInvalidTemplateReference() {
-        Map<String, String> updatedConfigs = Map.of("map.topic1.to", "no-valid-item-template");
+    @ParameterizedTest
+    @ValueSource(strings = {"no-valid-template", "", "."})
+    public void shouldNotConfigureDueToInvalidTemplateReference(String template) {
+        Map<String, String> updatedConfigs = Map.of("map.topic1.to", "item-template." + template);
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
         ConfigException e =
@@ -80,7 +81,7 @@ public class ConsumerLoopConfiguratorTest {
                         () -> {
                             ConsumerLoopConfigurator.configure(config);
                         });
-        assertThat(e.getMessage()).isEqualTo("No item template [no-valid-item-template] found");
+        assertThat(e.getMessage()).isEqualTo("No item template [" + template + "] found");
     }
 
     @Test
@@ -130,6 +131,7 @@ public class ConsumerLoopConfiguratorTest {
                 "item-#{",
                 "item-#{{}",
                 "item-#{{a=VALUE}",
+                "item-#{}",
                 "item-#{{}}",
                 "item-#{{a=VALUE}}",
                 "item-#{{{}}}",
@@ -137,6 +139,7 @@ public class ConsumerLoopConfiguratorTest {
             })
     public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = ConnectorConfigProvider.minimalConfigParams();
+        updatedConfigs.put("map.topic1.to", "item-template.template1");
         updatedConfigs.put("item-template.template1", expression);
 
         ConnectorConfig config = newConfig(updatedConfigs);
@@ -147,7 +150,7 @@ public class ConsumerLoopConfiguratorTest {
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + expression
-                                + "] while evaluating [item-template.template1]: <Invalid item>");
+                                + "] while evaluating [item-template.template1]: <Invalid template expression>");
     }
 
     @Test
@@ -184,9 +187,10 @@ public class ConsumerLoopConfiguratorTest {
     @Test
     public void shouldConfigureWithComplexParameters() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put("item-template.template2", "item2");
+        updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
         updatedConfigs.put("map.topic2.to", "item-template.template1");
+        updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
@@ -201,9 +205,9 @@ public class ConsumerLoopConfiguratorTest {
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2");
+        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
         assertThat(itemTemplates.selectors().map(s -> s.schema().name()))
-                .containsExactly("item1", "item2");
+                .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
         assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);

@@ -20,13 +20,64 @@ package com.lightstreamer.kafka_connector.adapters.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class TopicsConfig {
 
-    public static record TopicConfiguration(
-            String topic, String itemTemplateKey, String itemTemplateValue) {
-        public TopicConfiguration(String topic, String itemTemplateValue) {
-            this(topic, "", itemTemplateValue);
+    public static record TopicConfiguration(String topic, ItemReference itemReference) {}
+
+    public static class ItemReference {
+
+        private String templateKey;
+        private String templateValue;
+        private String itemName;
+
+        ItemReference(String itemTemplateKey, String itemTemplateValue) {
+            this.templateKey = itemTemplateKey;
+            this.templateValue = itemTemplateValue;
+        }
+
+        ItemReference(String itemName) {
+            this.itemName = itemName;
+        }
+
+        public String templateKey() {
+            return templateKey;
+        }
+
+        public String templateValue() {
+            return templateValue;
+        }
+
+        public String itemName() {
+            return itemName;
+        }
+
+        public boolean isTemplate() {
+            return Objects.isNull(itemName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(templateKey, templateValue, itemName);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof ItemReference other
+                    && Objects.equals(templateKey, other.templateKey)
+                    && Objects.equals(templateValue, other.templateValue)
+                    && Objects.equals(itemName, other.itemName);
+        }
+
+        public static ItemReference forTemplate(String templateKey, String templateValue) {
+            return new ItemReference(templateKey, templateValue);
+        }
+
+        public static ItemReference forSimpleName(String itemName) {
+            return new ItemReference(itemName);
         }
     }
 
@@ -47,13 +98,21 @@ public class TopicsConfig {
 
         for (Map.Entry<String, String> topicMapping : topicMappings.entrySet()) {
             String topic = topicMapping.getKey();
-            String[] templateRefs = topicMapping.getValue().split(",");
-            for (String templateKey : templateRefs) {
-                if (!itemTemplates.containsKey(templateKey)) {
-                    throw new ConfigException("No item template [%s] found".formatted(templateKey));
+            String[] itemRefs = topicMapping.getValue().split(",");
+            for (String itemRef : itemRefs) {
+                ItemReference itemReference = null;
+                if (itemRef.startsWith(ConnectorConfig.ITEM_TEMPLATE + ".")) {
+                    if (!itemTemplates.containsKey(itemRef)) {
+                        String templateName = itemRef.substring(itemRef.indexOf(".") + 1);
+                        throw new ConfigException(
+                                "No item template [%s] found".formatted(templateName));
+                    }
+                    String templateValue = itemTemplates.get(itemRef);
+                    itemReference = ItemReference.forTemplate(itemRef, templateValue);
+                } else {
+                    itemReference = ItemReference.forSimpleName(itemRef);
                 }
-                String templateValue = itemTemplates.get(templateKey);
-                configs.add(new TopicConfiguration(topic, templateKey, templateValue));
+                configs.add(new TopicConfiguration(topic, itemReference));
             }
         }
         return configs.stream().distinct().toList();

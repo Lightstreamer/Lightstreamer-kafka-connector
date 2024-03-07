@@ -18,7 +18,9 @@
 package com.lightstreamer.kafka_connector.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 
+import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 
@@ -31,75 +33,201 @@ import java.util.Map;
 public class TopicsConfigTest {
 
     @Test
-    void shouldConfigOneToOne() {
-        ConnectorConfig cgg = ConnectorConfigProvider.minimal();
+    void shouldConfigOneToOneTemplate() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map.topic.to", "item-template.template1");
+        updatedConfigs.put("item-template.template1", "item");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
+
         TopicsConfig topicConfig = TopicsConfig.of(cgg);
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
 
         TopicConfiguration topicConfiguration = configurations.get(0);
-        assertThat(topicConfiguration.itemTemplateKey()).isEqualTo("item-template.template1");
-        assertThat(topicConfiguration.itemTemplateValue()).isEqualTo("item");
-        assertThat(topicConfiguration.topic()).isEqualTo("topic1");
+        assertThat(topicConfiguration.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration.itemReference();
+        assertThat(itemReference.isTemplate()).isTrue();
+        assertThat(itemReference.templateKey()).isEqualTo("item-template.template1");
+        assertThat(itemReference.templateValue()).isEqualTo("item");
+        assertThat(itemReference.itemName()).isNull();
     }
 
     @Test
-    void shouldConfigOneToMany() {
-        Map<String, String> udpateConfig = new HashMap<>();
-        udpateConfig.put("map.topic1.to", "item-template.template1,item-template.template2");
-        udpateConfig.put("item-template.template2", "item2");
-        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpateConfig);
+    void shouldConfigOneToOneItem() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map.topic.to", "simple-item");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg);
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(1);
+
+        TopicConfiguration topicConfiguration = configurations.get(0);
+        assertThat(topicConfiguration.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration.itemReference();
+        assertThat(itemReference.isTemplate()).isFalse();
+        assertThat(itemReference.itemName()).isEqualTo("simple-item");
+        assertThat(itemReference.templateKey()).isNull();
+        assertThat(itemReference.templateValue()).isNull();
+    }
+
+    @Test
+    void shouldConfigOneToManyTemplates() {
+        Map<String, String> udpatedConfigs = new HashMap<>();
+        udpatedConfigs.put("map.topic.to", "item-template.template1,item-template.template2");
+        udpatedConfigs.put("item-template.template1", "item1");
+        udpatedConfigs.put("item-template.template2", "item2");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig = TopicsConfig.of(cgg);
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
 
         TopicConfiguration topicConfiguration1 = configurations.get(0);
-        assertThat(topicConfiguration1.itemTemplateKey()).isEqualTo("item-template.template1");
-        assertThat(topicConfiguration1.itemTemplateValue()).isEqualTo("item");
-        assertThat(topicConfiguration1.topic()).isEqualTo("topic1");
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic");
+
+        ItemReference itemReference1 = topicConfiguration1.itemReference();
+        assertThat(itemReference1.isTemplate()).isTrue();
+        assertThat(itemReference1.templateKey()).isEqualTo("item-template.template1");
+        assertThat(itemReference1.templateValue()).isEqualTo("item1");
+        assertThat(itemReference1.itemName()).isNull();
 
         TopicConfiguration topicConfiguration2 = configurations.get(1);
-        assertThat(topicConfiguration2.itemTemplateKey()).isEqualTo("item-template.template2");
-        assertThat(topicConfiguration2.itemTemplateValue()).isEqualTo("item2");
-        assertThat(topicConfiguration2.topic()).isEqualTo("topic1");
+        assertThat(topicConfiguration2.topic()).isEqualTo("topic");
+
+        ItemReference itemReference2 = topicConfiguration2.itemReference();
+        assertThat(itemReference2.isTemplate()).isTrue();
+        assertThat(itemReference2.templateKey()).isEqualTo("item-template.template2");
+        assertThat(itemReference2.templateValue()).isEqualTo("item2");
+        assertThat(itemReference2.itemName()).isNull();
     }
 
     @Test
-    void shouldConfigOneToManyIndentical() {
-        Map<String, String> udpateConfig = new HashMap<>();
-        udpateConfig.put("map.topic1.to", "item-template.template1,item-template.template1");
-        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpateConfig);
+    void shouldConfigOneToManyItems() {
+        Map<String, String> udpatedConfigs = new HashMap<>();
+        udpatedConfigs.put("map.topic.to", "item1,item2");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg);
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(2);
+
+        TopicConfiguration topicConfiguration1 = configurations.get(0);
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic");
+
+        ItemReference itemReference1 = topicConfiguration1.itemReference();
+        assertThat(itemReference1.isTemplate()).isFalse();
+        assertThat(itemReference1.itemName()).isEqualTo("item1");
+        assertThat(itemReference1.templateKey()).isNull();
+        assertThat(itemReference1.templateValue()).isNull();
+
+        TopicConfiguration topicConfiguration2 = configurations.get(1);
+        assertThat(topicConfiguration2.topic()).isEqualTo("topic");
+
+        ItemReference itemReference2 = topicConfiguration2.itemReference();
+        assertThat(itemReference2.isTemplate()).isFalse();
+        assertThat(itemReference2.itemName()).isEqualTo("item2");
+        assertThat(itemReference2.templateKey()).isNull();
+        assertThat(itemReference2.templateValue()).isNull();
+    }
+
+    @Test
+    void shouldConfigOneToManyIndenticalTemplates() {
+        Map<String, String> udpatedConfigs = new HashMap<>();
+        udpatedConfigs.put("item-template.template1", "item1");
+        udpatedConfigs.put("map.topic.to", "item-template.template1,item-template.template1");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig = TopicsConfig.of(cgg);
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
 
         TopicConfiguration topicConfiguration1 = configurations.get(0);
-        assertThat(topicConfiguration1.itemTemplateKey()).isEqualTo("item-template.template1");
-        assertThat(topicConfiguration1.itemTemplateValue()).isEqualTo("item");
-        assertThat(topicConfiguration1.topic()).isEqualTo("topic1");
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration1.itemReference();
+        assertThat(itemReference.isTemplate()).isTrue();
+        assertThat(itemReference.templateKey()).isEqualTo("item-template.template1");
+        assertThat(itemReference.templateValue()).isEqualTo("item1");
+        assertThat(itemReference.itemName()).isNull();
     }
 
     @Test
-    void shouldConfigManyToOne() {
-        Map<String, String> udpateConfig = new HashMap<>();
-        udpateConfig.put("map.topic2.to", "item-template.template1");
-        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpateConfig);
+    void shouldConfigOneToManyIndenticalItems() {
+        Map<String, String> udpatedConfigs = new HashMap<>();
+        udpatedConfigs.put("map.topic.to", "item1,item1,item2");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig = TopicsConfig.of(cgg);
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
 
         TopicConfiguration topicConfiguration1 = configurations.get(0);
-        assertThat(topicConfiguration1.itemTemplateKey()).isEqualTo("item-template.template1");
-        assertThat(topicConfiguration1.itemTemplateValue()).isEqualTo("item");
-        assertThat(topicConfiguration1.topic()).isEqualTo("topic1");
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic");
+
+        ItemReference itemReference1 = topicConfiguration1.itemReference();
+        assertThat(itemReference1.isTemplate()).isFalse();
+        assertThat(itemReference1.itemName()).isEqualTo("item1");
+        assertThat(itemReference1.templateKey()).isNull();
+        assertThat(itemReference1.templateValue()).isNull();
 
         TopicConfiguration topicConfiguration2 = configurations.get(1);
-        assertThat(topicConfiguration2.itemTemplateKey()).isEqualTo("item-template.template1");
-        assertThat(topicConfiguration2.itemTemplateValue()).isEqualTo("item");
-        assertThat(topicConfiguration2.topic()).isEqualTo("topic2");
+        assertThat(topicConfiguration2.topic()).isEqualTo("topic");
+
+        ItemReference itemReference2 = topicConfiguration2.itemReference();
+        assertThat(itemReference2.isTemplate()).isFalse();
+        assertThat(itemReference2.itemName()).isEqualTo("item2");
+        assertThat(itemReference2.templateKey()).isNull();
+        assertThat(itemReference2.templateValue()).isNull();
+    }
+
+    @Test
+    void shouldConfigManyToOneTemplate() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("item-template.template1", "item1");
+        updatedConfigs.put("map.topic.to", "item-template.template1");
+        updatedConfigs.put("map.topic2.to", "item-template.template1");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg);
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(2);
+
+        TopicConfiguration topicConfiguration1 = configurations.get(0);
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic2");
+
+        TopicConfiguration topicConfiguration2 = configurations.get(1);
+        assertThat(topicConfiguration2.topic()).isEqualTo("topic");
+
+        assertThat(topicConfiguration1.itemReference())
+                .isEqualTo(topicConfiguration2.itemReference());
+    }
+
+    @Test
+    void shouldConfigManyToOneItem() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map.topic.to", "item");
+        updatedConfigs.put("map.topic2.to", "item");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg);
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(2);
+
+        TopicConfiguration topicConfiguration1 = configurations.get(0);
+        assertThat(topicConfiguration1.topic()).isEqualTo("topic2");
+
+        TopicConfiguration topicConfiguration2 = configurations.get(1);
+        assertThat(topicConfiguration2.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration1.itemReference();
+        assertThat(itemReference.isTemplate()).isFalse();
+        assertThat(itemReference.itemName()).isEqualTo("item");
+        assertThat(itemReference.templateKey()).isNull();
+        assertThat(itemReference.templateValue()).isNull();
+        assertThat(itemReference).isEqualTo(topicConfiguration2.itemReference());
     }
 }

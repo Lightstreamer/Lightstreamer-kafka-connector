@@ -164,7 +164,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                                             params.get(DATA_ADAPTER_NAME),
                                                             suffix);
                                         }))
-                        .add(ITEM_TEMPLATE, true, true, TEXT)
+                        .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(

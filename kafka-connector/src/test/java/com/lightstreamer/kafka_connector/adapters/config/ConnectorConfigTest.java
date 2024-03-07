@@ -144,7 +144,8 @@ public class ConnectorConfigTest {
 
         ConfParameter keySchemaFile =
                 configSpec.getParameter(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH);
-        assertThat(keySchemaFile.name()).isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        assertThat(keySchemaFile.name())
+                .isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         assertThat(keySchemaFile.required()).isFalse();
         assertThat(keySchemaFile.multiple()).isFalse();
         assertThat(keySchemaFile.mutable()).isTrue();
@@ -152,7 +153,8 @@ public class ConnectorConfigTest {
         assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForKey =
-                configSpec.getParameter(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.getParameter(
+                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.name())
                 .isEqualTo(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.required()).isFalse();
@@ -163,7 +165,8 @@ public class ConnectorConfigTest {
 
         ConfParameter valueEvaluatorType =
                 configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE);
-        assertThat(valueEvaluatorType.name()).isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE);
+        assertThat(valueEvaluatorType.name())
+                .isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE);
         assertThat(valueEvaluatorType.required()).isFalse();
         assertThat(valueEvaluatorType.multiple()).isFalse();
         assertThat(valueEvaluatorType.mutable()).isTrue();
@@ -172,7 +175,8 @@ public class ConnectorConfigTest {
 
         ConfParameter valueSchemaFile =
                 configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
-        assertThat(valueSchemaFile.name()).isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        assertThat(valueSchemaFile.name())
+                .isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
         assertThat(valueSchemaFile.required()).isFalse();
         assertThat(valueSchemaFile.multiple()).isFalse();
         assertThat(valueSchemaFile.mutable()).isTrue();
@@ -180,7 +184,8 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForValue =
-                configSpec.getParameter(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.getParameter(
+                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.name())
                 .isEqualTo(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.required()).isFalse();
@@ -191,7 +196,7 @@ public class ConnectorConfigTest {
 
         ConfParameter itemTemplate = configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplate.name()).isEqualTo(ConnectorConfig.ITEM_TEMPLATE);
-        assertThat(itemTemplate.required()).isTrue();
+        assertThat(itemTemplate.required()).isFalse();
         assertThat(itemTemplate.multiple()).isTrue();
         assertThat(itemTemplate.suffix()).isNull();
         assertThat(itemTemplate.mutable()).isTrue();
@@ -245,8 +250,7 @@ public class ConnectorConfigTest {
 
         ConfParameter consumeEventsFrom =
                 configSpec.getParameter(ConnectorConfig.RECORD_CONSUME_FROM);
-        assertThat(consumeEventsFrom.name())
-                .isEqualTo(ConnectorConfig.RECORD_CONSUME_FROM);
+        assertThat(consumeEventsFrom.name()).isEqualTo(ConnectorConfig.RECORD_CONSUME_FROM);
         assertThat(consumeEventsFrom.required()).isFalse();
         assertThat(consumeEventsFrom.multiple()).isFalse();
         assertThat(consumeEventsFrom.mutable()).isTrue();
@@ -351,7 +355,8 @@ public class ConnectorConfigTest {
                 valueSchemaFile.getFileName().toString());
         standardParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "JSON");
         standardParams.put(
-                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
+                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                keySchemaFile.getFileName().toString());
         standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
         standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -464,16 +469,16 @@ public class ConnectorConfigTest {
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
-                .isEqualTo("Specify at least one parameter [item-template.<...>]");
+        // assertThat(ce.getMessage())
+        //         .isEqualTo("Specify at least one parameter [item-template.<...>]");
 
-        params.put("item-template.template1", "");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [item-template.template1]");
+        // params.put("item-template.template1", "");
+        // ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        // assertThat(ce.getMessage())
+        //         .isEqualTo("Specify a valid value for parameter [item-template.template1]");
 
-        params.put("item-template.template1", "template");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        // params.put("item-template.template1", "template");
+        // ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
 
         params.put("map.topic.to", "");
@@ -753,8 +758,7 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.RECORD_CONSUME_FROM, "EARLIEST");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.getRecordConsumeFrom())
-                .isEqualTo(RecordComsumeFrom.EARLIEST);
+        assertThat(config.getRecordConsumeFrom()).isEqualTo(RecordComsumeFrom.EARLIEST);
         assertThat(config.baseConsumerProps())
                 .containsAtLeast(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     }
