@@ -58,6 +58,7 @@
       - [Topic Mapping](#topic-mapping)
         - [Data Extraction](#data-extraction)
         - [Record Routing](#record-routing)
+        - [Smart Record Routing](#smart-record-routing)
 
 ## Introduction
 
@@ -955,7 +956,7 @@ Every expression must evaluate to a scalar value, otherwise an error will be thr
 
 ##### Record Routing
 
-To configure the routing of Kafka event streams to Lightstreamer items, use the parameter `map.<topic>.to`. The general form is:
+To configure the routing of Kafka event streams to Lightstreamer items, use the parameter `map.<topic>.to`. The general format is:
  
 ```xml
 <param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
@@ -963,7 +964,7 @@ To configure the routing of Kafka event streams to Lightstreamer items, use the 
   
 which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`<item1>`, `<item2>`, `<itemN>`, etc.).
 
-This configuration enables the implementation of various mapping scenarios:
+This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
 
 - _One To One_
 
@@ -971,7 +972,7 @@ This configuration enables the implementation of various mapping scenarios:
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
-  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, every client subscribed to such an item will receive the whole event stream from the topic as a continuous flow of real-time updates.
+  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
   
 - _One To Many_
 
@@ -979,9 +980,10 @@ This configuration enables the implementation of various mapping scenarios:
   <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
   ```
 
-  This scenario activates a multi-cast 
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, `sample-item3`.
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
+  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the example), in which every subscription must be validated against the user identity.
+ 
 - _Many to One_
 
   ```xml
@@ -990,32 +992,22 @@ This configuration enables the implementation of various mapping scenarios:
   <param name="map.sample-topic3.to">sample-item</param>
   ```
 
-  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
+  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-- Parameter `item-template.<name>`:
-  ```xml
-  <param name="item-template.<template-name>">...</param>
-  ```
+##### Smart Record Routing
+
+Record routing can be made more efficient by the _data extraction_ feature of the Kafka Connector. In fact, topicc can be mapped not only to predefined items, but even to a wider range of _dynamic_ items through the specification of an _item template_. 
+
+To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
+
+```xml
+<param name="item-template.<template-name>"><item-prefix>-#{<expression>}</param>
+```
   
-  which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector.
-
-To specify an item template, you have two options:
-
-- _Simple_
-
-  The parameter value contains the simple item name a client can subscribe to, for example:
-  
-  ```xml
-  <param name="item-template.simple-item">anItem</param>
-  ```
-
-- _Template expression_
-  
-  The parameter value is specified through the format:
-  
-  `<item-prefix>-<expression>`
-
-  where:
+which specifyes the item template defined as:
+- name: `<template-name>`
+- item prefix: `<item-prefix>`
+- expression
 
   - `<item-prefix>` is the prefix of the item name
   - `<expression>` is a _Bindable Extraction Key_ expression
@@ -1025,8 +1017,4 @@ To specify an item template, you have two options:
   ```xml
   <param name="item-template.complex-item">anItem-#{key=KEY,attrib=VALUE.attribute1Name.attribute2Name}</param>
   ```
-
-
-
-
 
