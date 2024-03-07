@@ -920,13 +920,11 @@ where:
 - _`root-element`_ is one of the _Extraction Key_ `KEY` or `VALUE`
 - _`expression`_ can be any sequence of dot-separated field names
 
-
-[!NOTE] Currently, it is required that the top-level element of either a record key or record value is:
-- an [Object](https://www.json.org/json-en.html), in the case of JSON format
-- a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
-
-Such a constraint may be removed in a further version of the Kafka Connector.
-
+> [!NOTE] Currently, it is required that the top-level element of either a record key or record value is:
+> - an [Object](https://www.json.org/json-en.html), in the case of JSON format
+> - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
+> 
+> Such a constraint may be removed in a further version of the Kafka Connector.
 
 
 ##### template
