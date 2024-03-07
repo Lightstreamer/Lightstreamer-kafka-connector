@@ -961,9 +961,9 @@ To configure the routing of Kafka event streams to Lightstreamer items, use the 
 <param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
 ```
   
-which defines the mapping between the source Kafka topic (`<topic-name>`) to the target items.
+which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`<item1>`, `<item2>`, `<itemN>`, etc.).
 
-This configuration allows to implement various mapping scenarios:
+This configuration enables the implementation of various mapping scenarios:
 
 - _One To One_
 
@@ -971,14 +971,15 @@ This configuration allows to implement various mapping scenarios:
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer item `sample-item`.
-
+  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, every client subscribed to such an item will receive the whole event stream from the topic as a continuous flow of real-time updates.
+  
 - _One To Many_
 
   ```xml
-  <param name="map.sample-topic.to">sample-item1, sample-item2, sample-item3</param>
+  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
   ```
 
+  This scenario activates a multi-cast 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, `sample-item3`.
 
 - _Many to One_
@@ -989,7 +990,7 @@ This configuration allows to implement various mapping scenarios:
   <param name="map.sample-topic3.to">sample-item</param>
   ```
 
-  Every record published to the Kafka topics `sample-topic1`, sample-topic2, and sample-topic3 will be routed to the unique Lighstreamer items `sample-item`
+  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
 - Parameter `item-template.<name>`:
   ```xml
