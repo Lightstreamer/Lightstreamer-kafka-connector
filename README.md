@@ -57,8 +57,7 @@
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
       - [Topic Mapping](#topic-mapping)
         - [Data Extraction](#data-extraction)
-        - [template](#template)
-    - [Metadata Adapter Customization](#metadata-adapter-customization)
+        - [Record Routing](#record-routing)
 
 ## Introduction
 
@@ -902,7 +901,7 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 
 ##### Data Extraction
 
-Kafka Connector provides a special syntax for writing expression to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
+Kafka Connector provides a special syntax for writing expressions to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
 
 - `#{KEY}`, the key
 - `#{VALUE}`, the value
@@ -952,20 +951,23 @@ In addition, you may leverage the _square bracket_ notation to access:
 > VALUE.myProperty['myChild'].childProperty
 > ```
 
-Every expression must evaluate to a scalar value, otherwise an error will be thrown during the extraction process.
+Every expression must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+
+##### Record Routing
+
+The following parameters configure the routing of Kafka event streams to Lightstreamer items:
+
+- Parameter `map.<topic>.to`:
+  ```xml
+  <param name="map.<kafka_topic_name>.to">item-template.<template-name></param>
+  ```
+  which defines the mapping between the source Kafka topic name to the target item template name
+
+- Parameter `item-template.<name>`:
+  ```xml
+ <param name="item-template.stock">stock-#{index=KEY}</param>
+  ```
+  which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector.
 
 
-##### template
-
-An item template instructs the Kafka Connector on how to route a subscribed item how a subscribed item is
-
-Example:
-
-
-```xml
-<param name="item-template.stock">stock</param>
-<param name="item-template.stock">stock</param>
-```
-
-### Metadata Adapter Customization
 
