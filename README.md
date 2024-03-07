@@ -971,11 +971,15 @@ This configuration allows to implement various mapping scenarios:
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer item `sample-item`.
+
 - _One To Many_
 
   ```xml
   <param name="map.sample-topic.to">sample-item1, sample-item2, sample-item3</param>
-  ```  
+  ```
+
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, `sample-item3`.
 
 - _Many to One_
 
@@ -985,7 +989,7 @@ This configuration allows to implement various mapping scenarios:
   <param name="map.sample-topic3.to">sample-item</param>
   ```
 
-
+  Every record published to the Kafka topics `sample-topic1`, sample-topic2, and sample-topic3 will be routed to the unique Lighstreamer items `sample-item`
 
 - Parameter `item-template.<name>`:
   ```xml
