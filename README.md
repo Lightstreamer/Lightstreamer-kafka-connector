@@ -942,15 +942,15 @@ In addition, you may leverage the _square bracket_ notation to access:
   ```
   where `keyName` is a string value.
 
-  > [!TIP]
-  > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent. The following expression are equivalent: 
-  >
-  > ```js
-  > VALUE.myProperty.myChild.childProperty
-  > ```
-  > ```js
-  > VALUE.myProperty['myChild'].childProperty
-  > ```
+> [!TIP]
+> For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent. The following expression are equivalent: 
+>
+> ```js
+> VALUE.myProperty.myChild.childProperty
+> ```
+> ```js
+> VALUE.myProperty['myChild'].childProperty
+> ```
 
 
 ##### template
