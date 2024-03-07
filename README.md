@@ -958,16 +958,28 @@ Every expression must evaluate to a scalar value, otherwise an error will be thr
 The following parameters configure the routing of Kafka event streams to Lightstreamer items:
 
 - Parameter `map.<topic>.to`:
+  
   ```xml
-  <param name="map.<kafka_topic_name>.to">item-template.<template-name></param>
+  <param name="map.<topic-name>.to">item-template.<template-name></param>
   ```
-  which defines the mapping between the source Kafka topic name to the target item template name
+  
+  which defines the mapping between the source Kafka topic (`<topic-name>`)to the target item template (`<template-name>`)
+
 
 - Parameter `item-template.<name>`:
   ```xml
- <param name="item-template.stock">stock-#{index=KEY}</param>
+  <param name="item-template.<template-name>">...</param>
   ```
+  
   which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector.
+
+An item template can be specified in one of the two following formats:
+
+- Direct 
+
+- Extraction
+
+item template: item_prefix-#{}
 
 
 
