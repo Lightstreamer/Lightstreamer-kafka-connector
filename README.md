@@ -224,7 +224,6 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    This configuration instructs the Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
       
-   - `stock`, the item `stock`.
    - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`.
    - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`.
    - ...
@@ -897,21 +896,37 @@ As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Conn
 
 To extend the availability of Kafka events streams to a potentially huge amount of connected devices to Lighstreamer, the Kafka Connector allows great flexibility in routing and manipulation strategies.
 
-A Kafka record can be analyzed in all its aspects to extract only the relevant information that can be used
-- route to the designated Lightstreamer Items
-- remapped to the selected Lightstreamer Fields
+A Kafka record can be analyzed in all its aspects to extract the information that can be:
+- routed to the designated Lightstreamer Items
+- remapped to the specific Lightstreamer Fields
 
 ##### Data Extraction
 
-Kafka Connector provides a special syntax to be used in the configuration file to extract information from a Kafka record. Such a syntax, denoted within `#{...}`, uses predefined constants to reference every part of the record structure:
+Kafka Connector provides a special syntax to be used in the configuration file to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
 
-- `#{KEY}`, the key;
-- `#{VALUE}`, the value;
-- `#{TIMESTAMP}`, the timestamp;
-- `#{OFFSET}`, the offset;
-- `#{PARTITION}`, the partition;
+- `#{KEY}`, the key
+- `#{VALUE}`, the value
+- `#{TIMESTAMP}`, the timestamp
+- `#{OFFSET}`, the offset
+- `#{PARTITION}`, the partition
 
-In addition, in the case of _non-scalar_ format for key or value
+Furthermore, it is also possible to inspect the attributes or fields of record keys and record values serialized in JSON or Avro format, as follows:
+
+```
+#{<root-element>.<expression>}
+```
+
+where:
+- _`root-element`_ is one of the _Extraction Key_ `KEY` or `VALUE`
+- _`expression`_ can be any sequence of dot-separated field names
+
+
+[!NOTE] Currently, it is required that the top-level element of either a record key or record value is:
+- an [Object](https://www.json.org/json-en.html), in the case of JSON format
+- a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
+
+Such a constraint may be removed in a further version of the Kafka Connector.
+
 
 
 ##### template
