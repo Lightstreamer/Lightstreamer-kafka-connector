@@ -902,7 +902,7 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 
 ##### Data Extraction
 
-Kafka Connector provides a special syntax to be used in the configuration file to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
+Kafka Connector provides a special syntax for writing expression to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
 
 - `#{KEY}`, the key
 - `#{VALUE}`, the value
@@ -951,6 +951,8 @@ In addition, you may leverage the _square bracket_ notation to access:
 > ```js
 > VALUE.myProperty['myChild'].childProperty
 > ```
+
+Every expression must evaluate to a scalar value, otherwise an error will be thrown during the extraction process.
 
 
 ##### template
