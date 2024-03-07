@@ -18,7 +18,7 @@ spotless {
         greclipse()
     }
     java {
-        target 'src/main/**/*.java','src/producer/**/*.java','src/consumer/**/*.java','src/clients/*/**.java'
+        target 'src/main/**/*.java','src/producer/**/*.java','src/consumer/**/*.java'
         googleJavaFormat()
                 .aosp()
                 .reorderImports(true)
