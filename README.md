@@ -955,15 +955,36 @@ Every expression must evaluate to a scalar value, otherwise an error will be thr
 
 ##### Record Routing
 
-The following parameters configure the routing of Kafka event streams to Lightstreamer items:
+To configure the routing of Kafka event streams to Lightstreamer items, use the parameter `map.<topic>.to`. The general form is:
+ 
+```xml
+<param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
+```
+  
+which defines the mapping between the source Kafka topic (`<topic-name>`) to the target items.
 
-- Parameter `map.<topic>.to`:
-  
+This configuration allows to implement various mapping scenarios:
+
+- _One To One_
+
   ```xml
-  <param name="map.<topic-name>.to">item-template.<template-name></param>
+  <param name="map.sample-topic.to">sample-item</param>
   ```
-  
-  which defines the mapping between the source Kafka topic (`<topic-name>`)to the target item template (`<template-name>`)
+
+- _One To Many_
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item1, sample-item2, sample-item3</param>
+  ```  
+
+- _Many to One_
+
+  ```xml
+  <param name="map.sample-topic1.to">sample-item</param>
+  <param name="map.sample-topic2.to">sample-item</param>
+  <param name="map.sample-topic3.to">sample-item</param>
+  ```
+
 
 
 - Parameter `item-template.<name>`:
@@ -973,13 +994,34 @@ The following parameters configure the routing of Kafka event streams to Lightst
   
   which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector.
 
-An item template can be specified in one of the two following formats:
+To specify an item template, you have two options:
 
-- Direct 
+- _Simple_
 
-- Extraction
+  The parameter value contains the simple item name a client can subscribe to, for example:
+  
+  ```xml
+  <param name="item-template.simple-item">anItem</param>
+  ```
 
-item template: item_prefix-#{}
+- _Template expression_
+  
+  The parameter value is specified through the format:
+  
+  `<item-prefix>-<expression>`
+
+  where:
+
+  - `<item-prefix>` is the prefix of the item name
+  - `<expression>` is a _Bindable Extraction Key_ expression
+
+  Example:
+
+  ```xml
+  <param name="item-template.complex-item">anItem-#{key=KEY,attrib=VALUE.attribute1Name.attribute2Name}</param>
+  ```
+
+
 
 
 
