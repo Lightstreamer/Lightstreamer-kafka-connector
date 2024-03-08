@@ -902,17 +902,17 @@ To configure an item template, use the parameter `item-template.<template-name>`
 where
 - `<template-name>` is the unique name used to reference the template in the topic mapping configurations. As an example, for the given item template definitions:
    
-   ```xml
-   <param name="item-template.template1">...</param>
-   <param name="item-template.template2>">...</param>
-   ``` 
+  ```xml
+  <param name="item-template.template1">...</param>
+  <param name="item-template.template2>">...</param>
+  ``` 
 
-   the following mappings can be configured:
+  the following topic mappings can be configured:
 
-   ```xml
-   <param name="map.sample-topic">item-template.template1</param>
-   <param name="map.other-topic">item-template.template1,item-template.template1</param>
-   ``` 
+  ```xml
+  <param name="map.sample-topic">item-template.template1</param>
+  <param name="map.other-topic">item-template.template1,item-template.template1</param>
+  ``` 
 
 > [!TIP]
 > It is allows to mix reference to simple item names and item templates in the same topic mapping configurations:
@@ -924,10 +924,10 @@ where
 - `<prefix>` is the prefix of the item name
 - `<expression>` is a _Bindable Extraction Key_ expression
 
-   You write a bindable extraction keys expression as:
+  You write a bindable extraction keys expression as:
 
   ```js
-  #{paramName1=<data extraction expression>,paramName2=<data extraction expression>},...
+  #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>},...
   ```
 
   where `paraName1`, `paramName2`, etc, represent parameters to be bound to the specified extraction expression.
@@ -942,7 +942,7 @@ where
 
 The employment of the bindable expression keys enables the definition of dynamically subscribing items.
 
-So, a topic mapping defined as follows:
+Therefore, a topic mapping defined as follows:
 
 ```xml
 <param name="item-template.sample">item-#{name=VALUE.name,age=VALUE.age}</param>
