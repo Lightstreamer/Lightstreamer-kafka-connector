@@ -28,9 +28,9 @@ the qui# Lightstreamer Kafka Connector
       - [`encryption.protocol`](#encryptionprotocol)
       - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
       - [`encryption.cipher.suites`](#encryptionciphersuites)
+      - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
       - [`encryption.truststore.path`](#encryptiontruststorepath)
       - [`encryption.truststore.password `](#encryptiontruststorepassword-)
-      - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
       - [`encryption.keystore.enable`](#encryptionkeystoreenable)
       - [`encryption.keystore.path`](#encryptionkeystorepath)
       - [`encryption.keystore.password`](#encryptionkeystorepassword)
@@ -157,7 +157,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -166,7 +166,7 @@ To quickly complete the installation and verify the successful integration with 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connectors/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
@@ -318,7 +318,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 ## Configuration
 
-As already anticipated, the Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector/adapters.xml` file.
+As already anticipated, the Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
 
 The following sections will guide you through the configuration details.
 
@@ -342,7 +342,7 @@ _Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` b
 
 The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`, which implements the internal business of the Kafka Connector.
 
-It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
+It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
 See the [Metadata Adapter Customization](#meta) section for more details.
 
@@ -360,11 +360,11 @@ Example:
 
 #### `logging.configuration.path`
 
-_Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+_Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 The parameter is specified inside the `metadata_provider` block.
 
-The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector/log4g.properties`.
+The factory value points to the predefined file `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4g.properties`.
 
 Example:
 
@@ -516,28 +516,6 @@ Example:
 <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
 ```
 
-##### `encryption.truststore.path`
-
-_Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
-
-Example:
-
-```xml
-<param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
-```
-
-##### `encryption.truststore.password `
-
-_Optional_. The password of the trust store.
-
-If not set, checking the integrity of the trust store file configured will not be possible.
-
-Example:
-
-```xml
-<param name="encryption.truststore.password">truststore-password</param>
-```
-
 ##### `encryption.hostname.verification.enable`
 
 _Optional_. Enable hostname verification. Can be one of the following:
@@ -553,11 +531,36 @@ Example:
 <param name="encryption.hostname.verification.enable">true</param>
 ```
 
+##### `encryption.truststore.path`
+
+_Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+
+Example:
+
+```xml
+<param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+```
+
+##### `encryption.truststore.password `
+
+_Optional_. The password of the trust store.
+
+If not set, checking the integrity of the trust store file configured will not be possible.
+
+Example:
+
+```xml
+<param name="encryption.truststore.password">kafka-connector-truststore-password</param>
+```
+
+
 ##### `encryption.keystore.enable`
 
 _Optional_. Enable a key store. Can be one of the following:
 - `true`
 - `false`
+
+A key store is required if the mutual TLS is enabled on Kafka.
 
 If enabled, the following parameters configure the key store settings:
 
@@ -575,12 +578,12 @@ Example:
 
 ##### `encryption.keystore.path`
 
-_Mandatory if key store is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+_Mandatory if key store is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 Example:
 
 ```xml
-<param name="encryption.keystore.path">secrets/kafka.connector.keystore.jks</param>
+<param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
 ```
 
 ##### `encryption.keystore.password`
@@ -686,7 +689,7 @@ In the case of `GSSAPI`, the following parameters will be part of the authentica
 
 - `authentication.gssapi.key.tab.path`
 
-  _Mandatory if_ [key tab](#authenticationgssapikeytabenable) is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector`).
+  _Mandatory if_ [key tab](#authenticationgssapikeytabenable) is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 - `authentication.gssapi.store.key.enable`
 
