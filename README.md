@@ -751,7 +751,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
 
-To extend the availability of Kafka events streams to a potentially huge amount of connected devices to Lighstreamer, Kafka Connector allows great flexibility in routing and manipulation strategies.
+To extend the availability of Kafka events streams to a potentially huge amount of devices connected to Lighstreamer, Kafka Connector allows great flexibility in routing and manipulation strategies.
 
 A Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
