@@ -860,7 +860,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
 ##### Smart Record Routing
 
-Record routing can be made more efficient by the _data extraction language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
+Record routing can be made more efficient by the _Data Extraction Language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
 To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
 
