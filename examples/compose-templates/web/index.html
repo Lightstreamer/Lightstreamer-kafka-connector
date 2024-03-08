@@ -24,22 +24,19 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
-  <title>Lightstreamer :: Basic Stock-List Demo</title>
+  <title>Lightstreamer Kafka Connector | Basic Stock-List Demo</title>
   <link rel="stylesheet" type="text/css" href="css/table.css" />
 </head>
 
 <body>
   <div class="ribbon">
-    <a href="https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript">Fork me on GitHub</a>
+    <a href="https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/compose-templates/web" target="_bòank">Fork me on GitHub</a>
   </div>
   <div id="wrap">
-        <div class="banner">
-          <a href="https://www.lightstreamer.com">
-            <img src="images/logo.png" alt="Logo" class="logo">
-          </a>
-          <p>
-            Basic Stock-List Demo
-          </p>
+        <div class="banner">		
+          <a href="https://www.lightstreamer.com"><img src="images/logo.png" alt="Logo" class="logo"></a>
+		  <div class="title">Kafka Connector</div>
+          <div class="subtitle">Basic Stock-List Demo</div>
         </div>
 
     <!-- stock table -->
@@ -222,7 +219,7 @@
       });
     </script>
     <!-- JavaScript code specific of this application -->  
-    <script type="text/javascript">
+    <script>
 
       require(["js/lsClient","Subscription","StaticGrid"], 
         function(lsClient,Subscription,StaticGrid) {
@@ -236,8 +233,8 @@
               return;
             }
             var stockIndex = key.substring(13, key.indexOf(']'))
-            var cold = (stockIndex % 2 == 1) ? "#eeeeee" : "#ddddee";
-            info.setAttribute("yellow", cold, "backgroundColor");
+            var cold = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
+            info.setAttribute("#fff7d5", cold, "backgroundColor");
           }
         });
         
