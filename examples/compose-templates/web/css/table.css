@@ -16,29 +16,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ body {
+  font-family: Verdana, Arial, Helvetica, Sans-serif;
+ }
  .banner {
   width: 100%;
-  height: 110px;
   position: relative;
   background-image: url("../images/banner.jpg");
   background-size: cover;
   background-position: center;
+  font-size: 40px;
+  text-align: center;
+  color: #003D06;
+  padding: 20px;
 }  
 .logo {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  height: 60px;
 }  
-.banner p {
-  width: 100%;
-  position: absolute;
-  left: 0;
-  top: 60px;
-  font-family: "Amazon Ember", Arial, Helvetica, Sans-serif;
-  font-size: x-large;
-  color: #063d27;
-  font-weight: bold;
-  text-align: center;
+.banner .title {
+  display: inline;
+  vertical-align: super;
+  padding-left: 4px;
+}
+.banner .subtitle {
+  font-size: 20px;
 }
 .ribbon {
   z-index: 1;
@@ -67,57 +68,41 @@
   text-decoration: none;
   text-shadow: 0 0 5px #444;
 }
-.demoTitle {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
-  color: #000000;
-  font-weight: bold;
-  display: inline-block;
-}
 .tableContainer {
   overflow-x:auto;
   margin-top: 1em;
 }
 .tableTitle {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
   color: #ffffff;
-  background-color: #9494ce;
-  font-weight: bold;
+  background-color: #003D06;
   text-align: right;
 }
 .disc { 
-	margin-top: 5px;
-  font-family: Verdana, Arial, Helvetica, sans-serif; 
-	color: #000000; 
-	background: #ffffff;
-	font-weight: normal; 
-	text-align: left; 
+  margin-top: 5px;
+  color: #000000; 
+  background: #ffffff;
+  font-weight: normal; 
+  text-align: right; 
+  font-size: 10px;
 }
 .stockNameOdd {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
-  color: #000080;
-  background-color: #eeeeee;
-  font-weight: bold;
+  color: #003D06;
+  background-color: #fff;
   text-align: left;
 }
 .stockNameEven {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
-  color: #000080;
-  background-color: #ddddee;
-  font-weight: bold;
+  color: #003D06;
+  background-color: #e9fbf2;
   text-align: left;
 }
 .coldOdd {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
-  color: #000000;
-  background-color: #eeeeee;
-  font-weight: normal;
+  color: #003D06;
+  background-color: #fff;
   text-align: right;
 }
 .coldEven {
-  font-family: Verdana, Arial, Helvetica, Sans-serif;
-  color: #000000;
-  background-color: #ddddee;
-  font-weight: normal;
+  color: #003D06;
+  background-color: #e9fbf2;
   text-align: right;
 }
 #wrap {
