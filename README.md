@@ -47,7 +47,7 @@
         - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
       - [Topic Mapping](#topic-mapping)
         - [Record Routing](#record-routing)
-        - [Data Extraction Language](#data-extraction-language)
+      - [Record Mapping](#record-mapping)
         - [Smart Record Routing](#smart-record-routing)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
@@ -463,7 +463,7 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 #### Encryption Parameters
 
-A TCP secure connection to Kafka is configured through parameters with the `encryption` prefix.
+A TCP secure connection to Kafka is configured through parameters with the prefix `encryption`.
 
 ##### `encryption.enable`
 
@@ -615,7 +615,7 @@ Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L15) file of t
 
 #### Broker Authentication Parameters
 
-Broker authentication is configured through parameters with the `authentication` prefix.
+Broker authentication is configured through parameters with the prefix `authentication`.
 
 ##### `authentication.enable`
 
@@ -749,7 +749,9 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 #### Topic Mapping
 
-As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
+Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items.
+
+As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items. This way, Kafka events treams 
 
 To extend the availability of Kafka events streams to a potentially huge amount of devices connected to Lighstreamer, Kafka Connector allows great flexibility in routing and manipulation strategies.
 
@@ -797,10 +799,23 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-##### Data Extraction Language
+#### Record Mapping
 
-Kafka Connector provides the _Data Extraction Language_ to write simple expressions to dynamically access and extract information from a deserialized Kafka record.  
-The language, which has a pretty minimal syntax, has the following basic rules:
+To forward real-time updates to the Lighstreamer clients, a Kafka record must be mapped to Lighstreamer fields, which define the _schema_ of any Lighstreamer item.
+
+To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
+
+```xml
+<param name="field.fieldName1">expression1</param>
+<param name="field.fieldName2">expression2<param>
+...
+<param name="field.fieldNameN">expressionN<param>
+...
+```
+
+The field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lighstreamer.
+
+To write an expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
 - expressions must be enclosed within `#{...}`
 - expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
@@ -811,7 +826,7 @@ The language, which has a pretty minimal syntax, has the following basic rules:
   - `#{OFFSET}`, the offset
   - `#{PARTITION}`, the partition
 
-- the _dot notation_ is used to access the attributes or fields of record keys and record values serialized in JSON or Avro formats:
+- the _dot notation_ is used to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -854,7 +869,6 @@ The language, which has a pretty minimal syntax, has the following basic rules:
 > ```
 
 - expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
-
 
 ##### Smart Record Routing
 
@@ -1054,7 +1068,7 @@ Example:
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the `schema.registry` prefix.
+Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the prefix `schema.registry`.
 
 ##### `schema.registry.url`
 
@@ -1071,7 +1085,7 @@ Example of a plain http URL:
 
 ##### Encryption Parameters
 
-A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
+A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
 
 - `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
