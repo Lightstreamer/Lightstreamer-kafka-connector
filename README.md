@@ -762,17 +762,16 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 Kafka Connector provides the _Data Extraction Language_ to write simple expressions to dynamically access and extract information from a deserialized Kafka record.  
 The language, which has a pretty minimal syntax, has the following basic rules:
 
-- Expressions must be enclosed within `#{...}`
-- Expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
+- expressions must be enclosed within `#{...}`
+- expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
   - `#{KEY}`, the key
   - `#{VALUE}`, the value
   - `#{TIMESTAMP}`, the timestamp
   - `#{OFFSET}`, the offset
   - `#{PARTITION}`, the partition
-Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notations, and use the _Extraction Keys_, 
 
-- The _dot notation_ is used to access the attributes or fields of record keys and record values serialized in JSON or Avro formats:
+- the _dot notation_ is used to access the attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -786,7 +785,7 @@ Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notati
   > 
   > Such a constraint may be removed in a further version of Kafka Connector.
 
-- The _square notation_ is used to access:
+- the _square notation_ is used to access:
 
   - indexed attributes:
     
@@ -814,7 +813,7 @@ Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notati
     > VALUE.myProperty['myChild'].childProperty
     > ```
 
-- Expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+- expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
 
 ##### Record Routing
 
