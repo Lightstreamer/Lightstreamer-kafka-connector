@@ -208,7 +208,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
-   - An item template
+   - An item template:
      ```xml
      <param name="item-template.stock">stock-#{index=KEY}</param>
      ```
@@ -216,7 +216,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
      which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The optional _Bindable Selector Keys_ syntax used here, denoted within `#{...}`, can bind 
      every part of a Kafka Record to a variable set of input parameters. In this case, the input parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
 
-   - A topic mapping
+   - A topic mapping:
      ```xml
      <param name="map.stocks.to">item-template.stock</param>
      ```
@@ -868,7 +868,24 @@ To write an expression, Kafka Connector provides the _Data Extraction Language_.
 > VALUE.myProperty['myChild'].childProperty
 > ```
 
-- expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+- expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+
+The QuickStart factory configuration file shows a basic example, where a simple _one-to-one_ mapping has been defined between an attribute of the JSON record value and a Lighstreamer field. Of course, thanks to the _data extraction language, more complex mapping can be employed.
+
+```xml
+<param name="field.stock_name">#{VALUE.name}</param>
+<param name="field.last_price">#{VALUE.last_price}</param>
+<param name="field.ask">#{VALUE.ask}</param>
+<param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+<param name="field.bid">#{VALUE.bid}</param>
+<param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+<param name="field.pct_change">#{VALUE.pct_change}</param>
+<param name="field.min">#{VALUE.min}</param>
+<param name="field.max">#{VALUE.max}</param>
+<param name="field.ref_price">#{VALUE.ref_price}</param>
+<param name="field.open_price">#{VALUE.open_price}</param>
+<param name="field.item_status">#{VALUE.item_status}</param>
+```
 
 ##### Smart Record Routing
 
