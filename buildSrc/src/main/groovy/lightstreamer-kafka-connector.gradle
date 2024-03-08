@@ -7,14 +7,11 @@ plugins {
 group = 'com.lightstreamer.kafka_connector'
 
 spotless {
-    format 'misc', {
+    groovyGradle {
         target '*.gradle'
         trimTrailingWhitespace()
         indentWithSpaces()
         endWithNewline()
-    }
-    groovyGradle {
-        target '*.gradle'
         greclipse()
     }
     java {
