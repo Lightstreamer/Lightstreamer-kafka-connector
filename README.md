@@ -679,21 +679,27 @@ Example:
 
 ###### `GSSAPI`
 
-In the case of `GSSAPI`, the following parameters will be part of the authentication configuration:
+In the case of `GSSAPI` authentication mechanism, the following parameters will be part of the authentication configuration:
 
 - `authentication.gssapi.key.tab.enable`
 
-  _Optional_. Enable the use of a keytab.
+  _Optional_. Enable the use of a keytab. Can be one of the following:
+  - `true`
+  - `false`
 
   Default value: `false`.
 
 - `authentication.gssapi.key.tab.path`
 
-  _Mandatory if_ [key tab](#authenticationgssapikeytabenable) is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+  _Mandatory if keytab is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 - `authentication.gssapi.store.key.enable`
 
-  _Optional_. Enable storage of the principal key.
+  _Optional_. Enable storage of the principal key. Can be one of the following:
+  - `true`
+  - `false`
+
+  Default value: `false`.
 
   Default value: `false`.
 
@@ -703,11 +709,13 @@ In the case of `GSSAPI`, the following parameters will be part of the authentica
 
 - `authentication.gssapi.principal`
 
-  _Mandatory_ if [ticket cache](#authenticationgssapiticketcacheenable) is disabled. The name of the principal to be used.
+  _Mandatory if `ticket cache` is disabled_. The name of the principal to be used.
 
 - `authentication.gssapi.ticket.cache.enable`
 
-  _Optional_. Enable the use of a ticket cache.
+  _Optional_. Enable the use of a ticket cache. Can be one of the following:
+  - `true`
+  - `false`
 
   Default value: `false`.
 
