@@ -67,7 +67,7 @@ The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lighstreamer Adapt
 
 With Kafka Connector, any internet client connected to the Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
 
-The Kafka Connector allows to move high volume data out of Kafka by leveraging the battle-tested ability of the Lightstreamer real-time engine to deliver live data reliably and efficiently over internet protocols.
+Kafka Connector allows to move high volume data out of Kafka by leveraging the battle-tested ability of the Lightstreamer real-time engine to deliver live data reliably and efficiently over internet protocols.
 
 ## Features
 
@@ -157,7 +157,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -203,7 +203,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple 
    Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
-   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
+   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
 
    The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
@@ -212,7 +212,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
      <param name="item-template.stock">stock-#{index=KEY}</param>
      ```
      
-     which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The optional _Bindable Selector Keys_ syntax used here, denoted within `#{...}`, can bind 
+     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The optional _Bindable Selector Keys_ syntax used here, denoted within `#{...}`, can bind 
      every part of a Kafka Record to a variable set of input parameters. In this case, the input parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
 
    - A topic mapping
@@ -221,7 +221,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
      ```
      which maps the topic `stocks` to the item names.
 
-   This configuration instructs the Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
       
    - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`.
    - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`.
@@ -266,7 +266,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    As you can see, you have to specify a few parameters:
 
    - `--address`, the Lightstreamer Server address.
-   - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder.
+   - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate Kafka Connector deployed into the `adapters` folder.
    - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
    - `--items`, the list of items to subscribe to.
    - `--fields`, the list of requested fields for the items.
@@ -340,7 +340,7 @@ The following sections will guide you through the configuration details.
 
 _Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
 
-The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`, which implements the internal business of the Kafka Connector.
+The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`, which implements the internal business of Kafka Connector.
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
@@ -384,7 +384,7 @@ The Lightstreamer Kafka Connector allows the configuration of separate independe
 
 Every single connection is configured via the definition of its own Data Adapter through the `data_provider` block. At least one connection must be provided.
 
-Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
+Since Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
 #### General Parameters
 
@@ -751,7 +751,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
 
-To extend the availability of Kafka events streams to a potentially huge amount of connected devices to Lighstreamer, the Kafka Connector allows great flexibility in routing and manipulation strategies.
+To extend the availability of Kafka events streams to a potentially huge amount of connected devices to Lighstreamer, Kafka Connector allows great flexibility in routing and manipulation strategies.
 
 A Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
@@ -761,55 +761,62 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 
 Kafka Connector provides the _data extraction language_, a pretty minimal language used to write simple expressions to dynamically access and extract information from a deserialized Kafka record. Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notations, and use the _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
-- `#{KEY}`, the key
-- `#{VALUE}`, the value
-- `#{TIMESTAMP}`, the timestamp
-- `#{OFFSET}`, the offset
-- `#{PARTITION}`, the partition
+Kafka Connector provides the _Data Extraction Language_ to write simple expressions to dynamically access and extract information from a deserialized Kafka record.  
+The language, which has a pretty minimal syntax, has the following basic rules:
 
-To access the attributes or fields of record keys and record values serialized in JSON or Avro formats, you write expressions like the following:
+- Expressions must be enclosed within `#{...}`
+- Expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
-```js
-KEY.attribute1Name.attribute2Name...
-VALUE.attribute1Name.attribute2Name...
-```
+  - `#{KEY}`, the key
+  - `#{VALUE}`, the value
+  - `#{TIMESTAMP}`, the timestamp
+  - `#{OFFSET}`, the offset
+  - `#{PARTITION}`, the partition
+Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notations, and use the _Extraction Keys_, 
 
-> [!IMPORTANT] 
-> Currently, it is required that the top-level element of either a record key or record value is:
-> - an [Object](https://www.json.org/json-en.html), in the case of JSON format
-> - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
-> 
-> Such a constraint may be removed in a further version of the Kafka Connector.
-
-You use square brackets to access:
-
-- indexed attributes:
-  
-  ```js
-  KEY.attribute1Name[i].attribute2Name...
-  VALUE.attribute1Name[i].attribute2Name...
-  ```
-  where `i` is a 0-indexed value.
-
-- key-based attributes:
+- The _dot notation_ is used to access the attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
   ```js
-  KEY.attribute1Name['keyName'].attribute2Name...
-  VALUE.attribute1Name['keyName'].attribute2Name...
+  KEY.attribute1Name.attribute2Name...
+  VALUE.attribute1Name.attribute2Name...
   ```
-  where `keyName` is a string value.
 
-> [!TIP]
-> For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent. The following expression are equivalent: 
->
-> ```js
-> VALUE.myProperty.myChild.childProperty
-> ```
-> ```js
-> VALUE.myProperty['myChild'].childProperty
-> ```
+  > [!IMPORTANT] 
+  > Currently, it is required that the top-level element of either a record key or record value is:
+  > - an [Object](https://www.json.org/json-en.html), in the case of JSON format
+  > - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
+  > 
+  > Such a constraint may be removed in a further version of Kafka Connector.
 
-Every expression must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+- The _square notation_ is used to access:
+
+  - indexed attributes:
+    
+    ```js
+    KEY.attribute1Name[i].attribute2Name...
+    VALUE.attribute1Name[i].attribute2Name...
+    ```
+    where `i` is a 0-indexed value.
+
+  - key-based attributes:
+
+    ```js
+    KEY.attribute1Name['keyName'].attribute2Name...
+    VALUE.attribute1Name['keyName'].attribute2Name...
+    ```
+    where `keyName` is a string value.
+
+    > [!TIP]
+    > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent. The following expression are equivalent: 
+    >
+    > ```js
+    > VALUE.myProperty.myChild.childProperty
+    > ```
+    > ```js
+    > VALUE.myProperty['myChild'].childProperty
+    > ```
+
+- Expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
 
 ##### Record Routing
 
@@ -853,7 +860,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
 ##### Smart Record Routing
 
-Record routing can be made more efficient by the _data extraction language_ feature of the Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
+Record routing can be made more efficient by the _data extraction language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
 To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
 
@@ -900,7 +907,7 @@ where
   #{name=VALUE.name,age=VALUE.age}
   ```
 
-  simply instructs the Kafka Connector to bind the parameter `name` and `age` respectively to the extracted values of the field `name` and `age` of the Kafka record value.
+  simply instructs Kafka Connector to bind the parameter `name` and `age` respectively to the extracted values of the field `name` and `age` of the Kafka record value.
 
 The employment of the bindable expression keys enables the definition of dynamically subscribing items.
 
@@ -937,11 +944,9 @@ which is made of:
 - prefix: `stock`
 - bindable expression key: #{index=KEY}
 
-
-
 #### Record Evaluation
 
-The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
+The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
 
 - _Apache Avro_
 - _JSON_
@@ -951,7 +956,7 @@ The Lightstreamer Kafka Connector offers wide support for deserializing Kafka re
 
 and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
 
-In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
+In particular, Kafka Connector supports message validation for Avro and JSON, which can be specified through:
 
 - Local schema files.
 - The _Confluent Schema Registry_.
