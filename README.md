@@ -340,9 +340,9 @@ The following sections will guide you through the configuration details.
 
 _Mandatory_. The `adapter_class` tag, specified inside the `metadata_provider` block, defines the Java class name of the Metadata Adapter.
 
-The factory value is set to `com.lightstreamer.kafka_connector.adapters.ConnectorMetadataAdapter`, which implements the Kafka Connector logic.
+The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`, which implements the internal business of the Kafka Connector.
 
-It is possible to provide a custom implementation by extending the `KafakConnectorMetadataAdapter` class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
+It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector/lib` folder.
 
 See the [Metadata Adapter Customization](#meta) section for more details.
 
@@ -380,11 +380,11 @@ Example:
 
 ### Connection Settings
 
-The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka clusters.
+The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka broker/clusters.
 
 Every single connection is configured via the definition of its own Data Adapter through the `data_provider` block. At least one connection must be provided.
 
-Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
+Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
 #### General Parameters
 
@@ -392,7 +392,19 @@ Since the Kafka Connector manages the physical connection to Kafka by wrapping a
 
 _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Connection Name_, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
-The connection name is also used to group all logging messages belonging to the same connection
+Furthermore, the name is also used to group all logging messages belonging to the same connection.
+
+> [!TIP]
+> For every Data Adaper connection, add a new logger and its relative appender to `log4j.properties`, so that you can separate log files for each connection.  
+> For example, the factory [logging configuration](kafka-connector/src/connector/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> ```java
+> ...
+> # QuickStart logger
+> log4j.appender.QuickStartFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+> log4j.appender.QuickStartFile.File=../../logs/quickstart.log
+> ```
 
 Example:
 
@@ -414,9 +426,9 @@ _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
 - `false`
 
-Default value: `true`.
-
 If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
+
+Default value: `true`.
 
 Example:
 
