@@ -47,8 +47,8 @@
         - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
       - [Topic Mapping](#topic-mapping)
         - [Record Routing](#record-routing)
-      - [Record Mapping](#record-mapping)
-      - [Intelligent Record Routing](#intelligent-record-routing)
+        - [Record Mapping](#record-mapping)
+        - [Intelligent Record Routing](#intelligent-record-routing)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
@@ -799,7 +799,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-#### Record Mapping
+##### Record Mapping
 
 To forward real-time updates to the Lighstreamer clients, a Kafka record must be mapped to Lighstreamer fields, which define the _schema_ of any Lighstreamer item.
 
@@ -887,7 +887,7 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 <param name="field.item_status">#{VALUE.item_status}</param>
 ```
 
-#### Intelligent Record Routing
+##### Intelligent Record Routing
 
 Record routing can be made more efficient by the _Data Extraction Language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
