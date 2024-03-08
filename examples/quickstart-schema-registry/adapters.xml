@@ -12,7 +12,7 @@
         <param name="bootstrap.servers">broker:29094</param>
         <param name="group.id">quick-start-group</param>
 
-        <!-- Encryption settings -->
+        <!-- ENCRYPTION SETTINGS -->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.3</param>
         <param name="encryption.hostname.verification.enable">false</param>

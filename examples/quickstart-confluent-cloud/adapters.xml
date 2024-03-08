@@ -12,12 +12,12 @@
         <param name="bootstrap.servers">$env.bootstrap_server</param>
         <param name="group.id">quick-start-group</param>
 
-        <!-- Encryption settings -->
+        <!-- ENCRYPTION SETTINGS -->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.2</param>
         <param name="encryption.hostname.verification.enable">true</param>
 
-        <!-- Authentication settings -->
+        <!-- AUTHENTICATION SETTINGS -->
         <param name="authentication.enable">true</param>
         <param name="authentication.mechanism">PLAIN</param>
         <param name="authentication.username">$env.api_key</param>
