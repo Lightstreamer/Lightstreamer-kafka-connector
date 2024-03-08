@@ -19,7 +19,7 @@ the qui# Lightstreamer Kafka Connector
   - [Connection Settings](#connection-settings)
     - [General Parameters](#general-parameters)
       - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
-    - [`adapter_class`](#adapter_class-1)
+      - [`adapter_class`](#adapter_class-1)
       - [`enable`](#enable)
       - [`bootstrap.servers`](#bootstrapservers)
       - [`group.id`](#groupid)
@@ -402,7 +402,7 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-#### `adapter_class`
+##### `adapter_class`
 
 _Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
 
