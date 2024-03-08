@@ -806,16 +806,16 @@ To forward real-time updates to the Lighstreamer clients, a Kafka record must be
 To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
 
 ```xml
-<param name="field.fieldName1">expression1</param>
-<param name="field.fieldName2">expression2<param>
+<param name="field.fieldName1">extraction_expression1</param>
+<param name="field.fieldName2">extraction_expression2<param>
 ...
-<param name="field.fieldNameN">expressionN<param>
+<param name="field.fieldNameN">extraction_expressionN<param>
 ...
 ```
 
-The field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lighstreamer.
+The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lighstreamer.
 
-To write an expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
+To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
 - expressions must be enclosed within `#{...}`
 - expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
@@ -870,7 +870,7 @@ To write an expression, Kafka Connector provides the _Data Extraction Language_.
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
 
-The QuickStart factory configuration file shows a basic example, where a simple _one-to-one_ mapping has been defined between an attribute of the JSON record value and a Lighstreamer field. Of course, thanks to the _data extraction language, more complex mapping can be employed.
+The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between an attribute of the JSON record value and a Lighstreamer field name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
 
 ```xml
 <param name="field.stock_name">#{VALUE.name}</param>
