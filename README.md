@@ -48,7 +48,7 @@
       - [Topic Mapping](#topic-mapping)
         - [Record Routing](#record-routing)
       - [Record Mapping](#record-mapping)
-        - [Smart Record Routing](#smart-record-routing)
+      - [Intelligent Record Routing](#intelligent-record-routing)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
@@ -887,7 +887,7 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 <param name="field.item_status">#{VALUE.item_status}</param>
 ```
 
-##### Smart Record Routing
+#### Intelligent Record Routing
 
 Record routing can be made more efficient by the _Data Extraction Language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
@@ -949,7 +949,7 @@ Therefore, a topic mapping defined as follows:
 <param name="map.sample-topic.to">sample</param>
 ```
 
-allows Lightstreamer Clients to subscribe to items like:
+allows Lightstreamer clients to subscribe to items like:
 
 ```js
 item-[name=Joe,age=24]
