@@ -156,6 +156,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                             String suffix =
                                                     new SecureRandom()
                                                             .ints(20, 48, 122)
+                                                            .filter(Character::isLetterOrDigit)
                                                             .mapToObj(Character::toString)
                                                             .collect(Collectors.joining());
                                             return "%s-%s-%s"
