@@ -44,6 +44,10 @@ the qui# Lightstreamer Kafka Connector
         - [`SCRAM-512`](#scram-512)
         - [`GSSAPI`](#gssapi)
       - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
+    - [Topic Mapping](#topic-mapping)
+      - [Data Extraction Language](#data-extraction-language)
+      - [Record Routing](#record-routing)
+      - [Smart Record Routing](#smart-record-routing)
     - [Record Evaluation](#record-evaluation)
       - [`record.consume.from`](#recordconsumefrom)
       - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
@@ -54,10 +58,6 @@ the qui# Lightstreamer Kafka Connector
       - [`schema.registry.url`](#schemaregistryurl)
       - [Encryption Parameters](#encryption-parameters-1)
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
-    - [Topic Mapping](#topic-mapping)
-      - [Data Extraction Language](#data-extraction-language)
-      - [Record Routing](#record-routing)
-      - [Smart Record Routing](#smart-record-routing)
 
 ## Introduction
 
@@ -709,7 +709,7 @@ In the case of `GSSAPI` authentication mechanism, the following parameters will 
 
 - `authentication.gssapi.principal`
 
-  _Mandatory if `ticket cache` is disabled_. The name of the principal to be used.
+  _Mandatory if ticket cache is disabled_. The name of the principal to be used.
 
 - `authentication.gssapi.ticket.cache.enable`
 
@@ -746,170 +746,6 @@ Example of configuration with the use of a ticket cache:
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
-#### Record Evaluation
-
-The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
-
-- _Apache Avro_
-- _JSON_
-- _String_
-- _Integer_
-- _Float_
-
-and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
-
-In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
-
-- Local schema files.
-- The _Confluent Schema Registry_.
-
-Kafka Connector supports independent deserialization of keys and values, which means that:
-
-- Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
-- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
-
-**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
-
-In case of a validation failure, the Connector can react by ...
-
-##### `record.consume.from`
-
-_Optional_. The .... Can be one of the following:
-
-- `LATEST`, Start consuming events from the latest available.
-- `EARLIEST`, Start consuming events from the earliest available.
-
-Default value: `LATEST`.
-
-Example:
-
-```xml
-<param name="record.consme.from">EARLIEST</param>
-```
-
-##### `record.key.evaluator.type` and `record.value.evaluator.type`
-
-_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
-
-- `AVRO`
-- `JSON`
-- `STRING`
-- `INTEGER`
-- `BOOLEAN`
-- `BYTE_ARRAY`
-- `BYTE_BUFFER`
-- `BYTES`
-- `DOUBLE`
-- `FLOAT`
-- `LONG`
-- `SHORT`
-- `UUID`
-
-Default value: `STRING`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.type">INTEGER</param>
-<param name="record.value.evaluator.type">JSON</param>
-```
-
-##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
-
-The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
-
-```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
-<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
-```
-
-##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
-
-Default value: `false`.
-
-Example:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
-```
-
-##### `record.extraction.error.strategy`
-
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
-
-- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
-
-Default value: `IGNORE_AND_CONTINUE`.
-
-Example:
-
-```xml
-<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
-```
-
-#### Schema Registry
-
-A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
-
-Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the `schema.registry` prefix.
-
-##### `schema.registry.url`
-
-_Mandatory_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
-
-Example of a plain http URL:
-
-```xml
-<!-- Use https to enable secure connection to the registry
-<param name="schema.registry.url">https://localhost:8081</param>
--->
-<param name="schema.registry.url">http//localhost:8081</param>
-```
-
-##### Encryption Parameters
-
-A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
-
-- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
-- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
-- `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
-- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
-- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
-- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
-- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
-- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
-- `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
-- `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
-
-Example:
-
-```xml
-<!-- Set the Confluent Schema registry URL -->
-<param name="schema.registry.url">https//localhost:8081</param>
-
-<!-- Set general encryption settings -->
-<param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
-<param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-<param name="schema.registry.encryption.hostname.verification.enable">true</param>
-
-<!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
-<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.jks</param></param>
-
-<!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->
-<param name="schema.registry.encryption.keystore.enable">true</param>
-<param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-<param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-<param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
-```
-
-##### Quick Start Schema Registry Example
-
-Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L36) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 #### Topic Mapping
 
@@ -1103,3 +939,167 @@ which is made of:
 
 
 
+#### Record Evaluation
+
+The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
+
+- _Apache Avro_
+- _JSON_
+- _String_
+- _Integer_
+- _Float_
+
+and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
+
+In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
+
+- Local schema files.
+- The _Confluent Schema Registry_.
+
+Kafka Connector supports independent deserialization of keys and values, which means that:
+
+- Key and value can have different formats.
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
+- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
+
+**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+
+In case of a validation failure, the Connector can react by ...
+
+##### `record.consume.from`
+
+_Optional_. The .... Can be one of the following:
+
+- `LATEST`, Start consuming events from the latest available.
+- `EARLIEST`, Start consuming events from the earliest available.
+
+Default value: `LATEST`.
+
+Example:
+
+```xml
+<param name="record.consme.from">EARLIEST</param>
+```
+
+##### `record.key.evaluator.type` and `record.value.evaluator.type`
+
+_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
+
+- `AVRO`
+- `JSON`
+- `STRING`
+- `INTEGER`
+- `BOOLEAN`
+- `BYTE_ARRAY`
+- `BYTE_BUFFER`
+- `BYTES`
+- `DOUBLE`
+- `FLOAT`
+- `LONG`
+- `SHORT`
+- `UUID`
+
+Default value: `STRING`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.type">INTEGER</param>
+<param name="record.value.evaluator.type">JSON</param>
+```
+
+##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
+
+The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
+
+```xml
+<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
+```
+
+##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+##### `record.extraction.error.strategy`
+
+_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+
+- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+
+Default value: `IGNORE_AND_CONTINUE`.
+
+Example:
+
+```xml
+<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+```
+
+#### Schema Registry
+
+A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
+
+Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the `schema.registry` prefix.
+
+##### `schema.registry.url`
+
+_Mandatory_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
+
+Example of a plain http URL:
+
+```xml
+<!-- Use https to enable secure connection to the registry
+<param name="schema.registry.url">https://localhost:8081</param>
+-->
+<param name="schema.registry.url">http//localhost:8081</param>
+```
+
+##### Encryption Parameters
+
+A secure connection to the Confluent Schema Registry can be configured through parameters with the `schema.registry.encryption` prefix, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
+
+- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
+- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
+- `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
+- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
+- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
+- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
+- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
+- `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
+
+Example:
+
+```xml
+<!-- Set the Confluent Schema registry URL -->
+<param name="schema.registry.url">https//localhost:8081</param>
+
+<!-- Set general encryption settings -->
+<param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
+<param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="schema.registry.encryption.hostname.verification.enable">true</param>
+
+<!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
+<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.jks</param></param>
+
+<!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->
+<param name="schema.registry.encryption.keystore.enable">true</param>
+<param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
+<param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
+```
+
+##### Quick Start Schema Registry Example
+
+Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L36) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
