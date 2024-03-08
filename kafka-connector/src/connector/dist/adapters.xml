@@ -47,7 +47,8 @@
              - false
 
              If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
-             Default: true. -->
+
+             Default value: true. -->
         <!--
         <param name="enable">false</param>
         -->
@@ -65,11 +66,102 @@
              The parameter sets the value for the "group.id" key used to configure the internal
              Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
 
-             Default: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
+             Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
         param name="group.id">kafka-connector-group</param>
         -->
         <param name="group.id">quick-start-group</param>
+
+        <!-- ENCRYPTION SETTINGS -->
+
+        <!-- Enable encryption -->
+        <!-- Optional. Enable encryption of this connection. Can be one of the following:
+             - true
+             - false
+
+            Default value: false. -->
+        <!--
+        <param name="encryption.enable">true</param>
+        -->
+
+        <!-- Optional. The SSL protocol to be used. Can be one of the following:
+             - TLSv1.2
+             - TLSv1.3
+
+             Default value: TLSv1.3 when running on Java 11 or newer, TLSv1.2 otherwise. -->
+        <!--
+        <param name="encryption.protocol">TLSv1.2</param>
+        -->
+
+        <!-- Optional. The list of enabled secure communication protocols.
+
+             Default value: TLSv1.2,TLSv1.3 when running on Java 11 or newer, `TLSv1.2` otherwise. -->
+        <!--
+        <param name="encryption.enabled.protocols">TLSv1.3</param>
+        -->
+
+        <!--Optional. The list of enabled secure cipher suites.
+            
+            Default value: all the available cipher suites in the running JVM. -->
+        <!--
+        <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+        -->
+        
+        <!-- Optional. Enable hostname verification. Can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="encryption.hostname.verification.enable">true</param>
+        -->
+
+        <!-- Optional. The path of the trust store file, relative to the deployment folder 
+             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+        <!--
+        <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        -->
+
+        <!-- Optional. The password of the trust store.
+             
+             If not set, checking the integrity of the trust store file configured will not 
+             be possible. -->
+        <!--
+        <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
+        -->
+
+        <!-- Optional. Enable a key store. Can be one of the following:
+             - true
+             - false
+            
+            A key store is required if the mutual TLS is enabled on Kafka.
+
+            If enabled, the following parameters configure the key store settings:
+            - encryption.keystore.path
+            - encryption.keystore.password
+            - encryption.keystore.key.password` 
+            
+            Defalt value: false. -->
+        <!--
+        <param name="encryption.keystore.enable">true</param>
+        -->
+
+        <!-- Mandatory if key store is enabled. The path of the key store file, relative to 
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+        <!--
+        <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        -->
+
+        <!-- Optional. The password of the key store.
+
+             If not set, checking the integrity of the key store file configured 
+             will not be possible. -->
+        <!--
+        <param name="encryption.keystore.password">kafka-connector-password</param>
+        -->
+        <!--
+        <param name="encryption.keystore.key.password">schemaregistry-private-key-password</param>
+        -->
 
         <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming records.
              Can be one of the following:
@@ -144,46 +236,6 @@
         <param name="field.ref_price">#{VALUE.ref_price}</param>
         <param name="field.open_price">#{VALUE.open_price}</param>
         <param name="field.item_status">#{VALUE.item_status}</param>
-
-        <!-- Enable encryption -->
-        <!-- Optional. Enable encryption of this connection. Can be one of the following:
-             - true
-             - false
-            Default value: false. -->
-        <!--
-        <param name="encryption.enable">true</param>
-        -->
-
-        <!-- Optional. The SSL protocol to be used. Can be one of the following:
-             - TLSv1.2
-             - TLSv1.3
-             Default value: TLSv1.3 when running on Java 11 or newer, TLSv1.2 otherwise. -->
-        <!--
-        <param name="encryption.protocol">TLSv1.2</param>
-        -->
-
-        <!--
-        <param name="encryption.enabled.protocols">TLSv1.2</param>
-        <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-        <param name="encryption.hostname.verification.enable">true</param>
-        -->
-
-        <!-- If required, configure the trust store to trust the Kafka Cluster certificates -->
-        <!--
-        <param name="encryption.truststore.type">JKS</param>
-        <param name="encryption.truststore.path">secrets/kafka.connector.truststore.pkcs12</param></param>
-        <param name="encryption.truststore.path">secrets/kafka.connector.schema.registry.truststore.pkcs12</param></param>
-        -->
-
-        <!-- If mutual TLS is enabled on the Kafka Cluster, enable and configure the key store -->
-        <!--
-        <param name="encryption.keystore.enable">true</param>
-        <param name="encryption.keystore.type">PKCS12</param>
-        <param name="encryption.keystore.path">secrets/kafka.connector.encryption.keystore.pkcs12</param>
-        <param name="encryption.keystore.password">schemaregistry-keystore-password</param>
-        <param name="encryption.keystore.key.password">schemaregistry-private-key-password</param>
-        -->
-
     </data_provider>
 
 </adapters_conf>
