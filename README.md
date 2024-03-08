@@ -46,8 +46,8 @@
           - [`GSSAPI`](#gssapi)
         - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
       - [Topic Mapping](#topic-mapping)
-        - [Data Extraction Language](#data-extraction-language)
         - [Record Routing](#record-routing)
+        - [Data Extraction Language](#data-extraction-language)
         - [Smart Record Routing](#smart-record-routing)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
@@ -747,7 +747,6 @@ Example of configuration with the use of a ticket cache:
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
-
 #### Topic Mapping
 
 As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items, this way allowing the transport of data from two systems.
@@ -757,6 +756,46 @@ To extend the availability of Kafka events streams to a potentially huge amount 
 A Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
 - remapped to the specific Lightstreamer Fields
+
+##### Record Routing
+
+To configure the routing of Kafka event streams to Lightstreamer items, use the parameter `map.<topic>.to`. The general format is:
+ 
+```xml
+<param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
+```
+  
+which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`<item1>`, `<item2>`, `<itemN>`, etc.).
+
+This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
+
+- _One To One_
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item</param>
+  ```
+
+  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
+  
+- _One To Many_
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
+  ```
+
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
+
+  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the example), in which every subscription must be validated against the user identity.
+ 
+- _Many to One_
+
+  ```xml
+  <param name="map.sample-topic1.to">sample-item</param>
+  <param name="map.sample-topic2.to">sample-item</param>
+  <param name="map.sample-topic3.to">sample-item</param>
+  ```
+
+  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
 ##### Data Extraction Language
 
@@ -805,7 +844,7 @@ The language, which has a pretty minimal syntax, has the following basic rules:
     where `keyName` is a string value.
 
 > [!TIP]
-> For JSON format, accessing a child attribute by dot notation or square bracket notation is  equivalent. The following expression are equivalent: 
+> For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent: 
 >
 > ```js
 > VALUE.myProperty.myChild.childProperty
@@ -816,49 +855,12 @@ The language, which has a pretty minimal syntax, has the following basic rules:
 
 - expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
 
-##### Record Routing
-
-To configure the routing of Kafka event streams to Lightstreamer items, use the parameter `map.<topic>.to`. The general format is:
- 
-```xml
-<param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
-```
-  
-which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`<item1>`, `<item2>`, `<itemN>`, etc.).
-
-This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
-
-- _One To One_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item</param>
-  ```
-
-  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
-  
-- _One To Many_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
-  ```
-
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
-
-  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the example), in which every subscription must be validated against the user identity.
- 
-- _Many to One_
-
-  ```xml
-  <param name="map.sample-topic1.to">sample-item</param>
-  <param name="map.sample-topic2.to">sample-item</param>
-  <param name="map.sample-topic3.to">sample-item</param>
-  ```
-
-  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
 ##### Smart Record Routing
 
 Record routing can be made more efficient by the _Data Extraction Language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
+
+Topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
 To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
 
@@ -881,12 +883,12 @@ where
    <param name="map.other-topic">item-template.template1,item-template.template1</param>
    ``` 
 
-   > [!TIP]
-   > It is allows to mix reference to simple item names and item templates in the same topic mapping configurations:
-   >
-   > ```xml
-   > <param name="map.sample-topic">item-template.template1,item1,item2</param>
-   > ``` 
+> [!TIP]
+> It is allows to mix reference to simple item names and item templates in the same topic mapping configurations:
+>
+> ```xml
+> <param name="map.sample-topic">item-template.template1,item1,item2</param>
+> ``` 
 
 - `<prefix>` is the prefix of the item name
 - `<expression>` is a _Bindable Extraction Key_ expression
