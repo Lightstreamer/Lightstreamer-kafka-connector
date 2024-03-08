@@ -1,64 +1,63 @@
-# Lightstreamer Kafka Connector
+the qui# Lightstreamer Kafka Connector
 
-- [Lightstreamer Kafka Connector](#lightstreamer-kafka-connector)
-  - [Introduction](#introduction)
-  - [Features](#features)
-  - [Quick Start](#quick-start)
-    - [Run](#run)
-  - [Installation](#installation)
-    - [Requirements](#requirements)
-    - [Deploy](#deploy)
-    - [Configure](#configure)
-      - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
-    - [Start](#start)
-      - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
-  - [Configuration](#configuration)
-    - [Global Settings](#global-settings)
-      - [`adapter_conf['id']` - _Kafka Connector identifier_](#adapter_confid---kafka-connector-identifier)
-      - [`adapter_class`](#adapter_class)
-      - [`logging.configuration.path`](#loggingconfigurationpath)
-    - [Connection Settings](#connection-settings)
-      - [General Parameters](#general-parameters)
-        - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
-      - [`adapter_class`](#adapter_class-1)
-        - [`enable`](#enable)
-        - [`bootstrap.servers`](#bootstrapservers)
-        - [`group.id`](#groupid)
-      - [Record Evaluation](#record-evaluation)
-        - [`record.consume.from`](#recordconsumefrom)
-        - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
-        - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
-        - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
-        - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
-      - [Encryption Parameters](#encryption-parameters)
-        - [`encryption.enable`](#encryptionenable)
-        - [`encryption.protocol`](#encryptionprotocol)
-        - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
-        - [`encryption.cipher.suites`](#encryptionciphersuites)
-        - [`encryption.truststore.path`](#encryptiontruststorepath)
-        - [`encryption.truststore.password `](#encryptiontruststorepassword-)
-        - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
-        - [`encryption.keystore.enable`](#encryptionkeystoreenable)
-        - [`encryption.keystore.path`](#encryptionkeystorepath)
-        - [`encryption.keystore.password`](#encryptionkeystorepassword)
-        - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
-        - [Quick Start SSL Example](#quick-start-ssl-example)
-      - [Broker Authentication Parameters](#broker-authentication-parameters)
-        - [`authentication.enable`](#authenticationenable)
-        - [`authentication.mechanism`](#authenticationmechanism)
-          - [`PLAIN`](#plain)
-          - [`SCRAM-256`](#scram-256)
-          - [`SCRAM-512`](#scram-512)
-          - [`GSSAPI`](#gssapi)
-        - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
-      - [Schema Registry](#schema-registry)
-        - [`schema.registry.url`](#schemaregistryurl)
-        - [Encryption Parameters](#encryption-parameters-1)
-        - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
-      - [Topic Mapping](#topic-mapping)
-        - [Data Extraction](#data-extraction)
-        - [Record Routing](#record-routing)
-        - [Smart Record Routing](#smart-record-routing)
+- [Introduction](#introduction)
+- [Features](#features)
+- [Quick Start](#quick-start)
+  - [Run](#run)
+- [Installation](#installation)
+  - [Requirements](#requirements)
+  - [Deploy](#deploy)
+  - [Configure](#configure)
+    - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
+  - [Start](#start)
+    - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
+- [Configuration](#configuration)
+  - [Global Settings](#global-settings)
+    - [`adapter_conf['id']` - _Kafka Connector identifier_](#adapter_confid---kafka-connector-identifier)
+    - [`adapter_class`](#adapter_class)
+    - [`logging.configuration.path`](#loggingconfigurationpath)
+  - [Connection Settings](#connection-settings)
+    - [General Parameters](#general-parameters)
+      - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
+    - [`adapter_class`](#adapter_class-1)
+      - [`enable`](#enable)
+      - [`bootstrap.servers`](#bootstrapservers)
+      - [`group.id`](#groupid)
+    - [Encryption Parameters](#encryption-parameters)
+      - [`encryption.enable`](#encryptionenable)
+      - [`encryption.protocol`](#encryptionprotocol)
+      - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
+      - [`encryption.cipher.suites`](#encryptionciphersuites)
+      - [`encryption.truststore.path`](#encryptiontruststorepath)
+      - [`encryption.truststore.password `](#encryptiontruststorepassword-)
+      - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
+      - [`encryption.keystore.enable`](#encryptionkeystoreenable)
+      - [`encryption.keystore.path`](#encryptionkeystorepath)
+      - [`encryption.keystore.password`](#encryptionkeystorepassword)
+      - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
+      - [Quick Start SSL Example](#quick-start-ssl-example)
+    - [Broker Authentication Parameters](#broker-authentication-parameters)
+      - [`authentication.enable`](#authenticationenable)
+      - [`authentication.mechanism`](#authenticationmechanism)
+        - [`PLAIN`](#plain)
+        - [`SCRAM-256`](#scram-256)
+        - [`SCRAM-512`](#scram-512)
+        - [`GSSAPI`](#gssapi)
+      - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
+    - [Record Evaluation](#record-evaluation)
+      - [`record.consume.from`](#recordconsumefrom)
+      - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
+      - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
+      - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
+      - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
+    - [Schema Registry](#schema-registry)
+      - [`schema.registry.url`](#schemaregistryurl)
+      - [Encryption Parameters](#encryption-parameters-1)
+      - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+    - [Topic Mapping](#topic-mapping)
+      - [Data Extraction Language](#data-extraction-language)
+      - [Record Routing](#record-routing)
+      - [Smart Record Routing](#smart-record-routing)
 
 ## Introduction
 
@@ -206,7 +205,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
 
-   The `QuickStart` factory configuration comes with a simple mapping through the following settings:
+   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
    - An item template
      ```xml
@@ -447,113 +446,6 @@ Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly gener
 
 ```xml
 <param name="group.id">kafka-connector-group</param>
-```
-
-
-#### Record Evaluation
-
-The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
-
-- _Apache Avro_
-- _JSON_
-- _String_
-- _Integer_
-- _Float_
-
-and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
-
-In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
-
-- Local schema files.
-- The _Confluent Schema Registry_.
-
-Kafka Connector supports independent deserialization of keys and values, which means that:
-
-- Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
-- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
-
-**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
-
-In case of a validation failure, the Connector can react by ...
-
-##### `record.consume.from`
-
-_Optional_. The .... Can be one of the following:
-
-- `LATEST`, Start consuming events from the latest available.
-- `EARLIEST`, Start consuming events from the earliest available.
-
-Default value: `LATEST`.
-
-Example:
-
-```xml
-<param name="record.consme.from">EARLIEST</param>
-```
-
-##### `record.key.evaluator.type` and `record.value.evaluator.type`
-
-_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
-
-- `AVRO`
-- `JSON`
-- `STRING`
-- `INTEGER`
-- `BOOLEAN`
-- `BYTE_ARRAY`
-- `BYTE_BUFFER`
-- `BYTES`
-- `DOUBLE`
-- `FLOAT`
-- `LONG`
-- `SHORT`
-- `UUID`
-
-Default value: `STRING`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.type">INTEGER</param>
-<param name="record.value.evaluator.type">JSON</param>
-```
-
-##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
-
-The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
-
-```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
-<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
-```
-
-##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
-
-Default value: `false`.
-
-Example:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
-```
-
-##### `record.extraction.error.strategy`
-
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
-
-- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
-
-Default value: `IGNORE_AND_CONTINUE`.
-
-Example:
-
-```xml
-<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
 #### Encryption Parameters
@@ -831,6 +723,112 @@ Example of configuration with the use of a ticket cache:
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
+#### Record Evaluation
+
+The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it allows the following formats:
+
+- _Apache Avro_
+- _JSON_
+- _String_
+- _Integer_
+- _Float_
+
+and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
+
+In particular, the Kafka Connector supports message validation for Avro and JSON, which can be specified through:
+
+- Local schema files.
+- The _Confluent Schema Registry_.
+
+Kafka Connector supports independent deserialization of keys and values, which means that:
+
+- Key and value can have different formats.
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
+- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
+
+**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+
+In case of a validation failure, the Connector can react by ...
+
+##### `record.consume.from`
+
+_Optional_. The .... Can be one of the following:
+
+- `LATEST`, Start consuming events from the latest available.
+- `EARLIEST`, Start consuming events from the earliest available.
+
+Default value: `LATEST`.
+
+Example:
+
+```xml
+<param name="record.consme.from">EARLIEST</param>
+```
+
+##### `record.key.evaluator.type` and `record.value.evaluator.type`
+
+_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
+
+- `AVRO`
+- `JSON`
+- `STRING`
+- `INTEGER`
+- `BOOLEAN`
+- `BYTE_ARRAY`
+- `BYTE_BUFFER`
+- `BYTES`
+- `DOUBLE`
+- `FLOAT`
+- `LONG`
+- `SHORT`
+- `UUID`
+
+Default value: `STRING`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.type">INTEGER</param>
+<param name="record.value.evaluator.type">JSON</param>
+```
+
+##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
+
+The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
+
+```xml
+<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
+```
+
+##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+##### `record.extraction.error.strategy`
+
+_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+
+- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+
+Default value: `IGNORE_AND_CONTINUE`.
+
+Example:
+
+```xml
+<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+```
+
 #### Schema Registry
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
@@ -900,9 +898,9 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 - routed to the designated Lightstreamer Items
 - remapped to the specific Lightstreamer Fields
 
-##### Data Extraction
+##### Data Extraction Language
 
-Kafka Connector provides a special syntax for writing expressions to extract information from a deserialized Kafka record. Such a syntax, denoted within `#{...}`, uses the _Extraction Keys, a set of predefined constants that reference specific parts of the record structure:
+Kafka Connector provides the _data extraction language_, a pretty minimal language used to write simple expressions to dynamically access and extract information from a deserialized Kafka record. Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notations, and use the _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
 - `#{KEY}`, the key
 - `#{VALUE}`, the value
@@ -910,7 +908,7 @@ Kafka Connector provides a special syntax for writing expressions to extract inf
 - `#{OFFSET}`, the offset
 - `#{PARTITION}`, the partition
 
-Furthermore, it is also possible to use _dot notation_ to access the attributes or fields of record keys and record values serialized in JSON or Avro format, as follows:
+To access the attributes or fields of record keys and record values serialized in JSON or Avro formats, you write expressions like the following:
 
 ```js
 KEY.attribute1Name.attribute2Name...
@@ -924,7 +922,7 @@ VALUE.attribute1Name.attribute2Name...
 > 
 > Such a constraint may be removed in a further version of the Kafka Connector.
 
-In addition, you may leverage the _square bracket_ notation to access:
+You use square brackets to access:
 
 - indexed attributes:
   
@@ -996,25 +994,89 @@ This configuration enables the implementation of various mapping scenarios, as s
 
 ##### Smart Record Routing
 
-Record routing can be made more efficient by the _data extraction_ feature of the Kafka Connector. In fact, topicc can be mapped not only to predefined items, but even to a wider range of _dynamic_ items through the specification of an _item template_. 
+Record routing can be made more efficient by the _data extraction language_ feature of the Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
 
 To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
 
 ```xml
-<param name="item-template.<template-name>"><item-prefix>-#{<expression>}</param>
+<param name="item-template.<template-name>"><item-prefix>-<expression></param>
 ```
   
-which specifyes the item template defined as:
-- name: `<template-name>`
-- item prefix: `<item-prefix>`
-- expression
+where
+- `<template-name>` is the unique name used to reference the template in the topic mapping configurations. As an example, for the given item template definitions:
+   
+   ```xml
+   <param name="item-template.template1">...</param>
+   <param name="item-template.template2>">...</param>
+   ``` 
 
-  - `<item-prefix>` is the prefix of the item name
-  - `<expression>` is a _Bindable Extraction Key_ expression
+   the following mappings can be configured:
 
-  Example:
+   ```xml
+   <param name="map.sample-topic">item-template.template1</param>
+   <param name="map.other-topic">item-template.template1,item-template.template1</param>
+   ``` 
 
-  ```xml
-  <param name="item-template.complex-item">anItem-#{key=KEY,attrib=VALUE.attribute1Name.attribute2Name}</param>
+   > [!TIP]
+   > It is allows to mix reference to simple item names and item templates in the same topic mapping configurations:
+   >
+   > ```xml
+   > <param name="map.sample-topic">item-template.template1,item1,item2</param>
+   > ``` 
+
+- `<prefix>` is the prefix of the item name
+- `<expression>` is a _Bindable Extraction Key_ expression
+
+   You write a bindable extraction keys expression as:
+
+  ```js
+  #{paramName1=<data extraction expression>,paramName2=<data extraction expression>},...
   ```
+
+  where `paraName1`, `paramName2`, etc, represent parameters to be bound to the specified extraction expression.
+
+  As an example, the following expression:
+
+  ```js
+  #{name=VALUE.name,age=VALUE.age}
+  ```
+
+  simply instructs the Kafka Connector to bind the parameter `name` and `age` respectively to the extracted values of the field `name` and `age` of the Kafka record value.
+
+The employment of the bindable expression keys enables the definition of dynamically subscribing items.
+
+So, a topic mapping defined as follows:
+
+```xml
+<param name="item-template.sample">item-#{name=VALUE.name,age=VALUE.age}</param>
+<param name="map.sample-topic.to">sample</param>
+```
+
+allows Lightstreamer Clients to subscribe to items like:
+
+```js
+item-[name=Joe,age=24]
+item-[name=Anna,age=32]
+item-[name=Bob,age=45]
+```
+
+to receive real-time updates only for those Kafka records which:
+
+- published to the topic sample
+- whose Record value 
+
+While evaluating a Kakfa record, the field name and age of the record value get bound to the parameter `name` and age, which will be used later for the smart routing process
+
+Resuming the _Quick Start_ app, the [factory configuration file](kafka-connector/src/connector/dist/adapters.xml#L39) defines the following item template:
+
+```xml
+<param name="item-template.stock">stock-#{index=KEY}</param>
+```
+
+which is made of:
+- name: `stock`
+- prefix: `stock`
+- bindable expression key: #{index=KEY}
+
+
 
