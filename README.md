@@ -578,7 +578,7 @@ Example:
 
 ##### `encryption.keystore.path`
 
-_Mandatory if key store is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+_Mandatory if [key store](#encryptionkeystoreenable) is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 Example:
 
@@ -605,7 +605,7 @@ _Optional_. The password of the private key in the key store file.
 Example:
 
 ```xml
-<param name="encryption.keystore.key.password">private-key-password</param>
+<param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
 ##### Quick Start SSL Example
