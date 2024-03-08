@@ -779,12 +779,12 @@ The language, which has a pretty minimal syntax, has the following basic rules:
   VALUE.attribute1Name.attribute2Name...
   ```
 
-  > [!IMPORTANT] 
-  > Currently, it is required that the top-level element of either a record key or record value is:
-  > - an [Object](https://www.json.org/json-en.html), in the case of JSON format
-  > - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
-  > 
-  > Such a constraint may be removed in a further version of Kafka Connector.
+> [!IMPORTANT] 
+> Currently, it is required that the top-level element of either a record key or record value is:
+> - an [Object](https://www.json.org/json-en.html), in the case of JSON format
+> - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
+> 
+> Such a constraint may be removed in a further version of Kafka Connector.
 
 - the _square notation_ is used to access:
 
