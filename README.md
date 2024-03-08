@@ -759,8 +759,6 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 
 ##### Data Extraction Language
 
-Kafka Connector provides the _data extraction language_, a pretty minimal language used to write simple expressions to dynamically access and extract information from a deserialized Kafka record. Expressions, enclosed with `#{...}`, are based on the _dot_ and _bracket_ notations, and use the _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
-
 Kafka Connector provides the _Data Extraction Language_ to write simple expressions to dynamically access and extract information from a deserialized Kafka record.  
 The language, which has a pretty minimal syntax, has the following basic rules:
 
