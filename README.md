@@ -804,15 +804,15 @@ The language, which has a pretty minimal syntax, has the following basic rules:
     ```
     where `keyName` is a string value.
 
-    > [!TIP]
-    > For JSON format, accessing a child attribute by dot notation or square bracket notation is  equivalent. The following expression are equivalent: 
-    >
-    > ```js
-    > VALUE.myProperty.myChild.childProperty
-    > ```
-    > ```js
-    > VALUE.myProperty['myChild'].childProperty
-    > ```
+> [!TIP]
+> For JSON format, accessing a child attribute by dot notation or square bracket notation is  equivalent. The following expression are equivalent: 
+>
+> ```js
+> VALUE.myProperty.myChild.childProperty
+> ```
+> ```js
+> VALUE.myProperty['myChild'].childProperty
+> ```
 
 - expressions must evaluate to a scalar value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
 
