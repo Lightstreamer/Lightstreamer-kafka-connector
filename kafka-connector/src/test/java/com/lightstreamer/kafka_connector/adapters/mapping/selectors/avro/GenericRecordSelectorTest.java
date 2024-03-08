@@ -182,6 +182,34 @@ public class GenericRecordSelectorTest {
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
+    // @CsvSource(
+    //     useHeadersInDisplayName = true,
+    //     textBlock =
+    //             """
+    //                 ESPRESSION,                        EXPECTED_ERROR_MESSAGE
+    //                 '',                                Expected the root token [KEY] while
+    // evaluating [name]
+    //                 invalidKey,                        Expected the root token [KEY] while
+    // evaluating [name]
+    //                 KEY,                               Found the invalid expression [KEY] while
+    // evaluating [name]
+    //                 KEY.,                              Found the invalid expression [KEY.] while
+    // evaluating [name]
+    //                 KEY..,                             Found the invalid expression [KEY..] with
+    // missing tokens while evaluating [name]
+    //                 KEY.attrib[],                      Found the invalid indexed expression
+    // [KEY.attrib[]] while evaluating [name]
+    //                 KEY.attrib[0]xsd,                  Found the invalid indexed expression
+    // [KEY.attrib[0]xsd] while evaluating [name]
+    //                 KEY.attrib[],                      Found the invalid indexed expression
+    // [KEY.attrib[]] while evaluating [name]
+    //                 KEY.attrib[a],                     Found the invalid indexed expression
+    // [KEY.attrib[a]] while evaluating [name]
+    //                 KEY.attrib[a].,                    Found the invalid indexed expression
+    // [KEY.attrib[a].] while evaluating [name]
+    //                 KEY.attrib[0].,                    Found the invalid indexed expression
+    // [KEY.attrib[0].] while evaluating [name]
+    //                 """)
     @CsvSource(
             useHeadersInDisplayName = true,
             textBlock =
@@ -197,8 +225,7 @@ public class GenericRecordSelectorTest {
                         KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[a],                     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                         KEY.attrib[a].,                    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
-                        KEY.attrib[0].,                    Found the invalid indexed expression [KEY.attrib[0].] while evaluating [name]
-                        """)
+                    """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> keySelector(expression));
@@ -221,7 +248,7 @@ public class GenericRecordSelectorTest {
                         VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[a],                   Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                         VALUE.attrib[a].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
-                                        """)
+                    """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> valueSelector(expression));

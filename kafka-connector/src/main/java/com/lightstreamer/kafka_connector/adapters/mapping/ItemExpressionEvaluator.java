@@ -44,7 +44,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
             Pattern.compile(
                     "(^[a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")$"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")) {
-        
+
         String errorMessage() {
             return "Invalid template expression";
         }
