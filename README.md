@@ -938,6 +938,7 @@ Example:
 
 Consider the following configuration:
 
+```xml
 <param name=item-template.user-data>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
 <param name="map.user.to">item-template.user-data</param>
 ```
