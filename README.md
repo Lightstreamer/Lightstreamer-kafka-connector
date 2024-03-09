@@ -945,11 +945,10 @@ Consider the following configuration:
 
 which defines a filtered routing from the topic `user`.
 
-Let's suppose we have two different Lightstreamer clients, subscribing to:
+Let's suppose we have two different Lightstreamer clients:
 
-1. client 1 to parameterized item `user-[firstName=James,lastName=Kirk]`. The client is interested in receiving real-time updates relative to the user James Kirk.
-2. client 2 to parameterized item `user-[firstName=Montgomery,lastName=Scotty]`
-
+1. client 1 subscribes to the parameterized item `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`.
+2. client 2 subscribes to the parameterized item `user-[firstName=Montgomery,lastName=Scotty]`, for receiving real-time updates relative to the user `Montgomery Scotty`.
 
 Now, a Kafka record with the following JSON value:
 
