@@ -889,7 +889,7 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 
 ##### Filtered Record Routing
 
-Besides mapping topics to statically predefined items, Kakfa Connector allows to define _item templates_, which enable to filter the routing of Kafka records by matching the contents with a _parameterized_ subscribed item.
+Besides mapping topics to statically predefined items, Kakfa Connector allows to define _item templates_, which enable to filter the routing of Kafka records by matching the contents against a _parameterized_ subscribed item.
 
 To configure an item template, use the parameter `item-template.<template-name>`:
 
@@ -900,14 +900,14 @@ To configure an item template, use the parameter `item-template.<template-name>`
 and then configure the routing by referencing the template through the parameter `map.<topic>.to`:
 
 ```xml
-<param name="map.other-topic">item-template.<template-name></param>
+<param name="map.<topic>.to">item-template.<template-name></param>
 ``` 
 
 > [!TIP]
 > It is allowed to mix references to simple item names and item templates in the same topic mapping configuration:
 >
 > ```xml
-> <param name="map.sample-topic">item-template.template1,item1,item2</param>
+> <param name="map.sample-topic.to">item-template.template1,item1,item2</param>
 > ``` 
 
 The item template is made of:
@@ -926,9 +926,11 @@ To activate filtered routing, the Lighstreamer clients subscribe to a parameteri
 <item-prefix>-[paramName1=value2,paramName2=value2,...]
 ```
 
-For every message published to the mapped topic, Kafka Connector will evaluate the bindable extraction expressions of the template to get an expanded item:
+For every message published to the mapped topic, Kafka Connector will evaluate the bindable extraction expressions of the template to construct an expanded item:
 
+```js
 <item-prefix>-[paramName1=extractedValue1,paramName2=extractedValue2,...] 
+```
 
 and will route the message only in case of a positive match with the subscribed item.
 
