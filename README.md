@@ -911,40 +911,85 @@ and then configure the routing by referencing the template through the parameter
 > ``` 
 
 The item template is made of:
-- a `<prefix>`: the prefix of the item name
-- `<bindable_expressions>`: a sequence of  _bindable extraction expression_, defined as:
+- `<prefix>`: the prefix of the item name
+- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, defined as:
 
   ```js
   #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
   ```
 
-  where `paraNameX` will be bound to the value extracted from the deserialized Kafka record through `<extraction_expression>`.
+  where `paraNameX` will be bound to the value extracted from the deserialized Kafka record through `<extraction_expression>` (written using the _Data Extraction Language_).
 
-To activate the filtered routing, the Lighstreamer clients subscribe to a parameterized item, expressed in the form:
+To activate filtered routing, the Lighstreamer clients subscribe to a parameterized item, expressed in the form:
 
 ```js
 <item-prefix>-[paramName1=value2,paramName2=value2,...]
 ```
 
-where for every pair `paraNameX=valueX`, Kafka Connector  will be used as input parameter for Kafka Connector to selec
-Kafka Connector will then select and forward to the clients only the Kafka records for which the evaluation of the item template completely matches the parameterized item.
+For every message published to the mapped topic, Kafka Connector will evaluate the bindable extraction expressions of the template to get an expanded item:
 
-For example, given the following item template:
+<item-prefix>-[paramName1=extractedValue1,paramName2=extractedValue2,...] 
 
-```js
-user-#{name=VALUE.name,age=VALUE.age}
+and will route the message only in case of a positive match with the subscribed item.
+
+Example:
+
+Consider the following configuration:
+
+<param name=item-template.user-data>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
+<param name="map.user.to">item-template.user-data</param>
 ```
 
-any Lightstreamer client can subscribe to parameterized items like:
+which defines a filtered routing from the topic `user`.
+
+Let's suppose we have two different Lightstreamer clients, subscribing to:
+
+1. client 1 to parameterized item `user-[firstName=James,lastName=Kirk]`. The client is interested in receiving real-time updates relative to the user James Kirk.
+2. client 2 to parameterized item `user-[firstName=Montgomery,lastName=Scotty]`
+
+
+Now, a Kafka record with the following JSON value:
 
 ```js
-user-[name=Joe,age=24]
-user-[name=Anna,age=32]
-user-[name=Bob,age=45]
-...
+{,
+  "name": "James",
+  "surname": "Kirk",
+  ...
+}
 ```
 
-to receive real-time updates relative to the Kafka records whose VALU.name and VALUE.age match the p for those Kafka records which:
+will be expanded to the item:
+
+```js
+user-[firstName=James,lastName=Kirk]
+```
+
+which matches it matches the item subscribed by client 1,  expaned item 
+
+On the other hand, the following record:
+```js
+{,
+  "name": "Montgomery",
+  "surname": "Scotty",
+  ...
+}
+```
+
+will be forwarded to client 2.
+
+Finally,
+
+the record:
+
+```js
+{,
+  "name": "Nyota",
+  "surname": "Uhura",
+  ...
+}
+```
+
+will be filtered out as no client has subscribed to a matchable item.
 
 Resuming the _Quick Start_ app, the [factory configuration file](kafka-connector/src/connector/dist/adapters.xml#L39) defines the following item template:
 
