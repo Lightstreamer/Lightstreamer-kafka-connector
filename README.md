@@ -953,7 +953,8 @@ Let's suppose we have two different Lightstreamer clients:
 Now, a Kafka record with the following JSON value:
 
 ```js
-{,
+{
+  ...
   "name": "James",
   "surname": "Kirk",
   ...
@@ -966,11 +967,12 @@ will be expanded to the item:
 user-[firstName=James,lastName=Kirk]
 ```
 
-which matches it matches the item subscribed by client 1,  expaned item 
+which matches it matches the item subscribed by client 1, expanded item 
 
 On the other hand, the following record:
 ```js
-{,
+{
+  ...
   "name": "Montgomery",
   "surname": "Scotty",
   ...
@@ -984,7 +986,8 @@ Finally,
 the record:
 
 ```js
-{,
+{
+  ...
   "name": "Nyota",
   "surname": "Uhura",
   ...
