@@ -49,6 +49,7 @@
         - [Record Routing](#record-routing)
         - [Record Mapping](#record-mapping)
         - [Filtered Record Routing](#filtered-record-routing)
+          - [Example](#example)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
@@ -934,7 +935,7 @@ For every message published to the mapped topic, Kafka Connector will evaluate t
 
 and will route the message only in case of a positive match with the subscribed item.
 
-Example:
+###### Example
 
 Consider the following configuration:
 
