@@ -48,7 +48,7 @@
       - [Topic Mapping](#topic-mapping)
         - [Record Routing](#record-routing)
         - [Record Mapping](#record-mapping)
-        - [Intelligent Record Routing](#intelligent-record-routing)
+        - [Filtered Record Routing](#filtered-record-routing)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
@@ -887,82 +887,64 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 <param name="field.item_status">#{VALUE.item_status}</param>
 ```
 
-##### Intelligent Record Routing
+##### Filtered Record Routing
 
-Record routing can be made more efficient by the _Data Extraction Language_ feature of Kafka Connector. Rather, topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
+Besides mapping topics to statically predefined items, Kakfa Connector allows to define _item templates_, which enable to filter the routing of Kafka records by matching the contents with a _parameterized_ subscribed item.
 
-Topics can be mapped not only to predefined items but even to a wider range of _dynamic_ items through the specification of an _item template_, which employs the _bindable extraction keys_ expressions.
-
-To configure an item template, use the parameter `item-template.<template-name>`. The general format is:
+To configure an item template, use the parameter `item-template.<template-name>`:
 
 ```xml
-<param name="item-template.<template-name>"><item-prefix>-<expression></param>
+<param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
 ```
-  
-where
-- `<template-name>` is the unique name used to reference the template in the topic mapping configurations. As an example, for the given item template definitions:
-   
-  ```xml
-  <param name="item-template.template1">...</param>
-  <param name="item-template.template2>">...</param>
-  ``` 
 
-  the following topic mappings can be configured:
+and then configure the routing by referencing the template through the parameter `map.<topic>.to`:
 
-  ```xml
-  <param name="map.sample-topic">item-template.template1</param>
-  <param name="map.other-topic">item-template.template1,item-template.template1</param>
-  ``` 
+```xml
+<param name="map.other-topic">item-template.<template-name></param>
+``` 
 
 > [!TIP]
-> It is allows to mix reference to simple item names and item templates in the same topic mapping configurations:
+> It is allowed to mix references to simple item names and item templates in the same topic mapping configuration:
 >
 > ```xml
 > <param name="map.sample-topic">item-template.template1,item1,item2</param>
 > ``` 
 
-- `<prefix>` is the prefix of the item name
-- `<expression>` is a _Bindable Extraction Key_ expression
-
-  You write a bindable extraction keys expression as:
-
-  ```js
-  #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>},...
-  ```
-
-  where `paraName1`, `paramName2`, etc, represent parameters to be bound to the specified extraction expression.
-
-  As an example, the following expression:
+The item template is made of:
+- a `<prefix>`: the prefix of the item name
+- `<bindable_expressions>`: a sequence of  _bindable extraction expression_, defined as:
 
   ```js
-  #{name=VALUE.name,age=VALUE.age}
+  #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
   ```
 
-  simply instructs Kafka Connector to bind the parameter `name` and `age` respectively to the extracted values of the field `name` and `age` of the Kafka record value.
+  where `paraNameX` will be bound to the value extracted from the deserialized Kafka record through `<extraction_expression>`.
 
-The employment of the bindable expression keys enables the definition of dynamically subscribing items.
-
-Therefore, a topic mapping defined as follows:
-
-```xml
-<param name="item-template.sample">item-#{name=VALUE.name,age=VALUE.age}</param>
-<param name="map.sample-topic.to">sample</param>
-```
-
-allows Lightstreamer clients to subscribe to items like:
+To activate the filtered routing, the Lighstreamer clients subscribe to a parameterized item, expressed in the form:
 
 ```js
-item-[name=Joe,age=24]
-item-[name=Anna,age=32]
-item-[name=Bob,age=45]
+<item-prefix>-[paramName1=value2,paramName2=value2,...]
 ```
 
-to receive real-time updates only for those Kafka records which:
+where for every pair `paraNameX=valueX`, Kafka Connector  will be used as input parameter for Kafka Connector to selec
+Kafka Connector will then select and forward to the clients only the Kafka records for which the evaluation of the item template completely matches the parameterized item.
 
-- published to the topic sample
-- whose Record value 
+For example, given the following item template:
 
-While evaluating a Kakfa record, the field name and age of the record value get bound to the parameter `name` and age, which will be used later for the smart routing process
+```js
+user-#{name=VALUE.name,age=VALUE.age}
+```
+
+any Lightstreamer client can subscribe to parameterized items like:
+
+```js
+user-[name=Joe,age=24]
+user-[name=Anna,age=32]
+user-[name=Bob,age=45]
+...
+```
+
+to receive real-time updates relative to the Kafka records whose VALU.name and VALUE.age match the p for those Kafka records which:
 
 Resuming the _Quick Start_ app, the [factory configuration file](kafka-connector/src/connector/dist/adapters.xml#L39) defines the following item template:
 
