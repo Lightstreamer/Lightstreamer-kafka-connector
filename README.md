@@ -45,17 +45,17 @@
           - [`SCRAM-512`](#scram-512)
           - [`GSSAPI`](#gssapi)
         - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
-      - [Topic Mapping](#topic-mapping)
-        - [Record Routing](#record-routing)
-        - [Record Mapping](#record-mapping)
-        - [Filtered Record Routing](#filtered-record-routing)
-          - [Example](#example)
       - [Record Evaluation](#record-evaluation)
         - [`record.consume.from`](#recordconsumefrom)
         - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
         - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
+      - [Topic Mapping](#topic-mapping)
+        - [Record Routing](#record-routing)
+        - [Record Mapping](#record-mapping)
+        - [Filtered Record Routing](#filtered-record-routing)
+          - [Example](#example)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
@@ -748,6 +748,112 @@ Example of configuration with the use of a ticket cache:
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
+#### Record Evaluation
+
+The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
+
+- _Apache Avro_
+- _JSON_
+- _String_
+- _Integer_
+- _Float_
+
+and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
+
+In particular, Kafka Connector supports message validation for Avro and JSON, which can be specified through:
+
+- Local schema files.
+- The _Confluent Schema Registry_.
+
+Kafka Connector supports independent deserialization of keys and values, which means that:
+
+- Key and value can have different formats.
+- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
+- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
+
+**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+
+In case of a validation failure, the Connector can react by ...
+
+##### `record.consume.from`
+
+_Optional_. The .... Can be one of the following:
+
+- `LATEST`, Start consuming events from the latest available.
+- `EARLIEST`, Start consuming events from the earliest available.
+
+Default value: `LATEST`.
+
+Example:
+
+```xml
+<param name="record.consme.from">EARLIEST</param>
+```
+
+##### `record.key.evaluator.type` and `record.value.evaluator.type`
+
+_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
+
+- `AVRO`
+- `JSON`
+- `STRING`
+- `INTEGER`
+- `BOOLEAN`
+- `BYTE_ARRAY`
+- `BYTE_BUFFER`
+- `BYTES`
+- `DOUBLE`
+- `FLOAT`
+- `LONG`
+- `SHORT`
+- `UUID`
+
+Default value: `STRING`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.type">INTEGER</param>
+<param name="record.value.evaluator.type">JSON</param>
+```
+
+##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
+
+The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
+
+```xml
+<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
+```
+
+##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+##### `record.extraction.error.strategy`
+
+_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+
+- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+
+Default value: `IGNORE_AND_CONTINUE`.
+
+Example:
+
+```xml
+<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+```
+
 #### Topic Mapping
 
 Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items.
@@ -1008,111 +1114,6 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   | `user-by-age`  | `user-[age=37]`                          | _SC1_                   | _Client C_       |
 
 
-#### Record Evaluation
-
-The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
-
-- _Apache Avro_
-- _JSON_
-- _String_
-- _Integer_
-- _Float_
-
-and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
-
-In particular, Kafka Connector supports message validation for Avro and JSON, which can be specified through:
-
-- Local schema files.
-- The _Confluent Schema Registry_.
-
-Kafka Connector supports independent deserialization of keys and values, which means that:
-
-- Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
-- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
-
-**NOTE** For Avro, schema validation is required, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
-
-In case of a validation failure, the Connector can react by ...
-
-##### `record.consume.from`
-
-_Optional_. The .... Can be one of the following:
-
-- `LATEST`, Start consuming events from the latest available.
-- `EARLIEST`, Start consuming events from the earliest available.
-
-Default value: `LATEST`.
-
-Example:
-
-```xml
-<param name="record.consme.from">EARLIEST</param>
-```
-
-##### `record.key.evaluator.type` and `record.value.evaluator.type`
-
-_Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
-
-- `AVRO`
-- `JSON`
-- `STRING`
-- `INTEGER`
-- `BOOLEAN`
-- `BYTE_ARRAY`
-- `BYTE_BUFFER`
-- `BYTES`
-- `DOUBLE`
-- `FLOAT`
-- `LONG`
-- `SHORT`
-- `UUID`
-
-Default value: `STRING`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.type">INTEGER</param>
-<param name="record.value.evaluator.type">JSON</param>
-```
-
-##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
-
-The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
-
-```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
-<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
-```
-
-##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
-
-Default value: `false`.
-
-Example:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
-```
-
-##### `record.extraction.error.strategy`
-
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
-
-- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
-
-Default value: `IGNORE_AND_CONTINUE`.
-
-Example:
-
-```xml
-<param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
-```
 
 #### Schema Registry
 
