@@ -612,7 +612,7 @@ Example:
 
 ##### Quick Start SSL Example
 
-Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L15) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 #### Broker Authentication Parameters
 
@@ -746,7 +746,7 @@ Example of configuration with the use of a ticket cache:
 
 ##### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L20) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
+Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
 
 #### Record Evaluation
 
