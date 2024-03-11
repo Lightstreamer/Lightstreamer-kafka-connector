@@ -442,7 +442,7 @@ Example:
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
-The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
 
 Example:
 
@@ -521,7 +521,6 @@ Example:
 ##### `encryption.hostname.verification.enable`
 
 _Optional_. Enable hostname verification. Can be one of the following:
-
 - `true`
 - `false`
 
@@ -778,10 +777,12 @@ In case of a validation failure, the Connector can react by ...
 
 ##### `record.consume.from`
 
-_Optional_. The .... Can be one of the following:
+_Optional_. Specifies where to start consuming events from:
 
-- `LATEST`, Start consuming events from the latest available.
-- `EARLIEST`, Start consuming events from the earliest available.
+- `LATEST`: start consuming events from the end of the topic partition
+- `EARLIEST`: start consuming events from the beginning of the topic partition
+
+The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
 Default value: `LATEST`.
 
@@ -820,20 +821,24 @@ Examples:
 
 ##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-The path of the local schema file for message validation respectively of the Kafka key and the Kafa value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
+
+Examples:
 
 ```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.json</param>
-<param name="record.value.evaluator.schema.path">schemas/record_value.json</param>
+<param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
 ```
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value.
+Optional. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
+- `true`
+- `false`
 
 Default value: `false`.
 
-Example:
+Examples:
 
 ```xml
 <param name="record.key.evaluator.schema.registry.enable">true</param>
@@ -842,10 +847,10 @@ Example:
 
 ##### `record.extraction.error.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from incoming records. Can be one of the following:
+_Optional_. The error handling strategy to be used if an error occurs while extracting data from deserialized incoming records. Can be one of the following:
 
-- `IGNORE_AND_CONTINUE`, ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`, stop processing records and force unsubscription of the items requested by all the Clients subscribed to this connection.
+- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection.
 
 Default value: `IGNORE_AND_CONTINUE`.
 
