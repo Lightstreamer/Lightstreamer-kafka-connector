@@ -375,13 +375,33 @@
         <!-- Mandatory if the Confluent Schema Registry is enabled. The URL of the Confluent Schema Registry.
              An encrypted connection is enabled by specifying the "https" protocol 
         -->
+        <!--
         <param name="schema.registry.url">https://schema-registry:8084</param>
+        -->
+
+        <!-- The following parameters have the same meaning as the homologous ones defined in 
+             the ENCRYPTION SETTINGS section. -->
+
+        <!-- Set general encryption settings -->
+        <!--
+        <param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
+        <param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+        <param name="schema.registry.encryption.hostname.verification.enable">true</param>
+        -->
+
+        <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
+        <!--
         <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
         <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+        -->
+
+        <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
+        <!--
         <param name="schema.registry.encryption.keystore.enable">true</param>
         <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
         <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
         <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+        -->
     </data_provider>
 
 </adapters_conf>
