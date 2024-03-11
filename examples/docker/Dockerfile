@@ -4,7 +4,7 @@ FROM lightstreamer
 # The Kafka Connector project version
 ARG VERSION
 
-ENV KAFKA_CONNECTOR_NAME=lightstreamer-kafka-connector-deploy-${VERSION}
+ENV KAFKA_CONNECTOR_NAME=lightstreamer-kafka-connector-${VERSION}
 ENV KAFKA_CONNECTOR_ZIP=${KAFKA_CONNECTOR_NAME}.zip
 ENV DEPLOY_DIR=/lightstreamer/adapters/${KAFKA_CONNECTOR_NAME}
 

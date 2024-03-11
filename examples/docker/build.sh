@@ -8,7 +8,7 @@ echo "Making the deployment package"
 $_gradle distribuite
 
 rm -fr  ${TMP_DIR}; mkdir ${TMP_DIR}
-cp ${projectDir}/deploy/lightstreamer-kafka-connector-deploy-${version}.zip ${TMP_DIR}
+cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip ${TMP_DIR}
 
 echo "Build the Lightstramer Kafka Connector Docker image"
 docker build -t lightstreamer-kafka-connector-${version} $SCRIPT_DIR --build-arg VERSION=${version}

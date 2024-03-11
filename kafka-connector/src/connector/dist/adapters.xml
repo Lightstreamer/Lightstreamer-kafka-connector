@@ -281,15 +281,15 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is AVRO. The path of the local schema file relative to
-             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for message validation 
-             respectively of the Kafka key and the Kafa value. -->
+        <!-- Mandatory if evaluator type is AVRO and the Confluent Schema Registry is disabled. The path of the local schema 
+             file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for 
+             message validation respectively of the Kafka key and the Kafa value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Optional. Enable the use of the Confluent Schema Registry for validation respectively of the Kafka key and 
+        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the Kafka key and 
              the Kafa value. Can be one of the following:
              - true
              - false
@@ -369,6 +369,19 @@
         <param name="field.ref_price">#{VALUE.ref_price}</param>
         <param name="field.open_price">#{VALUE.open_price}</param>
         <param name="field.item_status">#{VALUE.item_status}</param>
+
+        <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
+
+        <!-- Mandatory if the Confluent Schema Registry is enabled. The URL of the Confluent Schema Registry.
+             An encrypted connection is enabled by specifying the "https" protocol 
+        -->
+        <param name="schema.registry.url">https://schema-registry:8084</param>
+        <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+        <param name="schema.registry.encryption.keystore.enable">true</param>
+        <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
+        <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
     </data_provider>
 
 </adapters_conf>
