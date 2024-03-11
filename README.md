@@ -136,7 +136,7 @@ Get the deployment package from the [latest release page](https://github.com/Lig
 ./gradlew distribuite
 ```
 
-which generates the `lightstreamer-kafka-connector-deploy-<version>.zip` bundle under the `deploy` folder.
+which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Finally, check that the Lightstreamer layout looks like the following:
@@ -820,7 +820,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
 
 Examples:
 
@@ -831,7 +831,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1124,15 +1124,20 @@ Lightstreamer Kafka Connector supports integration with the [_Confluent Schema R
 
 ##### `schema.registry.url`
 
-_Mandatory if the [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
+_Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
 
-Example of a plain http URL:
+Example:
 
 ```xml
-<!-- Use https to enable secure connection to the registry
-<param name="schema.registry.url">https://localhost:8081</param>
--->
 <param name="schema.registry.url">http//localhost:8081</param>
+```
+
+An encrypted connection is enabled by specifying the `https` protocol (see the [next section](#encryption-parameters-1)).
+
+Example:
+
+```xml
+<param name="schema.registry.url">https//localhost:8081</param>
 ```
 
 ##### Encryption Parameters
@@ -1153,7 +1158,7 @@ A secure connection to the Confluent Schema Registry can be configured through p
 Example:
 
 ```xml
-<!-- Set the Confluent Schema registry URL -->
+<!-- Set the Confluent Schema Registry URL. The https protcol enable encryption parameters -->
 <param name="schema.registry.url">https//localhost:8081</param>
 
 <!-- Set general encryption settings -->
@@ -1161,10 +1166,10 @@ Example:
 <param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
 <param name="schema.registry.encryption.hostname.verification.enable">true</param>
 
-<!-- If required, configure the trust store to trust the Confluent Schema registry certificates -->
+<!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
 <param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.jks</param></param>
 
-<!-- If mutual TLS is enabled on the Confluent Schema registry, enable and configure the key store -->
+<!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
 <param name="schema.registry.encryption.keystore.enable">true</param>
 <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
 <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
