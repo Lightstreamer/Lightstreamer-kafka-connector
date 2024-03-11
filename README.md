@@ -63,7 +63,7 @@
 
 ## Introduction
 
-The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lighstreamer Adapter that enables event streaming from a Kafka broker to the internet.
+The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
 
 [Insert Diagram here]
 
@@ -77,7 +77,7 @@ Kafka Connector allows to move high volume data out of Kafka by leveraging the b
 
 ## Quick Start
 
-To rapidly showcase the functioning of the Lighstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
+To rapidly showcase the functioning of the Lightstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
 
 ![quick-start-diagram](quickstart-diagram.png)
 
@@ -86,7 +86,7 @@ As you can see from the diagram above, in this variant the stream of simulated m
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
 1. _broker_, a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).
-2. _kafka-connector_, Lighstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
+2. _kafka-connector_, Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
 4. _producer_, a native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository.
 
 ### Run
@@ -172,7 +172,7 @@ To quickly complete the installation and verify the successful integration with 
 
 - Configure topic and record mapping.
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lighstreamer items.
+  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
@@ -181,7 +181,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
     
-    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing) syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lighstreamer client during the subscription. In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing) syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lightstreamer client during the subscription. In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
@@ -329,7 +329,7 @@ The following sections will guide you through the configuration details.
 
 #### `adapter_conf['id']` - _Kafka Connector identifier_
 
-  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lighstreamer Server through a _LightstreamerClient_ object.
+  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
 
   The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
@@ -861,9 +861,9 @@ Example:
 
 #### Topic Mapping
 
-<!-- As anticipated in the [_Installation_](#configure) section, Lightstreamer Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items. To convey Kafka events streams to a potentially huge amount of devices connected to Lighstreamer through the _internet_, Kafka Connector enables great flexibility by allowing the configuration of several routing and mapping strategies. -->
+<!-- As anticipated in the [_Installation_](#configure) section, Lightstreamer Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items. To convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer through the _internet_, Kafka Connector enables great flexibility by allowing the configuration of several routing and mapping strategies. -->
 
-By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lighstreamer with great flexibility.
+By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
 As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
@@ -888,7 +888,7 @@ This configuration enables the implementation of various mapping scenarios, as s
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
-  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lighstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
+  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
   
 - _One To Many_
 
@@ -896,7 +896,7 @@ This configuration enables the implementation of various mapping scenarios, as s
   <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
   ```
 
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lighstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
   This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the example), in which every subscription must be validated against the user identity.
  
@@ -912,7 +912,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
 ##### `fields.<filedName>` - Record Mapping
 
-To forward real-time updates to the Lighstreamer clients, a Kafka record must be mapped to Lighstreamer fields, which define the _schema_ of any Lighstreamer item.
+To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
 To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
 
@@ -924,7 +924,7 @@ To configure the mapping, you define the set of all subscribeable fields through
 ...
 ```
 
-The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lighstreamer.
+The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lightstreamer.
 
 To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
@@ -981,7 +981,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lighstreamer field with the same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
 
 ```xml
 <param name="field.stock_name">#{VALUE.name}</param>
@@ -1031,7 +1031,7 @@ The item template is made of:
 
   where `paraNameX` will be bound to the value extracted from the deserialized Kafka record through `<extraction_expression>` (written using the _Data Extraction Language_).
 
-To activate filtered routing, the Lighstreamer clients subscribe to a parameterized item, expressed in the form:
+To activate filtered routing, the Lightstreamer clients subscribe to a parameterized item, expressed in the form:
 
 ```js
 <item-prefix>-[paramName1=value2,paramName2=value2,...]
