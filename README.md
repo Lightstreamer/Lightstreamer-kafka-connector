@@ -849,8 +849,8 @@ Examples:
 
 _Optional_. The error handling strategy to be used if an error occurs while extracting data from deserialized incoming records. Can be one of the following:
 
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection.
+- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
+- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection
 
 Default value: `IGNORE_AND_CONTINUE`.
 
