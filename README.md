@@ -120,7 +120,7 @@ To run the app:
 
 ## Installation
 
-This section will guide you through the installation of the Lightstreamer Kafka Connector to get it up and running in a very short time.
+This section will guide you through the installation of Lightstreamer Kafka Connector to get it up and running in a very short time.
 
 ### Requirements
 
@@ -320,7 +320,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 ## Configuration
 
-As already anticipated, the Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
+As already anticipated, Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
 
 The following sections will guide you through the configuration details.
 
@@ -382,7 +382,7 @@ Example:
 
 ### Connection Settings
 
-The Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka broker/clusters.
+Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
 
 Every single connection is configured via the definition of its own Data Adapter through the `data_provider` block. At least one connection must be provided.
 
@@ -634,7 +634,7 @@ Example:
 
 ##### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Lightstreamer Kafka Connector supports the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-256`
