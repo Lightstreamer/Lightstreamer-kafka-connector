@@ -195,7 +195,7 @@ To quickly complete the installation and verify the successful integration with 
    - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`
    - ...
       
-   The _Kafka Connector_ will then route the event to any matched item.
+   The _Kafka Connector_ will then route the event to all matched items.
 
    In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka Record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
