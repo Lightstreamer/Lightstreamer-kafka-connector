@@ -52,8 +52,7 @@
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
-        - [Record Routing](#record-routing)
-          - [map..to](#mapto)
+        - [Record Routing (`map.<topic-name>.to`)](#record-routing-maptopic-nameto)
         - [Record Mapping](#record-mapping)
         - [Filtered Record Routing](#filtered-record-routing)
           - [Example](#example)
@@ -870,13 +869,10 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 - routed to the designated Lightstreamer Items
 - remapped to the specific Lightstreamer Fields
 
-##### Record Routing
+##### Record Routing (`map.<topic-name>.to`)
 
 To configure the routing of Kafka event streams to Lightstreamer items, use the mandatory parameter `map.<topic>.to`. The general format is:
  
-
-###### map.<topic-name>.to
-
 _Mandatory_. 
 ```xml
 <param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
