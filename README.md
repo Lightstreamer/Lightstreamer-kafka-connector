@@ -750,7 +750,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 #### Record Evaluation
 
-The Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
+Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
 
 - _Apache Avro_
 - _JSON_
