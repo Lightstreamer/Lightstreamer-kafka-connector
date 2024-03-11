@@ -981,7 +981,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between an attribute of the JSON record value and a Lighstreamer field name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lighstreamer field with same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
 
 ```xml
 <param name="field.stock_name">#{VALUE.name}</param>
