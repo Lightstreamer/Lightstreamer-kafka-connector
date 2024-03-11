@@ -997,7 +997,9 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 
 ##### Filtered Record Routing (`item-template.<template-name>`)
 
-Besides mapping topics to statically predefined items, Kakfa Connector allows to define _item templates_, which enable to filter the routing of Kafka records by matching the contents against a _parameterized_ subscribed item.
+Besides mapping topics to statically predefined items, Kakfa Connector allows you to configure the _item templates_, 
+which specify the rule to decide if a message can be forwarded to the clients, thus enabling a _filtered routing_.  
+The item template leverages the Data Extraction Language to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 To configure an item template, use the parameter `item-template.<template-name>`:
 
@@ -1020,7 +1022,7 @@ and then configure the routing by referencing the template through the parameter
 
 The item template is made of:
 - `<prefix>`: the prefix of the item name
-- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, defined as:
+- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, which define filtering rule defined as:
 
   ```js
   #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
