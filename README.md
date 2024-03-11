@@ -871,7 +871,7 @@ As anticipated in the [_Installation_](#configure) section, a Kafka record can b
 
 #####  Record Routing (`map.<topic>.to`)
 
-To configure the routing of Kafka event streams to Lightstreamer items, use at least the parameter `map.<topic>.to`. The general format is:
+To configure the routing of Kafka event streams to Lightstreamer items, use at least one parameter `map.<topic>.to`. The general format is:
  
 ```xml
 <param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
