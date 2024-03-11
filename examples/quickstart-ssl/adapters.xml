@@ -7,12 +7,14 @@
     </metadata_provider>
 
     <data_provider name="QuickStart">
+        <!-- ##### GENERAL PARAMETERS ##### -->
+
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <param name="bootstrap.servers">broker:29094</param>
         <param name="group.id">quick-start-group</param>
 
-        <!-- ENCRYPTION SETTINGS -->
+        <!-- ##### ENCRYPTION SETTINGS ##### -->
         <param name="encryption.enable">true</param>
         <param name="encryption.protocol">TLSv1.3</param>
         <param name="encryption.hostname.verification.enable">false</param>
@@ -23,16 +25,16 @@
         <param name="encryption.keystore.password">kafka-connector-password</param>
         <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
         
-        <!-- Topics mapping -->
-        <param name="item-template.stock">stock-#{index=KEY}</param>
-        <param name="map.stocks.to">item-template.stock</param>
-
-        <!-- Record consumption settings -->
+        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Fields mapping settings -->
+        <!-- ##### RECORD ROUTING SETTINGS ##### -->
+        <param name="item-template.stock">stock-#{index=KEY}</param>
+        <param name="map.stocks.to">item-template.stock</param>
+
+        <!-- ##### RECORD MAPPING SETTINGS ##### -->
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>

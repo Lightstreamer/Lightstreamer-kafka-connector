@@ -53,7 +53,7 @@
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
         - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
-        - [Record Mapping (`field.<filedName>`)](#record-mapping-fieldfiledname)
+        - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
         - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
           - [Example](#example)
       - [Schema Registry](#schema-registry)
@@ -872,10 +872,10 @@ As anticipated in the [_Installation_](#configure) section, a Kafka record can b
 To configure the routing of Kafka event streams to Lightstreamer items, use at least one parameter `map.<topic>.to`. The general format is:
  
 ```xml
-<param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
+<param name="map.<topic-name>.to">item1,item2,itemN,...</param>
 ```
   
-which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`<item1>`, `<item2>`, `<itemN>`, etc.).
+which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
 
 This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
 
@@ -907,7 +907,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-#####  Record Mapping (`field.<filedName>`)
+#####  Record Mapping (`field.<fieldName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 

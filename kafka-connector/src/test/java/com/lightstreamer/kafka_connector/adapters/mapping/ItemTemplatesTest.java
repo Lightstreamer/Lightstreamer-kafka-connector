@@ -28,11 +28,15 @@ import static com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSup
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig.TopicConfiguration;
+import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
@@ -319,11 +323,63 @@ public class ItemTemplatesTest {
             List<String> templateStr, List<Item> routables, List<Item> nonRoutables) {
         ItemTemplates<String, String> templates =
                 mkItemTemplates(
-                        SelectorsSuppliers.string(), templateStr.toArray(s -> new String[s]));
+                        SelectorsSuppliers.string(), templateStr.toArray(size -> new String[size]));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder().withSelectors(templates.selectors()).build();
 
         MappedRecord mapped = mapper.map(ConsumerRecords.record("topic", "key", "value"));
+        List<Item> all = Stream.concat(routables.stream(), nonRoutables.stream()).toList();
+
+        Set<Item> routed = templates.routes(mapped, all);
+        assertThat(routed).containsExactlyElementsIn(routables);
+    }
+
+    static Stream<Arguments> templateArgsJson() {
+        return Stream.of(
+                arguments(
+                        """
+                        {
+                        "name": "James",
+                        "surname": "Kirk",
+                        "age": 37
+                        }
+                        """,
+                        List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
+                        List.of(
+                                Items.itemFrom(
+                                        "user-[firstName=James,lastName=Kirk]", new Object())),
+                        List.of(
+                                Items.itemFrom("item", new Object()),
+                                Items.itemFrom("item-[key=key]", new Object()),
+                                Items.itemFrom("item-[key=anotherKey]", new Object()),
+                                Items.itemFrom("item-[value=anotherValue]", new Object())),
+                        Items.itemFrom("nonRoutable", new Object())));
+    }
+
+    @ParameterizedTest
+    @MethodSource("templateArgsJson")
+    public void shouldRoutesFromMoreTemplatesJson(
+            String jsonString,
+            List<String> templateStr,
+            List<Item> routables,
+            List<Item> nonRoutables)
+            throws JsonMappingException, JsonProcessingException {
+
+        Map<String, String> updatedConfigs =
+                Map.of(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, EvaluatorType.JSON.toString());
+        ItemTemplates<String, JsonNode> templates =
+                mkItemTemplates(
+                        SelectorsSuppliers.jsonValue(
+                                ConnectorConfigProvider.minimalWith(updatedConfigs)),
+                        templateStr.toArray(size -> new String[size]));
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withSelectors(templates.selectors())
+                        .build();
+
+        ObjectMapper om = new ObjectMapper();
+        JsonNode jsonNode = om.readTree(jsonString);
+        MappedRecord mapped = mapper.map(ConsumerRecords.record("topic", "key", jsonNode));
         List<Item> all = Stream.concat(routables.stream(), nonRoutables.stream()).toList();
 
         Set<Item> routed = templates.routes(mapped, all);

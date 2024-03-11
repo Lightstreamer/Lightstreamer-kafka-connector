@@ -1,75 +1,75 @@
 plugins {
-    id 'lightstreamer-kafka-connector'
-    id 'java'
+	id 'lightstreamer-kafka-connector'
+	id 'java'
 }
 
 sourceSets {
-    producer {
-    }
-    consumer {
-    }
+	producer {
+	}
+	consumer {
+	}
 }
 
 configurations {
-    producerImplementation.extendsFrom implementation
-    consumerImplementation.extendsFrom implementation
+	producerImplementation.extendsFrom implementation
+	consumerImplementation.extendsFrom implementation
 }
 
 dependencies {
-    implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
+	implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
 
-    producerImplementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-    producerImplementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-    producerImplementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-    producerImplementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-    producerImplementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+	producerImplementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
+	producerImplementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
+	producerImplementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
+	producerImplementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
+	producerImplementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 
-    consumerImplementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
+	consumerImplementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
 }
 
 
 task producerJar(type: Jar) {
-    manifest {
-        attributes 'Main-Class': "com.lightstreamer.kafka_connector.samples.producer.Producer"
-    }
-    archiveBaseName = rootProject.name + "-samples-producer"
-    archiveAppendix = 'all'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from sourceSets.producer.output
-    from {
-        sourceSets.producer.compileClasspath.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    }
+	manifest {
+		attributes 'Main-Class': "com.lightstreamer.kafka_connector.samples.producer.Producer"
+	}
+	archiveBaseName = rootProject.name + "-samples-producer"
+	archiveAppendix = 'all'
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	from sourceSets.producer.output
+	from {
+		sourceSets.producer.compileClasspath.collect {
+			it.isDirectory() ? it : zipTree(it)
+		}
+	}
 }
 
 task consumerJar(type: Jar) {
-    manifest {
-        attributes 'Main-Class': "com.lightstreamer.kafka_connector.samples.consumer.Consumer"
-    }
-    archiveBaseName = rootProject.name + "-samples-consumer"
-    archiveAppendix = 'all'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from sourceSets.consumer.output
-    from {
-        sourceSets.consumer.compileClasspath.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    }
+	manifest {
+		attributes 'Main-Class': "com.lightstreamer.kafka_connector.samples.consumer.Consumer"
+	}
+	archiveBaseName = rootProject.name + "-samples-consumer"
+	archiveAppendix = 'all'
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	from sourceSets.consumer.output
+	from {
+		sourceSets.consumer.compileClasspath.collect {
+			it.isDirectory() ? it : zipTree(it)
+		}
+	}
 }
 
 task distribuiteProducer(type: Copy) {
-    from producerJar
-    into "$rootDir/$deployDirName"
+	from producerJar
+	into "$rootDir/$deployDirName"
 }
 
 task distribuiteConsumer(type: Copy) {
-    from consumerJar
-    into "$rootDir/$deployDirName"
+	from consumerJar
+	into "$rootDir/$deployDirName"
 }
 
 task distribuite(type: Copy) {
-    from producerJar
-    from consumerJar
-    into "$rootDir/$deployDirName"
+	from producerJar
+	from consumerJar
+	into "$rootDir/$deployDirName"
 }

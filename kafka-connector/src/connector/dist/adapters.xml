@@ -37,10 +37,10 @@
 
          Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
     <data_provider name="QuickStart">
+        <!-- ##### GENERAL PARAMETERS ##### -->
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
-
 
         <!-- Optional. Enable this connection configuration. Can be one of the following:
              - true
@@ -72,7 +72,8 @@
         -->
         <param name="group.id">quick-start-group</param>
 
-        <!-- ENCRYPTION SETTINGS -->
+        <!-- ##### ENCRYPTION SETTINGS ##### -->
+
         <!-- A TCP secure connection to Kafka is configured through parameters with
              the `encryption` prefix. -->
 
@@ -167,7 +168,8 @@
         <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
         -->
 
-        <!-- AUTHENTICATION SETTINGS -->
+        <!-- ##### AUTHENTICATION SETTINGS ##### -->
+
         <!-- Broker authentication is configured through parameters with the
              `authentication` prefix. -->
 
@@ -200,7 +202,8 @@
         <param name="authentication.password">authorized-kafka-user-password</param>
         -->
 
-        <!-- GSSAPI AUTHENTICATION SETTINGS -->
+        <!-- ##### GSSAPI AUTHENTICATION SETTINGS ##### -->
+
         <!-- In the case of GSSAPI authentication mechanism, the following parameters will be part of
              the authentication configuration. -->
 
@@ -247,14 +250,15 @@
         <param name="authentication.gssapi.ticket.cache.enable">true</param>
         -->
 
-        <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming records.
-             Can be one of the following:
-             - IGNORE_AND_CONTINUE: Ignore the error and continue to process the next record.
-             - FORCE_UNSUBSCRIPTION: Stop processing records and force unsubscription of the items
-                                     requested by all Lightstreamer clients subscribed to this connection.
-             Default: "IGNORE_AND_CONTINUE". -->
+        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+
+        <!-- Optional. Specifies where to start consuming events from:
+             - LATEST: start consuming events from the end of the topic partition
+             - EARLIEST: start consuming events from the beginning of the topic partition 
+             
+             Default value: LATEST. -->
         <!--
-        <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+        <param name="record.consume.from">EARLIEST</param>
         -->
 
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
@@ -272,40 +276,85 @@
              - LONG
              - SHORT
              - UUID
+
              Default: STRING -->
-        <!--
-        <param name="record.key.evaluator.type">JSON</param>
-        <param name="record.value.evaluator.type">JSON</param>
-        -->
-
-        <!-- TOPIC MAPPING SECTION -->
-
-        <!-- Define the "stock" item-template, which specifies the format of the item name to be used
-             by the Lighstreamer Client subscription.
-
-             All item name in the following formats:
-             stock-[index=1]
-             stock-[index=2]
-             ...
-             stock-[index=N]
-
-         -->
-        <param name="item-template.stock">stock-#{index=KEY}</param>
-
-        <!-- Map the Kafka topic "stocks" to the previous defined "stock" item template. -->
-        <param name="map.stocks.to">item-template.stock</param>
-
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
-        <param name="record.consume.from">EARLIEST</param>
 
-        <!-- FIELDS MAPPING SECTION -->
+        <!-- Mandatory if evaluator type is AVRO. The path of the local schema file relative to
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for message validation 
+             respectively of the Kafka key and the Kafa value. -->
+        <!--
+        <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
+        <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
+        -->
+
+        <!-- Optional. Enable the use of the Confluent Schema Registry for validation respectively of the Kafka key and 
+             the Kafa value. Can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="record.key.evaluator.schema.registry.enable">true</param>
+        <param name="record.value.evaluator.schema.registry.enable">true</param>
+        -->
+
+        <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from deserialized 
+             incoming records.
+             Can be one of the following:
+             - IGNORE_AND_CONTINUE: ignore the error and continue to process the next record
+             - FORCE_UNSUBSCRIPTION: stop processing records and force unsubscription of the items
+                                     requested by all the Lightstreamer clients subscribed to this connection
+
+             Default: "IGNORE_AND_CONTINUE". -->
+        <!--
+        <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
+        -->
+
+        <!-- ##### RECORD ROUTING SETTINGS ##### -->
+
+        <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
+             - one or more simple items
+             - one or more item templates
+             - any combination of the above 
+             
+             At least one mapping must be provided. -->
+        <!-- Example 1:
+        <param name="map.<topic>.to">item1,item2,itemN,...</param>
+        -->
+        <!-- Example 2:
+        <param name="map.<topic>.to">item-itemplate.template-name1,item-template.template-name2...</param>
+        -->
+        <!-- Example 3:
+        <param name="map.<topic>.to">item-itemplate.template-name1,item1,item-template.template-name2,item2,...</param>
+        -->
+        <param name="map.stocks.to">item-template.stock</param>
+
+        <!-- Multiple and Optional. Define an item template expression, which is made of:
+             - <prefix>: the prefix of the item name
+             - <bindable_expressions>: a sequence of bindable extraction expressions. See documentation at:
+             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate-name
+        -->
+        <!--
+        <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
+        -->
+        <param name="item-template.stock">stock-#{index=KEY}</param>
+
+        <!-- ##### RECORD MAPPING SETTINGS ##### -->
+
+        <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to 
+             field <fieldName>. The expression is written in the Data Extraction Language. See documentation at:
+             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfiledname
+        
+             At least one mapping must be provided. -->
+        <!--
+        <param name="field.<fieldName>">extraction_expression</param>
+        -->
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
-
-        <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
         <param name="field.stock_name">#{VALUE.name}</param>
