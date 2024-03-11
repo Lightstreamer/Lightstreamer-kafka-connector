@@ -172,7 +172,7 @@ To quickly complete the installation and verify the successful integration with 
 
 - Configure topic and record mapping.
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
+  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lighstreamer items.
 
   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
@@ -634,7 +634,7 @@ Example:
 
 ##### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Lightstreamer Kafka Connector supports the following authentication mechanisms:
+_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Lightstreamer Kafka Connector accepts the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-256`
@@ -750,7 +750,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 #### Record Evaluation
 
-Lightstreamer Kafka Connector offers wide support for deserializing Kafka records. Currently, it accepts the following formats:
+Lightstreamer Kafka Connector can deserialize Kafka records from the following formats:
 
 - _Apache Avro_
 - _JSON_
@@ -861,11 +861,11 @@ Example:
 
 #### Topic Mapping
 
-Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items.
+<!-- As anticipated in the [_Installation_](#configure) section, Lightstreamer Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items. To convey Kafka events streams to a potentially huge amount of devices connected to Lighstreamer through the _internet_, Kafka Connector enables great flexibility by allowing the configuration of several routing and mapping strategies. -->
 
-As anticipated in the [_Installation_](#start) section, Lightstreamer Kafka Connector provides support for mapping Kafka topics to Lightstreamer items. To convey Kafka events streams to a potentially huge amount of devices connected to Lighstreamer through the _internet_, Kafka Connector allows great flexibility in routing and mapping strategies.
+By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lighstreamer with great flexibility.
 
-A Kafka record can be analyzed in all its aspects to extract the information that can be:
+As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
 - remapped to the specific Lightstreamer Fields
 
