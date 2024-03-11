@@ -197,7 +197,7 @@ To quickly complete the installation and verify the successful integration with 
       
    The _Kafka Connector_ will then route the event to all matched items.
 
-   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka Record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
    ```xml
    <param name="field.stock_name">#{VALUE.name}</param>
@@ -267,11 +267,11 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    As you can see, you have to specify a few parameters:
 
-   - `--address`, the Lightstreamer Server address.
-   - `--adapter-set`, the name of the requested Adapter Set, which triggers Ligthtreamer to activate Kafka Connector deployed into the `adapters` folder.
-   - `--data-adapter`, the name of the requested Data Adapter, which identifies the selected Kafka connection configuration.
-   - `--items`, the list of items to subscribe to.
-   - `--fields`, the list of requested fields for the items.
+   - `--address`: the Lightstreamer Server address
+   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthtreamer to activate Kafka Connector deployed into the `adapters` folder
+   - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
+   - `--items`: the list of items to subscribe to
+   - `--fields`: the list of requested fields for the items
 
    **NOTE:** As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
 
