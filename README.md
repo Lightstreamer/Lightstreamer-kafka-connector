@@ -927,86 +927,86 @@ To activate filtered routing, the Lighstreamer clients subscribe to a parameteri
 <item-prefix>-[paramName1=value2,paramName2=value2,...]
 ```
 
-For every message published to the mapped topic, Kafka Connector will evaluate the bindable extraction expressions of the template to construct an expanded item:
+Upon consuming a message, Kafka Connector _expands_ every item template relative to the record topic by evaluating the extraction expressions. The expanded template will result as:
 
 ```js
 <item-prefix>-[paramName1=extractedValue1,paramName2=extractedValue2,...] 
 ```
 
-and will route the message only in case of a positive match with the subscribed item.
+Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template.
 
 ###### Example
 
 Consider the following configuration:
 
 ```xml
-<param name=item-template.user-data>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
-<param name="map.user.to">item-template.user-data</param>
+<param name=item-template.user-by-name>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
+<param name=item-template.user-by-age>user-#{years=VALUE.age}</param>
+<param name="map.user.to">item-template.user-by-name,item-template.user-by-age</param>
 ```
 
-which defines a filtered routing from the topic `user`.
+which specifies how to route records published from the topic `user` to item templates defined to extract some personal data.
 
-Let's suppose we have two different Lightstreamer clients:
+Let's suppose we have three different Lightstreamer clients:
 
-1. client 1 subscribes to the parameterized item `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`.
-2. client 2 subscribes to the parameterized item `user-[firstName=Montgomery,lastName=Scotty]`, for receiving real-time updates relative to the user `Montgomery Scotty`.
+1. _Client A_ subscribes to:
+   - the parameterized item _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`
+   - the parameterized item _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user
+2. _Client B_ subscribes to:
+   - the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]`, for receiving real-time updates relative to the user `Montgomery Scotty`
+3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]`, for receiving real-time updates relative to any 37 year-old user.
 
-Now, a Kafka record with the following JSON value:
+Now, let's see how filtered routing works for the following incoming Kafka records published to the topic `user`:
 
-```js
-{
-  ...
-  "name": "James",
-  "surname": "Kirk",
-  ...
-}
-```
+- Record 1:
+  ```js
+  {
+    ...
+    "name": "James",
+    "surname": "Kirk",
+    "age": 37,
+    ...
+  }
+  ```
 
-will be expanded to the item:
+  | Template       | Expansion                              | Matched Subscribed Item | Routed to Client |
+  | -------------- | -------------------------------------- | ----------------------- | -----------------|
+  | `user-by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
+  | `user-by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
+  
+  
+- Record 2:
+  ```js
+  {
+    ...
+    "name": "Montgomery",
+    "surname": "Scotty",
+    "age": 45
+    ...
+  }
+  ```
 
-```js
-user-[firstName=James,lastName=Kirk]
-```
+  | Template       | Expansion                                     | Matched Subscribed Item | Routed to Client |
+  | -------------- | --------------------------------------------- | ----------------------- | -----------------|
+  | `user-by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
+  | `user-by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
 
-which matches it matches the item subscribed by client 1, expanded item 
+- Record 3:
+  ```js
+  {
+    ...
+    "name": "Nyota",
+    "surname": "Uhura",
+    "age": 37,
+    ...
+  }
+  ```
 
-On the other hand, the following record:
-```js
-{
-  ...
-  "name": "Montgomery",
-  "surname": "Scotty",
-  ...
-}
-```
+  | Template       | Expansion                                | Matched Subscribed Item | Routed to Client |
+  | -------------- | ---------------------------------------- | ----------------------- | -----------------|
+  | `user-by-name` | `user-[firstName=Nyota,lastName=Uhura]`  | _None_                  | _None_           |
+  | `user-by-age`  | `user-[age=37]`                          | _SC1_                   | _Client C_       |
 
-will be forwarded to client 2.
-
-Finally,
-
-the record:
-
-```js
-{
-  ...
-  "name": "Nyota",
-  "surname": "Uhura",
-  ...
-}
-```
-
-will be filtered out as no client has subscribed to a matchable item.
-
-Resuming the _Quick Start_ app, the [factory configuration file](kafka-connector/src/connector/dist/adapters.xml#L39) defines the following item template:
-
-```xml
-<param name="item-template.stock">stock-#{index=KEY}</param>
-```
-
-which is made of:
-- name: `stock`
-- prefix: `stock`
-- bindable expression key: #{index=KEY}
 
 #### Record Evaluation
 
