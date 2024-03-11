@@ -2,7 +2,6 @@
 
 - [Lightstreamer Kafka Connector](#lightstreamer-kafka-connector)
   - [Introduction](#introduction)
-  - [Features](#features)
   - [Quick Start](#quick-start)
     - [Run](#run)
   - [Installation](#installation)
@@ -65,15 +64,9 @@
 
 The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
 
-[Insert Diagram here]
-
-With Kafka Connector, any internet client connected to the Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
+With Kafka Connector, any internet client connected to Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
 
 Kafka Connector allows to move high volume data out of Kafka by leveraging the battle-tested ability of the Lightstreamer real-time engine to deliver live data reliably and efficiently over internet protocols.
-
-## Features
-
-[...] TO TDO
 
 ## Quick Start
 
