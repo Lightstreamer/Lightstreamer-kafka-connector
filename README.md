@@ -52,7 +52,7 @@
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
-        - [`map.<topic-name>.to` - Record Routing](#maptopic-nameto---record-routing)
+        - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
         - [`fields.<filedName>` - Record Mapping](#fieldsfiledname---record-mapping)
         - [Filtered Record Routing](#filtered-record-routing)
           - [Example](#example)
@@ -866,14 +866,13 @@ Example:
 By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
 As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
-- routed to the designated Lightstreamer Items
-- remapped to specific Lightstreamer Fields
+- routed to the designated Lightstreamer items
+- remapped to specific Lightstreamer fields
 
-##### `map.<topic-name>.to` - Record Routing
+#####  Record Routing (`map.<topic>.to`)
 
-To configure the routing of Kafka event streams to Lightstreamer items, use the mandatory parameter `map.<topic>.to`. The general format is:
+To configure the routing of Kafka event streams to Lightstreamer items, use at least the parameter `map.<topic>.to`. The general format is:
  
-_Mandatory_. 
 ```xml
 <param name="map.<topic-name>.to"><item1>,<item2>,<itemN>,...</param>
 ```
