@@ -765,7 +765,7 @@ In particular, Kafka Connector supports message validation for Avro and JSON, wh
 - Local schema files.
 - The _Confluent Schema Registry_.
 
-Kafka Connector supports independent deserialization of keys and values, which means that:
+Kafka Connector allows independent deserialization of keys and values, which means that:
 
 - Key and value can have different formats.
 - Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
