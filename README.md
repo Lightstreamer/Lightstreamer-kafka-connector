@@ -759,10 +759,10 @@ Lightstreamer Kafka Connector offers wide support for deserializing Kafka record
 
 and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
 
-In particular, Kafka Connector supports message validation for Avro and JSON, which can be specified through:
+In particular, Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
 
-- Local schema files.
-- The _Confluent Schema Registry_.
+- local schema files
+- the _Confluent Schema Registry_
 
 Kafka Connector allows independent deserialization of keys and values, which means that:
 
