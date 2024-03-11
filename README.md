@@ -293,6 +293,8 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
+   ![producer_video](producer.gif)
+
    #### Publishing with Confluent Cloud
 
    If your target Kafka cluster is Confluent Cloud, you also need to provide a properties file that includes encryption and authentication settings, as follows:
@@ -309,8 +311,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    ```sh
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
-
-   ![producer_video](producer.gif)
+  
 
 4. Check Consumed Events.
 
