@@ -773,8 +773,6 @@ Kafka Connector allows independent deserialization of keys and values, which mea
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
-In case of a validation failure, the Connector can react by ...
-
 ##### `record.consume.from`
 
 _Optional_. Specifies where to start consuming events from:
@@ -847,7 +845,7 @@ Examples:
 
 ##### `record.extraction.error.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while extracting data from deserialized incoming records. Can be one of the following:
+_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping) from deserialized incoming records. Can be one of the following:
 
 - `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
 - `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection
@@ -981,7 +979,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 > VALUE.myProperty['myChild'].childProperty
 > ```
 
-- expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process (see record error evaluation strategy).
+- expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
 The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between an attribute of the JSON record value and a Lighstreamer field name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
 
