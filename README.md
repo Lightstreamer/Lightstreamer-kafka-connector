@@ -867,7 +867,7 @@ By allowing the configuration of several routing and mapping strategies, Kafka C
 
 As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
 - routed to the designated Lightstreamer Items
-- remapped to the specific Lightstreamer Fields
+- remapped to specific Lightstreamer Fields
 
 ##### `map.<topic-name>.to` - Record Routing
 
