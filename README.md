@@ -1125,11 +1125,11 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html), through the configuration of parameters with the prefix `schema.registry`.
+Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
 
 ##### `schema.registry.url`
 
-_Mandatory_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
+_Mandatory if [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
 
 Example of a plain http URL:
 
