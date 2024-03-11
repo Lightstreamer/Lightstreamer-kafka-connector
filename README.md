@@ -821,7 +821,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
 
 Examples:
 
@@ -832,7 +832,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-Optional. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and no [schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
 - `true`
 - `false`
 
