@@ -52,8 +52,8 @@
         - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
-        - [Record Routing (`map.<topic-name>.to`)](#record-routing-maptopic-nameto)
-        - [Record Mapping](#record-mapping)
+        - [map..to (Record Routing)](#mapto-record-routing)
+        - [`fields.<filedName>` - Record Mapping](#fieldsfiledname---record-mapping)
         - [Filtered Record Routing](#filtered-record-routing)
           - [Example](#example)
       - [Schema Registry](#schema-registry)
@@ -869,7 +869,7 @@ A Kafka record can be analyzed in all its aspects to extract the information tha
 - routed to the designated Lightstreamer Items
 - remapped to the specific Lightstreamer Fields
 
-##### Record Routing (`map.<topic-name>.to`)
+##### map.<topic-name>.to (Record Routing)
 
 To configure the routing of Kafka event streams to Lightstreamer items, use the mandatory parameter `map.<topic>.to`. The general format is:
  
@@ -910,7 +910,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-##### Record Mapping
+##### `fields.<filedName>` - Record Mapping
 
 To forward real-time updates to the Lighstreamer clients, a Kafka record must be mapped to Lighstreamer fields, which define the _schema_ of any Lighstreamer item.
 
