@@ -214,7 +214,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
      <param name="item-template.stock">stock-#{index=KEY}</param>
      ```
      
-     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The _bindable extraction expression_ syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lighstreamer client while subscribing to item, In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
+     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The _bindable extraction expression_ syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lighstreamer client during the subscription. In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
 
    - A topic mapping:
      ```xml
