@@ -1137,7 +1137,7 @@ An encrypted connection is enabled by specifying the `https` protocol (see the [
 Example:
 
 ```xml
-<param name="schema.registry.url">https//localhost:8081</param>
+<param name="schema.registry.url">https://localhost:8084</param>
 ```
 
 ##### Encryption Parameters
@@ -1159,7 +1159,7 @@ Example:
 
 ```xml
 <!-- Set the Confluent Schema Registry URL. The https protcol enable encryption parameters -->
-<param name="schema.registry.url">https//localhost:8081</param>
+<param name="schema.registry.url">https//localhost:8084</param>
 
 <!-- Set general encryption settings -->
 <param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
@@ -1178,4 +1178,4 @@ Example:
 
 ##### Quick Start Schema Registry Example
 
-Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L36) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
