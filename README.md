@@ -1129,7 +1129,7 @@ Lightstreamer Kafka Connector supports integration with the [_Confluent Schema R
 
 ##### `schema.registry.url`
 
-_Mandatory if [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
+_Mandatory if the [schema registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry. An encrypted connection is enabled by specifying the `https` protocol.
 
 Example of a plain http URL:
 
