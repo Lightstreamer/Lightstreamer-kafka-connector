@@ -771,7 +771,7 @@ Kafka Connector allows independent deserialization of keys and values, which mea
 - Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
 
 > [!IMPORTANT]
-> For Avro, schema validation is mandatiry, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+> For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
 In case of a validation failure, the Connector can react by ...
 
