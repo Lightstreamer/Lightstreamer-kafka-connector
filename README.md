@@ -53,8 +53,8 @@
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
         - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
-        - [Record Mapping (`fields.<filedName>`)](#record-mapping-fieldsfiledname)
-        - [Filtered Record Routing](#filtered-record-routing)
+        - [Record Mapping (`field.<filedName>`)](#record-mapping-fieldfiledname)
+        - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
           - [Example](#example)
       - [Schema Registry](#schema-registry)
         - [`schema.registry.url`](#schemaregistryurl)
@@ -907,7 +907,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-#####  Record Mapping (`fields.<filedName>`)
+#####  Record Mapping (`field.<filedName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -995,7 +995,7 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 <param name="field.item_status">#{VALUE.item_status}</param>
 ```
 
-##### Filtered Record Routing
+##### Filtered Record Routing (`item-template.<template-name>`)
 
 Besides mapping topics to statically predefined items, Kakfa Connector allows to define _item templates_, which enable to filter the routing of Kafka records by matching the contents against a _parameterized_ subscribed item.
 
