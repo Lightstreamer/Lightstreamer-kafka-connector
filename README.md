@@ -163,12 +163,58 @@ Before starting Kafka Connector, you need to properly configure the `LS_HOME/ada
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
-- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka.
+- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 - Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+
+- Configure topic and record mapping.
+
+  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
+
+  The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
+
+  - An item template:
+    ```xml
+    <param name="item-template.stock">stock-#{index=KEY}</param>
+    ```
+    
+    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing) syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lighstreamer client during the subscription. In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
+
+  - A topic mapping:
+    ```xml
+    <param name="map.stocks.to">item-template.stock</param>
+    ```
+    which maps the topic `stocks` to the provided item template.
+
+   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+      
+   - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`
+   - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`
+   - ...
+      
+   The _Kafka Connector_ will then route the event to any matched item.
+
+   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka Record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+
+   ```xml
+   <param name="field.stock_name">#{VALUE.name}</param>
+   <param name="field.last_price">#{VALUE.last_price}</param>
+   <param name="field.ask">#{VALUE.ask}</param>
+   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+   <param name="field.bid">#{VALUE.bid}</param>
+   <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+   <param name="field.pct_change">#{VALUE.pct_change}</param>
+   <param name="field.min">#{VALUE.min}</param>
+   <param name="field.max">#{VALUE.max}</param>
+   <param name="field.ref_price">#{VALUE.ref_price}</param>
+   <param name="field.open_price">#{VALUE.open_price}</param>
+   <param name="field.item_status">#{VALUE.item_status}</param>
+   ```
+
+   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
@@ -204,51 +250,6 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple 
    Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
-
-   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper support to realize the mapping between Kafka topics and Lighstreamer items.
-
-   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
-
-   - An item template:
-     ```xml
-     <param name="item-template.stock">stock-#{index=KEY}</param>
-     ```
-     
-     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The _bindable extraction expression_ syntax used here, denoted within `#{...}`, binds every part of a Kafka record to a variable set of parameters, which will be specified by the Lighstreamer client during the subscription. In this case, the parameter `index` is bound to the `KEY` predefined constant, which extracts the key part of Kafka records.
-
-   - A topic mapping:
-     ```xml
-     <param name="map.stocks.to">item-template.stock</param>
-     ```
-     which maps the topic `stocks` to the provided item template.
-
-   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
-      
-   - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`.
-   - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`.
-   - ...
-   - `stock-[index=<any record key>]`
-   
-   The _Kafka Connector_ will then route the event to any matched item.
-
-   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of _Selector Keys_ (denoted with `#{..}`) through which each part of a Kafka Record can be extracted. In this case, the VALUE predefined constant extracts the value part of Kakfa records.
-
-   ```xml
-   <param name="field.stock_name">#{VALUE.name}</param>
-   <param name="field.last_price">#{VALUE.last_price}</param>
-   <param name="field.ask">#{VALUE.ask}</param>
-   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
-   <param name="field.bid">#{VALUE.bid}</param>
-   <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
-   <param name="field.pct_change">#{VALUE.pct_change}</param>
-   <param name="field.min">#{VALUE.min}</param>
-   <param name="field.max">#{VALUE.max}</param>
-   <param name="field.ref_price">#{VALUE.ref_price}</param>
-   <param name="field.open_price">#{VALUE.open_price}</param>
-   <param name="field.item_status">#{VALUE.item_status}</param>
-   ```
-
-   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
    Before launching the consumer, you first need to build it with the command:
 
@@ -980,7 +981,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lighstreamer field with same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lighstreamer field with the same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
 
 ```xml
 <param name="field.stock_name">#{VALUE.name}</param>
