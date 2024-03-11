@@ -53,7 +53,7 @@
         - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
       - [Topic Mapping](#topic-mapping)
         - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
-        - [`fields.<filedName>` - Record Mapping](#fieldsfiledname---record-mapping)
+        - [Record Mapping (`fields.<filedName>`)](#record-mapping-fieldsfiledname)
         - [Filtered Record Routing](#filtered-record-routing)
           - [Example](#example)
       - [Schema Registry](#schema-registry)
@@ -861,8 +861,6 @@ Example:
 
 #### Topic Mapping
 
-<!-- As anticipated in the [_Installation_](#configure) section, Lightstreamer Kafka Connector provides extensive support for mapping Kafka topics to Lightstreamer items. To convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer through the _internet_, Kafka Connector enables great flexibility by allowing the configuration of several routing and mapping strategies. -->
-
 By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
 As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
@@ -909,7 +907,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
-##### `fields.<filedName>` - Record Mapping
+#####  Record Mapping (`fields.<filedName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
