@@ -1228,4 +1228,4 @@ For a Gradle project, edit your _build.gradle_ file as follows:
    }
    ```
 
-In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to deploy your custom extension.
+In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
