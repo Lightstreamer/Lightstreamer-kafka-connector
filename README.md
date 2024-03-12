@@ -1206,11 +1206,11 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 1. Add the dependency:
 
-  ```groovy
-  dependencies {
-      implementation group: 'com.lightstreamer.kafka_connector', name: 'kafka-connector', 'version': '0.1.0'
-  }
-  ```
+   ```groovy
+   dependencies {
+       implementation group: 'com.lightstreamer.kafka_connector', name: 'kafka-connector', 'version': '0.1.0'
+   }
+   ```
 
 2. Add the repository and specify your personal access token:
 
