@@ -4,16 +4,14 @@ plugins {
 
 repositories {
     mavenCentral()
-    // maven {
-    //     url "https://packages.confluent.io/maven"
-    // }
     maven {
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/lightstreamer/lightstreamer-kafka-connector")
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-            password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
-        }
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+
     }
 }
 
@@ -21,3 +19,8 @@ dependencies {
     implementation group: 'com.lightstreamer.kafka_connector', name: 'kafka-connector', 'version': '0.1.0'
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}

@@ -42,9 +42,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Base class for the Lightstreamer Kafak Connector implementation of the Metadata Provider.
+ * Implementation of a Lighstreamer Metadata Adpater for the Lightstreamer Kafka Connector.
  *
- * @see java.base/java.io
+ * <p>For the sake of simplicity, this documentation shows only the hook methods.
+ *
+ * @see <a
+ *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html">MetadataProvider</a>
+ * @see <a
+ *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html">MetadataProviderAdapter</a>
+ * @see <a
+ *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html">LiteralBasedProvider</a>
  */
 public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
@@ -58,6 +65,9 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private GlobalConfig globalConfig;
 
+    /**
+     * @hidden
+     */
     @SuppressWarnings("unchecked")
     @Override
     public final void init(@SuppressWarnings("rawtypes") Map params, File configDir)
@@ -69,11 +79,28 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         postInit(params, configDir);
     }
 
+    /**
+     * Hook method invoked by Lightstreamer Kernel after the initialization phase of the Kafka
+     * Connector Metadata Adapter has been completed.
+     *
+     * @param params a Map-type value object that contains name-value pairs corresponding to the
+     *     {@code param} elements supplied in the KafkaConnector configuration file under the {@code
+     *     <metadata_provider>} element
+     * @param configDir the path of the directory on the local disk where the KafkaConnector
+     *     configuration file resides
+     * @throws MetadataProviderException if an error occurs that prevents the correct behavior of
+     *     the Metadata Adapter. This causes the Server not to complete the startup and to exit.
+     * @see <a
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#init(java.util.Map,java.io.File)">MetadataProvider.init(java.util.Map,
+     *     java.io.File)</a>
+     */
     protected void postInit(Map params, File configDir) throws MetadataProviderException {}
 
     /**
      * Only used for unit testing.
      *
+     * @param sessionId a Session ID
+     * @return an Optional describing the set of all the items associated with the specified session
      * @hidden
      */
     protected final Optional<Set<String>> itemsBySession(String sessionId) {
@@ -89,6 +116,12 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     /**
      * Only used internally.
      *
+     * <p>Returns a new MetadataLister instance, which will be used by the DataProvider to force
+     * unsubscriptions from items.
+     *
+     * @param dataProviderName the name of the DataProvider
+     * @param enabled indicates whether the calling DataProvider is enabled
+     * @return a new MetadataListener instance
      * @hidden
      */
     public static final MetadataListener listener(String dataProviderName, boolean enabled) {
@@ -113,11 +146,17 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
                 .thenRun(() -> log.atDebug().log("Forced unsubscription from item {}", items));
     }
 
+    /**
+     * @hidden
+     */
     @Override
     public final boolean wantsTablesNotification(String user) {
         return true;
     }
 
+    /**
+     * @hidden
+     */
     @Override
     public void notifyNewTables(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
@@ -155,6 +194,9 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         }
     }
 
+    /**
+     * @hidden
+     */
     @Override
     public final void notifyTablesClose(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException {
@@ -183,16 +225,55 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     /**
      * Used only for unit testing.
      *
+     * <p>Returns a {@link ConnectionInfo} instance that describes a configured connection.
+     *
+     * @param connectionName the name of the connection as specified in the attribute {@code name}
+     *     of the {@code data_provider} block in the {@code adapters.xml} file
+     * @return an Optional describing the connection info relative to the specified connection name
      * @hidden
      */
     protected final Optional<ConnectionInfo> lookUp(String connectionName) {
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
+    /**
+     * Hook method invoked by Lighstreamer Kernel to notify that a user has submitted a
+     * Subscription.
+     *
+     * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
+     *
+     * @param user a user name
+     * @param sessionID the ID of a session owned by the user
+     * @param tables an array of TableInfo instances, each of them containing the details of a
+     *     Subscription to be added to the session
+     * @throws CreditsException if the user is not allowed to submit the Subscription
+     * @throws NotificationException if something is wrong in the parameters, such as the {@code
+     *     sessionID} of a session that is not currently open or inconsistent information about the
+     *     Subscription
+     * @see <a
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyNewTables(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyNewTables(java.lang.String,
+     *     java.lang.String, com.lightstreamer.interfaces.metadata.TableInfo)</a>
+     */
     public void onSubscription(
             @Nullable String user, @Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws CreditsException, NotificationException {}
 
+    /**
+     * Hook method invoked by Lighstreamer Kernel to notify that a Subscription has been removed
+     * from a push session.
+     *
+     * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
+     *
+     * @param sessionID the ID of a session owned by the user
+     * @param tables an array of TableInfo instances, each of them containing the details of a
+     *     Subscription that has been removed from the session
+     * @throws NotificationException if something is wrong in the parameters, such as the {@code
+     *     sessionID} of a session that is not currently open or inconsistent information about the
+     *     Subscription
+     * @see <a
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyTablesClose(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyTablesClose(java.lang.String,
+     *     com.lightstreamer.interfaces.metadata.TableInfo)</a>
+     */
     public void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException {}
 

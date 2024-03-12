@@ -35,6 +35,7 @@ dependencies {
 javadoc {
 	include '**/pub/KafkaConnectorMetadataAdapter.java'
 	exclude '**/pub/*ConnectionInfo*'
+	destinationDir = file("${project.rootDir}/docs/javadoc")
 }
 
 distributions {
