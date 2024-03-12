@@ -59,6 +59,8 @@
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+  - [Customize the KafkaConnector Metadata Adapter Class](#customize-the-kafkaconnector-metadata-adapter-class)
+    - [Build the Extension](#build-the-extension)
 
 ## Introduction
 
@@ -78,9 +80,9 @@ As you can see from the diagram above, in this variant the stream of simulated m
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_, a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).
-2. _kafka-connector_, Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
-4. _producer_, a native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository.
+1. _broker_: a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest).
+2. _kafka-connector_: Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/). The service also includes the web client, mounted on `/lightstreamer/pages/QuickStart`.
+4. _producer_: a native Kafka Producer, based on the provided [Dockerfile.producer](examples/quickstart/Dockerfile.producer) file and [kafka-connector-samples](kafka-connector-samples/) submodule of this repository
 
 ### Run
 
@@ -340,7 +342,7 @@ The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaCon
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
-See the [Metadata Adapter Customization](#meta) section for more details.
+See the section [Customize the KafkaConnector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) for more details.
 
 Example:
 
@@ -1174,3 +1176,56 @@ Example:
 ##### Quick Start Schema Registry Example
 
 Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+
+## Customize the KafkaConnector Metadata Adapter Class
+
+If you have any specific need to customize the _KafkaConnector Metadata Adapter_ class, you can provide your implementation by extending the factory class `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`. The class provides the following hook methods, which you can override to add your custom logic:
+
+- [_postInit_](docs/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html#postInit(java.util.Map,java.io.File)): invoked after the initialization phase of the Kafka Connector Metadata Adapter has been completed
+
+- [_onSubscription_](docs/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html#onSubscription(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a user has submitted a subscription
+
+- [_onUnsubcription_](docs/javadoccom/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
+
+### Build the Extension
+
+To develop your extension, you need the Kafka Connector jar library, which is hosted on _Github Packages_.
+
+For a Maven project, add the dependency to your _pom.xml_ file:
+
+```xml
+<dependency>
+    <groupId>com.lighstreamer.kafka-connector</groupId>
+    <artifactId>kafka-connector</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+and follow these [instructions](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-apache-maven-registry#authenticating-to-github-packages) to configure the repository and authentication.
+
+For a Gradle project, edit your _build.gradle_ file as follows:
+
+1. Add the dependency:
+
+  ```groovy
+  dependencies {
+      implementation group: 'com.lightstreamer.kafka_connector', name: 'kafka-connector', 'version': '0.1.0'
+  }
+  ```
+
+2. Add the repository and specify your personal access token:
+
+   ```grrovy
+   repositories {
+       mavenCentral()
+       maven {
+           name = "GitHubPackages"
+           url = uri("https://maven.pkg.github.com/lightstreamer/lightstreamer-kafka-connector")
+               credentials {
+                   username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                   password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+               }
+       }
+   }
+   ```
+
+In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to deploy your custom extension.
