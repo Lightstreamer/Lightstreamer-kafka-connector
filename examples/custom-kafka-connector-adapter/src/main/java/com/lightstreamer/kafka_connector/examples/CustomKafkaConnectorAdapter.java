@@ -12,7 +12,7 @@ public class CustomKafkaConnectorAdapter extends KafkaConnectorMetadataAdapter {
 
     @Override
     public void postInit(Map parameters, File adapterDir) {
-        System.out.println("Custom KafkaConnector Adapter initialized");
+        System.out.println("###### Custom KafkaConnector Adapter initialized ######");
     }
 
     @Override
