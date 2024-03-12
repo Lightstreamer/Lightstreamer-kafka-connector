@@ -74,7 +74,7 @@ Kafka Connector allows to move high volume data out of Kafka by leveraging the b
 
 To rapidly showcase the functioning of the Lightstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
 
-![quick-start-diagram](quickstart-diagram.png)
+![quick-start-diagram](pictures/quickstart-diagram.png)
 
 As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through the Ligthstreamer Kafka Connector.
 
@@ -288,7 +288,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
-   ![producer_video](producer.gif)
+   ![producer_video](pictures/producer.gif)
 
    #### Publishing with Confluent Cloud
 
@@ -312,7 +312,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
-   ![consumer_video](consumer.gif)
+   ![consumer_video](pictures/consumer.gif)
 
 ## Configuration
 
@@ -762,9 +762,9 @@ In particular, Kafka Connector supports message validation for _Avro_ and _JSON_
 
 Kafka Connector allows independent deserialization of keys and values, which means that:
 
-- Key and value can have different formats.
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
-- Message validation against local schema files must be specified separately for key and value (through the [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
+- key and value can have different formats
+- message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
+- message validation against local schema files must be specified separately for key and value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
 
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
@@ -880,6 +880,8 @@ This configuration enables the implementation of various mapping scenarios, as s
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
+  ![one-to-one](pictures/one-to-one.png)
+
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
   
 - _One To Many_
@@ -887,6 +889,8 @@ This configuration enables the implementation of various mapping scenarios, as s
   ```xml
   <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
   ```
+
+  ![one-to-many](pictures/one-to-many.png)
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
@@ -900,11 +904,15 @@ This configuration enables the implementation of various mapping scenarios, as s
   <param name="map.sample-topic3.to">sample-item</param>
   ```
 
+  ![many-to-one](pictures/many-to-one.png)
+
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
 
 #####  Record Mapping (`field.<fieldName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
+
+![record-mapping](pictures/record-mapping.png)
 
 To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
 
@@ -923,11 +931,12 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 - expressions must be enclosed within `#{...}`
 - expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
-  - `#{KEY}`, the key
-  - `#{VALUE}`, the value
-  - `#{TIMESTAMP}`, the timestamp
-  - `#{OFFSET}`, the offset
+  - `#{KEY}`: the key
+  - `#{VALUE}`,:the value
+  - `#{TOPIC}`: the topic
+  - `#{TIMESTAMP}`: the timestamp
   - `#{PARTITION}`, the partition
+  - `#{OFFSET}`, the offset
 
 - the _dot notation_ is used to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
@@ -996,6 +1005,8 @@ Besides mapping topics to statically predefined items, Kakfa Connector allows yo
 which specify the rule needed to decide if a message can be forwarded to the clients, thus enabling a _filtered routing_.  
 The item template leverages the Data Extraction Language to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
+![filtered-routing](pictures/filtered-routing.png)
+
 To configure an item template, use the parameter `item-template.<template-name>`:
 
 ```xml
@@ -1044,9 +1055,9 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 Consider the following configuration:
 
 ```xml
-<param name=item-template.user-by-name>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
-<param name=item-template.user-by-age>user-#{years=VALUE.age}</param>
-<param name="map.user.to">item-template.user-by-name,item-template.user-by-age</param>
+<param name=item-template.by-name>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
+<param name=item-template.by-age>user-#{years=VALUE.age}</param>
+<param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
 which specifies how to route records published from the topic `user` to item templates defined to extract some personal data.
@@ -1073,10 +1084,10 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   }
   ```
 
-  | Template       | Expansion                              | Matched Subscribed Item | Routed to Client |
-  | -------------- | -------------------------------------- | ----------------------- | -----------------|
-  | `user-by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
-  | `user-by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
+  | Template  | Expansion                              | Matched Subscribed Item | Routed to Client |
+  | ----------| -------------------------------------- | ----------------------- | -----------------|
+  | `by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
+  | `by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
   
   
 - Record 2:
@@ -1090,10 +1101,10 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   }
   ```
 
-  | Template       | Expansion                                     | Matched Subscribed Item | Routed to Client |
-  | -------------- | --------------------------------------------- | ----------------------- | -----------------|
-  | `user-by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
-  | `user-by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
+  | Template  | Expansion                                     | Matched Subscribed Item | Routed to Client |
+  | --------- | --------------------------------------------- | ----------------------- | -----------------|
+  | `by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
+  | `by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
 
 - Record 3:
   ```js
@@ -1106,10 +1117,10 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   }
   ```
 
-  | Template       | Expansion                                | Matched Subscribed Item | Routed to Client |
-  | -------------- | ---------------------------------------- | ----------------------- | -----------------|
-  | `user-by-name` | `user-[firstName=Nyota,lastName=Uhura]`  | _None_                  | _None_           |
-  | `user-by-age`  | `user-[age=37]`                          | _SC1_                   | _Client C_       |
+  | Template  | Expansion                               | Matched Subscribed Item | Routed to Client |
+  | ----------| --------------------------------------- | ----------------------- | -----------------|
+  | `by-name` | `user-[firstName=Nyota,lastName=Uhura]` | _None_                  | _None_           |
+  | `by-age`  | `user-[age=37]`                         | _SC1_                   | _Client C_       |
 
 
 
