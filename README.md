@@ -59,7 +59,7 @@
         - [`schema.registry.url`](#schemaregistryurl)
         - [Encryption Parameters](#encryption-parameters-1)
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
-  - [Customize the KafkaConnector Metadata Adapter Class](#customize-the-kafkaconnector-metadata-adapter-class)
+  - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
     - [Build the Extension](#build-the-extension)
 
 ## Introduction
@@ -342,7 +342,7 @@ The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaCon
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
-See the section [Customize the KafkaConnector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) for more details.
+See the section [Customize the Kafka Connector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) for more details.
 
 Example:
 
@@ -452,7 +452,7 @@ _Optional_. The name of the consumer group this connection belongs to.
 
 The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
-Default value: _KafkaConnector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
+Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
 ```xml
 <param name="group.id">kafka-connector-group</param>
@@ -1177,9 +1177,9 @@ Example:
 
 Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
-## Customize the KafkaConnector Metadata Adapter Class
+## Customize the Kafka Connector Metadata Adapter Class
 
-If you have any specific need to customize the _KafkaConnector Metadata Adapter_ class, you can provide your implementation by extending the factory class [`com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html). The class provides the following hook methods, which you can override to add your custom logic:
+If you have any specific need to customize the _Kafka Connector Metadata Adapter_ class, you can provide your implementation by extending the factory class [`com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html). The class provides the following hook methods, which you can override to add your custom logic:
 
 - [_postInit_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html#postInit(java.util.Map,java.io.File)): invoked after the initialization phase of the Kafka Connector Metadata Adapter has been completed
 
