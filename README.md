@@ -923,7 +923,7 @@ To configure the mapping, you define the set of all subscribeable fields through
 ...
 ```
 
-The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record structure of any complexity to the flat structure required by Lightstreamer.
+The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
 To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
