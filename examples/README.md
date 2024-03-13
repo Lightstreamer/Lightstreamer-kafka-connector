@@ -1,6 +1,6 @@
 # Examples
 
-This folder contains several examples showing you how to use the Lightstreamer Kafka Connector.
+This folder contains several examples showing you how to use Lightstreamer Kafka Connector.
 
 - [docker](./docker/): a minimal Docker image
 - [quickstart](quickstart/): the _Quick Start_ app

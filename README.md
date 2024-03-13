@@ -64,7 +64,7 @@
 
 ## Introduction
 
-The _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
+_Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
 
 With Kafka Connector, any internet client connected to Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
 
@@ -113,7 +113,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 ## Installation
 
-This section will guide you through the installation of Lightstreamer Kafka Connector to get it up and running in a very short time.
+This section will guide you through the installation of Kafka Connector to get it up and running in a very short time.
 
 ### Requirements
 
@@ -190,7 +190,7 @@ To quickly complete the installation and verify the successful integration with 
       
   Kafka Connector will then route the event to all matched items.
 
-  In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+  In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
 
   ```xml
   <param name="field.stock_name">#{VALUE.name}</param>
@@ -315,7 +315,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 ## Configuration
 
-As already anticipated, Lightstreamer Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
+As already anticipated, Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
 
 The following sections will guide you through the configuration details.
 
@@ -814,7 +814,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafa value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kakfa value.
 
 Examples:
 
@@ -825,7 +825,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafa value. Can be one of the following:
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafka value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1000,7 +1000,7 @@ The _QuickStart_ [factory configuration file](kafka-connector/src/connector/dist
 
 ##### Filtered Record Routing (`item-template.<template-name>`)
 
-Besides mapping topics to statically predefined items, Kakfa Connector allows you to configure the _item templates_, 
+Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_, 
 which specify the rule needed to decide if a message can be forwarded to the clients, thus enabling a _filtered routing_.  
 The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
@@ -1205,7 +1205,7 @@ For a Maven project, add the dependency to your _pom.xml_ file:
 
 ```xml
 <dependency>
-    <groupId>com.lighstreamer.kafka-connector</groupId>
+    <groupId>com.lightstreamer.kafka-connector</groupId>
     <artifactId>kafka-connector</artifactId>
     <version>0.1.0</version>
 </dependency>

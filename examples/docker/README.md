@@ -1,8 +1,8 @@
 # Lightstreamer Kafka Connector Docker Image
 
-This folder contains the resources required to build a minimal Docker image of the Lighstreamer Kafka Connector.
+This folder contains the resources required to build a minimal Docker image of Lightstreamer Kafka Connector.
 
-The image is built by deriving the official [Lighstreamer Docker image](https://hub.docker.com/_/lightstreamer) with the current version of the Kafka Connector. Check out the [`Dockerfile`](./Dockerfile) for more details.
+The image is built by deriving the official [Lightstreamer Docker image](https://hub.docker.com/_/lightstreamer) with the current version of the Kafka Connector. Check out the [`Dockerfile`](./Dockerfile) for more details.
 
 ## Requirements:
 

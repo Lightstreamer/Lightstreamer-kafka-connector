@@ -42,7 +42,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Implementation of a Lighstreamer Metadata Adpater for the Lightstreamer Kafka Connector.
+ * Implementation of a Lighttreamer Metadata Adpater for Lightstreamer Kafka Connector.
  *
  * <p>For the sake of simplicity, this documentation shows only the hook methods.
  *
@@ -237,7 +237,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     }
 
     /**
-     * Hook method invoked by Lighstreamer Kernel to notify that a user has submitted a
+     * Hook method invoked by Lightstreamer Kernel to notify that a user has submitted a
      * Subscription.
      *
      * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
@@ -259,7 +259,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             throws CreditsException, NotificationException {}
 
     /**
-     * Hook method invoked by Lighstreamer Kernel to notify that a Subscription has been removed
+     * Hook method invoked by Lightstreamer Kernel to notify that a Subscription has been removed
      * from a push session.
      *
      * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
