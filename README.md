@@ -855,9 +855,9 @@ Example:
 
 #### Topic Mapping
 
-By allowing the configuration of several routing and mapping strategies, Kafka Connector allows to convey Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
+Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract the information that can be:
+As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract information that can be:
 - routed to the designated Lightstreamer items
 - remapped to specific Lightstreamer fields
 
