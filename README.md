@@ -1027,7 +1027,7 @@ and then configure the routing by referencing the template through the parameter
 
 The item template is made of:
 - `<prefix>`: the prefix of the item name
-- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, which define filtering rule defined as:
+- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, which define filtering rule specified as:
 
   ```js
   #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
