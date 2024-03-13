@@ -174,7 +174,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
     
-    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here, denoted within `#{...}`, can bind every part of a Kafka record to a variable set of parameters, which will be specified by the Lightstreamer client during the subscription. In this case, the `KEY` predefined constant - which extracts the key part of Kafka records - is bound to the `index` parameter.
+    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` - permits the binding of parameters specified by the Lightstreamer client during the subscription to different sections of a Kafka record. In this case, the `KEY` predefined constant - one of the _Extraction Keys_ used to extract each part of a record - is bound to the `index` parameter to extract the record key.
 
   - a topic mapping:
     ```xml
@@ -190,7 +190,7 @@ To quickly complete the installation and verify the successful integration with 
       
   The _Kafka Connector_ will then route the event to all matched items.
 
-  In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping-fieldfieldname) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+  In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys__(#record-mapping-fieldfieldname). In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
   ```xml
   <param name="field.stock_name">#{VALUE.name}</param>
