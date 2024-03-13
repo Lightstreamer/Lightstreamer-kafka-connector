@@ -190,7 +190,7 @@ To quickly complete the installation and verify the successful integration with 
       
   The _Kafka Connector_ will then route the event to all matched items.
 
-  In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys__(#record-mapping-fieldfieldname). In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+  In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_(#record-mapping-fieldfieldname). In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
   ```xml
   <param name="field.stock_name">#{VALUE.name}</param>
