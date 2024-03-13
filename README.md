@@ -169,45 +169,45 @@ To quickly complete the installation and verify the successful integration with 
 
   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
-  - An item template:
+  - an item template:
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
     
     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing) syntax used here, denoted within `#{...}`, can bind every part of a Kafka record to a variable set of parameters, which will be specified by the Lightstreamer client during the subscription. In this case, the `KEY` predefined constant - which extracts the key part of Kafka records - is bound to the `index` parameter.
 
-  - A topic mapping:
+  - a topic mapping:
     ```xml
     <param name="map.stocks.to">item-template.stock</param>
     ```
     which maps the topic `stocks` to the provided item template.
 
-   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+  This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+    
+  - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`
+  - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`
+  - ...
       
-   - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`
-   - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`
-   - ...
-      
-   The _Kafka Connector_ will then route the event to all matched items.
+  The _Kafka Connector_ will then route the event to all matched items.
 
-   In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+  In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
-   ```xml
-   <param name="field.stock_name">#{VALUE.name}</param>
-   <param name="field.last_price">#{VALUE.last_price}</param>
-   <param name="field.ask">#{VALUE.ask}</param>
-   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
-   <param name="field.bid">#{VALUE.bid}</param>
-   <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
-   <param name="field.pct_change">#{VALUE.pct_change}</param>
-   <param name="field.min">#{VALUE.min}</param>
-   <param name="field.max">#{VALUE.max}</param>
-   <param name="field.ref_price">#{VALUE.ref_price}</param>
-   <param name="field.open_price">#{VALUE.open_price}</param>
-   <param name="field.item_status">#{VALUE.item_status}</param>
-   ```
+  ```xml
+  <param name="field.stock_name">#{VALUE.name}</param>
+  <param name="field.last_price">#{VALUE.last_price}</param>
+  <param name="field.ask">#{VALUE.ask}</param>
+  <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+  <param name="field.bid">#{VALUE.bid}</param>
+  <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+  <param name="field.pct_change">#{VALUE.pct_change}</param>
+  <param name="field.min">#{VALUE.min}</param>
+  <param name="field.max">#{VALUE.max}</param>
+  <param name="field.ref_price">#{VALUE.ref_price}</param>
+  <param name="field.open_price">#{VALUE.open_price}</param>
+  <param name="field.item_status">#{VALUE.item_status}</param>
+  ```
 
-   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
+  This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
