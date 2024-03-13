@@ -1044,7 +1044,7 @@ To activate filtered routing, the Lightstreamer clients subscribe to a parameter
 Upon consuming a message, Kafka Connector _expands_ every item template relative to the record topic by evaluating the extraction expressions. The expanded template will result as:
 
 ```js
-<item-prefix>-[paramName1=extractedValue1,paramName2=extractedValue2,...] 
+<item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...] 
 ```
 
 Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template.
