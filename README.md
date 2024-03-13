@@ -1067,8 +1067,8 @@ Let's suppose we have three different Lightstreamer clients:
    - the parameterized item _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`
    - the parameterized item _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user
 2. _Client B_ subscribes to:
-   - the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]`, for receiving real-time updates relative to the user `Montgomery Scotty`
-3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]`, for receiving real-time updates relative to any 37 year-old user.
+   - the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`
+3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]` for receiving real-time updates relative to any 37 year-old user.
 
 Now, let's see how filtered routing works for the following incoming Kafka records published to the topic `user`:
 
