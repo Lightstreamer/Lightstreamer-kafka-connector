@@ -1214,7 +1214,7 @@ and follow these [instructions](https://docs.github.com/en/packages/working-with
 
 For a Gradle project, edit your _build.gradle_ file as follows:
 
-1. Add the dependency:
+1. add the dependency:
 
    ```groovy
    dependencies {
@@ -1222,7 +1222,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
    }
    ```
 
-2. Add the repository and specify your personal access token:
+2. add the repository and specify your personal access token:
 
    ```grrovy
    repositories {
