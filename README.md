@@ -1033,7 +1033,7 @@ The item template is made of:
   #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
   ```
 
-  where `paraNameX` will be bound to the value extracted from the deserialized Kafka record through `<extraction_expression>` (written using the _Data Extraction Language_).
+  where the value extracted from the deserialized Kafka record through `<extraction_expression>` (written using the _Data Extraction Language_) will be bound `paraNameX`.
 
 To activate filtered routing, the Lightstreamer clients subscribe to a parameterized item, expressed in the form:
 
