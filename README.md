@@ -60,7 +60,7 @@
         - [Encryption Parameters](#encryption-parameters-1)
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
   - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
-    - [Build the Extension](#build-the-extension)
+    - [Develop the Extension](#develop-the-extension)
 
 ## Introduction
 
@@ -1197,7 +1197,7 @@ If you have any specific need to customize the _Kafka Connector Metadata Adapter
 
 - [_onUnsubcription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
 
-### Build the Extension
+### Develop the Extension
 
 To develop your extension, you need the Kafka Connector jar library, which is hosted on _Github Packages_.
 
