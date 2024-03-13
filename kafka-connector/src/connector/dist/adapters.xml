@@ -20,8 +20,8 @@
 
     </metadata_provider>
 
-    <!-- Mandatory. The Lightstreamer Kafka Connector allows the configuration of different independent connections to different
-         Kafka broker/clusters.
+    <!-- Mandatory. Kafka Connector allows the configuration of different independent connections to different Kafka 
+         broker/clusters.
 
          Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
          configuration must be provided.
@@ -184,7 +184,7 @@
         -->
 
         <!-- Mandatory if authentication is enabled. The SASL mechanism type.
-             The Lightstreamer Kafka Connector supports the following authentication mechanisms:
+             Kafka Connector supports the following authentication mechanisms:
 
              - PLAIN
              - SCRAM-256

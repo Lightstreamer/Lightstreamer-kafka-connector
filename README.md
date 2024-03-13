@@ -72,11 +72,11 @@ Kafka Connector allows to move high volume data out of Kafka by leveraging the b
 
 ## Quick Start
 
-To rapidly showcase the functioning of the Lightstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
+To rapidly showcase the functioning of Lightstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
 
 ![quick-start-diagram](pictures/quickstart-diagram.png)
 
-As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through the Ligthstreamer Kafka Connector.
+As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through Ligthstreamer Kafka Connector.
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
@@ -188,7 +188,7 @@ To quickly complete the installation and verify the successful integration with 
   - `stock-[index=2]`: an item with the parameter `index` bound to a record key equal to `2`
   - ...
       
-  The _Kafka Connector_ will then route the event to all matched items.
+  Kafka Connector will then route the event to all matched items.
 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
@@ -267,7 +267,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    - `--fields`: the list of requested fields for the items
 
   > [!NOTE]
-  > As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
+  > As Kafka Connector is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
 
 3. Publish Events.
 
@@ -377,7 +377,7 @@ Example:
 
 ### Connection Settings
 
-Lightstreamer Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
+Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
 
 Every single connection is configured via the definition of its own Data Adapter through the _data_provider_ block. At least one connection must be provided.
 
@@ -628,7 +628,7 @@ Example:
 
 ##### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Lightstreamer Kafka Connector accepts the following authentication mechanisms:
+_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Kafka Connector accepts the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-256`
@@ -744,7 +744,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 #### Record Evaluation
 
-Lightstreamer Kafka Connector can deserialize Kafka records from the following formats:
+Kafka Connector can deserialize Kafka records from the following formats:
 
 - _Apache Avro_
 - _JSON_
@@ -1127,7 +1127,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-Lightstreamer Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
+Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
 
 ##### `schema.registry.url`
 
