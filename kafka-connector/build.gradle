@@ -36,7 +36,11 @@ javadoc {
 	include '**/pub/KafkaConnectorMetadataAdapter.java'
 	exclude '**/pub/*ConnectionInfo*'
 	destinationDir = file("${project.rootDir}/docs/javadoc")
+	options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
+	options.overview = "src/doc/overview.html"
+	options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
 }
+
 
 distributions {
 	connector {

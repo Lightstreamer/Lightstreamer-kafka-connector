@@ -241,7 +241,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 2. Attach a Lightstreamer Consumer.
 
-   The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple 
+   The [`kafka-connector-utils`](kafka-connector-utils) submodule hosts a simple 
    Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
    Before launching the consumer, you first need to build it with the command:
@@ -250,12 +250,12 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    ./gradlew distribuiteConsumer 
    ```
 
-   which generates the `lightstreamer-kafka-connector-samples-consumer-all-<version>.jar` under the `deploy` folder.
+   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy` folder.
 
    Then, launch it with:
    
    ```sh
-   java -jar deploy/lightstreamer-kafka-connector-samples-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   java -jar deploy/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -271,20 +271,21 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 3. Publish Events.
 
-   The [`kafka-connector-samples`](kafka-connector-samples/) submodule hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
+   The [`examples/quickstart-producer`](examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
-   Before launching the producer, you first need to build it. Open a new shell and execute the command:
+   Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
    ```sh
-   ./gradlew distribuiteProducer 
+   cd examples/quickstart-producer
+   ./gradlew distribuite 
    ```
 
-   which generates the `lightstreamer-kafka-connector-samples-producer-all-<version>.jar` under the `deploy` folder.
+   which generates the `quickstart-producer-all` under the `deploy` folder.
 
    Then, launch it with:
 
    ```sh
-   java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+   java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
    ![producer_video](pictures/producer.gif)

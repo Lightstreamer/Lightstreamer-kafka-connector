@@ -5,11 +5,6 @@ source ../utils/helpers.sh
 ../docker/build.sh
 
 if [ $? == 0 ]; then
-     # Generate the producer jar
-     $_gradle distribuiteProducer
-     rm -fr ../compose-templates/producer; mkdir -p ../compose-templates/producer
-     cp ../../deploy/lightstreamer-kafka-connector-samples-producer-all-${version}.jar ../compose-templates/producer
-     # Export the version env variable to be used by Compose
      export version
      docker compose -f $(pwd)/docker-compose.yml up --build -d &&
      sleep 10 && 

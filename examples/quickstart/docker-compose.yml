@@ -17,8 +17,7 @@ services:
     depends_on:
       - broker
     build:
-      context: ../compose-templates
-      dockerfile: Dockerfile.producer
+      context: ../quickstart-producer
       args:
         VERSION: ${version}
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]

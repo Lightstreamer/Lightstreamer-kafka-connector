@@ -257,9 +257,8 @@
              - EARLIEST: start consuming events from the beginning of the topic partition 
              
              Default value: LATEST. -->
-        <!--
         <param name="record.consume.from">EARLIEST</param>
-        -->
+        
 
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
              Can be one of the following:

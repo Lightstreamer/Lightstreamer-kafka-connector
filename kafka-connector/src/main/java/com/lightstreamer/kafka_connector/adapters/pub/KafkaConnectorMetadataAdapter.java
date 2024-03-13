@@ -42,16 +42,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Implementation of a Lighttreamer Metadata Adpater for Lightstreamer Kafka Connector.
+ * Implementation of a Lightstreamer Metadata Adapter for Lightstreamer Kafka Connector.
  *
  * <p>For the sake of simplicity, this documentation shows only the hook methods.
- *
- * @see <a
- *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html">MetadataProvider</a>
- * @see <a
- *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html">MetadataProviderAdapter</a>
- * @see <a
- *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html">LiteralBasedProvider</a>
  */
 public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
