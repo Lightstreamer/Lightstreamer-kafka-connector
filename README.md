@@ -156,16 +156,16 @@ Before starting Kafka Connector, you need to properly configure the `LS_HOME/ada
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
-- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
+- update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+- optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file)
 
-- Configure topic and record mapping.
+- configure topic and record mapping:
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
+  since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
   The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
