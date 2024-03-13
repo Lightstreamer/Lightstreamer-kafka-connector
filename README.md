@@ -184,8 +184,8 @@ To quickly complete the installation and verify the successful integration with 
 
   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
     
-  - `stock-[index=1]`, an item with the parameter `index` bound to a record key equal to `1`
-  - `stock-[index=2]`, an item with the parameter `index` bound to a record key equal to `2`
+  - `stock-[index=1]`: an item with the parameter `index` bound to a record key equal to `1`
+  - `stock-[index=2]`: an item with the parameter `index` bound to a record key equal to `2`
   - ...
       
   The _Kafka Connector_ will then route the event to all matched items.
