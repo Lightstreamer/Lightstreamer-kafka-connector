@@ -266,8 +266,8 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    - `--items`: the list of items to subscribe to
    - `--fields`: the list of requested fields for the items
 
-   > [!NOTE]
-   > As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
+  > [!NOTE]
+  > As the _Lightstreamer Kafka Connector_ is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
 
 3. Publish Events.
 
