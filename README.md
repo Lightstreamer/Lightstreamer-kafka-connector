@@ -980,7 +980,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _data extraction language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _one-to-one_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 <param name="field.stock_name">#{VALUE.name}</param>
@@ -1001,7 +1001,7 @@ The `QuickStart` [factory configuration file](kafka-connector/src/connector/dist
 
 Besides mapping topics to statically predefined items, Kakfa Connector allows you to configure the _item templates_, 
 which specify the rule needed to decide if a message can be forwarded to the clients, thus enabling a _filtered routing_.  
-The item template leverages the Data Extraction Language to extract data from Kafka records and match them against the _parameterized_ subscribed items.
+The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 ![filtered-routing](pictures/filtered-routing.png)
 
