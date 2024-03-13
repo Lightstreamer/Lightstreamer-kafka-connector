@@ -969,15 +969,15 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
     ```
     where `keyName` is a string value.
 
-> [!TIP]
-> For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent: 
->
-> ```js
-> VALUE.myProperty.myChild.childProperty
-> ```
-> ```js
-> VALUE.myProperty['myChild'].childProperty
-> ```
+ > [!TIP]
+ > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent: 
+ >
+ > ```js
+ > VALUE.myProperty.myChild.childProperty
+ > ```
+ > ```js
+ > VALUE.myProperty['myChild'].childProperty
+ > ```
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
