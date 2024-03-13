@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<!--
+  LIGHTSTREAMER - www.lightstreamer.com
+  Basic Stock-List Demo
+  
+  Copyright (c) Lightstreamer Srl
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <title>Lightstreamer :: Airport Demo</title>
+  <link rel="stylesheet" type="text/css" href="css/table.css" />
+</head>
+
+<body>
+  <a href="https://github.com/Lightstreamer/Lightstreamer-example-Airport-client-javascript"><img style="position: absolute; top: 0; right: 0; border: 0; z-index:1" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a>
+  <div id="wrap">
+   <div id="wrap">
+    <!-- <div>
+      <div class="bannerimage">Virtual Airport</div>
+      <img src="images/logo_b.png" class="overlaylogo">
+    </div> -->
+    <div class="bannerimage">
+			<a href="https://www.lightstreamer.com">
+				<img src="images/logo_b.png" alt="Logo" class="overlaylogo">
+			</a>
+			<p>
+				Virtual Airport
+			</p>
+		</div>
+      
+	    <!-- Current Time -->
+	    <div class="tableContainer">
+        <table style="width: 100%;">
+          <caption>Current Time</caption>
+          <tr id="currtime" class="lscoldA" border="0" >
+            <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-grid="currtime" data-item="time" data-field="currentTime">Loading...</div></td>
+            <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-grid="currtime" data-item="time"  data-field="value">-</div></td>
+          </tr>
+        </table>
+	  </div>
+    <!-- Departures Board -->
+    <div class="tableContainer">
+      <table style="width: 100%;">
+        <caption>Departures Board</caption>
+        <tr class="tableTitle">
+          <td style="text-align: center">Destination</td>
+          <td style="text-align: center">Departure</td>
+          <td style="text-align: center">Flight</td>
+          <td style="text-align: center">Airline</td>
+          <td style="text-align: center">Terminal</td>
+          <td style="text-align: center">Status</td>
+        </tr>
+        <tr id="flights"  data-source="lightstreamer" class="lscoldA" border="0" >
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameOdd" data-source="lightstreamer"  data-field="destination">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="departure">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="flightNo">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="airline">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="terminal">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="status">-</div></td>
+        </tr>
+
+      </table>
+    </div>
+    <div class="disc">Simulated data.</div>
+
+    <!-- load Lightstreamer libraries -->
+    <script src="http://unpkg.com/lightstreamer-client-web/lightstreamer.min.js" data-lightstreamer-ns="Ls"></script>
+
+    <script src="js/const.js"></script>
+    <script src="js/index.js"></script>
+  </div>
+  
+</body>
+
+</html>
