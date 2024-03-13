@@ -190,7 +190,7 @@ To quickly complete the installation and verify the successful integration with 
       
   The _Kafka Connector_ will then route the event to all matched items.
 
-  In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
+  In addition, the following section defines how the record is mapped to the tabular form of Lightstreamer fields, by using an intuitive set of [_Extraction Keys_](#record-mapping-fieldfieldname) (denoted with `#{..}`) through which each part of a Kafka record can be extracted. In this case, the `VALUE` predefined constant extracts the value part of Kakfa records.
 
   ```xml
   <param name="field.stock_name">#{VALUE.name}</param>
@@ -930,11 +930,11 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 - expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
   - `#{KEY}`: the key
-  - `#{VALUE}`,:the value
+  - `#{VALUE}`: the value
   - `#{TOPIC}`: the topic
   - `#{TIMESTAMP}`: the timestamp
-  - `#{PARTITION}`, the partition
-  - `#{OFFSET}`, the offset
+  - `#{PARTITION}`: the partition
+  - `#{OFFSET}`: the offset
 
 - the _dot notation_ is used to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
