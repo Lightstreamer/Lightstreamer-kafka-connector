@@ -912,7 +912,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
-![record-mapping](pictures/record-mapping.png)
+![record-mapping](pictures/record-fields-mapping.png)
 
 To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
 
