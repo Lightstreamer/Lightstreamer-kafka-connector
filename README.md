@@ -1030,10 +1030,10 @@ The item template is made of:
 - `<bindable_expressions>`: a sequence of _bindable extraction expressions_, which define filtering rule specified as:
 
   ```js
-  #{paramName1=<extraction_expression1>,paramName2=<extraction_expression2>,...}
+  #{paramName1=<extraction_expression_1>,paramName2=<extraction_expression_2>,...}
   ```
 
-  where the value extracted from the deserialized Kafka record through `<extraction_expression>` (written using the _Data Extraction Language_) will be bound `paraNameX`.
+  where the value extracted from the deserialized Kafka record through `<extraction_expression_X>` (written using the _Data Extraction Language_) will be bound `paraNameX`.
 
 To activate filtered routing, the Lightstreamer clients subscribe to a parameterized item, expressed in the form:
 
