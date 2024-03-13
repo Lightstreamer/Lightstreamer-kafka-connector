@@ -101,11 +101,11 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    ...
    ```
 
-3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
+3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart). 
    
-   After a few moments, the user interface starts displaying the real-time stock data.
+4. After a few moments, the user interface starts displaying the real-time stock data.
 
-4. To shutdown Docker Compose and clean up all temporary resources:
+5. To shutdown Docker Compose and clean up all temporary resources:
  
    ```sh
    ./stop.sh
