@@ -125,7 +125,7 @@ public class FeedSimulator {
     }
 
     /**
-     * Starts generating update events for the stocks. Sumulates attaching and reading from an
+     * Starts generating update events for the stocks. Simulates attaching and reading from an
      * external broadcast feed.
      */
     public void start() {
