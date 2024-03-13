@@ -231,7 +231,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 ### Start
 
-1. Launch Lightstreamer Server
+1. Launch Lightstreamer Server.
   
    From the `LS_HOME/bin/unix-like` directory, run the command: 
 
