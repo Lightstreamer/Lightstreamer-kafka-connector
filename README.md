@@ -752,7 +752,7 @@ Kafka Connector can deserialize Kafka records from the following formats:
 - _Integer_
 - _Float_
 
-and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recodvalueevaluatortype)).
+and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recordvalueevaluatortype)).
 
 In particular, Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
 
