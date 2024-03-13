@@ -174,7 +174,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
     
-    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing) syntax used here, denoted within `#{...}`, can bind every part of a Kafka record to a variable set of parameters, which will be specified by the Lightstreamer client during the subscription. In this case, the `KEY` predefined constant - which extracts the key part of Kafka records - is bound to the `index` parameter.
+    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here, denoted within `#{...}`, can bind every part of a Kafka record to a variable set of parameters, which will be specified by the Lightstreamer client during the subscription. In this case, the `KEY` predefined constant - which extracts the key part of Kafka records - is bound to the `index` parameter.
 
   - a topic mapping:
     ```xml
