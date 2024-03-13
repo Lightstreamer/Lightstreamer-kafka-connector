@@ -86,8 +86,6 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 ### Run
 
-To run the app:
-
 1. Make sure you have Docker, Docker Compose, and Java 17 (or later) installed on your local machine.
 2. From the [`examples/quickstart`](examples/quickstart/) folder, run the command:
    
