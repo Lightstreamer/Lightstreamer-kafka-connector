@@ -41,7 +41,7 @@ LS_HOME/
 
 2. Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
-3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the [Lightstreamer Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) GitHub repository for all possible configuration options.
+3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) GitHub repository for all possible configuration options.
 
 ### Start
 
@@ -72,10 +72,10 @@ LS_HOME/
 
 ## Docs
 
-You may find the full documentation of Lightstreamer Kafka Connector on the GitHub [repository](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/).
+You may find the full documentation of Kafka Connector on the GitHub [repository](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/).
 
 In addition, the local [javadoc](javadoc/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc) for developing a custom [Kafka Connector Metadata Adapter class](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#customize-the-kafka-connector-metadata-adapter-class).
 
 ## Examples
 
-The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Lightstreamer Kafka Connector. In particular, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides insights into various usage and configuration options of Kafka Connector.
+The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Kafka Connector. In particular, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides insights into various usage and configuration options of Kafka Connector.
