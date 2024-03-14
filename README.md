@@ -61,6 +61,8 @@
         - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
   - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
     - [Develop the Extension](#develop-the-extension)
+  - [Docs](#docs)
+  - [Examples](#examples)
 
 ## Introduction
 
@@ -783,7 +785,7 @@ Default value: `LATEST`.
 Example:
 
 ```xml
-<param name="record.consme.from">EARLIEST</param>
+<param name="record.consume.from">EARLIEST</param>
 ```
 
 ##### `record.key.evaluator.type` and `record.value.evaluator.type`
@@ -1240,3 +1242,11 @@ For a Gradle project, edit your _build.gradle_ file as follows:
    ```
 
 In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
+
+## Docs
+
+The [docs](docs/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), already mentioned in the previous section.
+
+## Examples
+
+The examples folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
