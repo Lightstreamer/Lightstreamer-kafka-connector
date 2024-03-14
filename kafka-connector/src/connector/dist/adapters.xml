@@ -313,6 +313,16 @@
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
+        <!-- Multiple and Optional. Define an item template expression, which is made of:
+             - <prefix>: the prefix of the item name
+             - <bindable_expressions>: a sequence of bindable extraction expressions. See documentation at:
+             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate-name
+        -->
+        <!--
+        <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
+        -->
+
+        <param name="item-template.stock">stock-#{index=KEY}</param>
         <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
              - one or more simple items
              - one or more item templates
@@ -329,16 +339,6 @@
         <param name="map.<topic>.to">item-itemplate.template-name1,item1,item-template.template-name2,item2,...</param>
         -->
         <param name="map.stocks.to">item-template.stock</param>
-
-        <!-- Multiple and Optional. Define an item template expression, which is made of:
-             - <prefix>: the prefix of the item name
-             - <bindable_expressions>: a sequence of bindable extraction expressions. See documentation at:
-             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate-name
-        -->
-        <!--
-        <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
-        -->
-        <param name="item-template.stock">stock-#{index=KEY}</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
