@@ -176,7 +176,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
     
-    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_bindable extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` - permits the binding of parameters specified in the subscriptions to different sections of a Kafka record. In this case, the `KEY` predefined constant - one of the [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record - is bound to the `index` parameter to extract the record key.
+    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - a topic mapping:
     ```xml
@@ -1006,7 +1006,7 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 ##### Filtered Record Routing (`item-template.<template-name>`)
 
 Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_, 
-which specify the rule needed to decide if a message can be forwarded to the clients, thus enabling a _filtered routing_.  
+which specify the rule needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.  
 The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 ![filtered-routing](pictures/filtered-routing.png)
@@ -1014,7 +1014,7 @@ The item template leverages the _Data Extraction Language_ to extract data from 
 To configure an item template, use the parameter `item-template.<template-name>`:
 
 ```xml
-<param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
+<param name="item-template.<template-name>"><item-prefix>-<expressions></param>
 ```
 
 and then configure the routing by referencing the template through the parameter `map.<topic>.to`:
@@ -1032,27 +1032,29 @@ and then configure the routing by referencing the template through the parameter
 
 The item template is made of:
 - `<prefix>`: the prefix of the item name
-- `<bindable_expressions>`: a sequence of _bindable extraction expressions_, which define filtering rule specified as:
+- `<expressions>`: a sequence of _extraction expressions_, which define filtering rules specified as:
 
   ```js
   #{paramName1=<extraction_expression_1>,paramName2=<extraction_expression_2>,...}
   ```
 
-  where the value extracted from the deserialized Kafka record through `<extraction_expression_X>` (written using the _Data Extraction Language_) will be bound `paraNameX`.
+  where `paramNameX` is a _bind parameter_ to be specified by the clients and whose actual value will be extracted from the deserialized Kafka record by evaluating the `<extraction_expression_X>` expression (written using the _Data Extraction Language_).
 
-To activate filtered routing, the Lightstreamer clients subscribe to a parameterized item, expressed in the form:
+To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
 ```js
-<item-prefix>-[paramName1=value2,paramName2=value2,...]
+<item-prefix>-[paramName1=filterValue_1,paramName2=filerValue_2,...]
 ```
 
-Upon consuming a message, Kafka Connector _expands_ every item template relative to the record topic by evaluating the extraction expressions. The expanded template will result as:
+Upon consuming a message, Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
 
 ```js
 <item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...] 
 ```
 
-Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template.
+Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template or, more formally, the following is true:
+
+`filterValue_X == extractValue_X for every paramName_X`
 
 ###### Example
 
