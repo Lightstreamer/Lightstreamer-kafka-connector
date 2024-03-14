@@ -21,7 +21,7 @@ LS_HOME/
 │   │   ├── LICENSE
 │   │   ├── README.md
 │   │   ├── adapters.xml
-│   │   ├── javadocs
+│   │   ├── javadoc
 │   │   ├── lib
 │   │   ├── log4j.properties
 │   └── welcome_res
