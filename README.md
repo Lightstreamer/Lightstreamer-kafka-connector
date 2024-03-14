@@ -15,6 +15,9 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
+    - [`adapter_conf['id']` - _Kafka Connector identifier_](#adapter_confid---kafka-connector-identifier)
+    - [`adapter_class`](#adapter_class)
+    - [`logging.configuration.path`](#loggingconfigurationpath)
   - [Connection Settings](#connection-settings)
     - [General Parameters](#general-parameters)
     - [Encryption Parameters](#encryption-parameters)
@@ -24,7 +27,6 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
       - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
       - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
-        - [Example](#example)
     - [Schema Registry](#schema-registry)
       - [`schema.registry.url`](#schemaregistryurl)
       - [Encryption Parameters](#encryption-parameters-1)
@@ -116,6 +118,8 @@ LS_HOME/
 │   ├── lightstreamer-kafka-connector-<version>
 │   │   ├── README.md
 │   │   ├── adapters.xml
+│   │   ├── javadoc
+│   │   ├── lib
 │   │   ├── log4j.properties
 │   │   ├── lib
 │   └── welcome_res
