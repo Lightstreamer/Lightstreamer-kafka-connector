@@ -4,6 +4,7 @@
 # Ignore Gradle build output directory
 build
 deploy
+deploy-consumer
 .settings
 
 # Ignore project-specific directory
@@ -11,4 +12,3 @@ tmp
 .vscode
 .classpath
 .project
-

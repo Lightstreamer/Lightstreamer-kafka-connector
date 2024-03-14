@@ -67,7 +67,3 @@ java {
 tasks.named('test') {
     useJUnitPlatform()
 }
-
-clean {
-    delete "$rootDir/$deployDirName"
-}

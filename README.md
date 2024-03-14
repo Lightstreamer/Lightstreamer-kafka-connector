@@ -251,12 +251,12 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    ./gradlew distribuiteConsumer 
    ```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy` folder.
+   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy-consumer` folder.
 
    Then, launch it with:
    
    ```sh
-   java -jar deploy/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   java -jar deploy-consumer/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:

@@ -36,5 +36,9 @@ tasks.register('consumerJar', Jar) {
 
 task distribuiteConsumer(type: Copy) {
 	from consumerJar
-	into "$rootDir/$deployDirName"
+	into "$rootDir/$consumerDeployDirName"
+}
+
+clean {
+    delete "$rootDir/$consumerDeployDirName"
 }

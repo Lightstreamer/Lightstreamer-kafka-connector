@@ -67,5 +67,9 @@ distributions {
 task distribuite(type: Copy) {
 	dependsOn build
 	from (connectorDistZip)
-	into "$rootDir/$deployDirName"
+	into "$rootDir/$connectorDeployDirName"
+}
+
+clean {
+	delete "$rootDir/$connectorDeployDirName"
 }
