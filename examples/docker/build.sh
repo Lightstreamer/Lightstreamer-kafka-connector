@@ -7,7 +7,7 @@ TMP_DIR=${SCRIPT_DIR}/tmp
 echo "Making the deployment package"
 $_gradle distribuite
 
-rm -fr  ${TMP_DIR}; mkdir ${TMP_DIR}
+rm -fr ${TMP_DIR}; mkdir ${TMP_DIR}
 cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip ${TMP_DIR}
 
 echo "Build the Lightstramer Kafka Connector Docker image"
