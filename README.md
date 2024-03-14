@@ -92,7 +92,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 2. From the [`examples/quickstart`](examples/quickstart/) folder, run the command:
    
    ```sh
-   ./start.sh
+   $ ./start.sh
    ...
    ⠏ Network quickstart_default  Created
    ✔ Container broker            Started
@@ -110,7 +110,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 5. To shutdown Docker Compose and clean up all temporary resources:
  
    ```sh
-   ./stop.sh
+   $ ./stop.sh
    ```
 
 ## Installation
@@ -128,7 +128,7 @@ This section will guide you through the installation of Kafka Connector to get i
 Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
-./gradlew distribuite
+$ ./gradlew distribuite
 ```
 
 which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `kafka-connector-project/deploy` folder.
@@ -238,7 +238,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    From the `LS_HOME/bin/unix-like` directory, run the command: 
 
    ```sh
-   ./start_background.sh
+   $ ./start_background.sh
    ```
 
 2. Attach a Lightstreamer Consumer.
@@ -248,7 +248,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    Before launching the consumer, you first need to build it from the [`kafka-connector-project`](kafka-connector-project/) folder with the command:
 
    ```sh
-   ./gradlew distribuiteConsumer 
+   $ ./gradlew distribuiteConsumer
    ```
 
    which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy-consumer` folder.
@@ -256,7 +256,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    Then, launch it with:
    
    ```sh
-   java -jar deploy-consumer/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   $ java -jar deploy-consumer/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -277,8 +277,8 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
    ```sh
-   cd examples/quickstart-producer
-   ./gradlew distribuite 
+   $ cd examples/quickstart-producer
+   $ ./gradlew distribuite 
    ```
 
    which generates the `quickstart-producer-all` under the `deploy` folder.
@@ -286,7 +286,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    Then, launch it with:
 
    ```sh
-   java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
    ![producer_video](pictures/producer.gif)
@@ -305,7 +305,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    ```sh
-   java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
   
 4. Check Consumed Events.
