@@ -9,3 +9,5 @@ deploy
 # Ignore project-specific directory
 tmp
 .vscode
+.classpath
+
