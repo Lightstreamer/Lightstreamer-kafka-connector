@@ -80,7 +80,9 @@ Based on this choice, you will need to modify the [`adapters.xml`](connector/ada
 
 However, in more complex scenarios where authentication and TLS need to be set up, please refer to the Lightstreamer Kafka Connector guide [here](../../README.md#broker-authentication-parameters) and [here](../../README.md#encryption-parameters).
 
-The demo leverages a particular data retention mechanism to ensure simplified snapshot management. The mechanism is compaction, which takes advantage of the fact that we use key-based messages, allowing the Kafka Cluster to maintain only one value per key in the message history. Further details on this mechanism can be found [here](https://developer.confluent.io/courses/architecture/compaction/#).
+The demo leverages a particular data retention mechanism to ensure simplified snapshot management.
+The mechanism is compaction, which takes advantage of the fact that the demo uses key-based messages, allowing the Kafka cluster to maintain only one value per key, the most recent one, in the message history.
+Further details on this mechanism can be found [here](https://developer.confluent.io/courses/architecture/compaction/#).
 
 To configure our `Flights` topic to be managed in a compacted manner, the following steps are necessary:
 
@@ -116,7 +118,7 @@ For the sake of simplicity, only the Maven case is detailed here.
 
 You can easily build the jar using Maven through the [producer/pom.xml](producer/pom.xml) file. As an alternative, you can use any other build tool (e.g. Gradle, Ivy, etc.).
 
-Assuming Maven is installed and available in your path, you can build the demo by running:
+Assuming Maven is installed and available in your path, you can build the producer by running:
 
 ```sh 
 $ mvn install dependency:copy-dependencies 
