@@ -113,12 +113,12 @@ LS_HOME/
 ...
 ├── adapters
 │   ├── lightstreamer-kafka-connector-<version>
+│   │   ├── LICENSE
 │   │   ├── README.md
 │   │   ├── adapters.xml
 │   │   ├── javadoc
 │   │   ├── lib
 │   │   ├── log4j.properties
-│   │   ├── lib
 │   └── welcome_res
 ...
 ├── audit
@@ -1227,4 +1227,4 @@ The [docs](docs/) folder contains the complete [Kafka Connector API Specificatio
 
 ## Examples
 
-The examples folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
+The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
