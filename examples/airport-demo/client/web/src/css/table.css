@@ -1,0 +1,118 @@
+/*
+ * LIGHTSTREAMER - www.lightstreamer.com
+ * Basic Stock-List Demo
+ *
+ *  Copyright (c) Lightstreamer Srl
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ html, body { 
+  font-family: "Amazon Ember", "Helvetica", "sans-serif"; 
+  margin: 0; 
+}
+.demoTitle {
+  font-family: "Amazon Ember", Arial, Helvetica, Sans-serif;
+  font-size: x-large;
+  color: #0d2978;
+  font-weight: bold;
+  display: inline-block;
+}
+.tableContainer {
+  overflow-x:auto;
+  margin-top: 1em;
+}
+.bannerimage {
+  width: 100%;
+  background-image: url('../images/banner.png');
+  height: 55px;
+  background-color: rgb(7, 80, 59);
+  background-position: center;
+  font-family: "Amazon Ember", Arial, Helvetica, Sans-serif;
+  font-size: x-large;
+  color: #063d27;
+  font-weight: bold;
+  text-align: center;
+  padding-top: 115px;
+}
+
+.overlaylogo {
+  top: 40px;
+  width: 400px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.app-header { 
+  color: white; 
+  text-align: center; 
+  background: linear-gradient(30deg, rgb(7, 77, 36) 55%, #033714); 
+  width: 100%; 
+  margin: 0 0 1em 0; 
+  padding: 3em 0 3em 0; 
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3); }
+.app-logo { 
+  width: auto; 
+  margin: 0 auto; 
+}
+.tableTitle {
+  font-family: "Amazon Ember", Verdana, Arial, Helvetica, Sans-serif;
+  color: #ffffff;
+  font-weight: bold; 
+  background-color: #828282;
+  text-align: right;
+}
+.tableTitle td {
+    padding: 7px;
+}
+.disc, li { 
+	margin-top: 5px;
+    font-family: "Amazon Ember", Verdana, Arial, Helvetica, sans-serif; 
+	color: #000000; 
+	background: #ffffff;
+	font-weight: normal; 
+	text-align: left; 
+  margin-left: 1em;
+}
+.stockNameOdd {
+  font-family: "Amazon Ember", Verdana, Arial, Helvetica, Sans-serif;
+  color: #000000;
+  background-color:  #efefef;
+  font-weight: norml;
+  text-align: left;
+  padding: 5px;
+}
+.stockNameEven {
+  font-family: "Amazon Ember", Verdana, Arial, Helvetica, Sans-serif;
+  color: #000000;
+  background-color: #dedede;
+  font-weight: normal;
+  text-align: center;
+  padding: 5px;
+}
+.coldOdd {
+  font-family: "Amazon Ember", Arial, Helvetica, Sans-serif;
+  color: #000000;
+  background-color: #eeeeee;
+  font-weight: normal;
+  text-align: right;
+}
+.coldEven {
+  font-family: "Amazon Ember", Arial, Helvetica, Sans-serif;
+  color: #000000;
+  background-color: #ddddee;
+  font-weight: normal;
+  text-align: right;
+}
+#wrap {
+  margin: 0 auto;
+}
