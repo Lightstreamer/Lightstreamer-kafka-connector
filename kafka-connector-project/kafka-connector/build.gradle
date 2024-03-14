@@ -58,6 +58,8 @@ distributions {
 			from(javadoc) {
 				into "javadocs"
 			}
+
+			from distDir
 		}
 	}
 }
