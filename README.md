@@ -1,72 +1,45 @@
-# Lightstreamer Kafka Connector
+<img src="pictures/lightstreamer.png" width="250">
 
-- [Lightstreamer Kafka Connector](#lightstreamer-kafka-connector)
-  - [Introduction](#introduction)
-  - [Quick Start](#quick-start)
-    - [Run](#run)
-  - [Installation](#installation)
-    - [Requirements](#requirements)
-    - [Deploy](#deploy)
-    - [Configure](#configure)
-      - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
-    - [Start](#start)
-      - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
-  - [Configuration](#configuration)
-    - [Global Settings](#global-settings)
-      - [`adapter_conf['id']` - _Kafka Connector identifier_](#adapter_confid---kafka-connector-identifier)
-      - [`adapter_class`](#adapter_class)
-      - [`logging.configuration.path`](#loggingconfigurationpath)
-    - [Connection Settings](#connection-settings)
-      - [General Parameters](#general-parameters)
-        - [`data_provider['name']` - _Kafka Connection Name_](#data_providername---kafka-connection-name)
-        - [`adapter_class`](#adapter_class-1)
-        - [`enable`](#enable)
-        - [`bootstrap.servers`](#bootstrapservers)
-        - [`group.id`](#groupid)
-      - [Encryption Parameters](#encryption-parameters)
-        - [`encryption.enable`](#encryptionenable)
-        - [`encryption.protocol`](#encryptionprotocol)
-        - [`encryption.enabled.protocols`](#encryptionenabledprotocols)
-        - [`encryption.cipher.suites`](#encryptionciphersuites)
-        - [`encryption.hostname.verification.enable`](#encryptionhostnameverificationenable)
-        - [`encryption.truststore.path`](#encryptiontruststorepath)
-        - [`encryption.truststore.password `](#encryptiontruststorepassword-)
-        - [`encryption.keystore.enable`](#encryptionkeystoreenable)
-        - [`encryption.keystore.path`](#encryptionkeystorepath)
-        - [`encryption.keystore.password`](#encryptionkeystorepassword)
-        - [`encryption.keystore.key.password`](#encryptionkeystorekeypassword)
-        - [Quick Start SSL Example](#quick-start-ssl-example)
-      - [Broker Authentication Parameters](#broker-authentication-parameters)
-        - [`authentication.enable`](#authenticationenable)
-        - [`authentication.mechanism`](#authenticationmechanism)
-          - [`PLAIN`](#plain)
-          - [`SCRAM-256`](#scram-256)
-          - [`SCRAM-512`](#scram-512)
-          - [`GSSAPI`](#gssapi)
-        - [Quick Start Confluent Cloud Example](#quick-start-confluent-cloud-example)
-      - [Record Evaluation](#record-evaluation)
-        - [`record.consume.from`](#recordconsumefrom)
-        - [`record.key.evaluator.type` and `record.value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype)
-        - [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)
-        - [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)
-        - [`record.extraction.error.strategy`](#recordextractionerrorstrategy)
-      - [Topic Mapping](#topic-mapping)
-        - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
-        - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
-        - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
-          - [Example](#example)
-      - [Schema Registry](#schema-registry)
-        - [`schema.registry.url`](#schemaregistryurl)
-        - [Encryption Parameters](#encryption-parameters-1)
-        - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
-  - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
-    - [Develop the Extension](#develop-the-extension)
-  - [Docs](#docs)
-  - [Examples](#examples)
+# Lightstreamer Kafka Connector
+_Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
+
+- [Introduction](#introduction)
+- [Quick Start](#quick-start)
+  - [Run](#run)
+- [Installation](#installation)
+  - [Requirements](#requirements)
+  - [Deploy](#deploy)
+  - [Configure](#configure)
+    - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
+  - [Start](#start)
+    - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
+- [Configuration](#configuration)
+  - [Global Settings](#global-settings)
+  - [Connection Settings](#connection-settings)
+    - [General Parameters](#general-parameters)
+    - [Encryption Parameters](#encryption-parameters)
+    - [Broker Authentication Parameters](#broker-authentication-parameters)
+    - [Record Evaluation](#record-evaluation)
+    - [Topic Mapping](#topic-mapping)
+      - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
+      - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
+      - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
+        - [Example](#example)
+    - [Schema Registry](#schema-registry)
+      - [`schema.registry.url`](#schemaregistryurl)
+      - [Encryption Parameters](#encryption-parameters-1)
+      - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+- [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
+  - [Develop the Extension](#develop-the-extension)
+- [Docs](#docs)
+- [Examples](#examples)
 
 ## Introduction
 
-_Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
+Are you struggling to stream Apache Kafka® events to remote mobile and web applications?
+_Lightstreamer Kafka Connector_ is an intelligent proxy that bridges the gap between Kafka and the web/mobile frontier, tackling the last mile challenge and ensuring your data transcends edge and boundary constraints.
+
+![quick-start-diagram](pictures/architecture.png)
 
 With Kafka Connector, any internet client connected to Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
 
@@ -141,12 +114,10 @@ LS_HOME/
 ...
 ├── adapters
 │   ├── lightstreamer-kafka-connector-<version>
-│   │   ├── LICENSE
 │   │   ├── README.md
 │   │   ├── adapters.xml
-│   │   ├── javadocs
-│   │   ├── lib
 │   │   ├── log4j.properties
+│   │   ├── lib
 │   └── welcome_res
 ...
 ├── audit
@@ -1255,4 +1226,4 @@ The [docs](docs/) folder contains the complete [Kafka Connector API Specificatio
 
 ## Examples
 
-The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
+The examples folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
