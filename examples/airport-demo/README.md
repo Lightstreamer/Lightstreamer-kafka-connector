@@ -153,7 +153,3 @@ In order to install a web client for this demo pointing to your local Lightstrea
 > *The client demo configuration assumes that Lightstreamer Server, Kafka Cluster, and this client are launched on the same machine. If you need to target a different Lightstreamer server, please double check the `LS_HOST` variable in [`client/web/src/js/const.js`](client/web/src/js/const.js) and change it accordingly.*
 
 * open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70)
-
-## Lightstreamer Compatibility Notes
-
-- Compatible with Lightstreamer SDK for Java In-Process Adapters since 7.4.2.
