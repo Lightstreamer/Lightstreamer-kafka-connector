@@ -56,7 +56,7 @@ distributions {
 			}
 
 			from(javadoc) {
-				into "javadocs"
+				into "javadoc"
 			}
 
 			from distDir
