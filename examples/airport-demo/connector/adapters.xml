@@ -3,7 +3,6 @@
 <!--
     This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
 
-
     A very simple variable-expansion feature is available; see
     <enable_expansion_for_adapters_config> in the Server's main configuration file.
 -->
@@ -11,46 +10,55 @@
 <!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
-        <!-- Java class name of the Kafka Connector Metadata Adapter. DO NOT EDIT IT. -->
+        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a
+             custom implementation by extending this class. -->
 		<adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
 
-        <!-- Mandatory. Path of the configuration file for the log4j-based logging system.
-             The file path is relative to the Kafka Connector deployment directory.
-        -->
-        
-		<param name="logging.configuration.path">log4j.properties</param>
+        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
+             (LS_HOME/adapters/lightstreamer-kafka-connector). -->
+        		<param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
 
-    <!-- TThe Lightstreamer Kafka Connector allows the configuration of different independent connections to different 
-         Kafka clusters. 
-         Every single connection is configured via the definition of its own Lightstreamer Data Adapter.
-         Since the Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, many
+    <!-- Mandatory. Kafka Connector allows the configuration of different independent connections to different Kafka 
+         broker/clusters. 
+         
+         Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
+         configuration must be provided.
+
+         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several
          configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
          configuration.
 
-         At least one connection configuration must be provided.
-         Every configuration is distinguished throug the "name" attribute, which is "DEFAULT" if not provided,
-         but only one "DEFAULT" configuration is allowed. -->
+         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the connection name, which will
+         be used by the Clients to request real-time data from this specific Kafka connection through a Subscription object.
+
+         The connection name is also used to group all logging messages belonging to the same connection.
+
+         Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
 	 <data_provider name="AirpotDemo">
+        <!-- ##### GENERAL PARAMETERS ##### -->
+
+        <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
         <param name="bootstrap.servers">ec2-3-255-150-185.eu-west-1.compute.amazonaws.com:9092</param>
 
-        <!-- TOPIC MAPPING SECTION -->
-
-        <!-- Define a "sample" item-template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
-        <param name="item-template.flights">flights-#{key=KEY}</param>
-
-        <!-- Map the topic "sample-topic" to the previous defined "sample" item template. -->
-        <param name="map.Flights.to">item-template.flights</param>
-
-        <param name="record.consme.from">EARLIEST</param>
+        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <param name="record.consume.from">EARLIEST</param>
 		<param name="record.key.evaluator.type">STRING</param>
 		<param name="record.value.evaluator.type">JSON</param>
 
-        <!-- FIELDS MAPPING SECTION -->
+        <!-- ##### RECORD ROUTING SETTINGS ##### -->
+
+        <!-- The "Flights" item template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+        <param name="item-template.flights">flights-#{key=KEY}</param>
+
+        <!-- Map the topic "Flights" to the previous defined "flights" item template. -->
+        <param name="map.Flights.to">item-template.flights</param>
+
+        <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
         <!-- Extraction of the record key mapped to the field "key". -->
         <param name="field.key">#{KEY}</param>
