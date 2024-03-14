@@ -17,7 +17,7 @@ Edit the [CustomKafkaConnectorAdapter.java](src/main/java/com/lightstreamer/kafk
 Build the project with the command:
  
 ```sh
-./gradlew build
+$ ./gradlew build
 ```
 
 which generated the file `build/libs/custom-kafka-connector-adapter.jar`.

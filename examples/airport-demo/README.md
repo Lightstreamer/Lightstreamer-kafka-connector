@@ -102,11 +102,11 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 2. create the topic with the following configurations:
    ```sh 
-   ./bin/kafka-topics.sh --create --topic Flights --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
-   ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config cleanup.policy=compact
-   ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config delete.retention.ms=30000
-   ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config segment.ms=30000
-   ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name Flights --describe
+   $ ./bin/kafka-topics.sh --create --topic Flights --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
+   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config cleanup.policy=compact
+   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config delete.retention.ms=30000
+   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config segment.ms=30000
+   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name Flights --describe
    ```
 
 ### Lightstreamer Server

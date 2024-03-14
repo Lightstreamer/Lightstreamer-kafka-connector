@@ -60,22 +60,22 @@ In addition, all services reference the local [`secrets`](../compose-templates/s
 In particular, 
 
 - _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for:
-  - the trust store file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks);
-  - the key store file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks);
-  - the credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials).
+  - the trust store file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks)
+  - the key store file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks)
+  - the credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials)
 
 - _kafka-connector_ mounts [`secrets/kafka-connector`](../compose-templates/secrets/kafka-connector/) to `LS_KAFKA_CONNECTOR_HOME/secrets` for:
-  -  the trust store file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks);
-  -  the key store file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks);
+  -  the trust store file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks)
+  -  the key store file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks)
 
 - _producer_ mounts [`secrets/producer`](../compose-templates/secrets/producer/) to `/usr/app/secrets` for:
-  -  the trust store file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks);
-  -  the key store file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks);
+  -  the trust store file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks)
+  -  the key store file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks)
 
 You can regenerate all of them with:
 
 ```sh
-./generate-secrets.sh
+$ ./generate-secrets.sh
 ```
 
 ## Run

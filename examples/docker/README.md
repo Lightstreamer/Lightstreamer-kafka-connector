@@ -19,7 +19,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 2. Run the command:
 
    ```sh
-   ./build.sh
+   $ ./build.sh
    ```
 
    which will:
@@ -30,7 +30,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 3. Check that the image has been created:
 
    ```sh
-   docker image ls kafka-connector-<version>
+   $ docker image ls kafka-connector-<version>
 
    REPOSITORY                            TAG               IMAGE ID       CREATED          SIZE
    lightstreamer-kafka-connector-0.1.0   latest            f77fc60f7892   13 minutes ago   602MB
@@ -39,11 +39,11 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 4. Launch the container with:
 
    ```sh
-   docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+   $ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
    ```
  
 5. Check the logs:
  
    ```sh
-   docker logs -f kafka-connector
+   $ docker logs -f kafka-connector
    ```
