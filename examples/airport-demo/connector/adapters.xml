@@ -43,7 +43,7 @@
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
-        <param name="bootstrap.servers">ec2-3-255-150-185.eu-west-1.compute.amazonaws.com:9092</param>
+        <param name="bootstrap.servers">localhost:9092</param>
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
@@ -52,10 +52,11 @@
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
-        <!-- The "Flights" item template, which is simply made of the "sample" item name to be used by the Lighstreamer Client subscription. -->
+        <!-- The "Flights" item template, which defines the format of the items the Lighstreamer Clients 
+             must subscribe to to receive real-time updates. -->
         <param name="item-template.flights">flights-#{key=KEY}</param>
 
-        <!-- Map the topic "Flights" to the previous defined "flights" item template. -->
+        <!-- Map the topic "Flights" to the previously defined "flights" item template. -->
         <param name="map.Flights.to">item-template.flights</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
@@ -63,7 +64,7 @@
         <!-- Extraction of the record key mapped to the field "key". -->
         <param name="field.key">#{KEY}</param>
 
-        <!-- Extraction of the record value mapped to the field "value". -->
+        <!-- Extraction of the record value attributes mapped to corresponding field names. -->
         <param name="field.destination">#{VALUE.destination}</param>
 		<param name="field.departure">#{VALUE.departure}</param>
 		<param name="field.flightNo">#{VALUE.flightNo}</param>
