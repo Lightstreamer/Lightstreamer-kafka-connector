@@ -3,11 +3,9 @@
 
 # Ignore Gradle build output directory
 build
-**/.classpath
-
-bin
+deploy
 .settings
 
-deploy
+# Ignore project-specific directory
 tmp
 .vscode
