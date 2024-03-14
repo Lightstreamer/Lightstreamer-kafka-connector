@@ -1,16 +1,16 @@
-# Lightstreamer - Airport Demo
+# Kafka Connector Airport Demo
 
-This project includes the resources needed to develop the Lightstreamer Airport Demo pluggable into Lightstreamer Server and leveraging [Lightstreamer Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
+This project includes the resources needed to develop the Kafka Connector Airport Demo.
 
 ![Infrastructure](infrastructure.png)<br>
 
 The Demo simulates a basic departures board consisting of ten rows, each representing flight departure information from a hypothetical airport.
-The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), is fetched and injected into the Lightstreamer server via [Lightstreamer Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
+The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), is fetched and injected into the Lightstreamer server via [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
 
 The demo project consists of:
 - a web client designed to visualize the airport departure board from a browser
 - a random flight information generator that acts as a message producer for Kafka
-- files to configure the Lightstreamer Kafka Connector according to the needs of the demo
+- files to configure Kafka Connector according to the needs of the demo
 
 ## The Web Client
 
@@ -35,7 +35,7 @@ The source code of the producer is basically contained in the `producer` package
 
 ## Connector Configurations
 
-In the [`connector`](connector/) folder, we found the configuration files needed to configure Lightstreamer Kafka Connector:
+In the [`connector`](connector/) folder, we found the configuration files needed to configure Kafka Connector:
 - `adapters.xml`: in this file, parameters are essentially configured for the connector to consume messages from Kafka, and the mapping between Kafka cluster topics and Lightstreamer items that the client will subscribe to is defined. In the specific case of this demo, message serialization occurs via JSON objects, and therefore, the mapping of fields from the received JSON object to the Lightstreamer item fields to be sent to clients is also defined. In particular, the section defining the field mapping is this one:
   ```xml
     <data_provider name="AirpotDemo">
@@ -56,7 +56,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
       ...
     </data_provider>
   ```
-- `log4j.properties`: in this file, you'll find the specific configuration for the Lightstreamer Kafka Connector log, to obtain details about all interactions with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items in the Lightstreamer server. In this demo, a specific log file named `airport.log` is configured, destined for the same `logs` folder as the other Lightstreamer logs.
+- `log4j.properties`: in this file, you'll find the specific configuration for the Kafka Connector log, to obtain details about all interactions with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items in the Lightstreamer server. In this demo, a specific log file named `airport.log` is configured, destined for the same `logs` folder as the other Lightstreamer logs.
 
 ## Setting up the Demo
 
@@ -78,7 +78,7 @@ Based on this choice, you will need to modify the [`adapters.xml`](connector/ada
 </data_provider>
 ```
 
-However, in more complex scenarios where authentication and TLS need to be set up, please refer to the Lightstreamer Kafka Connector guide [here](../../README.md#broker-authentication-parameters) and [here](../../README.md#encryption-parameters).
+However, in more complex scenarios where authentication and TLS need to be set up, please refer to the Kafka Connector guide [here](../../README.md#broker-authentication-parameters) and [here](../../README.md#encryption-parameters).
 
 The demo leverages a particular data retention mechanism to ensure simplified snapshot management.
 The mechanism is compaction, which takes advantage of the fact that the demo uses key-based messages, allowing the Kafka cluster to maintain only one value per key, the most recent one, in the message history.
