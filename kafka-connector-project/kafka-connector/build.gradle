@@ -22,7 +22,6 @@ publishing {
 	}
 }
 
-
 dependencies {
 	api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
 	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
@@ -35,12 +34,11 @@ dependencies {
 javadoc {
 	include '**/pub/KafkaConnectorMetadataAdapter.java'
 	exclude '**/pub/*ConnectionInfo*'
-	destinationDir = file("${project.rootDir}/docs/javadoc")
+	destinationDir = file("${project.rootDir}/../docs/javadoc")
 	options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
 	options.overview = "src/doc/overview.html"
 	options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
 }
-
 
 distributions {
 	connector {

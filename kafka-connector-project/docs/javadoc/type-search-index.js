@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.lightstreamer.kafka_connector.adapters.pub","l":"KafkaConnectorMetadataAdapter"}];updateSearchResults();

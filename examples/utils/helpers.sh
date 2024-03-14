@@ -1,6 +1,6 @@
 #!/bin/bash
 HELPER_DIR=$(dirname ${BASH_SOURCE[0]}) ## realpath
-projectDir="$HELPER_DIR/../.."
+projectDir="$HELPER_DIR/../../kafka-connector-project"
 
 # Alias to the the local gradlew command
 _gradle="${projectDir}/gradlew --project-dir ${projectDir}"

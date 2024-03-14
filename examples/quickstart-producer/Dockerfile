@@ -4,7 +4,7 @@ FROM gradle AS builder
 # Set the working directory
 WORKDIR /app
 
-# Copy the project desources
+# Copy the project resources
 COPY src ./src
 COPY build.gradle .
 COPY gradlew .

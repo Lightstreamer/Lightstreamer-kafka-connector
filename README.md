@@ -125,13 +125,13 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Deploy
 
-Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the project root:
+Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
 ./gradlew distribuite
 ```
 
-which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `deploy` folder.
+which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `kafka-connector-project/deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Finally, check that the Lightstreamer layout looks like the following:
@@ -243,10 +243,9 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 2. Attach a Lightstreamer Consumer.
 
-   The [`kafka-connector-utils`](kafka-connector-utils) submodule hosts a simple 
-   Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
+   The [`kafka-connector-utils`](kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
-   Before launching the consumer, you first need to build it with the command:
+   Before launching the consumer, you first need to build it from the [`kafka-connector-project`](kafka-connector-project/) folder with the command:
 
    ```sh
    ./gradlew distribuiteConsumer 
@@ -306,10 +305,9 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    ```sh
-   java -jar deploy/lightstreamer-kafka-connector-samples-producer-all-<version>.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
   
-
 4. Check Consumed Events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
@@ -984,9 +982,12 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
 - expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The _QuickStart_ [factory configuration file](kafka-connector/src/connector/dist/adapters.xml) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The _QuckStart_ [factory configuration](kafka-connector-project/kafka-connector/src/connector/dist/adapters.xml#L353) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
+...
+<param name="field.timestamp">#{VALUE.timestamp}</param>
+<param name="field.time">#{VALUE.time}</param>
 <param name="field.stock_name">#{VALUE.name}</param>
 <param name="field.last_price">#{VALUE.last_price}</param>
 <param name="field.ask">#{VALUE.ask}</param>
@@ -999,6 +1000,7 @@ The _QuickStart_ [factory configuration file](kafka-connector/src/connector/dist
 <param name="field.ref_price">#{VALUE.ref_price}</param>
 <param name="field.open_price">#{VALUE.open_price}</param>
 <param name="field.item_status">#{VALUE.item_status}</param>
+..
 ```
 
 ##### Filtered Record Routing (`item-template.<template-name>`)
