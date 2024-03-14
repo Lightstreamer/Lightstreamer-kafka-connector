@@ -27,6 +27,15 @@ itemsList = ["flights-[key=10]", "flights-[key=1]", "flights-[key=2]", "flights-
 ```
 each representing a row on the board. The table is then kept sorted by departure time by setting the [setSort](https://sdk.lightstreamer.com/ls-web-client/9.2.0/api/DynaGrid.html#setSort) call of the DynaGrid object.
 
+As you can see, items have been expressed in a parameterized format to activate the [_filter routing_](../../README.md#filtered-record-routing-item-templatetemplate-name) as per the _item template_ defined as [follows](connector/adapters.xml#L57):
+
+```xml
+<param name="item-template.flights">flights-#{key=KEY}</param>
+```
+
+which requires every subscription to include a filtering value for the _bind parameter_ `key`.
+Upon consuming an incoming message, Kafka Connector will then route the record if the subscribed item has specified a filtering value that matches the record key.
+
 ## The Producer
 
 The source code of the producer is basically contained in the `producer` package, which generates random information for the flights and acts as the producer versus the Kafka cluster. In particular, the following classes are defined:
