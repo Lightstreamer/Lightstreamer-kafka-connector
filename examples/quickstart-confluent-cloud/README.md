@@ -14,7 +14,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - api_key=${api_key}
       - secret=${secret}
         # adapters.xml uses env variable "topic_mapping", built from env variable "topic"
-      - topic_mapping=map.${topic}.to # 
+      - topic_mapping=map.${topic}.to
     ...
     ```
   - adaption of [`adapters.xml`](./adapters.xml) to include:
