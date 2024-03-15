@@ -4,7 +4,8 @@
 _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
 
 - [Introduction](#introduction)
-- [Quick Start](#quick-start)
+  - [Features](#features)
+- [Quick Start: Set up in 5 minutes](#quick-start)
   - [Run](#run)
 - [Installation](#installation)
   - [Requirements](#requirements)
@@ -36,21 +37,30 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 ## Introduction
 
 Are you struggling to stream Apache Kafka® events to remote mobile and web applications?
-_Lightstreamer Kafka Connector_ is an intelligent proxy that bridges the gap between Kafka and the web/mobile frontier, tackling the last mile challenge and ensuring your data transcends edge and boundary constraints.
+_Lightstreamer Kafka Connector_ is an intelligent proxy that bridges the gap between Kafka and the web/mobile frontier, tackling the "last mile" challenge and ensuring your data transcends edge and boundary constraints.
 
-![quick-start-diagram](pictures/architecture.png)
+![Architecture](pictures/architecture.png)
 
-With Kafka Connector, any internet client connected to Lightstreamer Server can consume events from Kafka topics like any other Kafka client. The Connector takes care of processing records received from Kafka to adapt and route them as real-time updates for the clients.
+### Features
 
-Kafka Connector allows to move high volume data out of Kafka by leveraging the battle-tested ability of the Lightstreamer real-time engine to deliver live data reliably and efficiently over internet protocols.
+- **Intelligent streaming & adaptive throttling**: Optimize data flow with intelligent bandwidth management. Adapt real-time data streaming over Kafka topics to accommodate the network connection quality of each remote client.
+- **Massive scalability**: Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers.
+- **Firewall and proxy traversal**: Ensure the delivery of real-time data to clients anywhere, navigating through network obstacles. Stream data seamlessly, even through the strictest corporate firewalls.
+- **Maximum security**: Implement state-of-the-art encryption, authentication, and fine-grained authorization for robust protection.
+- **Extensive broker compatibility**: Compatible with all leading brokers, including Apache Kafka, Confluent Platform, Confluent Cloud, and Amazon MSK.
+- **Comprehensive client SDK support**:
 
-## Quick Start
+![Client APIs](pictures/sdks.png)
 
-To rapidly showcase the functioning of Lightstreamer Kafka Connector, the [`examples/quickstart`](examples/quickstart/) folder hosts all the stuff required to set up a quickstart app to display real-time market data received from Lightstreamer Server. The app is a modified version of the [Stock List](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client) demo.
+To address the unique challenges faced by IT and development teams in integrating Kafka streams with web and mobile applications, Lightstreamer Kafka Connector provides a set of advanced functionalities. It is designed to facilitate real-time data distribution and enhance operational efficiency, allowing developers to focus more on core product features rather than on resolving connectivity and scalability concerns. With its straightforward setup and compatibility with existing Kafka infrastructures, the connector simplifies the extension of Kafka capabilities to a broader range of devices and platforms, creating a seamless link between complex backend systems and user-facing applications deployed over the internet.
 
-![quick-start-diagram](pictures/quickstart-diagram.png)
+## Quick Start: Set up in 5 minutes
 
-As you can see from the diagram above, in this variant the stream of simulated market events is injected from Kafka to the web client through Ligthstreamer Kafka Connector.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+
+![Quickstart Diagram](pictures/quickstart-diagram.png)
+
+The diagram above illustrates how in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
@@ -78,6 +88,8 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart). 
    
 4. After a few moments, the user interface starts displaying the real-time stock data.
+
+![Demo](pictures/quickstart.gif)
 
 5. To shutdown Docker Compose and clean up all temporary resources:
  
@@ -242,7 +254,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
    - `--fields`: the list of requested fields for the items
 
   > [!NOTE]
-  > As Kafka Connector is built around the [_Lightreamer Java In-Process Adapter SDK_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-inprocess), every remote client based on any _Lightstreamer Client SDK_ can therefore interact with it.
+  > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
 3. Publish Events.
 
