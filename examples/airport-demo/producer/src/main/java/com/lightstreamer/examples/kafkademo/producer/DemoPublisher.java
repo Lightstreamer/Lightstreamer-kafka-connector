@@ -28,6 +28,8 @@ public class DemoPublisher {
 
     private static String kconnstring; 
 
+    private static int pause_milis = 800;
+
     private static boolean go = true;
 
     private static Random random = new Random();
@@ -145,7 +147,7 @@ public class DemoPublisher {
 
                     logger.info("Sent message to" + rmtdta.partition());
 
-                    Thread.sleep(800);
+                    Thread.sleep(pause_milis);
                 }
 
                 producer.close();
@@ -250,13 +252,21 @@ public class DemoPublisher {
         
         logger.info("Start Kafka demo producer: " + args.length);
 
-        if (args.length < 2 ) {
-            logger.error("Missing arguments: [bootstrap-servers] [topioc-name]");
+        if (args.length < 3) {
+            logger.error("Missing arguments: [bootstrap-servers] [topioc-name] [interval of update]");
             return ;
         }
 
         kconnstring = args[0];
         topicname = args[1];
+
+        try {
+            pause_milis = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            logger.error("Interval of update not valid assumd 800ms.");
+            pause_milis = 800;
+        }
+        logger.info("wait pause in millis : " + pause_milis);
 
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -270,12 +280,12 @@ public class DemoPublisher {
         });  
         t1.start();
         
-        String input = System.console().readLine();
-        while (!input.equalsIgnoreCase("stop")) {
-            input = System.console().readLine();
-        }
+        // String input = System.console().readLine();
+        // while (!input.equalsIgnoreCase("stop")) {
+        // input = System.console().readLine();
+        // }
 
-        go = false;
+        // go = false;
 
         try {
             Thread.sleep(2000);
