@@ -13,7 +13,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - bootstrap_server=${bootstrap_server}
       - api_key=${api_key}
       - secret=${secret}
-      - topic=map.${topic}.to
+        # adapters.xml uses env variable "topic_mapping", built from env variable "topic"
+      - topic_mapping=map.${topic}.to
     ...
     ```
   - adaption of [`adapters.xml`](./adapters.xml) to include:
@@ -36,6 +37,11 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.username">$env.api_key</param>
       <param name="authentication.password">$env.secret</param>
       ```
+    - parameter `map.<topic>.to` built from env variable `topic_mapping`, composed from env variable `topic`
+      ```xml
+      <param name="$env.topic_mapping">item-template.stock</param>
+      ```
+
 - _producer_:
    - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
    - parameter `--topic` retrieved from the environment variable `topic`
