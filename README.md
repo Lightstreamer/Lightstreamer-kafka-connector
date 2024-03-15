@@ -89,7 +89,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    
 4. After a few moments, the user interface starts displaying the real-time stock data.
 
-![Demo](pictures/quickstart.gif)
+   ![Demo](pictures/quickstart.gif)
 
 5. To shutdown Docker Compose and clean up all temporary resources:
  
