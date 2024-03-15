@@ -17,8 +17,7 @@ The demo project consists of:
 The web client, contained in the folder [`client/web`](client/web/) uses the [Web Client SDK API for Lightstreamer](https://lightstreamer.com/api/ls-web-client/latest/) to handle the communications with Lightstreamer Server. A simple user interface is implemented to display the real-time data received from Lightstreamer Server.
 
 ![Demo ScreenShot](screen_large.png)<br>
-<!-- ### [![](http://demos.lightstreamer.com/site/img/play.png) View live demo]( ... ) -->
-<b>Live demo coming soon ...</b>
+### [![](http://demos.lightstreamer.com/site/img/play.png) View live demo](https://demos.lightstreamer.com/AirportDemo/)
 
 The demo basically executes a single [Subscription](https://lightstreamer.com/api/ls-web-client/latest/Subscription.html) with ten items subscribed to in **MERGE** mode feeding a [DynaGrid](https://lightstreamer.com/api/ls-web-client/latest/DynaGrid.html) with the current list and status of the next departing flights (according to the simulated time).
 The list of the ten Items to subscribe to is as follows:
