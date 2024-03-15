@@ -4,24 +4,24 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
-- New _schema-registry_ service, pulled from the mentioned Docker image and configured with security settings.
+- new _schema-registry_ service, pulled from the mentioned Docker image and configured with security settings
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include:
-  - Enabling of the Schema Registry:
+  adaption of [`adapters.xml`](./adapters.xml) to include:
+  - enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
-  - Configuration of the target Schema Registry URL:
+  - configuration of the target Schema Registry URL:
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
-  - Configuration of the trust store to authenticate the Schema Registry.
+  - configuration of the trust store to authenticate the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
     <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-  - Configuration of the key store for client authentication with the Schema Registry.
+  - configuration of the key store for client authentication with the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.keystore.enable">true</param>
     <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
@@ -30,7 +30,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     ```
 - _producer_:
 
-   Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
+   extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
     
    ```yaml
    ...
@@ -55,7 +55,7 @@ In addition, the `schema-registry` service references the local [`secrets/schema
 You can regenerate all of them with:
 
 ```sh
-./generate-secrets.sh
+$ ./generate-secrets.sh
 ```
 
 ## Run

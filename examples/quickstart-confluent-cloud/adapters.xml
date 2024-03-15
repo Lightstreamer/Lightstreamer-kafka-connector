@@ -32,7 +32,7 @@
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
-        <param name="map.topic_0.to">item-template.stock</param>
+        <param name="$env.topic_mapping">item-template.stock</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
         <param name="field.ts">#{TIMESTAMP}</param>

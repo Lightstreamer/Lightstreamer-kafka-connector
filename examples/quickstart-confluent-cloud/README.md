@@ -4,47 +4,42 @@ This folder contains a variant of the [_Quick Start_](../quickstart-ssl/README.m
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Confluent Cloud as follows:
 
-- Removal of the _broker_ service, because replaced by the remote Kafka cluster.
+- removal of the _broker_ service, because replaced by the remote Kafka cluster.
 - _kafka-connector_:
-  - Definition of new environment variables to configure the remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer.
+  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
     ```yaml
     ...
     environment:
       - bootstrap_server=${bootstrap_server}
       - api_key=${api_key}
       - secret=${secret}
+      - topic=map.${topic}.to
     ...
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include:
-    - New Kafka cluster address retrieved from the environment variable `bootstrap_server`:
+  - adaption of [`adapters.xml`](./adapters.xml) to include:
+    - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - Encryption settings:
+    - encryption settings:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       <param name="encryption.hostname.verification.enable">true</param>
       ```
 
-    - Authentication settings, with credentials retrieved from environment variables `api_key` and `secret`:
+    - authentication settings, with credentials retrieved from environment variables `api_key` and `secret`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">PLAIN</param>
       <param name="authentication.username">$env.api_key</param>
       <param name="authentication.password">$env.secret</param>
       ```
-
-    **NOTE**  This example assumes that the topic name is `topic_0` (the default topic provided by Confluent Cloud). If required, update the topic mapping setting by replacing `<confluent_topic_name>` with the appropriate value, as follows (because variable-expansion is not available in the `name` attribute):
-
-    ```xml
-    <param name="map.<confluent_topic_name>.to">item-template.stock</param>
-    ```
-
 - _producer_:
-   - Parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`.
-   - Provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
+   - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
+   - parameter `--topic` retrieved from the environment variable `topic`
+   - provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
     
    ```yaml
    # Configure SASL/PLAIN mechanism
@@ -54,20 +49,17 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
    # JAAS configuration
    sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";
    ```  
-   
-   **NOTE**  If required, update the parameter `--topic` in the `command` attribute with the appropriate value.
 
 ## Run
 
 From this directory, run follow the command:
 
 ```sh
-api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> topic=<topic> ./start.sh 
+$ api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> topic=<topic> ./start.sh 
 ```
 
 where 
-- `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
-- `bootstrap_server` is the Kafla cluster address.
+- `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_
+- `bootstrap_server` is the Kafla cluster address
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
-
