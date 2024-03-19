@@ -66,7 +66,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 1. _broker_: a Kafka broker, based on the [Confluent Local Docker Image](confluentinc/confluent-local:latest)
 2. _kafka-connector_: Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker-image/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
-3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile.producer`](examples/quickstart-producer/Dockerfile) file
+3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) producer sample client
 
 ### Run
 
