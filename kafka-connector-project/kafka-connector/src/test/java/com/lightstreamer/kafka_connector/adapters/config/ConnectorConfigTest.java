@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Stream;
 
 public class ConnectorConfigTest {
 
@@ -1205,10 +1204,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldOverrideAuthenticationSettings() {
         // Sasl mechanisms under test
-        List<String> mechanisms =
-                Stream.of(SaslMechanism.SCRAM_256, SaslMechanism.SCRAM_512)
-                        .map(Object::toString)
-                        .toList();
+        List<SaslMechanism> mechanisms = List.of(SaslMechanism.SCRAM_256, SaslMechanism.SCRAM_512);
 
         for (boolean encrypted : List.of(true, false)) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1217,13 +1213,14 @@ public class ConnectorConfigTest {
             if (encrypted) {
                 updatedConfig.putAll(encryptionParameters());
             }
-            for (String mechanism : mechanisms) {
-                updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, mechanism);
+            for (SaslMechanism mechanism : mechanisms) {
+                updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, mechanism.toString());
                 ConnectorConfig config =
                         ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
                 assertThat(config.isAuthenticationEnabled()).isTrue();
-                assertThat(config.authenticationMechanism().toString()).isEqualTo(mechanism);
+                assertThat(config.authenticationMechanism().toString())
+                        .isEqualTo(mechanism.toString());
                 assertThat(config.authenticationUsername()).isEqualTo("sasl-username");
                 assertThat(config.authenticationPassword()).isEqualTo("sasl-password");
 
@@ -1235,7 +1232,7 @@ public class ConnectorConfigTest {
                                         ? SecurityProtocol.SASL_SSL.toString()
                                         : SecurityProtocol.SASL_PLAINTEXT.toString(),
                                 SaslConfigs.SASL_MECHANISM,
-                                mechanism,
+                                mechanism.toProperty(),
                                 SaslConfigs.SASL_JAAS_CONFIG,
                                 "org.apache.kafka.common.security.scram.ScramLoginModule required username='sasl-username' password='sasl-password';");
             }

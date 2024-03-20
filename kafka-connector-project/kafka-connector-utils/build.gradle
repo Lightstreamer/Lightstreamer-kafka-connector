@@ -40,5 +40,5 @@ task distribuiteConsumer(type: Copy) {
 }
 
 clean {
-    delete "$rootDir/$consumerDeployDirName"
+	delete "$rootDir/$consumerDeployDirName"
 }

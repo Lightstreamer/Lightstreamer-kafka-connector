@@ -638,24 +638,24 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM-256`
+###### `SCRAM_256`
 
 Example: 
 
 ```xml
 <param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM-256</param>
+<param name="authentication.mechanism">SCRAM_256</param>
 <param name="authentication.username">authorized-kafka-usee</param>
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM-512`
+###### `SCRAM_512`
 
 Example:
 
 ```xml
 <param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM-512</param>
+<param name="authentication.mechanism">SCRAM_512</param>
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```

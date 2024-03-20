@@ -72,7 +72,7 @@ public class BrokerAuthenticationConfigs {
         NonNullKeyProperties props = new NonNullKeyProperties();
         if (config.isAuthenticationEnabled()) {
             SaslMechanism mechanism = config.authenticationMechanism();
-            props.setProperty(SaslConfigs.SASL_MECHANISM, mechanism.toString());
+            props.setProperty(SaslConfigs.SASL_MECHANISM, mechanism.toProperty());
             props.setProperty(SaslConfigs.SASL_JAAS_CONFIG, configuredWith(config));
             if (config.isGssapiEnabled()) {
                 props.setProperty(

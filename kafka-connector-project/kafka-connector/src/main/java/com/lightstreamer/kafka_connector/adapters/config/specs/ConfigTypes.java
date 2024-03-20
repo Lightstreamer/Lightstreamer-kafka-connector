@@ -112,12 +112,22 @@ public class ConfigTypes {
             public String loginModule() {
                 return "org.apache.kafka.common.security.scram.ScramLoginModule";
             }
+
+            @Override
+            public String toProperty() {
+                return "SCRAM-SHA-256";
+            }
         },
 
         SCRAM_512 {
             @Override
             public String loginModule() {
                 return "org.apache.kafka.common.security.scram.ScramLoginModule";
+            }
+
+            @Override
+            public String toProperty() {
+                return "SCRAM-SHA-512";
             }
         },
 
@@ -134,6 +144,10 @@ public class ConfigTypes {
 
         public String loginModule() {
             return "";
+        }
+
+        public String toProperty() {
+            return toString();
         }
     }
 
