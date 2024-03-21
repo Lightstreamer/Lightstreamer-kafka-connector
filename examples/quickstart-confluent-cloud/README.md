@@ -30,7 +30,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="encryption.hostname.verification.enable">true</param>
       ```
 
-    - authentication settings, with credentials retrieved from environment variables `api_key` and `secret`:
+    - authentication settings, with the credentials retrieved from environment variables `api_key` and `secret`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">PLAIN</param>

@@ -36,7 +36,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="encryption.hostname.verification.enable">true</param>
       ```
 
-    - authentication settings, with credentials retrieved from environment variables `username` and `password`:
+    - authentication settings, with the credentials retrieved from environment variables `username` and `password`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
