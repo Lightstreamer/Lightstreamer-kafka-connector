@@ -13,6 +13,7 @@ services:
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
       - ./secrets/kafka-connector:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
 
   producer:

@@ -16,6 +16,7 @@ services:
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
 
   producer:
     container_name: producer
