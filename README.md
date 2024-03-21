@@ -768,9 +768,9 @@ Example of configuration with the use of a ticket cache:
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-##### Quick Start Redpanda Cloud Example
+##### Quick Start Redpanda Serverless Example
 
-Check out the [adapters.xml](examples/quickstart-redpanda-cloud/adapters.xml#L22) file of the [_Quick Start Redpanda Cloud_](examples/quickstart-redpanda-cloud/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](examples/quickstart-redpanda-cloud/adapters.xml#L22) file of the [_Quick Start Redpanda Serverless_](examples/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
 #### Record Evaluation
 
