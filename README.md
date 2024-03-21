@@ -203,7 +203,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 #### Connection with Confluent Cloud
 
-If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
+If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
 
 ```xml
 <param name="encryption.enable">true</param>
@@ -766,7 +766,11 @@ Example of configuration with the use of a ticket cache:
 
 ##### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of authentication configuration.
+Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+
+##### Quick Start Redpanda Cloud Example
+
+Check out the [adapters.xml](examples/quickstart-redpanda-cloud/adapters.xml#22) file of the [_Quick Start Redpanda Cloud_](examples/quickstart-redpanda-cloud/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
 #### Record Evaluation
 
