@@ -15,6 +15,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
     - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
+    - - [Publishing with Confluent Cloud](#publishing-with-redpanda-cloud)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
