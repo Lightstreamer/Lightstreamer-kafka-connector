@@ -21,7 +21,7 @@
 
         <!-- ##### AUTHENTICATION SETTINGS ##### -->
         <param name="authentication.enable">true</param>
-        <param name="authentication.mechanism">SCRAM_256</param>
+        <param name="authentication.mechanism">SCRAM-SHA-256</param>
         <param name="authentication.username">$env.username</param>
         <param name="authentication.password">$env.password</param>
 

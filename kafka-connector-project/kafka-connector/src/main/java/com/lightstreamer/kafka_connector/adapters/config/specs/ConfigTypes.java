@@ -114,7 +114,7 @@ public class ConfigTypes {
             }
 
             @Override
-            public String toPropertyValue() {
+            public String toString() {
                 return "SCRAM-SHA-256";
             }
         },
@@ -126,7 +126,7 @@ public class ConfigTypes {
             }
 
             @Override
-            public String toPropertyValue() {
+            public String toString() {
                 return "SCRAM-SHA-512";
             }
         },
@@ -138,16 +138,32 @@ public class ConfigTypes {
             }
         };
 
+        static Map<String, SaslMechanism> NAME_CACHE = new HashMap<>();
+
+        static {
+            NAME_CACHE =
+                    Stream.of(values())
+                            .collect(
+                                    Collectors.toMap(SaslMechanism::toString, Function.identity()));
+        }
+
+        public static SaslMechanism fromName(String name) {
+            SaslMechanism mechanism = NAME_CACHE.get(name);
+            if (mechanism == null) {
+                throw new IllegalArgumentException(
+                        "No SaslMechanism found with name [%s]".formatted(name));
+            }
+            return mechanism;
+        }
+
         public static Set<String> names() {
-            return enumNames(values());
+            return Stream.of(values())
+                    .map(SaslMechanism::toString)
+                    .collect(Collectors.toUnmodifiableSet());
         }
 
         public String loginModule() {
             return "";
-        }
-
-        public String toPropertyValue() {
-            return toString();
         }
     }
 

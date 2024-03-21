@@ -187,8 +187,8 @@
              Kafka Connector supports the following authentication mechanisms:
 
              - PLAIN
-             - SCRAM_256
-             - SCRAM_512
+             - SCRAM-SHA-256
+             - SCRAM-SHA-512
              - GSSAPI
 
              Default value: PLAIN.-->
@@ -196,7 +196,7 @@
         <param name="authentication.mechanism">PLAIN</param>
         -->
 
-        <!-- Mandatory if authentication.mechanism is one of PLAIN, SCRAM_256, SCRAM_512. The credentials. -->
+        <!-- Mandatory if authentication.mechanism is one of PLAIN, SCRAM-SHA-256, SCRAM-SHA-512. The credentials. -->
         <!--
         <param name="authentication.username">authorized-kafka-user</param>
         <param name="authentication.password">authorized-kafka-user-password</param>

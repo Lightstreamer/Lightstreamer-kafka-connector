@@ -39,7 +39,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
     - authentication settings, with credentials retrieved from environment variables `username` and `password`:
       ```xml
       <param name="authentication.enable">true</param>
-      <param name="authentication.mechanism">SCRAM_256</param>
+      <param name="authentication.mechanism">SCRAM-SHA-256</param>
       <param name="authentication.username">$env.username</param>
       <param name="authentication.password">$env.password</param>
       ```

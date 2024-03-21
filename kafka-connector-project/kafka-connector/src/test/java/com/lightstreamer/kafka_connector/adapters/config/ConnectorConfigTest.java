@@ -1114,11 +1114,21 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyPlainAuthenticationRequiredParameters() {
+    public void shouldSpecifyAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.AUTHENTICATION_ENABLE, "true");
 
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "invalid");
         ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.mechanism]");
+        // Restore default SASL/PLAIN mechanism
+        updatedConfig.remove(BrokerAuthenticationConfigs.SASL_MECHANISM);
+
+        ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
@@ -1232,7 +1242,7 @@ public class ConnectorConfigTest {
                                         ? SecurityProtocol.SASL_SSL.toString()
                                         : SecurityProtocol.SASL_PLAINTEXT.toString(),
                                 SaslConfigs.SASL_MECHANISM,
-                                mechanism.toPropertyValue(),
+                                mechanism.toString(),
                                 SaslConfigs.SASL_JAAS_CONFIG,
                                 "org.apache.kafka.common.security.scram.ScramLoginModule required username='sasl-username' password='sasl-password';");
             }

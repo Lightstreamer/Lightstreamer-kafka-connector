@@ -229,8 +229,8 @@ If your target Kafka cluster is _Redpanda Cloud_, you also need to properly conf
 <param name="encryption.hostname.verification.enable">true</param>
 
 <param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM_256</param>
-<!-- <param name="authentication.mechanism">SCRAM_512</param> -->
+<param name="authentication.mechanism">SCRAM-SHA-256</param>
+<!-- <param name="authentication.mechanism">SCRAM-SHA-512</param> -->
 <param name="authentication.username">username</param>
 <param name="authentication.password">password</param>
 ...
@@ -304,7 +304,7 @@ where you have to replace `username` and `password` with credentials generated f
 
    ```java
    security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='<API.key>' password='<secret>';
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<secret>";
    sasl.mechanism=PLAIN
    ...
    ```
@@ -321,7 +321,7 @@ where you have to replace `username` and `password` with credentials generated f
 
    ```java
    security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password';
+   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="username" password="password";
    sasl.mechanism=SCRAM-SHA-256
    #sasl.mechanism=SCRAM-SHA-512
    ...
@@ -657,11 +657,11 @@ Example:
 _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Kafka Connector accepts the following authentication mechanisms:
 
 - `PLAIN` (the default value)
-- `SCRAM_256`
-- `SCRAM_512`
+- `SCRAM-SHA-256`
+- `SCRAM_SHA-512`
 - `GSSAPI`
 
-In the case of `PLAIN`, `SCRAM_256`, and `SCRAM_512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
 
 - `authentication.username`: the username
 - `authentication.password`: the password
@@ -677,24 +677,24 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM_256`
+###### `SCRAM-SHA-256`
 
 Example: 
 
 ```xml
 <param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM_256</param>
+<param name="authentication.mechanism">SCRAM-SHA-256</param>
 <param name="authentication.username">authorized-kafka-usee</param>
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM_512`
+###### `SCRAM-SHA-512`
 
 Example:
 
 ```xml
 <param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM_512</param>
+<param name="authentication.mechanism">SCRAM-SHA-512</param>
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```

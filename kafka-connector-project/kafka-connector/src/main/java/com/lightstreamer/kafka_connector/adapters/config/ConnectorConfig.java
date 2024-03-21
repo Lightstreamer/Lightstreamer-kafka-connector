@@ -532,7 +532,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public SaslMechanism authenticationMechanism() {
         checkAuthenticationEnabled();
-        return SaslMechanism.valueOf(
+        return SaslMechanism.fromName(
                 get(BrokerAuthenticationConfigs.SASL_MECHANISM, ConfType.SASL_MECHANISM, false));
     }
 
@@ -555,7 +555,7 @@ public final class ConnectorConfig extends AbstractConfig {
     private void checkGssapi() {
         if (!isGssapiEnabled()) {
             throw new ConfigException(
-                    "GSSAPI is not configured. Checl parameter [%s]"
+                    "GSSAPI is not configured. Check parameter [%s]"
                             .formatted(BrokerAuthenticationConfigs.SASL_MECHANISM));
         }
     }
