@@ -658,7 +658,7 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 
 - `PLAIN` (the default value)
 - `SCRAM-SHA-256`
-- `SCRAM_SHA-512`
+- `SCRAM-SHA-512`
 - `GSSAPI`
 
 In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
