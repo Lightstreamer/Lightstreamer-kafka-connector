@@ -1,6 +1,6 @@
 # Quick Start with Redpanda Cloud
 
-This folder contains a variant of the [_Quick Start_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Redpanda Cloud_ as the target Kafka cluster. You may follow the instructions on the [_Redpanda Cloud Quickstart_](https://docs.redpanda.com/current/get-started/quick-start-cloud/) to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Redpanda Cloud_ as the target Kafka cluster. You may follow the instructions on the [_Redpanda Cloud Quickstart_](https://docs.redpanda.com/current/get-started/quick-start-cloud/) documentation to perform the following operations:
 
 - deploy a _Dedicated Cloud_ cluster
 - create a user that uses `SCRAM-SHA-256` mechanism
