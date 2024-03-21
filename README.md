@@ -221,7 +221,7 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
 #### Connection with Redpanda Cloud
 
-If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure `TLS 1.2` encryption and `SCRAM-SHA-256` (or `SCRAM-SHA-512`) authentication, as follows:
+If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/SCRAM authentication, as follows:
 
 ```xml
 <param name="encryption.enable">true</param>
