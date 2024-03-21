@@ -2,10 +2,11 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Redpanda Cloud_ as the target Kafka cluster. You may follow the instructions on the [_Redpanda Cloud Quickstart_](https://docs.redpanda.com/current/get-started/quick-start-cloud/) documentation to perform the following operations:
 
-- deploy a _Dedicated Cloud_ cluster
+- deploy a cluster (_Serverless_ or _Dedicated_)
 - create a user that uses `SCRAM-SHA-256` mechanism
 - create a topic
 - allow `All` permissions to the user on the topic
+- allow `All` permissions to the user on the consumer group `quick-start-group`
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Redpanda Cloud as follows:
 
@@ -70,8 +71,8 @@ $ username=<username> password=<password> bootstrap_server=<bootstrap_server> to
 ```
 
 where 
-- `username` and `password` are the credentials of the user created from the _Redpanda console_
+- `username` and `password` are the credentials of the user created from the _Redpanda Console_
 - `bootstrap_server` is the bootstrap server address of the Redpanda cluster
-- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda console_
+- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
