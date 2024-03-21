@@ -12,6 +12,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
   - [Deploy](#deploy)
   - [Configure](#configure)
     - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
+    - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
     - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
 - [Configuration](#configuration)
@@ -201,7 +202,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 #### Connection with Confluent Cloud
 
-If your target Kafka cluster is Confluent Cloud, you also need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
+If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure `TLS 1.2` encryption and `SASL_PLAIN` authentication, as follows:
 
 ```xml
 <param name="encryption.enable">true</param>
@@ -216,6 +217,25 @@ If your target Kafka cluster is Confluent Cloud, you also need to properly confi
 ```
 
 where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+
+#### Connection with Redpanda Cloud
+
+If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure `TLS 1.2` encryption and `SCRAM-SHA-256` (or `SCRAM-SHA-512`) authentication, as follows:
+
+```xml
+<param name="encryption.enable">true</param>
+<param name="encryption.protocol">TLSv1.2</param>
+<param name="encryption.hostname.verification.enable">true</param>
+
+<param name="authentication.enable">true</param>
+<param name="authentication.mechanism">SCRAM_256</param>
+<!-- <param name="authentication.mechanism">SCRAM_512</param> -->
+<param name="authentication.username">username</param>
+<param name="authentication.password">password</param>
+...
+```
+
+where you have to replace `username` and `password` with credentials generated on the _rpk_ tool or from the _Redpanda Console_.
 
 ### Start
 
@@ -279,16 +299,34 @@ where you have to replace `API.key` and `secret` with the _API Key_ and _secret_
 
    #### Publishing with Confluent Cloud
 
-   If your target Kafka cluster is Confluent Cloud, you also need to provide a properties file that includes encryption and authentication settings, as follows:
+   If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
    ```java
    security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='API.key' password='secret';
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='<API.key>' password='<secret>';
    sasl.mechanism=PLAIN
    ...
    ```
 
-   where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+
+   ```sh
+   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   ```
+
+   #### Publishing with Redpanda Cloud
+
+   If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
+
+   ```java
+   security.protocol=SASL_SSL
+   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username='username' password='password';
+   sasl.mechanism=SCRAM-SHA-256
+   #sasl.mechanism=SCRAM-SHA-512
+   ...
+   ```
+
+   where you have to replace `username` and `password` with credentials generated on the _rpk_ tool or from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`)
 
    ```sh
    $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
