@@ -11,7 +11,7 @@
 
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
-        <param name="bootstrap.servers">cntc68q83bcutli1gb40.any.us-east-1.mpx.prd.cloud.redpanda.com:9092</param>
+        <param name="bootstrap.servers">$env.bootstrap_server</param>
         <param name="group.id">quick-start-group</param>
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
