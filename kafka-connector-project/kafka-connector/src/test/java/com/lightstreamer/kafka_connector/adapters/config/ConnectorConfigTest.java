@@ -1232,7 +1232,7 @@ public class ConnectorConfigTest {
                                         ? SecurityProtocol.SASL_SSL.toString()
                                         : SecurityProtocol.SASL_PLAINTEXT.toString(),
                                 SaslConfigs.SASL_MECHANISM,
-                                mechanism.toProperty(),
+                                mechanism.toPropertyValue(),
                                 SaslConfigs.SASL_JAAS_CONFIG,
                                 "org.apache.kafka.common.security.scram.ScramLoginModule required username='sasl-username' password='sasl-password';");
             }

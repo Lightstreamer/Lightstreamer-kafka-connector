@@ -114,7 +114,7 @@ public class ConfigTypes {
             }
 
             @Override
-            public String toProperty() {
+            public String toPropertyValue() {
                 return "SCRAM-SHA-256";
             }
         },
@@ -126,7 +126,7 @@ public class ConfigTypes {
             }
 
             @Override
-            public String toProperty() {
+            public String toPropertyValue() {
                 return "SCRAM-SHA-512";
             }
         },
@@ -146,7 +146,7 @@ public class ConfigTypes {
             return "";
         }
 
-        public String toProperty() {
+        public String toPropertyValue() {
             return toString();
         }
     }
