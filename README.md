@@ -327,7 +327,7 @@ where you have to replace `username` and `password` with credentials generated o
    ...
    ```
 
-   where you have to replace `username` and `password` with credentials generated on the _rpk_ tool or from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`)
+   where you have to replace `username` and `password` with credentials generated on the _rpk_ tool or from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
 
    ```sh
    $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
