@@ -5,7 +5,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 
 - [Introduction](#introduction)
   - [Features](#features)
-- [Quick Start: Set up in 5 minutes](#quick-start)
+- [Quick Start: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Installation](#installation)
   - [Requirements](#requirements)
