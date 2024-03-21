@@ -770,7 +770,7 @@ Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L2
 
 ##### Quick Start Redpanda Cloud Example
 
-Check out the [adapters.xml](examples/quickstart-redpanda-cloud/adapters.xml#22) file of the [_Quick Start Redpanda Cloud_](examples/quickstart-redpanda-cloud/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](examples/quickstart-redpanda-cloud/adapters.xml#L22) file of the [_Quick Start Redpanda Cloud_](examples/quickstart-redpanda-cloud/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
 #### Record Evaluation
 
