@@ -663,8 +663,8 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 
 In the case of `PLAIN`, `SCRAM_256`, and `SCRAM_512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
 
-- `authentication.username`, the username.
-- `authentication.password`, the password.
+- `authentication.username`: the username
+- `authentication.password`: the password
 
 ###### `PLAIN`
 
