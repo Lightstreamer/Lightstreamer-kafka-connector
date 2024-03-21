@@ -236,7 +236,7 @@ If your target Kafka cluster is _Redpanda Cloud_, you also need to properly conf
 ...
 ```
 
-where you have to replace `username` and `password` with credentials generated from the _Redpanda Console_.
+where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_.
 
 ### Start
 
@@ -327,7 +327,7 @@ where you have to replace `username` and `password` with credentials generated f
    ...
    ```
 
-   where you have to replace `username` and `password` with credentials generated from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
+   where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
 
    ```sh
    $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
