@@ -67,5 +67,6 @@ $ api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> topic=<t
 where 
 - `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_
 - `bootstrap_server` is the Kafla cluster address
+- `topic` is the name of the topic
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
