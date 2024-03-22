@@ -38,7 +38,7 @@ broker:
     - 19644:9644
 ```
 
-which is a slightly modified version of `redpanda-0` service included in the [`docker-compose.yml`](https://docs.redpanda.com/redpanda-labs/docker-compose/_attachments/single-broker/docker-compose.yml) file provided by the [_Redpanda Self-hosted Quick Start_](https://docs.redpanda.com/current/get-started/quick-start/)
+which is a slightly modified version of the `redpanda-0` service included in the [`docker-compose.yml`](https://docs.redpanda.com/redpanda-labs/docker-compose/_attachments/single-broker/docker-compose.yml) file provided by the [_Redpanda Self-hosted Quick Start_](https://docs.redpanda.com/current/get-started/quick-start/)
 
 ## Run
 
@@ -76,7 +76,7 @@ console:
 
 To explore the topic:
 
-- open your browser and navigate to [http://localhost:8088](http://localhost:8080)
+- open your browser and navigate to [http://localhost:8088](http://localhost:8088)
 - go to `Topics` > `stocks`
 
 and see the messages produced along with other details about the topic.
