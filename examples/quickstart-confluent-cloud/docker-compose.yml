@@ -1,5 +1,6 @@
 ---
 version: '2'
+name: quickstart-kafka-connector-confluent-cloud
 services:
   kafka-connector:
     container_name: kafka-connector

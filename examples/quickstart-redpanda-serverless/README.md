@@ -8,9 +8,9 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 - allow `All` permissions to the user on the topic
 - allow `All` permissions to the user on the consumer group `quick-start-group`
 
-The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Redpanda Cloud as follows:
+The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Redpanda Serverless_ as follows:
 
-- removal of the _broker_ service, because replaced by the remote cluster.
+- removal of the `broker` service, because replaced by the remote cluster.
 - _kafka-connector_:
   - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
     ```yaml

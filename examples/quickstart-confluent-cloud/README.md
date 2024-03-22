@@ -2,9 +2,9 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Confluent Cloud_ as the target Kafka cluster.
 
-The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Confluent Cloud as follows:
+The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ as follows:
 
-- removal of the _broker_ service, because replaced by the remote Kafka cluster.
+- removal of the `broker` service, because replaced by the remote Kafka cluster.
 - _kafka-connector_:
   - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
     ```yaml
