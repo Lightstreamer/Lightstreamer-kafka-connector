@@ -24,8 +24,8 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 
    which will:
    
-   - create and copy the distribution package to the `tmp` folder;
-   - build the Docker image.
+   - create and copy the distribution package to the `tmp` folder
+   - build the Docker image
 
 3. Check that the image has been created:
 
