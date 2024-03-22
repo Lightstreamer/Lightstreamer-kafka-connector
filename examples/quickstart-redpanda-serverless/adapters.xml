@@ -35,10 +35,6 @@
         <param name="$env.topic_mapping">item-template.stock</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
-        <param name="field.ts">#{TIMESTAMP}</param>
-        <param name="field.topic">#{TOPIC}</param>
-        <param name="field.offset">#{OFFSET}</param>
-        <param name="field.partition">#{PARTITION}</param>
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
         <param name="field.stock_name">#{VALUE.name}</param>
@@ -53,6 +49,11 @@
         <param name="field.ref_price">#{VALUE.ref_price}</param>
         <param name="field.open_price">#{VALUE.open_price}</param>
         <param name="field.item_status">#{VALUE.item_status}</param>
+        <param name="field.ts">#{TIMESTAMP}</param>
+        <param name="field.topic">#{TOPIC}</param>
+        <param name="field.offset">#{OFFSET}</param>
+        <param name="field.partition">#{PARTITION}</param>
+
     </data_provider>
 
 </adapters_conf>

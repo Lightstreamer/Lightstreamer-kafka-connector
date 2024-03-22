@@ -1,6 +1,6 @@
 # Quick Start with Redpanda Serverless
 
-This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Redpanda Serverless_ as the target Kafka cluster. You may follow the [instructions](https://docs.redpanda.com/current/deploy/deployment-option/cloud/serverless/) on [Redpanda Docs](https://docs.redpanda.com/current/home/) to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Redpanda Serverless_ as the target cluster. You may follow the [instructions](https://docs.redpanda.com/current/deploy/deployment-option/cloud/serverless/) on [Redpanda Docs](https://docs.redpanda.com/current/home/) to perform the following operations:
 
 - deploy a Serverless Cluster
 - create a user that uses `SCRAM-SHA-256` mechanism
@@ -10,7 +10,7 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with Redpanda Cloud as follows:
 
-- removal of the _broker_ service, because replaced by the remote Kafka cluster.
+- removal of the _broker_ service, because replaced by the remote cluster.
 - _kafka-connector_:
   - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
     ```yaml
