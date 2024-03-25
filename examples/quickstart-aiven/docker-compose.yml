@@ -1,0 +1,48 @@
+---
+version: '2'
+name: quickstart-kafka-connector-redpanda-serverless
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - producer
+    ports:
+      - 8080:8080
+    environment:
+      - bootstrap_server=${bootstrap_server}
+      - username=${username}
+      - password=${password}
+      - truststore_password=${truststore_password}
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+
+  producer:
+    container_name: producer
+    build:
+      context: ../quickstart-producer
+      args:
+        VERSION: ${version}
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    volumes:
+      - ./secrets:/usr/app/secrets
+    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
+
+configs:
+  producer.properties:
+    content: |
+      # Configure SASL/PLAIN mechanism
+      sasl.mechanism=SCRAM-SHA-256
+      # Enable SSL encryption
+      security.protocol=SASL_SSL
+      # JAAS configuration
+      sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
+      # Trust store configuration to authenticate the broker
+      ssl.endpoint.identification.algorithm=
+      ssl.truststore.location=/usr/app/secrets/client.truststore.jks
+      ssl.truststore.password=password

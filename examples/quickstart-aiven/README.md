@@ -1,14 +1,16 @@
-# Quick Start with Redpanda Serverless
+# Quick Start with Aiver for Apache Kafka
 
-This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Redpanda Serverless_](https://redpanda.com/redpanda-cloud/serverless) as the target cluster. You may follow the [instructions](https://docs.redpanda.com/current/deploy/deployment-option/cloud/serverless/) on [Redpanda Docs](https://docs.redpanda.com/current/home/) to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started)  to perform the following operations:
 
-- deploy a _Serverless Cluster_
-- create a user that uses `SCRAM-SHA-256` mechanism
-- create a topic
-- allow `All` permissions to the user on the topic
-- allow `All` permissions to the user on the consumer group `quick-start-group`
+- create a new _Apache Kafka_ service
+- enable the SASL authentication mechanism
+- download the CA certificate to create the trust store file with:
+  ```sh
+  $ keytool -import -file ca.pem -alias CA -keystore secrets/client.truststore.jks
+  ```
+- create the topic `stocks`
 
-The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Redpanda Serverless_ as follows:
+The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
 - removal of the `broker` service, because replaced by the remote cluster.
 - _kafka-connector_:
@@ -19,21 +21,24 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - bootstrap_server=${bootstrap_server}
       - username=${username}
       - password=${password}
-        # adapters.xml uses env variable "topic_mapping", built from env variable "topic"
-      - topic_mapping=map.${topic}.to
+      - truststore_password=${truststore_password}
     ...
     ```
+  - mounting of the local `secrets` folder to /`lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container
   - adaption of [`adapters.xml`](./adapters.xml) to include:
     - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - encryption settings:
+    - encryption settings, with the trust store password retrieved from the environment variable `truststore_password`
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
-      <param name="encryption.hostname.verification.enable">true</param>
+      <param name="encryption.hostname.verification.enable">false</param>
+      <param name="encryption.truststore.path">secrets/client.truststore.jks</param>
+      <param name="encryption.truststore.password">$env.truststore_password</param>
+
       ```
 
     - authentication settings, with the credentials retrieved from environment variables `username` and `password`:
@@ -43,15 +48,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.username">$env.username</param>
       <param name="authentication.password">$env.password</param>
       ```
-    - parameter `map.<topic>.to` built from env variable `topic_mapping`, composed from env variable `topic`
-      ```xml
-      <param name="$env.topic_mapping">item-template.stock</param>
-      ```
 
 - _producer_:
    - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
-   - parameter `--topic` retrieved from the environment variable `topic`
-   - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
+   - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
    ```yaml
    # Configure SASL/PLAIN mechanism
@@ -60,6 +60,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
    security.protocol=SASL_SSL
    # JAAS configuration
    sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
+   # Trust store configuration to authenticate the broker
+   ssl.truststore.location=/usr/app/secrets/client.truststore.jks
+   ssl.truststore.password=password   
+   ssl.endpoint.identification.algorithm=
    ```  
 
 ## Run
@@ -71,8 +75,7 @@ $ username=<username> password=<password> bootstrap_server=<bootstrap_server> to
 ```
 
 where 
-- `username` and `password` are the credentials of the user created from the _Redpanda Console_
+- `username` and `password` are the credentials of the user created from the _Aiven Console_
 - `bootstrap_server` is the bootstrap server address of the Redpanda cluster
-- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
