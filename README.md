@@ -49,7 +49,7 @@ _Lightstreamer Kafka Connector_ is an intelligent proxy that bridges the gap bet
 - **Massive scalability**: Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers.
 - **Firewall and proxy traversal**: Ensure the delivery of real-time data to clients anywhere, navigating through network obstacles. Stream data seamlessly, even through the strictest corporate firewalls.
 - **Maximum security**: Implement state-of-the-art encryption, authentication, and fine-grained authorization for robust protection.
-- **Extensive broker compatibility**: Compatible with all leading brokers, including Apache Kafka, Confluent Platform, Confluent Cloud, and Amazon MSK.
+- **Extensive broker compatibility**: Compatible with all leading brokers, including Apache Kafka, Confluent Platform, Confluent Cloud, Redpanda, Aiven and Amazon MSK.
 - **Comprehensive client SDK support**:
 
   ![Client APIs](pictures/sdks.png)
