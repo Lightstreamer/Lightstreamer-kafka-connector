@@ -47,7 +47,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     # Trust store configuration to authenticate the broker
     ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
     ssl.truststore.password=producer-truststore-password
-    # Key store configuration for client authentication with the broker
+    # Key tore configuration for client authentication with the broker
     ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
     ssl.keystore.password=producer-password
     ssl.key.password=producer-password

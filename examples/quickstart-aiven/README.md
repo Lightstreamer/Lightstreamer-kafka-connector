@@ -12,7 +12,7 @@ This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/READ
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
-- removal of the `broker` service, because replaced by the remote cluster.
+- removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
   - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
     ```yaml
@@ -24,7 +24,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - truststore_password=${truststore_password}
     ...
     ```
-  - mounting of the local `secrets` folder to /`lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container
+  - mounting of the local `secrets` folder to /`lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
+    ```yaml
+    volumes:
+      ...
+      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+    ```
   - adaption of [`adapters.xml`](./adapters.xml) to include:
     - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
       ```xml
