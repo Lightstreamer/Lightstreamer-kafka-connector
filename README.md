@@ -979,7 +979,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
  > - an [Object](https://www.json.org/json-en.html), in the case of JSON format
  > - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  > 
- > Such a constraint may be removed in a further version of Kafka Connector.
+ > Such a constraint may be removed in a future version of Kafka Connector.
 
 - the _square notation_ is used to access:
 
