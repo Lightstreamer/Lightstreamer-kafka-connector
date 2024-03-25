@@ -6,7 +6,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - removal of the `broker` service, because replaced by the remote Kafka cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
+  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -61,12 +61,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 From this directory, run follow the command:
 
 ```sh
-$ api_key=<API.key> secret=<secret> bootstrap_server=<bootstrap_server> topic=<topic> ./start.sh 
+$ bootstrap_server=<bootstrap_server> api_key=<API.key> secret=<secret> topic=<topic> ./start.sh 
 ```
 
 where 
-- `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_
 - `bootstrap_server` is the Kafla cluster address
+- `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_
 - `topic` is the name of the topic
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).

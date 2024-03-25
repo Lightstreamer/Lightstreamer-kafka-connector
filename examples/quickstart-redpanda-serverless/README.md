@@ -12,7 +12,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion__ feature of Lightstreamer:
+  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -67,12 +67,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 From this directory, run follow the command:
 
 ```sh
-$ username=<username> password=<password> bootstrap_server=<bootstrap_server> topic=<topic> ./start.sh 
+$ bootstrap_server=<bootstrap_server> username=<username> password=<password> topic=<topic> ./start.sh 
 ```
 
 where 
-- `username` and `password` are the credentials of the user created from the _Redpanda Console_
 - `bootstrap_server` is the bootstrap server address of the Redpanda cluster
+- `username` and `password` are the credentials of the user created from the _Redpanda Console_
 - `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
