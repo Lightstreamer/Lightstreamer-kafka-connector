@@ -24,7 +24,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - truststore_password=${truststore_password}
     ...
     ```
-  - mounting of the local `secrets` folder to /`lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
+  - mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
     ```yaml
     volumes:
       ...
@@ -55,6 +55,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```
 
 - _producer_:
+   - mounting of the local `secrets` folder to `/usr/app/secrets` in the container:
+   
+     ```yaml
+     volumes:
+       - ./secrets:/usr/app/secrets
+     ```
    - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
    - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
