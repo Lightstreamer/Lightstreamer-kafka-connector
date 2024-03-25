@@ -9,6 +9,7 @@ This folder contains several examples showing you how to use Lightstreamer Kafka
 - [quickstart-confluent-cloud](quickstart-confluent-cloud/): the _Quick Start_ app with _Confluent Cloud_ as the target Kafka Cluster
 - [quickstart-redpanda-selfhosted](quickstart-redpanda-selfhosted/): the _Quick Start_ app with _Redpanda_ as the target broker
 - [quickstart-redpanda-serverless](quickstart-redpanda-serverless/): the _Quick Start_ app with _Redpanda Serverless_ as the target cluster
+- [quickstart-aiven](quickstart-redpanda-serverless/): the _Quick Start_ app with _Aiven for Apache Kafka_ as the target Kafka cluster
 - [quickstart-schema-registry](quickstart-schema-registry/): the _Quick Start_ app configured to use the _Confluent Schema Registry_
 - [airport-demo](airport-demo/): a demo showing a basic departure board
 - [custom-kafka-connector-adapter](custom-kafka-connector-adapter/): a sample Gradle project for building and deploying a custom _Kafka Connector Metadata Adapter_
