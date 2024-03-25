@@ -575,7 +575,6 @@ Example:
 <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
 ```
 
-
 ##### `encryption.keystore.enable`
 
 _Optional_. Enable a key store. Can be one of the following:
