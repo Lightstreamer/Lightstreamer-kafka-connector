@@ -1,6 +1,6 @@
 ---
 version: '2'
-name: quickstart-kafka-connector-redpanda-serverless
+name: quickstart-kafka-connector-aiven
 services:
   kafka-connector:
     container_name: kafka-connector
