@@ -1,4 +1,4 @@
-# Quick Start with Aiver for Apache Kafka
+# Quick Start with Aiven for Apache Kafka
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started)  to perform the following operations:
 
