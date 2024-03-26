@@ -36,7 +36,7 @@ services:
 configs:
   producer.properties:
     content: |
-      # Configure SASL/PLAIN mechanism
+      # Configure SASL/SCRAM mechanism
       sasl.mechanism=SCRAM-SHA-256
       # Enable SSL encryption
       security.protocol=SASL_SSL

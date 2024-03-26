@@ -65,7 +65,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
    - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
    ```yaml
-   # Configure SASL/PLAIN mechanism
+   # Configure SASL/SCRAM mechanism
    sasl.mechanism=SCRAM-SHA-256
    # Enable SSL encryption
    security.protocol=SASL_SSL
