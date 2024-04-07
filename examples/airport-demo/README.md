@@ -52,7 +52,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
       <!-- Extraction of the record key mapped to the field "key". -->
       <param name="field.key">#{KEY}</param>
 
-      <!-- Extraction of the record value mapped to the field "value". -->
+      <!-- Extraction of the record value attributes mapped to corresponding field names. -->
       <param name="field.destination">#{VALUE.destination}</param>
       <param name="field.departure">#{VALUE.departure}</param>
       <param name="field.flightNo">#{VALUE.flightNo}</param>
@@ -135,7 +135,7 @@ $ mvn install dependency:copy-dependencies
 If the task completes successfully, it also creates a `target` folder, with the jar of the simulator and all the needed dependencies. Alternatively, you can start the simulator producer loop with this command from the  `producer` folder:
 
 ```sh 
-$ mvn exec:java localhost:9092 Flights
+$ mvn exec:java -Dexec.args="localhost:9092 Flights 1000"
 ```
  
 where:
