@@ -119,23 +119,21 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 ### Simulator Producer loop
 
-To build the simulator you have two options: either use [Maven](https://maven.apache.org/) (or other build tools) to take care of dependencies and build (recommended) or gather the necessary jars yourself and build it manually.
-For the sake of simplicity, only the Maven case is detailed here.
+To build the simulator you have two options: either use [Gradle](https://gradle.org/) (or other build tools) to take care of dependencies and build (recommended) or gather the necessary jars yourself and build it manually.
+For the sake of simplicity, only the Gradle case is detailed here.
 
-#### Maven
+#### Gradle
 
-You can easily build the jar using Maven through the [producer/pom.xml](producer/pom.xml) file. As an alternative, you can use any other build tool (e.g. Gradle, Ivy, etc.).
-
-Assuming Maven is installed and available in your path, you can build the producer by running:
+You can easily build the producer by running the following command from the [`producer`](producer/) folder:
 
 ```sh 
-$ mvn install dependency:copy-dependencies 
+$ ./gradlew clean build
 ```
 
-If the task completes successfully, it also creates a `target` folder, with the jar of the simulator and all the needed dependencies. Alternatively, you can start the simulator producer loop with this command from the  `producer` folder:
+which generates the _uber_ jar. Then, you can start the simulator producer loop with this command:
 
 ```sh 
-$ mvn exec:java -Dexec.args="localhost:9092 Flights 1000"
+$ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar localhost:9092 Flights 1000
 ```
  
 where:
