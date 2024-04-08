@@ -253,7 +253,7 @@ public class DemoPublisher {
         logger.info("Start Kafka demo producer: " + args.length);
 
         if (args.length < 3) {
-            logger.error("Missing arguments: [bootstrap-servers] [topio-name] [interval of update]");
+            logger.error("Missing arguments: [bootstrap-servers] [topic-name] [interval of update]");
             return ;
         }
 
