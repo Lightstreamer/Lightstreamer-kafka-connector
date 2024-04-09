@@ -139,6 +139,7 @@ $ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar loca
 where:
 - `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply
 - `Flights` is the topic name used to produce the messages with simulated flights info
+- `1000` is the interval in milliseconds between the generation of one simulated event and the next
 
 ### Web Client
 
