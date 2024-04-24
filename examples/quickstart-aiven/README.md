@@ -14,7 +14,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - definition of new environment variables to configure remote endpoint, credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
