@@ -19,13 +19,6 @@ dependencies {
 	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-
 tasks.register('uberJar', Jar) {
 	manifest {
 		attributes 'Main-Class': "com.lightstreamer.kafka_connector.examples.quick_start.producer.Producer"
