@@ -1,0 +1,1 @@
+bootstrap_server=bootstrap-sharedkafka.byok.p.westeurope.azure.axual.cloud:9095 username=stocksdemotest423610323 password=6AfEnCX3oE group_id=myownfb1-np-test-stocks_demo_app topic=myownfb1-np-test-stocks ./start.sh

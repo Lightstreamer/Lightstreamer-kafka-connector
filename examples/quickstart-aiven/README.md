@@ -82,10 +82,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 From this directory, run follow the command:
 
 ```sh
-$  bootstrap_server=<bootstrap_server> username=<username> password=<password> truststore_password=<truststore_password> ./start.sh 
+$ bootstrap_server=<bootstrap_server> username=<username> password=<password> truststore_password=<truststore_password> ./start.sh 
 ```
 
-where 
+where:
 - `bootstrap_server` is the bootstrap server address of the Apache Kafka service
 - `username` and `password` are the credentials of the user automatically created from the _Aiven Console_
 - `truststore_password` is the password of the trust store file

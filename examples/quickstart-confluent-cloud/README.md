@@ -64,7 +64,7 @@ From this directory, run follow the command:
 $ bootstrap_server=<bootstrap_server> api_key=<API.key> secret=<secret> topic=<topic> ./start.sh 
 ```
 
-where 
+where:
 - `bootstrap_server` is the Kafla cluster address
 - `API.key` and `secret` are the credentials generated on the _Confluent CLI_ or from the _Confluent Cloud Console_
 - `topic` is the name of the topic

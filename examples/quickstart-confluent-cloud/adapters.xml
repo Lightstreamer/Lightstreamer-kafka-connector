@@ -53,7 +53,7 @@
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
+
     </data_provider>
 
 </adapters_conf>
-

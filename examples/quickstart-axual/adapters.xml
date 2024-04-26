@@ -12,16 +12,16 @@
         <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <param name="bootstrap.servers">$env.bootstrap_server</param>
-        <param name="group.id">quick-start-group</param>
+        <param name="group.id">$env.group_id</param>
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
         <param name="encryption.enable">true</param>
-        <param name="encryption.protocol">TLSv1.2</param>
-        <param name="encryption.hostname.verification.enable">true</param>
+        <param name="encryption.protocol">TLSv1.3</param>
+        <param name="encryption.hostname.verification.enable">false</param>
 
         <!-- ##### AUTHENTICATION SETTINGS ##### -->
         <param name="authentication.enable">true</param>
-        <param name="authentication.mechanism">SCRAM-SHA-256</param>
+        <param name="authentication.mechanism">SCRAM-SHA-512</param>
         <param name="authentication.username">$env.username</param>
         <param name="authentication.password">$env.password</param>
 
