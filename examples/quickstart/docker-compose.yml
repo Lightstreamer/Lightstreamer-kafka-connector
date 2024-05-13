@@ -25,7 +25,7 @@ services:
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
 
   broker:
-    image: confluentinc/confluent-local:latest
+    image: apache/kafka
     hostname: broker
     container_name: broker
     ports:
