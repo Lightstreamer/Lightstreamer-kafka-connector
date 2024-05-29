@@ -259,7 +259,6 @@
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
         
-
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
              Can be one of the following:
              - AVRO
@@ -321,8 +320,8 @@
         <!--
         <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
         -->
-
         <param name="item-template.stock">stock-#{index=KEY}</param>
+
         <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
              - one or more simple items
              - one or more item templates
