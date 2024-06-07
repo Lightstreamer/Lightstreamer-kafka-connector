@@ -21,11 +21,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -76,7 +76,7 @@ public class RecordMapperStringTest {
     public void shouldMapEmpty() {
         RecordMapper<String, String> mapper = builder().build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         // No expected values because no selectors have been bound to the RecordMapper.
@@ -92,7 +92,7 @@ public class RecordMapperStringTest {
                         .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record(null, "aValue");
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record(null, "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
     }
@@ -102,7 +102,7 @@ public class RecordMapperStringTest {
         RecordMapper<String, String> mapper =
                 builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
@@ -118,7 +118,7 @@ public class RecordMapperStringTest {
         RecordMapper<String, String> mapper =
                 builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
@@ -137,7 +137,7 @@ public class RecordMapperStringTest {
         RecordMapper<String, String> mapper =
                 builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("", null);
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", null);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 

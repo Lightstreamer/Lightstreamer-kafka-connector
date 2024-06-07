@@ -18,11 +18,11 @@
 package com.lightstreamer.kafka_connector.adapters.mapping;
 
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValuesContainer;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ public interface RecordMapper<K, V> {
 
     int selectorsSize();
 
-    MappedRecord map(ConsumerRecord<K, V> record);
+    MappedRecord map(KafkaRecord<K, V> record);
 
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
@@ -86,7 +86,7 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public MappedRecord map(ConsumerRecord<K, V> record) {
+    public MappedRecord map(KafkaRecord<K, V> record) {
         Set<ValuesContainer> values =
                 selectors.stream().map(s -> s.extractValues(record)).collect(Collectors.toSet());
         return new DefaultMappedRecord(record.topic(), values);

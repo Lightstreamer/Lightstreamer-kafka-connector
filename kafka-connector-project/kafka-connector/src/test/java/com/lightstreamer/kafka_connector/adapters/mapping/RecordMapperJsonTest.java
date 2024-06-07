@@ -22,13 +22,13 @@ import static com.google.common.truth.Truth.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -82,7 +82,7 @@ public class RecordMapperJsonTest {
     public void shouldMapEmpty() {
         RecordMapper<String, JsonNode> mapper = builder().build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
+        KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
@@ -99,7 +99,7 @@ public class RecordMapperJsonTest {
                         .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
+        KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
@@ -110,7 +110,7 @@ public class RecordMapperJsonTest {
         RecordMapper<String, JsonNode> mapper =
                 builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
+        KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
@@ -143,7 +143,7 @@ public class RecordMapperJsonTest {
                         .withSelectors(childSelectors2)
                         .build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
+        KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
@@ -172,7 +172,7 @@ public class RecordMapperJsonTest {
 
         RecordMapper<String, JsonNode> mapper = builder().withSelectors(selectors).build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
+        KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);

@@ -20,13 +20,13 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors.others;
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Value;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.BooleanDeserializer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
@@ -106,7 +106,7 @@ public class OthersSelectorSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<Object, ?> record) {
+        public Value extract(KafkaRecord<Object, ?> record) {
             String text = Objects.toString(record.key(), null);
             return Value.of(name(), text);
         }
@@ -147,7 +147,7 @@ public class OthersSelectorSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, Object> record) {
+        public Value extract(KafkaRecord<?, Object> record) {
             String text = Objects.toString(record.value(), null);
             return Value.of(name(), text);
         }

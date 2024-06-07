@@ -17,9 +17,7 @@
 
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-
 public interface ValueSelector<V> extends Selector {
 
-    Value extract(ConsumerRecord<?, V> record) throws ValueException;
+    Value extract(KafkaRecord<?, V> record) throws ValueException;
 }

@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
@@ -29,7 +30,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.GenericRecordProvid
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -88,7 +88,7 @@ public class RecordMapperAvroTest {
     public void shouldMapEmpty() {
         RecordMapper<String, GenericRecord> mapper = builder().build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord =
+        KafkaRecord<String, GenericRecord> kafkaRecord =
                 ConsumerRecords.record("", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
@@ -105,7 +105,7 @@ public class RecordMapperAvroTest {
                         .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord =
+        KafkaRecord<String, GenericRecord> kafkaRecord =
                 ConsumerRecords.record("", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
@@ -116,7 +116,7 @@ public class RecordMapperAvroTest {
         RecordMapper<String, GenericRecord> mapper =
                 builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord =
+        KafkaRecord<String, GenericRecord> kafkaRecord =
                 ConsumerRecords.record("", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
@@ -150,7 +150,7 @@ public class RecordMapperAvroTest {
                         .withSelectors(childSelectors2)
                         .build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord =
+        KafkaRecord<String, GenericRecord> kafkaRecord =
                 ConsumerRecords.record("", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
@@ -179,7 +179,7 @@ public class RecordMapperAvroTest {
 
         RecordMapper<String, GenericRecord> mapper = builder().withSelectors(selectors).build();
 
-        ConsumerRecord<String, GenericRecord> kafkaRecord =
+        KafkaRecord<String, GenericRecord> kafkaRecord =
                 ConsumerRecords.record("", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);

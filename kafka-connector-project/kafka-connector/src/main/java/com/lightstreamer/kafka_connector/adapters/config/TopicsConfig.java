@@ -83,19 +83,23 @@ public class TopicsConfig {
 
     private final List<TopicConfiguration> topicConfigurations;
 
-    private TopicsConfig(ConnectorConfig config) {
-        this.topicConfigurations = initConfigurations(config);
-    }
-
     private TopicsConfig(TopicConfiguration... config) {
         this.topicConfigurations = List.of(config);
     }
 
-    private List<TopicConfiguration> initConfigurations(ConnectorConfig config) {
-        List<TopicConfiguration> configs = new ArrayList<>();
-        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
-        Map<String, String> topicMappings = config.getValues(ConnectorConfig.TOPIC_MAPPING, true);
+    private TopicsConfig(ConnectorConfig config) {
+        this(
+                config.getValues(ConnectorConfig.ITEM_TEMPLATE, false),
+                config.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+    }
 
+    private TopicsConfig(Map<String, String> itemTemplates, Map<String, String> topicMappings) {
+        this.topicConfigurations = initConfigurations(itemTemplates, topicMappings);
+    }
+
+    private List<TopicConfiguration> initConfigurations(
+            Map<String, String> itemTemplates, Map<String, String> topicMappings) {
+        List<TopicConfiguration> configs = new ArrayList<>();
         for (Map.Entry<String, String> topicMapping : topicMappings.entrySet()) {
             String topic = topicMapping.getKey();
             String[] itemRefs = topicMapping.getValue().split(",");
@@ -128,5 +132,10 @@ public class TopicsConfig {
 
     public static TopicsConfig of(ConnectorConfig connectorConfig) {
         return new TopicsConfig(connectorConfig);
+    }
+
+    public static TopicsConfig of(
+            Map<String, String> itemTemplates, Map<String, String> topicMappings) {
+        return new TopicsConfig(itemTemplates, topicMappings);
     }
 }

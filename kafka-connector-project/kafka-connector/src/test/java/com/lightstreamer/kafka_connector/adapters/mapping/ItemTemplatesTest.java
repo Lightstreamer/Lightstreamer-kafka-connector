@@ -40,6 +40,7 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.Evalu
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
@@ -48,7 +49,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -165,8 +165,7 @@ public class ItemTemplatesTest {
                         .withSelectors(templates.selectors())
                         .build();
 
-        ConsumerRecord<String, JsonNode> kafkaRecord =
-                record("topic", "key", JsonNodeProvider.RECORD);
+        KafkaRecord<String, JsonNode> kafkaRecord = record("topic", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         // Kafka records coming from same topic "topic" matches two different item
@@ -206,12 +205,12 @@ public class ItemTemplatesTest {
                         .build();
 
         // Kafka Record coming from topic "new_orders"
-        ConsumerRecord<String, JsonNode> kafkaRecord1 =
+        KafkaRecord<String, JsonNode> kafkaRecord1 =
                 record("new_orders", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
 
         // Kafka Record coming from tpoic "past_orders"
-        ConsumerRecord<String, JsonNode> kafkaRecord2 =
+        KafkaRecord<String, JsonNode> kafkaRecord2 =
                 record("past_orders", "key", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
 
@@ -241,7 +240,7 @@ public class ItemTemplatesTest {
                         .withSelectors(templates.selectors())
                         .build();
 
-        ConsumerRecord<GenericRecord, GenericRecord> incomingRecord =
+        KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
                 record("topic", GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
         Item subscribedItem = Items.itemFrom(subscribingItem, new Object());
@@ -269,7 +268,7 @@ public class ItemTemplatesTest {
                         .withSelectors(templates.selectors())
                         .build();
 
-        ConsumerRecord<GenericRecord, JsonNode> incomingRecord =
+        KafkaRecord<GenericRecord, JsonNode> incomingRecord =
                 record("topic", GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
         Item subscribedItem = Items.itemFrom(subscribingItem, new Object());

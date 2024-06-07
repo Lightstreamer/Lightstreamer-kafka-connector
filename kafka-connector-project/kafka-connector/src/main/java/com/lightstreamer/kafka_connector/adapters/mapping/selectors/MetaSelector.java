@@ -17,9 +17,7 @@
 
 package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-
 public interface MetaSelector extends Selector {
 
-    Value extract(ConsumerRecord<?, ?> record) throws ValueException;
+    Value extract(KafkaRecord<?, ?> record) throws ValueException;
 }

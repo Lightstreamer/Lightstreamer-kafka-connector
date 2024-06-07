@@ -28,7 +28,6 @@ import com.lightstreamer.kafka_connector.adapters.test_utils.ConnectorConfigProv
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka_connector.adapters.test_utils.SelectorsSuppliers;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -84,7 +83,7 @@ public class SelectorsTest {
                 Selectors.from(SelectorsSuppliers.string(), "schema", expressions);
         assertThat(selectors.schema()).isEqualTo(expectedSchema);
 
-        ConsumerRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
         ValuesContainer values = selectors.extractValues(kafkaRecord);
 
         assertThat(values.selectors()).isSameInstanceAs(selectors);

@@ -32,13 +32,13 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.test_utils.ConsumerRecords;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes.BooleanSerde;
 import org.apache.kafka.common.serialization.Serdes.ByteArraySerde;
@@ -107,7 +107,7 @@ public class OthersSelectorsTest {
         ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(type);
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
-        ConsumerRecord kafkaRecord = ConsumerRecords.fromValue(deserializedData);
+        KafkaRecord kafkaRecord = ConsumerRecords.fromValue(deserializedData);
         String text = valueSupplier.newSelector("name", "VALUE").extract(kafkaRecord).text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }
@@ -116,7 +116,7 @@ public class OthersSelectorsTest {
     @Test
     public void shouldExtractNullValue() {
         ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(EvaluatorType.INTEGER);
-        ConsumerRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
+        KafkaRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
         String text = valueSupplier.newSelector("name", "VALUE").extract(kafkaRecord).text();
         assertThat(text).isNull();
     }
@@ -125,7 +125,7 @@ public class OthersSelectorsTest {
     @Test
     public void shouldExtractNullKey() {
         KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(EvaluatorType.INTEGER);
-        ConsumerRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
+        KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
         String text = valueSupplier.newSelector("name", "KEY").extract(kafkaRecord).text();
         assertThat(text).isNull();
     }
@@ -138,7 +138,7 @@ public class OthersSelectorsTest {
         KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(type);
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
-        ConsumerRecord kafkaRecord = ConsumerRecords.fromKey(deserializedData);
+        KafkaRecord kafkaRecord = ConsumerRecords.fromKey(deserializedData);
         String text = valueSupplier.newSelector("name", "KEY").extract(kafkaRecord).text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }

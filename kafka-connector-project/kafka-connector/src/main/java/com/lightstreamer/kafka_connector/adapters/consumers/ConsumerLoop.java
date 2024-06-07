@@ -26,6 +26,7 @@ import com.lightstreamer.kafka_connector.adapters.config.specs.ConfigTypes.Recor
 import com.lightstreamer.kafka_connector.adapters.mapping.Items.Item;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper;
 import com.lightstreamer.kafka_connector.adapters.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
 
@@ -301,7 +302,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         protected void consume(ConsumerRecord<K, V> record) {
             log.atDebug().log("Mapping incoming Kafka record");
             log.atTrace().log("Kafka record: {}", record.toString());
-            MappedRecord mappedRecord = recordRemapper.map(record);
+            MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
             // Logging the mapped record is expensive, log lazly it only at trace level.
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));

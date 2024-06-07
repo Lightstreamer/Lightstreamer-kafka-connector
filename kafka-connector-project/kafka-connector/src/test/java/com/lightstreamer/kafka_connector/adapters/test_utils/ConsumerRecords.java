@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka_connector.adapters.test_utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -28,69 +29,87 @@ import java.util.Optional;
 
 public class ConsumerRecords {
 
-    public static ConsumerRecord<GenericRecord, ?> fromKey(GenericRecord key) {
+    public static KafkaRecord<GenericRecord, ?> fromKey(GenericRecord key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, GenericRecord> fromValue(GenericRecord value) {
+    public static KafkaRecord<?, GenericRecord> fromValue(GenericRecord value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<JsonNode, ?> fromKey(JsonNode key) {
+    public static KafkaRecord<JsonNode, ?> fromKey(JsonNode key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, JsonNode> fromValue(JsonNode value) {
+    public static KafkaRecord<?, JsonNode> fromValue(JsonNode value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<String, ?> fromKey(String key) {
+    public static KafkaRecord<String, ?> fromKey(String key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, String> fromValue(String value) {
+    public static KafkaRecord<?, String> fromValue(String value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<Object, ?> fromKey(Object key) {
+    public static KafkaRecord<Object, ?> fromKey(Object key) {
         return record(key, null);
     }
 
-    public static ConsumerRecord<?, Object> fromValue(Object value) {
+    public static KafkaRecord<?, Object> fromValue(Object value) {
         return record(null, value);
     }
 
-    public static ConsumerRecord<?, Integer> fromIntValue(int value) {
+    public static KafkaRecord<?, Integer> fromIntValue(int value) {
         return record(null, value);
     }
 
-    public static <K, V> ConsumerRecord<K, V> record(K key, V value) {
-        return new ConsumerRecord<K, V>(
-                "record-topic",
-                150,
-                120,
-                ConsumerRecord.NO_TIMESTAMP,
-                TimestampType.NO_TIMESTAMP_TYPE,
-                ConsumerRecord.NULL_SIZE,
-                ConsumerRecord.NULL_SIZE,
-                key,
-                value,
-                new RecordHeaders(),
-                Optional.empty());
+    public static <K, V> KafkaRecord<K, V> record(K key, V value) {
+        return KafkaRecord.from(
+                new ConsumerRecord<>(
+                        "record-topic",
+                        150,
+                        120,
+                        ConsumerRecord.NO_TIMESTAMP,
+                        TimestampType.NO_TIMESTAMP_TYPE,
+                        ConsumerRecord.NULL_SIZE,
+                        ConsumerRecord.NULL_SIZE,
+                        key,
+                        value,
+                        new RecordHeaders(),
+                        Optional.empty()));
     }
 
-    public static <K, V> ConsumerRecord<K, V> record(String topic, K key, V value) {
-        return new ConsumerRecord<K, V>(
-                topic,
-                150,
-                120,
-                ConsumerRecord.NO_TIMESTAMP,
-                TimestampType.NO_TIMESTAMP_TYPE,
-                ConsumerRecord.NULL_SIZE,
-                ConsumerRecord.NULL_SIZE,
-                key,
-                value,
-                new RecordHeaders(),
-                Optional.empty());
+    public static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
+        return KafkaRecord.from(
+                new ConsumerRecord<>(
+                        topic,
+                        150,
+                        120,
+                        ConsumerRecord.NO_TIMESTAMP,
+                        TimestampType.NO_TIMESTAMP_TYPE,
+                        ConsumerRecord.NULL_SIZE,
+                        ConsumerRecord.NULL_SIZE,
+                        key,
+                        value,
+                        new RecordHeaders(),
+                        Optional.empty()));
     }
+
+    // public static <K, V> KafkaRecord<K, V> sinkRecord(String topic, K key, V value) {
+    //     return KafkaRecord.from(
+    //             new SinkRecord(
+    //                     topic,
+    //                     150,
+    //                     120,
+    //                     ConsumerRecord.NO_TIMESTAMP,
+    //                     TimestampType.NO_TIMESTAMP_TYPE,
+    //                     ConsumerRecord.NULL_SIZE,
+    //                     ConsumerRecord.NULL_SIZE,
+    //                     key,
+    //                     value,
+    //                     new RecordHeaders(),
+    //                     Optional.empty()));
+    // }
 }

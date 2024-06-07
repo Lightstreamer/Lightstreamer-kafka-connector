@@ -19,8 +19,6 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,7 +41,7 @@ public interface Selectors<K, V> {
         }
     }
 
-    ValuesContainer extractValues(ConsumerRecord<K, V> record);
+    ValuesContainer extractValues(KafkaRecord<K, V> record);
 
     Schema schema();
 
@@ -239,7 +237,7 @@ class DefaultSelectors<K, V> implements Selectors<K, V> {
     }
 
     @Override
-    public ValuesContainer extractValues(ConsumerRecord<K, V> record) {
+    public ValuesContainer extractValues(KafkaRecord<K, V> record) {
         return new DefaultValuesContainer(
                 this,
                 Stream.of(

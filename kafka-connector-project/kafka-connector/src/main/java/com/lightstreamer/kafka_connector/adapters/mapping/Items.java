@@ -67,6 +67,11 @@ public class Items {
         public Set<Item> routes(MappedRecord record, Collection<? extends Item> subscribed);
     }
 
+    public static Item itemFrom(String input) throws ExpressionException {
+        Result result = ItemExpressionEvaluator.subscribed().eval(input);
+        return new DefaultItem(input, result.prefix(), result.params());
+    }
+
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
         return new DefaultItem(itemHandle, result.prefix(), result.params());

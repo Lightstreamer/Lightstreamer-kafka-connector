@@ -19,7 +19,6 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors;
 
 import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,35 +30,35 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
     static enum Attribute {
         TIMESTAMP {
             @Override
-            String value(ConsumerRecord<?, ?> record) {
+            String value(KafkaRecord<?, ?> record) {
                 return String.valueOf(record.timestamp());
             }
         },
 
         PARTITION {
             @Override
-            String value(ConsumerRecord<?, ?> record) {
+            String value(KafkaRecord<?, ?> record) {
                 return String.valueOf(record.partition());
             }
         },
 
         OFFSET {
             @Override
-            String value(ConsumerRecord<?, ?> record) {
+            String value(KafkaRecord<?, ?> record) {
                 return String.valueOf(record.offset());
             }
         },
 
         TOPIC {
             @Override
-            String value(ConsumerRecord<?, ?> record) {
+            String value(KafkaRecord<?, ?> record) {
                 return record.topic();
             }
         },
 
         NULL {
             @Override
-            String value(ConsumerRecord<?, ?> record) {
+            String value(KafkaRecord<?, ?> record) {
                 return NOT_EXISTING_RECORD_ATTRIBUTE;
             }
         };
@@ -77,7 +76,7 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
             return NULL;
         }
 
-        abstract String value(ConsumerRecord<?, ?> record);
+        abstract String value(KafkaRecord<?, ?> record);
 
         static List<Attribute> validAttributes() {
             return List.of(TIMESTAMP, PARTITION, TOPIC, OFFSET);
@@ -114,7 +113,7 @@ class DefaultMetaSelector extends BaseSelector implements MetaSelector {
     }
 
     @Override
-    public Value extract(ConsumerRecord<?, ?> record) {
+    public Value extract(KafkaRecord<?, ?> record) {
         return new SimpleValue(name(), attribute.value(record));
     }
 }

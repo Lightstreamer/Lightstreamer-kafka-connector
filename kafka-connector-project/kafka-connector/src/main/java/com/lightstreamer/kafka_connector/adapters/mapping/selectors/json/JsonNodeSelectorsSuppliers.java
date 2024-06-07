@@ -20,6 +20,7 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser;
@@ -31,7 +32,6 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueExcepti
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.List;
@@ -180,7 +180,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<JsonNode, ?> record) {
+        public Value extract(KafkaRecord<JsonNode, ?> record) {
             return super.eval(record.key());
         }
     }
@@ -212,7 +212,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, JsonNode> record) {
+        public Value extract(KafkaRecord<?, JsonNode> record) {
             return super.eval(record.value());
         }
     }

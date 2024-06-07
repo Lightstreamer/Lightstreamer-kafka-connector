@@ -19,6 +19,7 @@ package com.lightstreamer.kafka_connector.adapters.mapping.selectors.avro;
 
 import com.lightstreamer.kafka_connector.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.BaseSelector;
+import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser;
@@ -32,7 +33,6 @@ import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelecto
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,7 +217,7 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<GenericRecord, ?> record) {
+        public Value extract(KafkaRecord<GenericRecord, ?> record) {
             return super.eval(record.key());
         }
     }
@@ -250,7 +250,7 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(ConsumerRecord<?, GenericRecord> record) {
+        public Value extract(KafkaRecord<?, GenericRecord> record) {
             return super.eval(record.value());
         }
     }
