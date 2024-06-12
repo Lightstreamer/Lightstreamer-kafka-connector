@@ -16,7 +16,7 @@
 
         <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
              (LS_HOME/adapters/lightstreamer-kafka-connector). -->
-        		<param name="logging.configuration.path">log4j.properties</param>
+        <param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
 
