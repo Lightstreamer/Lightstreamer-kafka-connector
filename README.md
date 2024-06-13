@@ -73,28 +73,28 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 ### Run
 
 1. Make sure you have Docker, Docker Compose, and Java 17 (or later) installed on your local machine.
-2. From the [`examples/quickstart`](examples/quickstart/) folder, run the command:
-   
+2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following:
+
    ```sh
    $ ./start.sh
    ...
-   ⠏ Network quickstart_default  Created
-   ✔ Container broker            Started
-   ✔ Container producer          Started
-   ✔ Container kafka-connector   Started
+    ⠏ Network quickstart_default  Created
+    ✔ Container broker            Started
+    ✔ Container producer          Started
+    ✔ Container kafka-connector   Started
    ...
-   Service started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
+   Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
    ...
    ```
 
-3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart). 
-   
+3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
+
 4. After a few moments, the user interface starts displaying the real-time stock data.
 
    ![Demo](pictures/quickstart.gif)
 
 5. To shutdown Docker Compose and clean up all temporary resources:
- 
+
    ```sh
    $ ./stop.sh
    ```
@@ -163,7 +163,7 @@ To quickly complete the installation and verify the successful integration with 
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
-    
+
     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - a topic mapping:
@@ -173,11 +173,11 @@ To quickly complete the installation and verify the successful integration with 
     which maps the topic `stocks` to the provided item template.
 
   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
-    
+
   - `stock-[index=1]`: an item with the parameter `index` bound to a record key equal to `1`
   - `stock-[index=2]`: an item with the parameter `index` bound to a record key equal to `2`
   - ...
-      
+
   Kafka Connector will then route the event to all matched items.
 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
@@ -241,8 +241,8 @@ where you have to replace `username` and `password` with the credentials generat
 ### Start
 
 1. Launch Lightstreamer Server.
-  
-   From the `LS_HOME/bin/unix-like` directory, run the command: 
+
+   From the `LS_HOME/bin/unix-like` directory, run the following:
 
    ```sh
    $ ./start_background.sh
@@ -261,7 +261,7 @@ where you have to replace `username` and `password` with the credentials generat
    which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy-consumer` folder.
 
    Then, launch it with:
-   
+
    ```sh
    $ java -jar deploy-consumer/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
@@ -285,7 +285,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ```sh
    $ cd examples/quickstart-producer
-   $ ./gradlew distribuite 
+   $ ./gradlew distribuite
    ```
 
    which generates the `quickstart-producer-all` under the `deploy` folder.
@@ -332,7 +332,7 @@ where you have to replace `username` and `password` with the credentials generat
    ```sh
    $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
-  
+
 4. Check Consumed Events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
@@ -418,7 +418,7 @@ _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Conne
 Furthermore, the name is also used to group all logging messages belonging to the same connection.
 
 > [!TIP]
-> For every Data Adaper connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.  
+> For every Data Adaper connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
 > For example, the factory [logging configuration](kafka-connector/src/connector/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
 > ```java
 > ...
@@ -678,7 +678,7 @@ Example:
 
 ###### `SCRAM-SHA-256`
 
-Example: 
+Example:
 
 ```xml
 <param name="authentication.enable">true</param>
@@ -893,11 +893,11 @@ As anticipated in the [_Installation_](#configure) section, a Kafka record can b
 #####  Record Routing (`map.<topic>.to`)
 
 To configure the routing of Kafka event streams to Lightstreamer items, use at least one parameter `map.<topic>.to`. The general format is:
- 
+
 ```xml
 <param name="map.<topic-name>.to">item1,item2,itemN,...</param>
 ```
-  
+
 which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
 
 This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
@@ -911,7 +911,7 @@ This configuration enables the implementation of various mapping scenarios, as s
   ![one-to-one](pictures/one-to-one.png)
 
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
-  
+
 - _One To Many_
 
   ```xml
@@ -923,7 +923,7 @@ This configuration enables the implementation of various mapping scenarios, as s
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
   This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the [example](examples/custom-kafka-connector-adapter/)), in which every subscription must be validated against the user identity.
- 
+
 - _Many to One_
 
   ```xml
@@ -934,7 +934,7 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   ![many-to-one](pictures/many-to-one.png)
 
-  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`). 
+  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
 #####  Record Mapping (`field.<fieldName>`)
 
@@ -973,17 +973,17 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
   VALUE.attribute1Name.attribute2Name...
   ```
 
- > [!IMPORTANT] 
+ > [!IMPORTANT]
  > Currently, it is required that the top-level element of either a record key or record value is:
  > - an [Object](https://www.json.org/json-en.html), in the case of JSON format
  > - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
- > 
+ >
  > Such a constraint may be removed in a future version of Kafka Connector.
 
 - the _square notation_ is used to access:
 
   - indexed attributes:
-    
+
     ```js
     KEY.attribute1Name[i].attribute2Name...
     VALUE.attribute1Name[i].attribute2Name...
@@ -999,7 +999,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
     where `keyName` is a string value.
 
  > [!TIP]
- > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent: 
+ > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent:
  >
  > ```js
  > VALUE.myProperty.myChild.childProperty
@@ -1033,8 +1033,8 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 
 ##### Filtered Record Routing (`item-template.<template-name>`)
 
-Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_, 
-which specify the rule needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.  
+Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_,
+which specify the rule needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
 The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 ![filtered-routing](pictures/filtered-routing.png)
@@ -1049,14 +1049,14 @@ and then configure the routing by referencing the template through the parameter
 
 ```xml
 <param name="map.<topic>.to">item-template.<template-name></param>
-``` 
+```
 
 > [!TIP]
 > It is allowed to mix references to simple item names and item templates in the same topic mapping configuration:
 >
 > ```xml
 > <param name="map.sample-topic.to">item-template.template1,item1,item2</param>
-> ``` 
+> ```
 
 The item template is made of:
 - `<prefix>`: the prefix of the item name
@@ -1077,7 +1077,7 @@ To activate the filtered routing, the Lightstreamer clients must subscribe to a 
 Upon consuming a message, Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
 
 ```js
-<item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...] 
+<item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...]
 ```
 
 Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template or, more formally, the following is true:
@@ -1122,8 +1122,8 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   | ----------| -------------------------------------- | ----------------------- | -----------------|
   | `by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
   | `by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
-  
-  
+
+
 - Record 2:
   ```js
   {
