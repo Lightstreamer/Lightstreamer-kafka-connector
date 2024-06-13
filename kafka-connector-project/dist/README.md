@@ -46,8 +46,8 @@ LS_HOME/
 ### Start
 
 1. Launch Lightstreamer Server.
-  
-   From the `LS_HOME/bin/unix-like` directory, run the command: 
+
+   From the `LS_HOME/bin/unix-like` directory, run the following:
 
    ```sh
    $ ./start_background.sh
