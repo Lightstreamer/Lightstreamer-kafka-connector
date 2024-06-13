@@ -1,5 +1,4 @@
 ---
-version: '2'
 name: quickstart-kafka-schema-registry
 services:
   kafka-connector:

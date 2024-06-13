@@ -1,5 +1,4 @@
 ---
-version: '2'
 name: quickstart-kafka-connector-redpanda-serverless
 services:
   kafka-connector:
