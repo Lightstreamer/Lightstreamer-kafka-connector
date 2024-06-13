@@ -48,7 +48,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
   ```xml
     <data_provider name="AirpotDemo">
       ...
-      
+
       <!-- Extraction of the record key mapped to the field "key". -->
       <param name="field.key">#{KEY}</param>
 
@@ -68,9 +68,9 @@ In the [`connector`](connector/) folder, we found the configuration files needed
 
 ## Setting up the Demo
 
-### Kafka Cluster 
+### Kafka Cluster
 
-The demo needs a Kafka cluster where a topic `Flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).  
+The demo needs a Kafka cluster where a topic `Flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).
 Based on this choice, you will need to modify the [`adapters.xml`](connector/adapters.xml) files accordingly, particularly the `bootstrap server` parameter. The proposed configuration assumes a local Kafka installation that does not require authentication or the use of TLS communication:
 ```xml
 <data_provider name="AirpotDemo">
@@ -94,17 +94,14 @@ Further details on this mechanism can be found [here](https://developer.confluen
 
 To configure our `Flights` topic to be managed in a compacted manner, the following steps are necessary:
 
-1. set up the Kafka cluster to support this mode, ensuring that the server.properties file contains this setting:
+1. set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
    ```java
    log.cleanup.policy=compact, delete
    ```
 
 2. create the topic with the following configurations:
-   ```sh 
-   $ ./bin/kafka-topics.sh --create --topic Flights --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
-   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config cleanup.policy=compact
-   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config delete.retention.ms=30000
-   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --entity-type topics --entity-name Flights --add-config segment.ms=30000
+   ```sh
+   $ ./bin/kafka-topics.sh --create --topic Flights --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --config cleanup.policy=compact
    $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name Flights --describe
    ```
 
@@ -126,16 +123,16 @@ For the sake of simplicity, only the Gradle case is detailed here.
 
 You can easily build the producer by running the following command from the [`producer`](producer/) folder:
 
-```sh 
+```sh
 $ ./gradlew clean build
 ```
 
 which generates the _uber_ jar. Then, you can start the simulator producer loop with this command:
 
-```sh 
+```sh
 $ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar localhost:9092 Flights 1000
 ```
- 
+
 where:
 - `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply
 - `Flights` is the topic name used to produce the messages with simulated flights info
@@ -151,3 +148,68 @@ In order to install a web client for this demo pointing to your local Lightstrea
 > *The client demo configuration assumes that Lightstreamer Server, Kafka Cluster, and this client are launched on the same machine. If you need to target a different Lightstreamer server, please double check the `LS_HOST` variable in [`client/web/src/js/const.js`](client/web/src/js/const.js) and change it accordingly.*
 
 * open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70)
+
+## Setting Up on Docker Compose
+
+To simplify the setup, we have also provided two different Docker Compose files to showcase the demo against  [_Apache Kakfa_](https://hub.docker.com/r/apache/kafka) and [_Redpanda Self-Hosted_](https://docs.redpanda.com/current/get-started/quick-start/):
+
+- [`docker-compose-kafka.yml`](./docker-compose-kafka.yml)
+- [`docker-compose-redpanda.yml`](./docker-compose-redpanda.yml)
+
+### Prerequisites
+
+- JDK version 17 or later.
+- Docker Compose
+
+### Run
+
+1. From the `examples/airport-demo` folder:
+
+   - for running the demo against _Apache Kafka_:
+     ```sh
+     $ ./start_demo.sh
+     ...
+      ✔ Network airport-demo-kafka_default  Created
+      ✔ Container broker                    Started
+      ✔ Container init-broker               Started
+      ✔ Container producer                  Started
+      ✔ Container kafka-connector           Started
+     Services started. Now you can point your browser to http://localhost:8080/AirportDemo to see real-time data.
+     ```
+
+   - for running the demo against _Redpanda Self-Hosted_:
+     ```sh
+     $ ./start_demo_redpanda.sh
+     ...
+      ✔ Network airport-demo-redpanda_default  Created
+      ✔ Container redpanda                     Started
+      ✔ Container redpanda-console             Started
+      ✔ Container producer                     Started
+      ✔ Container kafka-connector              Started
+     Services started. Now you can point your browser to http://localhost:8080/AirportDemo to see real-time data.
+     ```
+
+2. Once all containers are ready, point your browser to http://localhost:8080/AirportDemo.
+3. After a few moments, the user interface starts displaying the real-time flights data.
+4. To shutdown Docker Compose and clean up all temporary resources:
+
+   - for _Apache Kafka_, execute:
+     ```sh
+     $ ./stop_demo.sh
+      ✔ Container kafka-connector           Removed
+      ✔ Container init-broker               Removed
+      ✔ Container producer                  Removed
+      ✔ Container broker                    Removed
+      ✔ Network airport-demo-kafka_default  Removed
+     ```
+
+   - for _Redpanda Self-Hosted_, execute:
+     ```sh
+     $ ./stop_demo_redpanda.sh
+     ...
+      ✔ Container redpanda-console             Removed
+      ✔ Container kafka-connector              Removed
+      ✔ Container producer                     Removed
+      ✔ Container redpanda                     Removed
+      ✔ Network airport-demo-redpanda_default  Removed
+     ```
