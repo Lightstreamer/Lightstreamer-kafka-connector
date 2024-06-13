@@ -16,7 +16,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
    - `log4j.properties` (or any other referenced log configuration file)
    - local schema, key store, and trust store files referenced in `adapters.xml`
 
-2. Run the command:
+2. Run the following:
 
    ```sh
    $ ./build.sh
