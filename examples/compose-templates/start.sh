@@ -8,5 +8,5 @@ if [ $? == 0 ]; then
      export version
      docker compose -f $(pwd)/docker-compose.yml up --build -d &&
      sleep 10 && 
-     echo "Service started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data."
+     echo "Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data."
  fi
