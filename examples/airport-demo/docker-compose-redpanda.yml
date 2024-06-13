@@ -1,0 +1,147 @@
+---
+name: airport-demo-redpanda
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - redpanda
+      - producer
+    ports:
+      - 8080:8080
+    configs:
+      - source: adapters.xml
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - source: const.js
+        target: /lightstreamer/pages/airport/js/const.js
+      - source: log4j.properties
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+    volumes:
+      - ./client/web/src:/lightstreamer/pages/AirportDemo
+
+  producer:
+    container_name: producer
+    depends_on:
+      - redpanda
+    build:
+      context: producer
+    command: ["redpanda:29092", "Flights", "1000"]      
+
+  redpanda:
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:19092
+      # Address the broker advertises to clients that connect to the Kafka API.
+      # Use the internal addresses to connect to the Redpanda brokers'
+      # from inside the same Docker network.
+      # Use the external addresses to connect to the Redpanda brokers'
+      # from outside the Docker network.
+      - --advertise-kafka-addr internal://redpanda:29092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      # Address the broker advertises to clients that connect to the HTTP Proxy.
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      #- --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      # Redpanda brokers use the RPC API to communicate with each other internally.
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      # Mode dev-container uses well-known configuration properties for development in containers.
+      - --mode dev-container
+      # Tells Seastar (the framework Redpanda uses under the hood) to use 1 core on the system.
+      - --smp 1
+      - --default-log-level=info
+      # Set default cleanup policy to "compact"
+      - --set redpanda.log_cleanup_policy=compact
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.9
+    container_name: redpanda
+    ports:
+      - 18081:18081
+      - 18082:18082
+      - 19092:19092
+      - 19644:9644
+
+  console:
+    container_name: redpanda-console
+    image: docker.redpanda.com/redpandadata/console:v2.4.5
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda:29092"]
+          schemaRegistry:
+            enabled: true
+            urls: ["http://redpanda:8081"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda:9644"]
+        server:
+          listenPort: 8088
+    ports:
+      - 8088:8088
+    depends_on:
+      - redpanda
+
+configs:
+  adapters.xml:
+    content: |
+      <?xml version="1.0"?>
+      <adapters_conf id="KafkaConnector">
+          <metadata_provider>
+              <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
+              <param name="logging.configuration.path">log4j.properties</param>
+          </metadata_provider>
+
+          <data_provider name="AirpotDemo">
+              <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+
+              <param name="bootstrap.servers">redpanda:29092</param>
+
+              <param name="record.consume.from">EARLIEST</param>
+              <param name="record.key.evaluator.type">STRING</param>
+              <param name="record.value.evaluator.type">JSON</param>
+
+              <param name="item-template.flights">flights-#{key=KEY}</param>
+              <param name="map.Flights.to">item-template.flights</param>
+
+              <param name="field.key">#{KEY}</param>
+              <param name="field.destination">#{VALUE.destination}</param>
+              <param name="field.departure">#{VALUE.departure}</param>
+              <param name="field.flightNo">#{VALUE.flightNo}</param>
+              <param name="field.terminal">#{VALUE.terminal}</param>
+              <param name="field.status">#{VALUE.status}</param>
+              <param name="field.airline">#{VALUE.airline}</param>
+              <param name="field.currentTime">#{VALUE.currentTime}</param>
+              <param name="field.ts">#{TIMESTAMP}</param>
+              <param name="field.partition">#{PARTITION}</param>
+              <param name="field.offset">#{OFFSET}</param>
+          </data_provider>
+      </adapters_conf>
+  log4j.properties:
+    content: |
+      log4j.rootLogger=DEBUG, stdout
+      log4j.logger.org.apache.kafka=WARN, stdout
+      log4j.logger.AirpotDemo=TRACE, AirportDemo
+
+      log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+      log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+      log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+      log4j.appender.stdout.Target=System.out
+
+      log4j.appender.stderr=org.apache.log4j.ConsoleAppender
+      log4j.appender.stderr.layout=org.apache.log4j.PatternLayout
+      log4j.appender.stderr.layout.ConversionPattern=[%d] [%t-%c] %p %m%n
+      log4j.appender.stderr.Target=System.err
+
+      # Airport logger appender
+      log4j.appender.AirportDemo=org.apache.log4j.ConsoleAppender
+      log4j.appender.AirportDemo.layout=org.apache.log4j.PatternLayout
+      log4j.appender.AirportDemo.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+  const.js:
+    content: |
+      const LS_HOST = "localhost";
+      const LS_HTTP_PORT = "8080";
+      const LS_HTTPS_PORT = "443";
+      const LS_ADAPTER_SET = "KafkaConnector";
