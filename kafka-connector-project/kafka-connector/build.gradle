@@ -24,11 +24,15 @@ publishing {
 
 dependencies {
 	api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
+
 	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
 	implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
 	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
 	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
 	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+
+	api group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
+	api group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
 }
 
 javadoc {
