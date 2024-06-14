@@ -13,7 +13,7 @@ services:
       - source: adapters.xml
         target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
       - source: const.js
-        target: /lightstreamer/pages/airport/js/const.js
+        target: /lightstreamer/pages/AirportDemo/js/const.js
       - source: log4j.properties
         target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
     volumes:
