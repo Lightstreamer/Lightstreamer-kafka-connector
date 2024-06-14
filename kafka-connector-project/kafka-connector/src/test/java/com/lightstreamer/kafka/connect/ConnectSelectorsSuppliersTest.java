@@ -127,7 +127,7 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
                         VALUE.children[0]['no_key'],        Field [no_key] not found
                         VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
-#                       VALUE.children[3].name,             Field [name] not found
+                        VALUE.children[3].name,             Field [name] not found
                         VALUE.children[4],                  Field not found at index [4]
                         VALUE.children[4].name,             Field not found at index [4]
                         """)

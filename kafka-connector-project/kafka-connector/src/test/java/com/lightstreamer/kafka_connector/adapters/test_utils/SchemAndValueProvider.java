@@ -38,6 +38,7 @@ public class SchemAndValueProvider {
                         .field("name", Schema.STRING_SCHEMA)
                         .field("signature", Schema.OPTIONAL_STRING_SCHEMA)
                         .field("children", SchemaBuilder.array(grandSonsSchema).optional().build())
+                        .optional()
                         .build();
 
         // Schema preferencesSchema =
@@ -75,6 +76,7 @@ public class SchemAndValueProvider {
                                                         new Struct(grandSonsSchema)
                                                                 .put("name", "terence"))),
                                 new Struct(childrenSchema).put("name", "serena")));
+        joeChildren.add(null);
         Struct value =
                 new Struct(rootSchema)
                         .put("name", "joe")
