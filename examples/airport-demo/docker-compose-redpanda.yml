@@ -64,7 +64,7 @@ services:
     container_name: redpanda-console
     image: docker.redpanda.com/redpandadata/console:v2.4.5
     entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    command: -c 'sleep 3;echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
     environment:
       CONFIG_FILEPATH: /tmp/config.yml
       CONSOLE_CONFIG_FILE: |
