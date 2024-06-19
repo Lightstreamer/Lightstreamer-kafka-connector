@@ -255,15 +255,15 @@ where you have to replace `username` and `password` with the credentials generat
    Before launching the consumer, you first need to build it from the [`kafka-connector-project`](kafka-connector-project/) folder with the command:
 
    ```sh
-   $ ./gradlew distribuiteConsumer
+   $ ./gradlew kafka-connector-utils:build
    ```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `deploy-consumer` folder.
+   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `kafka-connector-utils/build/libs` folder.
 
    Then, launch it with:
 
    ```sh
-   $ java -jar deploy-consumer/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
