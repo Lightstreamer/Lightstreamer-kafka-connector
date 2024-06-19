@@ -1,44 +1,22 @@
 plugins {
 	id 'lightstreamer-kafka-connector'
-	id 'java'
-}
-
-sourceSets {
-	producer {
-	}
-	consumer {
-	}
-}
-
-configurations {
-	consumerImplementation.extendsFrom implementation
 }
 
 dependencies {
 	implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
-	consumerImplementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
+	implementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
 }
 
-tasks.register('consumerJar', Jar) {
+jar {
 	manifest {
-		attributes 'Main-Class': "com.lightstreamer.kafka_connector.utils.consumer.Consumer"
+		attributes 'Main-Class': "com.lightstreamer.kafka.utils.consumer.Consumer"
 	}
 	archiveBaseName = "lightstreamer-${project.name}-consumer"
 	archiveAppendix = 'all'
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	from sourceSets.consumer.output
 	from {
-		sourceSets.consumer.compileClasspath.collect {
+		configurations.runtimeClasspath.collect {
 			it.isDirectory() ? it : zipTree(it)
 		}
 	}
-}
-
-task distribuiteConsumer(type: Copy) {
-	from consumerJar
-	into "$rootDir/$consumerDeployDirName"
-}
-
-clean {
-	delete "$rootDir/$consumerDeployDirName"
 }
