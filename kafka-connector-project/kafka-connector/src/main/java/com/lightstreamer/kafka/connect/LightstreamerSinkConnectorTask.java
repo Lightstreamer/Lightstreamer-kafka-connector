@@ -20,14 +20,14 @@ package com.lightstreamer.kafka.connect;
 import com.lightstreamer.adapters.remote.DataProviderServer;
 import com.lightstreamer.adapters.remote.MetadataProviderServer;
 import com.lightstreamer.adapters.remote.metadata.LiteralBasedProvider;
+import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.mapping.ConnectSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapters.config.TopicsConfig;
-import com.lightstreamer.kafka_connector.adapters.mapping.Fields;
-import com.lightstreamer.kafka_connector.adapters.mapping.Items;
-import com.lightstreamer.kafka_connector.adapters.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.Fields;
+import com.lightstreamer.kafka.mapping.Items;
+import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -69,13 +69,8 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         MetadataProviderServer metadataProviderServer = new MetadataProviderServer();
         metadataProviderServer.setAdapter(new LiteralBasedProvider());
 
-        Map<String, String> topicMappings =
-                config.getList(LightstreamerConnectorConfig.MAP_TOPICS_TO).stream()
-                        .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
-
-        Map<String, String> itemTemplates =
-                config.getList(LightstreamerConnectorConfig.ITEM_TEMPLATES).stream()
-                        .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
+        Map<String, String> topicMappings = config.getTopicMappings();
+        Map<String, String> itemTemplates = config.getItemTemplate();
 
         TopicsConfig topicConfiguration = TopicsConfig.of(itemTemplates, topicMappings);
         Selected<Object, Object> selected =

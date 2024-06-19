@@ -22,13 +22,13 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.truth.StringSubject;
+import com.lightstreamer.kafka.adapters.test_utils.SchemAndValueProvider;
 import com.lightstreamer.kafka.connect.mapping.ConnectSelectorsSuppliers;
-import com.lightstreamer.kafka_connector.adapters.mapping.ExpressionException;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapters.test_utils.SchemAndValueProvider;
+import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
+import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;

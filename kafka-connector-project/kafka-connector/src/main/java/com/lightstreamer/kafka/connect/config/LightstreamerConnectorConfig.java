@@ -22,7 +22,9 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class LightstreamerConnectorConfig extends AbstractConfig {
 
@@ -36,36 +38,77 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public static final String FIELD_NAMES = "field.names";
 
+    private Map<String, String> topicMappings;
+
     public LightstreamerConnectorConfig(Map<?, ?> originals) {
-        super(configDef(), originals);
+        super(configDef(originals), originals);
+
+        topicMappings = getTopicMappings();
     }
 
-    protected static ConfigDef configDef() {
-        return new ConfigDef()
-                .define(
-                        LIGHTREAMER_HOST,
-                        Type.STRING,
-                        null,
-                        Importance.HIGH,
-                        "Lightstreamer server hostname")
-                .define(
-                        LIGHTREAMER_PORT,
-                        Type.INT,
-                        null,
-                        Importance.HIGH,
-                        "Lightstreamer server port")
-                .define(
-                        ITEM_TEMPLATES,
-                        ConfigDef.Type.LIST,
+    protected static ConfigDef configDef(Map<?, ?> originals) {
+        ConfigDef configDef =
+                new ConfigDef()
+                        .define(
+                                LIGHTREAMER_HOST,
+                                Type.STRING,
+                                null,
+                                Importance.HIGH,
+                                "Lightstreamer server hostname")
+                        .define(
+                                LIGHTREAMER_PORT,
+                                Type.INT,
+                                null,
+                                Importance.HIGH,
+                                "Lightstreamer server port")
+                        // .define(
+                        //         ITEM_TEMPLATES,
+                        //         ConfigDef.Type.LIST,
+                        //         null,
+                        //         ConfigDef.Importance.HIGH,
+                        //         "Item template expressions")
+                        .define(
+                                MAP_TOPICS_TO,
+                                ConfigDef.Type.LIST,
+                                null,
+                                ConfigDef.Importance.HIGH,
+                                "")
+                        .define(
+                                FIELD_NAMES,
+                                ConfigDef.Type.LIST,
+                                null,
+                                ConfigDef.Importance.HIGH,
+                                "Name of the Lightsteramer fields to be mapped");
+
+        Map<String, Object> map = configDef.parse(originals);
+        Map<String, String> t =
+                ((List<String>) map.get(MAP_TOPICS_TO))
+                        .stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                s -> s.split(":")[0], s -> s.split(":")[1]));
+
+        for (Map.Entry<String, String> entry : t.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("item-template.")) {
+                configDef.define(
+                        key.split(".")[1],
+                        ConfigDef.Type.STRING,
                         null,
                         ConfigDef.Importance.HIGH,
-                        "Item template expressions")
-                .define(MAP_TOPICS_TO, ConfigDef.Type.LIST, null, ConfigDef.Importance.HIGH, "")
-                .define(
-                        FIELD_NAMES,
-                        ConfigDef.Type.LIST,
-                        null,
-                        ConfigDef.Importance.HIGH,
-                        "Name of the Lightsteramer fields to be mapped");
+                        null);
+            }
+        }
+        return configDef;
+    }
+
+    public Map<String, String> getTopicMappings() {
+        return getList(MAP_TOPICS_TO).stream()
+                .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
+    }
+
+    public Map<String, String> getItemTemplate() {
+        List<String> list = getList(ITEM_TEMPLATES);
+        return list.stream().collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
     }
 }

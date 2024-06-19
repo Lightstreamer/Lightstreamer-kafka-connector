@@ -17,19 +17,19 @@
 
 package com.lightstreamer.kafka.connect.mapping;
 
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.BaseSelector;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KafkaRecord.KafkaSinkRecord;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser.LinkedNode;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.Value;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueException;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka_connector.adapters.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.mapping.selectors.BaseSelector;
+import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.mapping.selectors.KafkaRecord.KafkaSinkRecord;
+import com.lightstreamer.kafka.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
+import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
+import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.LinkedNode;
+import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
+import com.lightstreamer.kafka.mapping.selectors.Value;
+import com.lightstreamer.kafka.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
