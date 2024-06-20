@@ -76,7 +76,7 @@ Based on this choice, you will need to modify the [`adapters.xml`](connector/ada
 <data_provider name="AirpotDemo">
     <!-- ##### GENERAL PARAMETERS ##### -->
 
-    <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+    <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
     <!-- The Kafka cluster address -->
     <param name="bootstrap.servers">localhost:9092</param>
