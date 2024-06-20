@@ -40,7 +40,7 @@
         <!-- ##### GENERAL PARAMETERS ##### -->
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <!-- The Kafka cluster address -->
         <param name="bootstrap.servers">localhost:9092</param>

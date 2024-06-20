@@ -12,7 +12,7 @@
     <metadata_provider>
         <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a
              custom implementation by extending this class. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
 
         <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
              (LS_HOME/adapters/lightstreamer-kafka-connector). -->
@@ -40,7 +40,7 @@
         <!-- ##### GENERAL PARAMETERS ##### -->
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
-        <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <!-- Optional. Enable this connection configuration. Can be one of the following:
              - true
