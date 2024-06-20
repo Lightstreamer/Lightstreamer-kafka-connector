@@ -16,4 +16,6 @@ docker build -t lightstreamer-kafka-connector-${version} $SCRIPT_DIR --build-arg
 if [ $? == 0 ]; then
     echo "Launch the image with:"
     echo "docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-${version}"
+else
+    exit 1
 fi
