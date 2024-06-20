@@ -38,6 +38,8 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     private Map<String, String> props;
 
+    private LightstreamerConnectorConfig config;
+
     @Override
     public String version() {
         return Version.getVersion();
@@ -51,7 +53,19 @@ public class LightstreamerSinkConnector extends SinkConnector {
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnector");
         this.props = props;
+        this.config = new LightstreamerConnectorConfig(props);
     }
+
+    //   @Override
+    //   public void start(Map<String, String> props) throws ConnectException {
+    //     try {
+    //       configProperties = props;
+    //       config = new HdfsSinkConnectorConfig(props);
+    //     } catch (ConfigException e) {
+    //       throw new ConnectException("Couldn't start HdfsSinkConnector due to configuration
+    // error", e);
+    //     }
+    //   }
 
     @Override
     public Class<? extends Task> taskClass() {
