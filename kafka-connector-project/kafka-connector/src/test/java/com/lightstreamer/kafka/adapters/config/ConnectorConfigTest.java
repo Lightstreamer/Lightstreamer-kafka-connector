@@ -281,13 +281,13 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-						KEY                      | EXPECTED_INFIX
-						map.topic.to             | topic
-						map.topicprefix.topic.to | topicprefix.topic
-						map.topic                | ''
-						pam.topic.to             | ''
-						map.map.my.topic.to.to   | map.my.topic.to
-						""")
+                        KEY                      | EXPECTED_INFIX
+                        map.topic.to             | topic
+                        map.topicprefix.topic.to | topicprefix.topic
+                        map.topic                | ''
+                        pam.topic.to             | ''
+                        map.map.my.topic.to.to   | map.my.topic.to
+                        """)
     public void shouldExtractInfixForMap(String key, String expectedInfix) {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
@@ -306,11 +306,11 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-						KEY                      | EXPECTED_INFIX
-						field.name               | name
-						myfield.name             | ''
-						field.my.name            | my.name
-						""")
+                        KEY                      | EXPECTED_INFIX
+                        field.name               | name
+                        myfield.name             | ''
+                        field.my.name            | my.name
+                        """)
     public void shouldGetInfixForField(String key, String expectedInfix) {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =
@@ -329,11 +329,11 @@ public class ConnectorConfigTest {
             delimiter = '|',
             textBlock =
                     """
-						KEY                        | EXPECTED_INFIX
-						item-template.template1    | template1
-						myitem.template1           | ''
-						item-template.my.template1 | my.template1
-						""")
+                        KEY                        | EXPECTED_INFIX
+                        item-template.template1    | template1
+                        myitem.template1           | ''
+                        item-template.my.template1 | my.template1
+                        """)
     public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
         Optional<String> infix =

@@ -95,7 +95,7 @@ public class ConsumerLoopConfiguratorTest {
                         ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [VALUE] while evaluating [field.fieldName1]");
+                        "Found the invalid expression [VALUE] while evaluating [fieldName1]");
     }
 
     @ParameterizedTest
@@ -115,7 +115,7 @@ public class ConsumerLoopConfiguratorTest {
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + expression
-                                + "] while evaluating [field.fieldName1]");
+                                + "] while evaluating [fieldName1]");
     }
 
     @ParameterizedTest
@@ -150,7 +150,7 @@ public class ConsumerLoopConfiguratorTest {
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + expression
-                                + "] while evaluating [item-template.template1]: <Invalid template expression>");
+                                + "] while evaluating [template1]: <Invalid template expression>");
     }
 
     @Test

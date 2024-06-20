@@ -16,7 +16,8 @@ COPY resources /tmp/resources
 
 # Switch to the root user to allow sytem updates.
 USER root
-RUN apt-get -y update; \
+RUN set -eux; \
+    apt-get -y update; \
     apt-get install -y unzip rsync; \
     # Unzip the distribution package into the Lightstreamer's adapters fodler
     unzip /tmp/${KAFKA_CONNECTOR_ZIP} -d /lightstreamer/adapters; \

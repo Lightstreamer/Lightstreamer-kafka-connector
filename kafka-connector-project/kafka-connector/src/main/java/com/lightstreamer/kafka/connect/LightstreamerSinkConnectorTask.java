@@ -70,7 +70,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         metadataProviderServer.setAdapter(new LiteralBasedProvider());
 
         Map<String, String> topicMappings = config.getTopicMappings();
-        Map<String, String> itemTemplates = config.getItemTemplate();
+        Map<String, String> itemTemplates = config.getItemTemplates();
 
         TopicsConfig topicConfiguration = TopicsConfig.of(itemTemplates, topicMappings);
         Selected<Object, Object> selected =
@@ -81,9 +81,10 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
                 Items.templatesFrom(topicConfiguration, selected);
 
         Map<String, String> fieldMappings =
-                config.getList(LightstreamerConnectorConfig.FIELD_NAMES).stream()
+                config.getList(LightstreamerConnectorConfig.FIELD_MAPPINGS).stream()
                         .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
 
+        logger.info("fieldsMapping: {}", fieldMappings);
         Selectors<Object, Object> fieldsSelectors = Fields.fromMapping(fieldMappings, selected);
 
         adapter = new StreamingDataAdapter(templatesFrom, fieldsSelectors);

@@ -19,12 +19,14 @@ package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class LightstreamerConnectorConfigTest {
 
-    // @Test
+    @Test
     void shouldGetOneItemTemplate() {
         Map<String, String> props = new HashMap<>();
 
@@ -32,26 +34,43 @@ public class LightstreamerConnectorConfigTest {
         props.put(LightstreamerConnectorConfig.ITEM_TEMPLATES, "stock-template:stock-#{index=KEY}");
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        Map<String, String> itemTemplate = config.getItemTemplate();
-        assertThat(itemTemplate).containsExactly("stock-template", "stock-#{index=KEY}");
+        Map<String, String> itemTemplates = config.getItemTemplates();
+        assertThat(itemTemplates).containsExactly("stock-template", "stock-#{index=KEY}");
     }
 
-    // @Test
+    @Test
     void shouldGetMoreItemTemplates() {
         Map<String, String> props = new HashMap<>();
 
-        // # item.templates=stock-template:stock-#{index=KEY}
         props.put(
                 LightstreamerConnectorConfig.ITEM_TEMPLATES,
-                "stock-template:stock-#{index=KEY},product-template:product-#{id=KEY,price=VALUE.price}");
+                "stock-template:stock-#{index=KEY};product-template:product-#{id=KEY,price=VALUE.price}");
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        Map<String, String> itemTemplate = config.getItemTemplate();
+        Map<String, String> itemTemplate = config.getItemTemplates();
         assertThat(itemTemplate)
                 .containsExactly(
                         "stock-template",
                         "stock-#{index=KEY}",
                         "product-template",
                         "product-#{id=KEY,price=VALUE.price}");
+    }
+
+    @Test
+    void shouldGetTopicMappings() {
+        Map<String, String> props = new HashMap<>();
+
+        props.put(
+                LightstreamerConnectorConfig.TOPIC_MAPPINGS,
+                "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template");
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        Map<String, String> topicMappings = config.getTopicMappings();
+
+        assertThat(topicMappings).containsKey("stocks");
+        assertThat(topicMappings.get("stocks"))
+                .isEqualTo("item-template.stock-template,item-template.stock-template-2");
+
+        assertThat(topicMappings).containsKey("orders");
+        assertThat(topicMappings.get("orders")).isEqualTo("item-template.order-template");
     }
 }

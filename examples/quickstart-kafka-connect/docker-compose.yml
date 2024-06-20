@@ -2,7 +2,7 @@
 name: quickstart-kafka-connect
 services:
   kafka-connect:
-    container_name: lightstreamer-kafka-connect-lighstreamer-${version}
+    container_name: kafka-connect
     image: lightstreamer-kafka-connect-lighstreamer-${version}
     configs:
       - source: connect-standalone.properties
@@ -95,11 +95,9 @@ configs:
       topics=stocks
       max.interval=990
 
-      item-template.stock-template=stock-#{index=KEY}
-      map.stocks.to=item-template.stock-template
-
-      field.names=timestamp:#{VALUE.timestamp},time:#{VALUE.time},stock_name:#{VALUE.stock_name},last_price:#{VALUE.last_price}
-
+      item.templates=-item-template.stock-template=stock-#{index=KEY}
+      topic_mappings=stocks:item-template.stock-template
+      field_mappings=field.timestamp:#{VALUE.timestamp},field.time:#{VALUE.time},field.stock_name:#{VALUE.stock_name},field.last_price:#{VALUE.last_price}
 
       lightstreamer.host=localhost
       lightstreamer.port=6661

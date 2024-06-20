@@ -76,12 +76,12 @@ public class ConsumerLoopConfigurator {
     private ConsumerLoopConfig<?, ?> configure() throws ConfigException {
         TopicsConfig topicsConfig =
                 TopicsConfig.of(
-                        connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, false),
+                        connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
                         connectorConfig.getValues(ConnectorConfig.TOPIC_MAPPING, true));
 
         // Process "field.<field-name>"
         Map<String, String> fieldsMapping =
-                connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, false);
+                connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, true);
 
         try {
             Selected<?, ?> selected =

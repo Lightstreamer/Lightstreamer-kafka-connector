@@ -607,6 +607,28 @@ public class ConfigsSpec {
         return Optional.of(infix);
     }
 
+    // public static Optional<String> extractPrefix(ConfParameter param, String value) {
+    //     if (!param.multiple()) {
+    //         return Optional.empty();
+    //     }
+
+    //     String prefix = param.name() + ".";
+    //     boolean startsWith = value.startsWith(prefix);
+    //     if (!startsWith) {
+    //         return Optional.empty();
+    //     }
+
+    //     infix = value.substring(prefix.length());
+    //     if (param.suffix() != null) {
+    //         String suffix = "." + param.suffix();
+    //         if (!infix.endsWith(suffix)) {
+    //             return Optional.empty();
+    //         }
+    //         infix = infix.substring(0, infix.lastIndexOf(suffix));
+    //     }
+    //     return Optional.of(infix);
+    // }
+
     public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.
         Map<String, String> parsedValues = new HashMap<>();

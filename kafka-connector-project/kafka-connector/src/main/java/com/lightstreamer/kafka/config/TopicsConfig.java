@@ -106,13 +106,13 @@ public class TopicsConfig {
             for (String itemRef : itemRefs) {
                 ItemReference itemReference = null;
                 if (itemRef.startsWith("item-template.")) {
-                    if (!itemTemplates.containsKey(itemRef)) {
-                        String templateName = itemRef.substring(itemRef.indexOf(".") + 1);
+                    String templateName = itemRef.substring(itemRef.indexOf(".") + 1);
+                    if (!itemTemplates.containsKey(templateName)) {
                         throw new ConfigException(
                                 "No item template [%s] found".formatted(templateName));
                     }
-                    String templateValue = itemTemplates.get(itemRef);
-                    itemReference = ItemReference.forTemplate(itemRef, templateValue);
+                    String templateValue = itemTemplates.get(templateName);
+                    itemReference = ItemReference.forTemplate(templateName, templateValue);
                 } else {
                     itemReference = ItemReference.forSimpleName(itemRef);
                 }

@@ -8,14 +8,14 @@ group = 'com.lightstreamer.kafka_connector'
 
 spotless {
     groovyGradle {
-        target '*.gradle'
+        target '**/*.gradle'
         trimTrailingWhitespace()
         indentWithSpaces()
         endWithNewline()
         greclipse()
     }
     java {
-        target 'src/main/**/*.java','src/test/**/*.java', 'src/producer/**/*.java','src/consumer/**/*.java'
+        target 'src/main/**/*.java','src/test/**/*.java'
         googleJavaFormat()
                 .aosp()
                 .reorderImports(true)

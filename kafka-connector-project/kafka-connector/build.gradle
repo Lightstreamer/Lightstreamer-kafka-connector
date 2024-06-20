@@ -2,6 +2,7 @@ plugins {
 	id 'lightstreamer-kafka-connector'
 	id 'com.github.davidmc24.gradle.plugin.avro' version "1.9.1"
 	id 'maven-publish'
+	id 'project-report'
 }
 
 publishing {
@@ -31,8 +32,18 @@ dependencies {
 	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
 	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 
-	api group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
-	api group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
+	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
+	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
+}
+
+jar {
+	exclude "com/lightstreamer/kafka/connect/**"
+}
+
+tasks.register("connectJar", Jar) {
+	from sourceSets.main.output
+	exclude "com/lightstreamer/kafka/adapters/**"
+	archiveBaseName = connect_componentName
 }
 
 javadoc {
@@ -44,36 +55,80 @@ javadoc {
 	options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
 }
 
-distributions {
-	connector {
-		distributionBaseName = rootProject.name
+task assembleDistribution(type: Copy) {
+	description "Assembles the distribution directory of Lighttreamer Kafka Connector"
+	into "$buildDir/connector"
 
-		contents {
-			from(jar) {
-				into "lib"
-			}
+	from(jar) {
+		into "lib"
+	}
 
-			from (configurations.runtimeClasspath) {
-				into "lib"
-				exclude "ls-adapter-inprocess*"
-				exclude "jsr305*"
-			}
+	from (configurations.runtimeClasspath) {
+		into "lib"
+		exclude "ls-adapter-inprocess*"
+		exclude "ls-adapter-remote*"
+		exclude "ls-log-adapter*"
+		exclude "jsr305*"
+		exclude "javax.ws.rs-api-*"
+		exclude "connect-api-*"
+	}
 
-			from(javadoc) {
-				into "javadoc"
-			}
+	from distDir
+}
 
-			from distDir
-		}
+ext {
+	connect_archiveName = "${connect_owner}-${connect_componentName}"
+	connect_componentArchiveName = "${connect_archiveName}-${version}"
+	connector_archiveName = "${connect_owner}-${connect_componentName}"
+}
+
+task assembleConnectDistribution(type: Copy) {
+	description "Assembles the distribution directory of lightstreamer-kafka-connect"
+	into "$buildDir/connect"
+
+	from(connectJar) {
+		into "lib"
+	}
+
+	from (configurations.runtimeClasspath) {
+		into "lib"
+		include "ls-adapter-inprocess*"
+		include "ls-adapter-remote*"
+		include "ls-log-adapter*"
+		include "jsr305*"
+		include "javax.ws.rs-api-*"
+	}
+
+	from ("${connect_distDir}") {
+		include "doc/**"
+		include "assets/**"
+		include "etc/**"
+	}
+
+	from ("${connect_distDir}/manifest.json.tpl") {
+		expand(
+				name: connect_componentName,
+				title: brandedProjectName,
+				version: version,
+				owner: connect_owner,
+				release_date: release_date
+				)
+		rename {"manifest.json"}
 	}
 }
 
-task distribuite(type: Copy) {
-	dependsOn build
-	from (connectorDistZip)
-	into "$rootDir/$connectorDeployDirName"
+task distribuite(type: Zip) {
+	// dependsOn build
+	archiveBaseName = rootProject.name
+	from (assembleDistribution) {
+		into "${rootProject.name}-${version}"
+	}
 }
 
-clean {
-	delete "$rootDir/$connectorDeployDirName"
+task distribuiteConnect(type: Zip) {
+	// dependsOn build
+	archiveBaseName = connect_archiveName
+	from (assembleConnectDistribution) {
+		into connect_componentArchiveName
+	}
 }

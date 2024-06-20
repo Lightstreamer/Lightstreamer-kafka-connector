@@ -62,7 +62,8 @@ public class Fields {
             static <K, V> void fill(Builder<K, V> builder, Entry<String, String> configEntry) {
                 builder.withEntry(
                         configEntry.getKey(),
-                        removePrefixFromEntryKey(configEntry),
+                        // removePrefixFromEntryKey(configEntry),
+                        configEntry.getKey(),
                         configEntry.getValue(),
                         parseEntryValue(configEntry));
             }

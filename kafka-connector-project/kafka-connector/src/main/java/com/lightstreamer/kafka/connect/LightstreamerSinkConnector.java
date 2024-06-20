@@ -17,9 +17,9 @@
 
 package com.lightstreamer.kafka.connect;
 
+import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Importance;
-import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
@@ -32,24 +32,11 @@ import java.util.Map;
 
 public class LightstreamerSinkConnector extends SinkConnector {
 
-    static final ConfigDef CONFIG_DEF =
-            new ConfigDef()
-                    .define(
-                            "lightstreamer.host",
-                            Type.STRING,
-                            null,
-                            Importance.HIGH,
-                            "Lightstreamer server hostname")
-                    .define(
-                            "lightstreamer.port",
-                            Type.INT,
-                            null,
-                            Importance.HIGH,
-                            "Lightstreamer server port");
-
     private static Logger logger = LoggerFactory.getLogger(LightstreamerSinkConnector.class);
 
     private Map<String, String> props;
+
+    private LightstreamerConnectorConfig config;
 
     @Override
     public String version() {
@@ -60,7 +47,19 @@ public class LightstreamerSinkConnector extends SinkConnector {
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnector");
         this.props = props;
+        this.config = new LightstreamerConnectorConfig(props);
     }
+
+    //   @Override
+    //   public void start(Map<String, String> props) throws ConnectException {
+    //     try {
+    //       configProperties = props;
+    //       config = new HdfsSinkConnectorConfig(props);
+    //     } catch (ConfigException e) {
+    //       throw new ConnectException("Couldn't start HdfsSinkConnector due to configuration
+    // error", e);
+    //     }
+    //   }
 
     @Override
     public Class<? extends Task> taskClass() {
@@ -83,6 +82,6 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     @Override
     public ConfigDef config() {
-        return CONFIG_DEF;
+        return LightstreamerConnectorConfig.makeConfig();
     }
 }
