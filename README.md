@@ -363,7 +363,7 @@ The following sections will guide you through the configuration details.
 
 _Mandatory_. The `adapter_class` tag, specified inside the _metadata_provider_ block, defines the Java class name of the Metadata Adapter.
 
-The factory value is set to `com.lightstreamer.kafka_connector.adapters.KafkaConnectorMetadataAdapter`, which implements the internal business of Kafka Connector.
+The factory value is set to `com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter`, which implements the internal business of Kafka Connector.
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
