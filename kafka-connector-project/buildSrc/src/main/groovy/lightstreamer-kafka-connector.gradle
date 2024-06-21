@@ -4,7 +4,7 @@ plugins {
     id 'com.diffplug.spotless'
 }
 
-group = 'com.lightstreamer.kafka_connector'
+group = 'com.lightstreamer'
 
 spotless {
     groovyGradle {
