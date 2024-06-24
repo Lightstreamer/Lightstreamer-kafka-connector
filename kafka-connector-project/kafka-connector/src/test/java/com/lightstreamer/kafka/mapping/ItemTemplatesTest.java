@@ -15,15 +15,15 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping;
+package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.record;
-import static com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers.avro;
-import static com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers.avroKeyJsonValue;
-import static com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers.jsonValue;
-import static com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers.string;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
+import static com.lightstreamer.kafka.test_utils.SelectedSuppplier.avro;
+import static com.lightstreamer.kafka.test_utils.SelectedSuppplier.avroKeyJsonValue;
+import static com.lightstreamer.kafka.test_utils.SelectedSuppplier.jsonValue;
+import static com.lightstreamer.kafka.test_utils.SelectedSuppplier.string;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -34,22 +34,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.adapters.test_utils.GenericRecordProvider;
-import com.lightstreamer.kafka.adapters.test_utils.JsonNodeProvider;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
-import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
+import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
@@ -131,6 +129,17 @@ public class ItemTemplatesTest {
                                 + templateExpression
                                 + "] while"
                                 + " evaluating [item-template]: <Invalid template expression>");
+    }
+
+    @Test
+    public void shouldOneToManyT() {
+        Selected<Object, Object> selected = SelectedSuppplier.object();
+        TopicsConfig topicsConfig =
+                TopicsConfig.of(
+                        new TopicConfiguration(
+                                "stock", ItemReference.forTemplate("", "stock-#{index=KEY}")));
+
+        ItemTemplates<Object, Object> templatesFrom = Items.templatesFrom(topicsConfig, selected);
     }
 
     @Test
@@ -325,7 +334,7 @@ public class ItemTemplatesTest {
             List<String> templateStr, List<Item> routables, List<Item> nonRoutables) {
         ItemTemplates<String, String> templates =
                 mkItemTemplates(
-                        SelectorsSuppliers.string(), templateStr.toArray(size -> new String[size]));
+                        SelectedSuppplier.string(), templateStr.toArray(size -> new String[size]));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder().withSelectors(templates.selectors()).build();
 
@@ -371,7 +380,7 @@ public class ItemTemplatesTest {
                 Map.of(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, EvaluatorType.JSON.toString());
         ItemTemplates<String, JsonNode> templates =
                 mkItemTemplates(
-                        SelectorsSuppliers.jsonValue(
+                        SelectedSuppplier.jsonValue(
                                 ConnectorConfigProvider.minimalWith(updatedConfigs)),
                         templateStr.toArray(size -> new String[size]));
         RecordMapper<String, JsonNode> mapper =

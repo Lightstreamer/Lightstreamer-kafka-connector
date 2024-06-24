@@ -15,17 +15,12 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
+package com.lightstreamer.kafka.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.record;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.MetaSelector;
-import com.lightstreamer.kafka.mapping.selectors.MetaSelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.Value;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -44,12 +39,12 @@ public class MetaSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-								EXPRESSION,     VALUE
-								TOPIC,          record-topic
-								PARTITION,      150
-								TIMESTAMP,      -1
-								OFFSET,         120
-						""")
+                        EXPRESSION,     VALUE
+                        TOPIC,          record-topic
+                        PARTITION,      150
+                        TIMESTAMP,      -1
+                        OFFSET,         120
+                    """)
     public void shouldExtractAttribute(String expression, String expectedValue) {
         MetaSelector selector = metaSelector(expression);
         Value value = selector.extract(record("record-key", "record-value"));

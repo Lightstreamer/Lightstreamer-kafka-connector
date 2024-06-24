@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.test_utils;
+package com.lightstreamer.kafka.test_utils;
 
 import static com.lightstreamer.kafka.mapping.selectors.Selectors.Selected.with;
 
@@ -24,11 +24,12 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.string.StringSelectorSuppliers;
+import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
 import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
 
 import org.apache.avro.generic.GenericRecord;
 
-public interface SelectorsSuppliers {
+public interface SelectedSuppplier {
 
     public static Selected<String, String> string() {
         return with(
@@ -64,5 +65,11 @@ public interface SelectorsSuppliers {
         return with(
                 StringSelectorSuppliers.keySelectorSupplier(),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
+    }
+
+    public static Selected<Object, Object> object() {
+        return with(
+                ConnectSelectorsSuppliers.keySelectorSupplier(),
+                ConnectSelectorsSuppliers.valueSelectorSupplier());
     }
 }

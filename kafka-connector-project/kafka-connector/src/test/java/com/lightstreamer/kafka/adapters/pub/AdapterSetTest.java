@@ -32,8 +32,8 @@ import com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

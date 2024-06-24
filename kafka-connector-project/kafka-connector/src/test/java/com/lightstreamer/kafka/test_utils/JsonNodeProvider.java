@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.test_utils;
+package com.lightstreamer.kafka.test_utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

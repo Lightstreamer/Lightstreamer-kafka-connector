@@ -15,17 +15,16 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping;
+package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +34,7 @@ public class RecordMapperStringTest {
 
     private static Selectors<String, String> selectors(
             String schemaName, Map<String, String> entries) {
-        return Selectors.from(SelectorsSuppliers.string(), schemaName, entries);
+        return Selectors.from(SelectedSuppplier.string(), schemaName, entries);
     }
 
     private static Builder<String, String> builder() {

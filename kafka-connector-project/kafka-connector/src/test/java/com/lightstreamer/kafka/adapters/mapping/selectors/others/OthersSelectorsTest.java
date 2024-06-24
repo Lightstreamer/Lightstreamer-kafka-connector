@@ -31,13 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes.BooleanSerde;

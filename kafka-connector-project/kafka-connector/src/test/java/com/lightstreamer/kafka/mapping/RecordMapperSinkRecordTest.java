@@ -15,55 +15,45 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping;
+package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.adapters.test_utils.GenericRecordProvider;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
-import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-public class RecordMapperAvroTest {
+public class RecordMapperSinkRecordTest {
 
-    private static Selectors<String, GenericRecord> selectors(
+    private static Selectors<Object, Object> selectors(
             String schemaName, Map<String, String> entries) {
-        return Selectors.from(
-                SelectorsSuppliers.avroValue(
-                        ConnectorConfigProvider.minimalWith(
-                                "src/test/resources",
-                                Map.of(
-                                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                        "value.avsc"))),
-                schemaName,
-                entries);
+        return Selectors.from(SelectedSuppplier.object(), schemaName, entries);
     }
 
-    private static Builder<String, GenericRecord> builder() {
-        return RecordMapper.<String, GenericRecord>builder();
+    private static Builder<Object, Object> builder() {
+        return RecordMapper.<Object, Object>builder();
     }
 
     @Test
     public void shouldBuildEmptyMapper() {
-        RecordMapper<String, GenericRecord> mapper = builder().build();
+        RecordMapper<Object, Object> mapper = builder().build();
         assertThat(mapper).isNotNull();
         assertThat(mapper.selectorsSize()).isEqualTo(0);
     }
 
     @Test
     public void shouldBuildMapperWithDuplicateSelectors() {
-        RecordMapper<String, GenericRecord> mapper =
+        RecordMapper<Object, Object> mapper =
                 builder()
                         .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
                         .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
@@ -75,7 +65,7 @@ public class RecordMapperAvroTest {
 
     @Test
     public void shouldBuildMapperWithDifferentSelectors() {
-        RecordMapper<String, GenericRecord> mapper =
+        RecordMapper<Object, Object> mapper =
                 builder()
                         .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
                         .withSelectors(selectors("test2", Map.of("aKey", "PARTITION")))
@@ -87,10 +77,10 @@ public class RecordMapperAvroTest {
 
     @Test
     public void shouldMapEmpty() {
-        RecordMapper<String, GenericRecord> mapper = builder().build();
+        RecordMapper<Object, Object> mapper = builder().build();
 
-        KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        KafkaRecord<Object, Object> kafkaRecord =
+                ConsumerRecords.sinkRecord("topic", null, SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         // No expected values because no selectors have been bound to the RecordMapper.
@@ -99,43 +89,41 @@ public class RecordMapperAvroTest {
 
     @Test
     public void shouldMapWithValues() {
-        RecordMapper<String, GenericRecord> mapper =
+        RecordMapper<Object, Object> mapper =
                 builder()
                         .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
                         .withSelectors(selectors("test2", Map.of("aKey", "TOPIC")))
                         .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
-        KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        KafkaRecord<Object, Object> kafkaRecord =
+                ConsumerRecords.sinkRecord("topic", null, SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(3);
     }
 
     @Test
     public void shoulNotFilterDueToUnboundSelectors() {
-        RecordMapper<String, GenericRecord> mapper =
+        RecordMapper<Object, Object> mapper =
                 builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
 
-        KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        KafkaRecord<Object, Object> kafkaRecord =
+                ConsumerRecords.sinkRecord("topic", null, SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        Selectors<String, GenericRecord> unboundSelectors =
-                selectors("test", Map.of("name", "VALUE.any"));
+        Selectors<Object, Object> unboundSelectors = selectors("test", Map.of("name", "VALUE.any"));
         assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
     }
 
     @Test
     public void shouldFilter() {
-        Selectors<String, GenericRecord> nameSelectors =
-                selectors("test", Map.of("name", "VALUE.name"));
+        Selectors<Object, Object> nameSelectors = selectors("test", Map.of("name", "VALUE.name"));
 
-        Selectors<String, GenericRecord> childSelectors1 =
+        Selectors<Object, Object> childSelectors1 =
                 selectors("test", Map.of("firstChildName", "VALUE.children[0].name"));
 
-        Selectors<String, GenericRecord> childSelectors2 =
+        Selectors<Object, Object> childSelectors2 =
                 selectors(
                         "test",
                         Map.of(
@@ -144,15 +132,20 @@ public class RecordMapperAvroTest {
                                 "grandChildName",
                                 "VALUE.children[1].children[1].name"));
 
-        RecordMapper<String, GenericRecord> mapper =
+        RecordMapper<Object, Object> mapper =
                 builder()
                         .withSelectors(nameSelectors)
                         .withSelectors(childSelectors1)
                         .withSelectors(childSelectors2)
                         .build();
 
-        KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        KafkaRecord<Object, Object> kafkaRecord =
+                ConsumerRecords.sink(
+                        "topic",
+                        null,
+                        null,
+                        SchemaAndValueProvider.STRUCT.schema(),
+                        SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
 
@@ -169,7 +162,7 @@ public class RecordMapperAvroTest {
 
     @Test
     public void shouldFilterWithNullValues() {
-        Selectors<String, GenericRecord> selectors =
+        Selectors<Object, Object> selectors =
                 selectors(
                         "test",
                         Map.of(
@@ -178,10 +171,12 @@ public class RecordMapperAvroTest {
                                 "signature",
                                 "VALUE.children[0].signature"));
 
-        RecordMapper<String, GenericRecord> mapper = builder().withSelectors(selectors).build();
+        RecordMapper<Object, Object> mapper = builder().withSelectors(selectors).build();
 
-        KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record("", GenericRecordProvider.RECORD);
+        Struct STRUCT = SchemaAndValueProvider.STRUCT;
+        KafkaRecord<Object, Object> kafkaRecord =
+                KafkaRecord.from(
+                        new SinkRecord("topic", 1, null, null, STRUCT.schema(), STRUCT, 0));
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 

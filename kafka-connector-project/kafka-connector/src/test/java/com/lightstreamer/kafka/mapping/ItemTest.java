@@ -15,14 +15,13 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping;
+package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.Schema;

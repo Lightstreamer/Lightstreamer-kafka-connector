@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.test_utils;
+package com.lightstreamer.kafka.test_utils;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -24,11 +24,11 @@ import org.apache.kafka.connect.data.Struct;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SchemAndValueProvider {
+public class SchemaAndValueProvider {
 
-    private SchemAndValueProvider() {}
+    private SchemaAndValueProvider() {}
 
-    public static Struct VALUE = new SchemAndValueProvider().newNode();
+    public static Struct STRUCT = new SchemaAndValueProvider().newNode();
 
     private Struct newNode() {
         Schema grandSonsSchema = SchemaBuilder.struct().field("name", Schema.STRING_SCHEMA).build();

@@ -25,11 +25,11 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializer;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.config.ConfigException;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
 import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -94,8 +94,7 @@ public class ConsumerLoopConfiguratorTest {
                 assertThrows(
                         ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
         assertThat(e.getMessage())
-                .isEqualTo(
-                        "Found the invalid expression [VALUE] while evaluating [fieldName1]");
+                .isEqualTo("Found the invalid expression [VALUE] while evaluating [fieldName1]");
     }
 
     @ParameterizedTest

@@ -18,20 +18,20 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.fromKey;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.fromValue;
-import static com.lightstreamer.kafka.adapters.test_utils.JsonNodeProvider.RECORD;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromKey;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromValue;
+import static com.lightstreamer.kafka.test_utils.JsonNodeProvider.RECORD;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
@@ -68,29 +68,28 @@ public class JsonNodeSelectorTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION                            | EXPECTED_VALUE
-                        VALUE.name                            | joe
-                        VALUE.signature                       | YWJjZA==
-                        VALUE.children[0].name                | alex
-                        VALUE.children[0]['name']             | alex
-                        VALUE.children[0].signature           | NULL
-                        VALUE.children[1].name                | anna
-                        VALUE.children[2].name                | serena
-                        VALUE.children[3]                     | NULL
-                        VALUE.children[1].children[0].name    | gloria
-                        VALUE.children[1].children[1].name    | terence
-                        VALUE.children[1].children[1]['name'] | terence
+                        EXPRESSION,                             EXPECTED
+                        VALUE.name,                             joe
+                        VALUE.signature,                        YWJjZA==
+                        VALUE.children[0].name,                 alex
+                        VALUE.children[0]['name'],              alex
+                        VALUE.children[0].signature,            NULL
+                        VALUE.children[1].name,                 anna
+                        VALUE.children[2].name,                 serena
+                        VALUE.children[3],                      NULL
+                        VALUE.children[1].children[0].name,     gloria
+                        VALUE.children[1].children[1].name,     terence
+                        VALUE.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractValue(String expression, String expectedValue) {
-        ValueSelector<JsonNode> selector = valueSelector(expression);
-        StringSubject subject = assertThat(selector.extract(fromValue(RECORD)).text());
-        if (expectedValue.equals("NULL")) {
+    public void shouldExtractValue(String expression, String expected) {
+        StringSubject subject =
+                assertThat(valueSelector(expression).extract(fromValue(RECORD)).text());
+        if (expected.equals("NULL")) {
             subject.isNull();
         } else {
-            subject.isEqualTo(expectedValue);
+            subject.isEqualTo(expected);
         }
     }
 
@@ -99,23 +98,23 @@ public class JsonNodeSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                         EXPECTED_ERROR_MESSAGE
-                        VALUE.no_attrib,                    Field [no_attrib] not found
-                        VALUE.children[0].no_attrib,        Field [no_attrib] not found
-                        VALUE.no_children[0],               Field [no_children] not found
-                        VALUE.name[0],                      Current field is not indexed
-                        VALUE.children,                     The expression [VALUE.children] must evaluate to a non-complex object
-                        VALUE.children[0]['no_key'],        Field [no_key] not found
-                        VALUE.children[0],                  The expression [VALUE.children[0]] must evaluate to a non-complex object
-                        VALUE.children[3].name,             Field [name] not found
-                        VALUE.children[4],                  Field not found at index [4]
-                        VALUE.children[4].name,             Field not found at index [4]
+                        EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                        VALUE.no_attrib,              Field [no_attrib] not found
+                        VALUE.children[0].no_attrib,  Field [no_attrib] not found
+                        VALUE.no_children[0],         Field [no_children] not found
+                        VALUE.name[0],                Current field is not indexed
+                        VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
+                        VALUE.children[0]['no_key'],  Field [no_key] not found
+                        VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
+                        VALUE.children[3].name,       Field [name] not found
+                        VALUE.children[4],            Field not found at index [4]
+                        VALUE.children[4].name,       Field not found at index [4]
                         """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
-        ValueSelector<JsonNode> selector = valueSelector(expression);
         ValueException ve =
                 assertThrows(
-                        ValueException.class, () -> selector.extract(fromValue(RECORD)).text());
+                        ValueException.class,
+                        () -> valueSelector(expression).extract(fromValue(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -124,19 +123,26 @@ public class JsonNodeSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        ESPRESSION,                        EXPECTED_VALUE
+                        EXPRESSION,                           EXPECTED
                         KEY.name,                             joe
+                        KEY.signature,                        YWJjZA==
                         KEY.children[0].name,                 alex
                         KEY.children[0]['name'],              alex
+                        KEY.children[0].signature,            NULL
                         KEY.children[1].name,                 anna
                         KEY.children[2].name,                 serena
+                        KEY.children[3],                      NULL
                         KEY.children[1].children[0].name,     gloria
                         KEY.children[1].children[1].name,     terence
                         KEY.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractKey(String expression, String expectedValue) {
-        KeySelector<JsonNode> selector = keySelector(expression);
-        assertThat(selector.extract(fromKey(RECORD)).text()).isEqualTo(expectedValue);
+    public void shouldExtractKey(String expression, String expected) {
+        StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text())        ;
+        if (expected.equals("NULL")) {
+            subject.isNull();
+        } else {
+            subject.isEqualTo(expected);
+        }
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -144,71 +150,24 @@ public class JsonNodeSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                       EXPECTED_ERROR_MESSAGE
-                        KEY.no_attrib,                    Field [no_attrib] not found
-                        KEY.children[0].no_attrib,        Field [no_attrib] not found
-                        KEY.no_children[0],               Field [no_children] not found
-                        KEY.name[0],                      Current field is not indexed
-                        KEY.children[0]['no_key'],        Field [no_key] not found
-                        KEY.children[0],                  The expression [KEY.children[0]] must evaluate to a non-complex object
-                        KEY.children[3].name,             Field [name] not found
+                        EXPRESSION,                 EXPECTED_ERROR_MESSAGE
+                        KEY.no_attrib,              Field [no_attrib] not found
+                        KEY.children[0].no_attrib,  Field [no_attrib] not found
+                        KEY.no_children[0],         Field [no_children] not found
+                        KEY.name[0],                Current field is not indexed
+                        KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
+                        KEY.children[0]['no_key'],  Field [no_key] not found
+                        KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
+                        KEY.children[3].name,       Field [name] not found
+                        KEY.children[4],            Field not found at index [4]
+                        KEY.children[4].name,       Field not found at index [4]
                         """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
-        KeySelector<JsonNode> selector = keySelector(expression);
         ValueException ve =
-                assertThrows(ValueException.class, () -> selector.extract(fromKey(RECORD)).text());
+                assertThrows(
+                        ValueException.class,
+                        () -> keySelector(expression).extract(fromKey(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    // @CsvSource(
-    //         useHeadersInDisplayName = true,
-    //         textBlock =
-    //                 """
-    //                     ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-    //                     '',                                Expected the root token [KEY] while
-    // evaluating [name]
-    //                     invalidKey,                        Expected the root token [KEY] while
-    // evaluating [name]
-    //                     KEY,                               Found the invalid expression [KEY]
-    // while evaluating [name]
-    //                     KEY.,                              Found the invalid expression [KEY.]
-    // while evaluating [name]
-    //                     KEY..,                             Found the invalid expression [KEY..]
-    // with missing tokens while evaluating [name]
-    //                     KEY.attrib[],                      Found the invalid indexed expression
-    // [KEY.attrib[]] while evaluating [name]
-    //                     KEY.attrib[0]xsd,                  Found the invalid indexed expression
-    // [KEY.attrib[0]xsd] while evaluating [name]
-    //                     KEY.attrib[],                      Found the invalid indexed expression
-    // [KEY.attrib[]] while evaluating [name]
-    //                     KEY.attrib[a],                     Found the invalid indexed expression
-    // [KEY.attrib[a]] while evaluating [name]
-    //                     KEY.attrib[a].,                    Found the invalid indexed expression
-    // [KEY.attrib[a].] while evaluating [name]
-    //                     KEY.attrib[0].,                    Found the invalid indexed expression
-    // [KEY.attrib[0].] while evaluating [name]
-    //                 """)
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                        ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-                        '',                                Expected the root token [KEY] while evaluating [name]
-                        invalidKey,                        Expected the root token [KEY] while evaluating [name]
-                        KEY,                               Found the invalid expression [KEY] while evaluating [name]
-                        KEY.,                              Found the invalid expression [KEY.] while evaluating [name]
-                        KEY..,                             Found the invalid expression [KEY..] with missing tokens while evaluating [name]
-                        KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[0]xsd,                  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                        KEY.attrib[],                      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[a],                     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                        KEY.attrib[a].,                    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
-                    """)
-    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> keySelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -244,21 +203,73 @@ public class JsonNodeSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        ESPRESSION,                        EXPECTED_ERROR_MESSAGE
-                        '',                                Expected the root token [VALUE] while evaluating [name]
-                        invalidValue,                      Expected the root token [VALUE] while evaluating [name]
-                        VALUE,                             Found the invalid expression [VALUE] while evaluating [name]
-                        VALUE.,                            Found the invalid expression [VALUE.] while evaluating [name]
-                        VALUE..,                           Found the invalid expression [VALUE..] with missing tokens while evaluating [name]
-                        VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[0]xsd,                Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                        VALUE.attrib[],                    Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[a],                   Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                        VALUE.attrib[a].,                  Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
+                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
+                        '',                  Expected the root token [VALUE] while evaluating [name]
+                        invalidValue,        Expected the root token [VALUE] while evaluating [name]
+                        VALUE,               Found the invalid expression [VALUE] while evaluating [name]
+                        VALUE.,              Found the invalid expression [VALUE.] while evaluating [name]
+                        VALUE..,             Found the invalid expression [VALUE..] with missing tokens while evaluating [name]
+                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                        VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                        VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                        VALUE.attrib[a].,    Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    // @CsvSource(
+    //         useHeadersInDisplayName = true,
+    //         textBlock =
+    //                 """
+    //                     ESPRESSION,                        EXPECTED_ERROR_MESSAGE
+    //                     '',                                Expected the root token [KEY] while
+    // evaluating [name]
+    //                     invalidKey,                        Expected the root token [KEY] while
+    // evaluating [name]
+    //                     KEY,                               Found the invalid expression [KEY]
+    // while evaluating [name]
+    //                     KEY.,                              Found the invalid expression [KEY.]
+    // while evaluating [name]
+    //                     KEY..,                             Found the invalid expression [KEY..]
+    // with missing tokens while evaluating [name]
+    //                     KEY.attrib[],                      Found the invalid indexed expression
+    // [KEY.attrib[]] while evaluating [name]
+    //                     KEY.attrib[0]xsd,                  Found the invalid indexed expression
+    // [KEY.attrib[0]xsd] while evaluating [name]
+    //                     KEY.attrib[],                      Found the invalid indexed expression
+    // [KEY.attrib[]] while evaluating [name]
+    //                     KEY.attrib[a],                     Found the invalid indexed expression
+    // [KEY.attrib[a]] while evaluating [name]
+    //                     KEY.attrib[a].,                    Found the invalid indexed expression
+    // [KEY.attrib[a].] while evaluating [name]
+    //                     KEY.attrib[0].,                    Found the invalid indexed expression
+    // [KEY.attrib[0].] while evaluating [name]
+    //                 """)
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                        EXPRESSION,        EXPECTED_ERROR_MESSAGE
+                        '',                Expected the root token [KEY] while evaluating [name]
+                        invalidKey,        Expected the root token [KEY] while evaluating [name]
+                        KEY,               Found the invalid expression [KEY] while evaluating [name]
+                        KEY.,              Found the invalid expression [KEY.] while evaluating [name]
+                        KEY..,             Found the invalid expression [KEY..] with missing tokens while evaluating [name]
+                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                        KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                        KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                        KEY.attrib[a].,    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
+                    """)
+    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
+        ExpressionException ee =
+                assertThrows(ExpressionException.class, () -> keySelector(expression));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
 }

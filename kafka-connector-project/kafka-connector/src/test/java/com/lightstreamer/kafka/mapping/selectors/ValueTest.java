@@ -15,14 +15,11 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
+package com.lightstreamer.kafka.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Value;
-import com.lightstreamer.kafka.mapping.selectors.ValuesContainer;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +39,7 @@ public class ValueTest {
     @Test
     public void shouldCreateValuesContainer() {
         Selectors<String, String> selectors =
-                Selectors.from(SelectorsSuppliers.string(), "schema", Map.of("name", "VALUE"));
+                Selectors.from(SelectedSuppplier.string(), "schema", Map.of("name", "VALUE"));
         ValuesContainer container =
                 ValuesContainer.of(selectors, Set.of(Value.of("name", "aValue")));
 

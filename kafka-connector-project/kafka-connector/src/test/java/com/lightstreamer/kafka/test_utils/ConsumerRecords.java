@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.test_utils;
+package com.lightstreamer.kafka.test_utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
@@ -24,6 +24,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.Optional;
 
@@ -97,19 +99,42 @@ public class ConsumerRecords {
                         Optional.empty()));
     }
 
-    // public static <K, V> KafkaRecord<K, V> sinkRecord(String topic, K key, V value) {
-    //     return KafkaRecord.from(
-    //             new SinkRecord(
-    //                     topic,
-    //                     150,
-    //                     120,
-    //                     ConsumerRecord.NO_TIMESTAMP,
-    //                     TimestampType.NO_TIMESTAMP_TYPE,
-    //                     ConsumerRecord.NULL_SIZE,
-    //                     ConsumerRecord.NULL_SIZE,
-    //                     key,
-    //                     value,
-    //                     new RecordHeaders(),
-    //                     Optional.empty()));
-    // }
+    public static KafkaRecord<Object, Object> sinkFromValue(
+            String topic, Schema valueSchema, Object value) {
+        return sink(topic, null, null, valueSchema, value);
+    }
+
+    public static KafkaRecord<Object, Object> sinkFromKey(
+            String topic, Schema keySchema, Object key) {
+        return sink(topic, keySchema, key, null, null);
+    }
+
+    public static KafkaRecord<Object, Object> sinkRecord(String topic, Object key, Object value) {
+        return KafkaRecord.from(
+                new SinkRecord(
+                        topic,
+                        150,
+                        null,
+                        key,
+                        null,
+                        value,
+                        120,
+                        (long) -1,
+                        TimestampType.NO_TIMESTAMP_TYPE));
+    }
+
+    public static KafkaRecord<Object, Object> sink(
+            String topic, Schema keySchema, Object key, Schema valueSchema, Object value) {
+        return KafkaRecord.from(
+                new SinkRecord(
+                        topic,
+                        150,
+                        keySchema,
+                        key,
+                        valueSchema,
+                        value,
+                        120,
+                        (long) -1,
+                        TimestampType.NO_TIMESTAMP_TYPE));
+    }
 }

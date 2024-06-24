@@ -20,10 +20,10 @@ package com.lightstreamer.kafka.config;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.junit.jupiter.api.Test;
 
@@ -90,6 +90,26 @@ public class TopicsConfigTest {
                 TopicsConfig.of(
                         cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
                         cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(1);
+
+        TopicConfiguration topicConfiguration = configurations.get(0);
+        assertThat(topicConfiguration.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration.itemReference();
+        assertThat(itemReference.isTemplate()).isFalse();
+        assertThat(itemReference.itemName()).isEqualTo("simple-item");
+        assertThat(itemReference.templateKey()).isNull();
+        assertThat(itemReference.templateValue()).isNull();
+    }
+
+    @Test
+    void shouldConfigOneToOneItem2() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("topic.mappings", "topic:simple-item");
+        LightstreamerConnectorConfig cgg = new LightstreamerConnectorConfig(updatedConfigs);
+        TopicsConfig topicConfig = TopicsConfig.of(cgg.getItemTemplates(), cgg.getTopicMappings());
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);

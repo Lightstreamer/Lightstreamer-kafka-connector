@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
+package com.lightstreamer.kafka.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -23,15 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Schema;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Value;
-import com.lightstreamer.kafka.mapping.selectors.ValuesContainer;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -85,7 +79,7 @@ public class SelectorsTest {
     public void shouldCreateAndExtractValues(
             Map<String, String> expressions, Schema expectedSchema, Set<Value> expectedValues) {
         Selectors<String, String> selectors =
-                Selectors.from(SelectorsSuppliers.string(), "schema", expressions);
+                Selectors.from(SelectedSuppplier.string(), "schema", expressions);
         assertThat(selectors.schema()).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
@@ -157,7 +151,7 @@ public class SelectorsTest {
                         ExpressionException.class,
                         () ->
                                 Selectors.from(
-                                        SelectorsSuppliers.avro(avroConfig()), "schema", input));
+                                        SelectedSuppplier.avro(avroConfig()), "schema", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -170,7 +164,7 @@ public class SelectorsTest {
                         ExpressionException.class,
                         () ->
                                 Selectors.from(
-                                        SelectorsSuppliers.json(ConnectorConfigProvider.minimal()),
+                                        SelectedSuppplier.json(ConnectorConfigProvider.minimal()),
                                         "schema",
                                         input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
@@ -202,7 +196,7 @@ public class SelectorsTest {
         ExpressionException exception =
                 assertThrows(
                         ExpressionException.class,
-                        () -> Selectors.from(SelectorsSuppliers.string(), "schema", input));
+                        () -> Selectors.from(SelectedSuppplier.string(), "schema", input));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

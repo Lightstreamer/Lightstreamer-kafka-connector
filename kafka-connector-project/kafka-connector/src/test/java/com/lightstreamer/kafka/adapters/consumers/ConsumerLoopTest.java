@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopCon
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
@@ -34,6 +33,7 @@ import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
@@ -88,7 +88,7 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 
     @Override
     public ItemTemplates<String, String> itemTemplates() {
-        return Items.templatesFrom(topicsConfig, SelectorsSuppliers.string());
+        return Items.templatesFrom(topicsConfig, SelectedSuppplier.string());
     }
 
     @Override

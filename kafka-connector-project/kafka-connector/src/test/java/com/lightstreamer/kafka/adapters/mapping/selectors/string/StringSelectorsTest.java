@@ -18,8 +18,8 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.string;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.fromKey;
-import static com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords.fromValue;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromKey;
+import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromValue;
 
 import static org.junit.Assert.assertThrows;
 

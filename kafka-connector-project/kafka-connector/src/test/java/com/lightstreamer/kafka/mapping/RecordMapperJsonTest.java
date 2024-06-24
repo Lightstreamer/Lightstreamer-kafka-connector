@@ -15,20 +15,19 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping;
+package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka.adapters.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.adapters.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.adapters.test_utils.JsonNodeProvider;
-import com.lightstreamer.kafka.adapters.test_utils.SelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
 
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +38,7 @@ public class RecordMapperJsonTest {
     private static Selectors<String, JsonNode> selectors(
             String schemaName, Map<String, String> entries) {
         return Selectors.from(
-                SelectorsSuppliers.jsonValue(ConnectorConfigProvider.minimal()),
+                SelectedSuppplier.jsonValue(ConnectorConfigProvider.minimal()),
                 schemaName,
                 entries);
     }
@@ -50,7 +49,7 @@ public class RecordMapperJsonTest {
 
     @Test
     public void shouldBuildEmptyMapper() {
-        RecordMapper<String, JsonNode> mapper = builder().build();
+        RecordMapper<String, JsonNode> mapper = RecordMapper.<String, JsonNode>builder().build();
         assertThat(mapper).isNotNull();
         assertThat(mapper.selectorsSize()).isEqualTo(0);
     }
