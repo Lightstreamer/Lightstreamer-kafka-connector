@@ -1,4 +1,5 @@
 ---
+name: quickstart-kafka-connector-ssl
 services:
   kafka-connector:
     container_name: kafka-connector
