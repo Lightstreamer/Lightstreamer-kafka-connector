@@ -1,5 +1,5 @@
 ---
-name: quickstart-kafka-schema-registry
+name: quickstart-kafka-connector-schema-registry
 services:
   kafka-connector:
     container_name: kafka-connector
