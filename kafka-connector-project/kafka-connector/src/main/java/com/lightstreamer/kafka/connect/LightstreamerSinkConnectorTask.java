@@ -22,7 +22,7 @@ import com.lightstreamer.adapters.remote.MetadataProviderServer;
 import com.lightstreamer.adapters.remote.metadata.LiteralBasedProvider;
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
-import com.lightstreamer.kafka.connect.mapping.ConnectSelectorsSuppliers;
+import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
 import com.lightstreamer.kafka.mapping.Fields;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
@@ -70,15 +70,18 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         metadataProviderServer.setAdapter(new LiteralBasedProvider());
 
         Map<String, String> topicMappings = config.getTopicMappings();
-        Map<String, String> itemTemplates = config.getItemTemplates();
+        logger.info("topic.mappings: {}", topicMappings);
 
-        TopicsConfig topicConfiguration = TopicsConfig.of(itemTemplates, topicMappings);
+        Map<String, String> itemTemplates = config.getItemTemplates();
+        logger.info("item.templates: {}", itemTemplates);
+
+        TopicsConfig topicsConfig = TopicsConfig.of(itemTemplates, topicMappings);
         Selected<Object, Object> selected =
                 Selected.with(
                         ConnectSelectorsSuppliers.keySelectorSupplier(),
                         ConnectSelectorsSuppliers.valueSelectorSupplier());
-        ItemTemplates<Object, Object> templatesFrom =
-                Items.templatesFrom(topicConfiguration, selected);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, selected);
+        logger.info("Constructed item templates: {}", itemTemplates);
 
         Map<String, String> fieldMappings =
                 config.getList(LightstreamerConnectorConfig.FIELD_MAPPINGS).stream()
@@ -87,7 +90,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         logger.info("fieldsMapping: {}", fieldMappings);
         Selectors<Object, Object> fieldsSelectors = Fields.fromMapping(fieldMappings, selected);
 
-        adapter = new StreamingDataAdapter(templatesFrom, fieldsSelectors);
+        adapter = new StreamingDataAdapter(templates, fieldsSelectors);
         DataProviderServer dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(adapter);
 

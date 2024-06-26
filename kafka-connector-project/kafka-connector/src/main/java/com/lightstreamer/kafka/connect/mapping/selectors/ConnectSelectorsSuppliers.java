@@ -15,21 +15,17 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.mapping;
+package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import com.lightstreamer.kafka.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord.KafkaSinkRecord;
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
 import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
 import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.LinkedNode;
 import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -47,12 +43,12 @@ import java.util.Objects;
 
 public class ConnectSelectorsSuppliers {
 
-    public static KeySelectorSupplier<Object> keySelectorSupplier() {
-        return new ConnectKeySelectorSupplier();
+    public static MyKeySelectorSupplier keySelectorSupplier() {
+        return new ConnectKeySelectorSupplierImpl();
     }
 
-    public static ValueSelectorSupplier<Object> valueSelectorSupplier() {
-        return new ConnectValueSelectorSupplier();
+    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
+        return new ConnectValueSelectorSupplierImpl();
     }
 
     private static Logger log = LoggerFactory.getLogger("ConnectSelectorsSuppliers");
@@ -201,52 +197,64 @@ public class ConnectSelectorsSuppliers {
         }
     }
 
-    static class ConnectKeySelectorSupplier implements KeySelectorSupplier<Object> {
+    static class ConnectKeySelectorSupplierImpl implements MyKeySelectorSupplier {
 
-        public ConnectKeySelectorSupplier() {}
+        public ConnectKeySelectorSupplierImpl() {}
 
         @Override
-        public KeySelector<Object> newSelector(String name, String expression) {
-            return new ConnectKeySelector(name, expression, expectedRoot());
+        public ConnectKeySelector newSelector(String name, String expression) {
+            return new ConnectKeySelectorImpl(name, expression, expectedRoot());
         }
 
         @Override
         public Deserializer<Object> deseralizer() {
             throw new UnsupportedOperationException();
         }
+
+        public boolean maySupply(String expression) {
+            return expression.equals(expectedRoot())
+                    || MyKeySelectorSupplier.super.maySupply(expression);
+        }
     }
 
-    static class ConnectKeySelector extends ConnectBaseSelector implements KeySelector<Object> {
+    static class ConnectKeySelectorImpl extends ConnectBaseSelector implements ConnectKeySelector {
 
-        public ConnectKeySelector(String name, String expression, String expectedRoot) {
+        public ConnectKeySelectorImpl(String name, String expression, String expectedRoot) {
             super(name, expression, expectedRoot);
         }
 
         @Override
         public Value extract(KafkaRecord<Object, ?> record) {
             KafkaRecord.KafkaSinkRecord sinkRecord = (KafkaSinkRecord) record;
-            return super.eval(record.value(), sinkRecord.valueSchema());
+            return super.eval(record.key(), sinkRecord.keySchema());
         }
     }
 
-    static class ConnectValueSelectorSupplier implements ValueSelectorSupplier<Object> {
+    static class ConnectValueSelectorSupplierImpl implements ConnectValueSelectorSupplier {
 
-        public ConnectValueSelectorSupplier() {}
+        public ConnectValueSelectorSupplierImpl() {}
 
         @Override
-        public ValueSelector<Object> newSelector(String name, String expression) {
-            return new ConnectValueSelector(name, expression, expectedRoot());
+        public ConnectValueSelector newSelector(String name, String expression) {
+            return new ConnectValueSelectorImpl(name, expression, expectedRoot());
         }
 
         @Override
         public Deserializer<Object> deseralizer() {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public boolean maySupply(String expression) {
+            return expression.equals(expectedRoot())
+                    || ConnectValueSelectorSupplier.super.maySupply(expression);
+        }
     }
 
-    static class ConnectValueSelector extends ConnectBaseSelector implements ValueSelector<Object> {
+    static class ConnectValueSelectorImpl extends ConnectBaseSelector
+            implements ConnectValueSelector {
 
-        public ConnectValueSelector(String name, String expression, String expectedRoot) {
+        public ConnectValueSelectorImpl(String name, String expression, String expectedRoot) {
             super(name, expression, expectedRoot);
         }
 

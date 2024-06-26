@@ -79,11 +79,11 @@ public class ConnectSelectorsSuppliersTest {
                     .field("mapOfMap", OPTIONAL_MAP_OF_MAP_SCHEMA)
                     .build();
 
-    static MyValueSelector valueSelector(String expression) {
+    static ConnectValueSelector valueSelector(String expression) {
         return ConnectSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
-    static MyKeySelector keySelector(String expression) {
+    static ConnectKeySelector keySelector(String expression) {
         return ConnectSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
@@ -149,27 +149,28 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|',
+            delimiter = '|', // Required becase of the expected value for input KEY.signature
             textBlock =
                     """
-                        EXPRESSION                          | EXPECTED
-                        KEY.name                            | joe
-                        KEY.signature                       | [97, 98, 99, 100]
-                        KEY.children[0].name                | alex
-                        KEY.children[0]['name']             | alex
-                        KEY.children[0].signature           | NULL
-                        KEY.children[1].name                | anna
-                        KEY.children[2].name                | serena
-#                       KEY.children[3]                     | NULL
-                        KEY.children[1].children[0].name    | gloria
-                        KEY.children[1].children[1].name    | terence
-                        KEY.children[1].children[1]['name'] | terence
+                        EXPRESSION                           | EXPECTED
+                        KEY.name                             | joe
+                        KEY.signature                        | [97, 98, 99, 100]
+                        KEY.children[0].name                 | alex
+                        KEY.children[0]['name']              | alex
+                        KEY.children[0].signature            | NULL
+                        KEY.children[1].name                 | anna
+                        KEY.children[2].name                 | serena
+#                       KEY.children[3]                      | NULL
+                        KEY.children[1].children[0].name     | gloria
+                        KEY.children[1].children[1].name     | terence
+                        KEY.children[1].children[1]['name']  | terence
                         """)
     public void shouldExtractKey(String expression, String expected) {
         StringSubject subject =
                 assertThat(
                         keySelector(expression)
-                                .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT))
+                                // .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT))
+                                .extract(sinkFromKey("topic", null, STRUCT))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();

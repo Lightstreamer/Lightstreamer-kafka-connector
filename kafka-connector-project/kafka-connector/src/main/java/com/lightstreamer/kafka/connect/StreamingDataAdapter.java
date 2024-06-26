@@ -39,20 +39,31 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StreamingDataAdapter implements DataProvider {
 
     private static Logger logger = LoggerFactory.getLogger(StreamingDataAdapter.class);
 
-    private volatile ItemEventListener listener;
+    private interface DownstreamUpdater {
 
-    private final RecordMapper<Object, Object> recordMapper;
+        void update(Collection<SinkRecord> records);
+    }
 
     protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
+    private volatile ItemEventListener listener;
+    private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
+    private final RecordMapper<Object, Object> recordMapper;
     private final Selectors<Object, Object> fieldsSelectors;
-
     private final ItemTemplates<Object, Object> itemTemplates;
+
+    private volatile DownstreamUpdater updater = FAKE_UPDATER;
+
+    private static DownstreamUpdater FAKE_UPDATER =
+            records -> {
+                logger.info("Skipping record");
+            };
 
     StreamingDataAdapter(
             ItemTemplates<Object, Object> itemTemplates,
@@ -67,27 +78,19 @@ public class StreamingDataAdapter implements DataProvider {
     }
 
     @Override
+    public void init(Map<String, String> parameters, String configFile)
+            throws DataProviderException {
+        logger.info("Init parameter from Remote Proxy Adapter: {}", parameters);
+    }
+
+    @Override
     public void setListener(ItemEventListener eventListener) {
-        this.listener = listener;
+        this.listener = eventListener;
+        logger.info("ItemEventListener set");
     }
 
     public void streamEvents(Collection<SinkRecord> records) {
-        for (SinkRecord sinkRecord : records) {
-            logger.debug("Mapping incoming Kafka record");
-            logger.trace("Kafka record: {}", sinkRecord.toString());
-            MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
-
-            Set<Item> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
-
-            logger.info("Routing record to {} items", routable.size());
-
-            for (Item sub : routable) {
-                logger.debug("Filtering updates");
-                Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
-                logger.debug("Sending updates: {}", updates);
-                listener.update(sub.itemHandle().toString(), updates, false);
-            }
-        }
+        updater.update(records);
     }
 
     @Override
@@ -95,13 +98,16 @@ public class StreamingDataAdapter implements DataProvider {
         logger.info("Trying subscription to item [{}]", item);
         Item newItem = Items.itemFrom(item);
         try {
-            if (itemTemplates.matches(newItem)) {
-                logger.warn("Item [{}] does not match any defined item templates", item);
+            if (!itemTemplates.matches(newItem)) {
+                logger.warn("Item [{}] does not match any defined item templates", newItem);
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
-            logger.info("Subscribed to item [{}]", item);
+            logger.info("Subscribed to item [{}]", newItem);
             subscribedItems.put(item, newItem);
+            if (itemsCounter.addAndGet(1) == 1) {
+                updater = this::update;
+            }
         } catch (ExpressionException e) {
             logger.error("", e);
             throw new SubscriptionException(e.getMessage());
@@ -115,6 +121,9 @@ public class StreamingDataAdapter implements DataProvider {
             throw new SubscriptionException(
                     "Unsubscribing from unexpected item [%s]".formatted(item));
         }
+        if (itemsCounter.decrementAndGet() == 0) {
+            updater = FAKE_UPDATER;
+        }
     }
 
     @Override
@@ -122,10 +131,28 @@ public class StreamingDataAdapter implements DataProvider {
         return false;
     }
 
-    @Override
-    public void init(Map<String, String> parameters, String configFile)
-            throws DataProviderException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'init'");
+    private void update(Collection<SinkRecord> records) {
+        for (SinkRecord sinkRecord : records) {
+            // logger.debug("Mapping incoming Kafka record");
+            logger.info("Mapping incoming Kafka record");
+            // logger.trace("Kafka record: {}", sinkRecord.toString());
+            logger.info("Kafka record: {}", sinkRecord.toString());
+            MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
+
+            Set<Item> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
+
+            logger.info("Routing record to {} items", routable.size());
+
+            for (Item sub : routable) {
+                // logger.debug("Filtering updates");
+                logger.info("Filtering updates");
+                Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
+                if (listener != null) {
+                    // logger.debug("Sending updates: {}", updates);
+                    logger.info("Sending updates: {}", updates);
+                    listener.update(sub.itemHandle().toString(), updates, false);
+                }
+            }
+        }
     }
 }

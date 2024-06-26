@@ -161,9 +161,9 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         }
 
         TableInfo table = tables[0];
-        Optional<ConnectionInfo> lookUp = lookUp(table.getDataAdapter());
-        if (lookUp.isPresent()) {
-            registerConnectorItems(sessionID, table, lookUp.get());
+        Optional<ConnectionInfo> connectionInfo = lookUp(table.getDataAdapter());
+        if (connectionInfo.isPresent()) {
+            registerConnectorItems(sessionID, table, connectionInfo.get());
         }
     }
 

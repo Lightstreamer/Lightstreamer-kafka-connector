@@ -168,7 +168,7 @@ public class GenericRecordSelectorTest {
             subject.isNull();
         } else {
             subject.isEqualTo(expected);
-        }        
+        }
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -219,7 +219,7 @@ public class GenericRecordSelectorTest {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }    
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     // @CsvSource(
@@ -271,5 +271,4 @@ public class GenericRecordSelectorTest {
                 assertThrows(ExpressionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
-
 }

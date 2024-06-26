@@ -26,40 +26,11 @@ import java.util.stream.Collectors;
 public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
 
     static enum Attribute {
-        TIMESTAMP {
-            @Override
-            String value(KafkaRecord<?, ?> record) {
-                return String.valueOf(record.timestamp());
-            }
-        },
-
-        PARTITION {
-            @Override
-            String value(KafkaRecord<?, ?> record) {
-                return String.valueOf(record.partition());
-            }
-        },
-
-        OFFSET {
-            @Override
-            String value(KafkaRecord<?, ?> record) {
-                return String.valueOf(record.offset());
-            }
-        },
-
-        TOPIC {
-            @Override
-            String value(KafkaRecord<?, ?> record) {
-                return record.topic();
-            }
-        },
-
-        NULL {
-            @Override
-            String value(KafkaRecord<?, ?> record) {
-                return NOT_EXISTING_RECORD_ATTRIBUTE;
-            }
-        };
+        TIMESTAMP,
+        PARTITION,
+        OFFSET,
+        TOPIC,
+        NULL;
 
         private static final Attribute[] values = Attribute.values();
 
@@ -74,7 +45,15 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
             return NULL;
         }
 
-        abstract String value(KafkaRecord<?, ?> record);
+        String value(KafkaRecord<?, ?> record) {
+            return switch (this) {
+                case TIMESTAMP -> String.valueOf(record.timestamp());
+                case PARTITION -> String.valueOf(record.partition());
+                case OFFSET -> String.valueOf(record.offset());
+                case TOPIC -> record.topic();
+                case NULL -> NOT_EXISTING_RECORD_ATTRIBUTE;
+            };
+        }
 
         static List<Attribute> validAttributes() {
             return List.of(TIMESTAMP, PARTITION, TOPIC, OFFSET);

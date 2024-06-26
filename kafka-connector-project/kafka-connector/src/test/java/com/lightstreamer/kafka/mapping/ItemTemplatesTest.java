@@ -139,7 +139,11 @@ public class ItemTemplatesTest {
                         new TopicConfiguration(
                                 "stock", ItemReference.forTemplate("", "stock-#{index=KEY}")));
 
-        ItemTemplates<Object, Object> templatesFrom = Items.templatesFrom(topicsConfig, selected);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, selected);
+        assertThat(templates.topics()).containsExactly("stock");
+
+        Item subcribingItem1 = Items.itemFrom("stock-[index=1]");
+        assertThat(templates.matches(subcribingItem1)).isTrue();
     }
 
     @Test

@@ -149,22 +149,38 @@ public class SelectorExpressionParser<K, V> {
             String name, String expression, String expectedRoot) throws ExpressionException {
         ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
         try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
-            parseRoot(scanner, ctx);
-            return parseTokens(scanner, ctx);
+            LinkedNode<NodeEvaluator<K, V>> root = parseRoot(scanner, ctx);
+            return parseTokens(root, scanner, ctx);
         }
     }
 
-    private void parseRoot(Scanner scanner, ParsingContext ctx) {
+    private LinkedNode<NodeEvaluator<K, V>> parseRoot(Scanner scanner, ParsingContext ctx) {
         if (!scanner.hasNext()) {
             ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
         if (!ctx.expectedRoot().equals(scanner.next())) {
             ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
+        NodeEvaluator<K, V> rootEvaluator =
+                new NodeEvaluator<K, V>() {
+
+                    @Override
+                    public String name() {
+                        return "root";
+                    }
+
+                    @Override
+                    public V get(K k) throws ValueException {
+                        return (V) k;
+                    }
+                };
+        LinkedNode<NodeEvaluator<K, V>> linkedNode = new LinkedNode<>(rootEvaluator);
+        return linkedNode;
     }
 
-    private LinkedNode<NodeEvaluator<K, V>> parseTokens(Scanner scanner, ParsingContext ctx) {
-        LinkedNode<NodeEvaluator<K, V>> head = null, current = null;
+    private LinkedNode<NodeEvaluator<K, V>> parseTokens(
+            LinkedNode<NodeEvaluator<K, V>> head, Scanner scanner, ParsingContext ctx) {
+        LinkedNode<NodeEvaluator<K, V>> current = head;
         while (scanner.hasNext()) {
             String token = scanner.next();
             if (token.isBlank()) {
@@ -193,9 +209,9 @@ public class SelectorExpressionParser<K, V> {
                 current = linkedNode;
             }
         }
-        if (head == null) {
-            ExpressionException.throwInvalidExpression(ctx.name(), ctx.expression());
-        }
+        // if (head == null) {
+        //     ExpressionException.throwInvalidExpression(ctx.name(), ctx.expression());
+        // }
         return head;
     }
 

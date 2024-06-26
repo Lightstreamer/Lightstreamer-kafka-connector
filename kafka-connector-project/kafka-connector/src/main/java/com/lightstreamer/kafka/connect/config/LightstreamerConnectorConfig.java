@@ -23,6 +23,7 @@ import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                         ITEM_TEMPLATES,
                         ConfigDef.Type.STRING,
                         null,
-                        ConfigDef.Importance.HIGH,
+                        ConfigDef.Importance.MEDIUM,
                         "Item template expressions")
                 .define(TOPIC_MAPPINGS, ConfigDef.Type.LIST, null, ConfigDef.Importance.HIGH, "")
                 .define(
@@ -82,7 +83,11 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     public Map<String, String> getItemTemplates() {
-        return Arrays.stream(getString(ITEM_TEMPLATES).split(";"))
-                .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
+        String it = getString(ITEM_TEMPLATES);
+        if (it != null) {
+            return Arrays.stream(it.split(";"))
+                    .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
+        }
+        return Collections.emptyMap();
     }
 }

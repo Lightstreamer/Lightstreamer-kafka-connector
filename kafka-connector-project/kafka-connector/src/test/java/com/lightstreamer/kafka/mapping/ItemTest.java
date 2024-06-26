@@ -60,6 +60,15 @@ public class ItemTest {
         assertThat(item1.matches(item2)).isTrue();
     }
 
+    @ParameterizedTest
+    @MethodSource("matching")
+    public void shouldMatchWithNoExplicitItemHandle(
+            Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
+        Item item1 = Items.itemFrom("source", "item", values1);
+        Item item2 = Items.itemFrom("source", "item", values2);
+        assertThat(item1.matches(item2)).isTrue();
+    }
+
     static Stream<Arguments> matching() {
         return Stream.of(
                 arguments(Map.of("n1", "1"), Map.of("n1", "1"), List.of("n1")),

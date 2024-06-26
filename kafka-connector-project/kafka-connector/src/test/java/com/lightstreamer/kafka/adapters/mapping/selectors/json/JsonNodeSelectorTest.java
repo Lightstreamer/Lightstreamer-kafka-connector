@@ -137,7 +137,7 @@ public class JsonNodeSelectorTest {
                         KEY.children[1].children[1]['name'],  terence
                         """)
     public void shouldExtractKey(String expression, String expected) {
-        StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text())        ;
+        StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -271,5 +271,4 @@ public class JsonNodeSelectorTest {
                 assertThrows(ExpressionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
-
 }

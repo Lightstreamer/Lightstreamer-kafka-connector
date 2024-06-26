@@ -70,12 +70,13 @@ public class Items {
 
     public static Item itemFrom(String input) throws ExpressionException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        return new DefaultItem(input, result.prefix(), result.params());
+        // return new DefaultItem(input, result.prefix(), result.params());
+        return itemFrom(input, input);
     }
 
     public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        return new DefaultItem(itemHandle, result.prefix(), result.params());
+        return itemFrom(itemHandle, result.prefix(), result.params());
     }
 
     public static Item itemFrom(Object itemHandle, String prefix, Map<String, String> values) {
@@ -122,7 +123,8 @@ public class Items {
             this.valuesMap = values;
             this.itemHandle = itemHandle;
             this.schema = Schema.from(prefix, values.keySet());
-            this.str = String.format("%s-<%s>", prefix, values.toString());
+            this.str =
+                    String.format("(%s-<%s>), {%s}", prefix, values.toString(), schema.toString());
         }
 
         @Override
