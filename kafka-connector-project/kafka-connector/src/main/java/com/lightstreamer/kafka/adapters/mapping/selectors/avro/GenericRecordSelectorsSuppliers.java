@@ -30,12 +30,15 @@ import com.lightstreamer.kafka.mapping.selectors.Value;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.utils.Either;
 
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -43,20 +46,16 @@ import java.util.Objects;
 
 public class GenericRecordSelectorsSuppliers {
 
-    public static KeySelectorSupplier<GenericRecord> keySelectorSupplier(ConnectorConfig config) {
-        return new GenericRecordKeySelectorSupplier(config);
-    }
-
-    public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier(
-            ConnectorConfig config) {
-        return new GenericRecordValueSelectorSupplier(config);
-    }
-
-    private static Logger log = LoggerFactory.getLogger("AvroSupplier");
-
     static class GenericRecordBaseSelector extends BaseSelector {
 
-        private static class FieldGetter implements NodeEvaluator<GenericRecord, Object> {
+        private static class FieldGetter implements NodeEvaluator<AvroNode> {
+
+            public static AvroNode get(String name, AvroNode node) {
+                if (!node.has(name)) {
+                    ValueException.throwFieldNotFound(name);
+                }
+                return node.get(name);
+            }
 
             private final String name;
 
@@ -70,24 +69,15 @@ public class GenericRecordSelectorsSuppliers {
             }
 
             @Override
-            public Object get(GenericRecord record) {
-                return get(name, record);
-            }
-
-            public static Object get(String name, GenericRecord record) {
-                if (!record.hasField(name)) {
-                    ValueException.throwFieldNotFound(name);
-                }
-                return record.get(name);
+            public AvroNode eval(AvroNode node) {
+                return get(name, node);
             }
         }
 
-        private static class ArrayGetter implements NodeEvaluator<GenericRecord, Object> {
+        private static class ArrayGetter implements NodeEvaluator<AvroNode> {
 
             private final String name;
-
             private final FieldGetter getter;
-
             private final List<GeneralizedKey> indexes;
 
             ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
@@ -101,91 +91,63 @@ public class GenericRecordSelectorsSuppliers {
                 return name;
             }
 
-            static Object get(int index, Object value) {
-                if (value instanceof GenericData.Array<?> array) {
-                    try {
-                        if (index < array.size()) {
-                            value = array.get(index);
-                        } else {
-                            throw new IndexOutOfBoundsException();
-                        }
-                        return value;
-                    } catch (IndexOutOfBoundsException ie) {
-                        ValueException.throwIndexOfOutBoundex(index);
-                    }
-                } else {
-                    ValueException.throwNoIndexedField();
-                }
-                // Actually unreachable code
-                return null;
-            }
-
             @Override
-            public Object get(GenericRecord record) {
-                log.atDebug().log("Evaluating record {}", record);
-                Object value = getter.get(record);
-                log.atDebug().log("Extracted value: {} of type {}", value, value.getClass());
+            public AvroNode eval(AvroNode node) {
+                AvroNode value = getter.eval(node);
                 for (GeneralizedKey i : indexes) {
-                    log.atDebug().log("Handling key {}", i);
                     if (i.isIndex()) {
                         value = get(i.index(), value);
                     } else {
-                        if (value instanceof Map map) {
-                            value = map.get(i.key());
-                        } else if (value instanceof GenericRecord gr) {
-                            value = FieldGetter.get(i.key().toString(), gr);
-                        }
-                        if (value == null) {
-                            ValueException.throwNoKeyFound(i.key().toString());
-                        }
+                        value = FieldGetter.get(i.key(), value);
                     }
                 }
                 return value;
             }
+
+            private AvroNode get(int index, AvroNode node) {
+                if (node.isArray()) {
+                    if (index < node.size()) {
+                        return node.get(index);
+                    } else {
+                        ValueException.throwIndexOfOutBoundex(index);
+                        // Actually unreachable code
+                        return null;
+                    }
+                } else {
+                    ValueException.throwNoIndexedField(name);
+                    // Actually unreachable code
+                    return null;
+                }
+            }
         }
 
-        private LinkedNode<NodeEvaluator<GenericRecord, Object>> linkedNode;
-
-        private static final SelectorExpressionParser<GenericRecord, Object> PARSER =
-                new SelectorExpressionParser.Builder<GenericRecord, Object>()
+        private static final SelectorExpressionParser<AvroNode> PARSER =
+                new SelectorExpressionParser.Builder<AvroNode>()
                         .withFieldEvaluator(FieldGetter::new)
                         .withGenericIndexedEvaluator(ArrayGetter::new)
                         .build();
 
+        private final LinkedNode<NodeEvaluator<AvroNode>> rootNode;
+
         public GenericRecordBaseSelector(String name, String expression, String expectedRoot) {
             super(name, expression);
-            this.linkedNode = PARSER.parse(name, expression, expectedRoot);
+            this.rootNode = PARSER.parse(name, expression, expectedRoot);
         }
 
-        private boolean isScalar(Object value) {
-            return !(value instanceof GenericData.Record
-                    || value instanceof GenericData.Array
-                    || value instanceof Map);
-        }
-
-        protected Value eval(GenericRecord record) {
-            Object value = record;
-            GenericRecord currentRecord = record;
-            LinkedNode<NodeEvaluator<GenericRecord, Object>> currentNode = linkedNode;
+        protected final Value eval(GenericRecord record) {
+            AvroNode node = AvroNode.from(record);
+            LinkedNode<NodeEvaluator<AvroNode>> currentNode = rootNode;
             while (currentNode != null) {
-                if (value == null) {
-                    ValueException.throwFieldNotFound(currentNode.value().name());
-                    continue;
-                }
-                if (value instanceof GenericRecord genericRecord) {
-                    currentRecord = genericRecord;
-                    value = currentNode.value().get(currentRecord);
-                    currentNode = currentNode.next();
-                    continue;
-                }
-                ValueException.throwConversionError(value.getClass().getSimpleName());
+                NodeEvaluator<AvroNode> nodeEvaluator = currentNode.value();
+                node = nodeEvaluator.eval(node);
+                currentNode = currentNode.next();
             }
 
-            if (!isScalar(value)) {
+            if (!node.isScalar()) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            String text = Objects.toString(value, null);
+            String text = !node.isNull() ? node.asText() : null;
             return Value.of(name(), text);
         }
     }
@@ -253,5 +215,137 @@ public class GenericRecordSelectorsSuppliers {
         public Value extract(KafkaRecord<?, GenericRecord> record) {
             return super.eval(record.value());
         }
+    }
+
+    public static KeySelectorSupplier<GenericRecord> keySelectorSupplier(ConnectorConfig config) {
+        return new GenericRecordKeySelectorSupplier(config);
+    }
+
+    public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier(
+            ConnectorConfig config) {
+        return new GenericRecordValueSelectorSupplier(config);
+    }
+}
+
+class AvroNode {
+
+    private static final Object NULL_DATA = new Object();
+
+    static AvroNode of(Object avroNode) {
+        if (avroNode instanceof GenericContainer container) {
+            Schema schema = container.getSchema();
+            Type valueType = schema.getType();
+            return switch (valueType) {
+                case RECORD, FIXED, ARRAY, ENUM -> from(container);
+                default -> from(avroNode);
+            };
+        }
+        return from(avroNode);
+    }
+
+    static AvroNode from(GenericContainer container) {
+        return new AvroNode(container);
+    }
+
+    static AvroNode from(Object object) {
+        if (object == null) {
+            object = NULL_DATA;
+        }
+        return new AvroNode(object);
+    }
+
+    private final Either<GenericContainer, Object> data;
+
+    private AvroNode(GenericContainer container) {
+        data = Either.left(container);
+    }
+
+    private AvroNode(Object object) {
+        data = Either.right(object);
+    }
+
+    GenericContainer container() {
+        return data.getLeft();
+    }
+
+    boolean isContainer() {
+        return data.isLeft();
+    }
+
+    Object object() {
+        return data.getRight();
+    }
+
+    boolean isObject() {
+        return data.isRight();
+    }
+
+    boolean isNull() {
+        return isObject() && object() == NULL_DATA;
+    }
+
+    boolean has(String name) {
+        if (isContainer()) {
+            GenericContainer genericContainer = container();
+            Schema schema = genericContainer.getSchema();
+            if (schema.getType().equals(Type.RECORD)) {
+                GenericData.Record record = (GenericData.Record) genericContainer;
+                return record.hasField(name);
+            }
+        }
+        if (object() instanceof Map map) {
+            return map.containsKey(new Utf8(name));
+        }
+        return false;
+    }
+
+    boolean isArray() {
+        if (isContainer()) {
+            Schema schema = container().getSchema();
+            return schema.getType().equals(Type.ARRAY);
+        }
+        return false;
+    }
+
+    int size() {
+        if (isArray()) {
+            GenericData.Array<?> array = (GenericData.Array<?>) container();
+            return array.size();
+        }
+        return 0;
+    }
+
+    AvroNode get(String name) {
+        if (isContainer()) {
+            GenericData.Record record = (GenericData.Record) container();
+            return AvroNode.of(record.get(name));
+        }
+        Map<?, ?> map = (Map<?, ?>) object();
+        return AvroNode.of(map.get(new Utf8(name)));
+    }
+
+    AvroNode get(int index) {
+        GenericData.Array<?> array = (GenericData.Array<?>) container();
+        return AvroNode.of(array.get(index));
+    }
+
+    boolean isScalar() {
+        if (isContainer()) {
+            Schema schema = container().getSchema();
+            Type type = schema.getType();
+            return switch (type) {
+                case RECORD, ARRAY -> false;
+                default -> true;
+            };
+        }
+        return !(object() instanceof Map);
+    }
+
+    String asText() {
+        if (isContainer()) {
+            return container().toString();
+        }
+
+        return object().toString();
     }
 }

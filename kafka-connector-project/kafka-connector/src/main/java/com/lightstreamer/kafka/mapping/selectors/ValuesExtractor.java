@@ -15,12 +15,28 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.mapping.selectors;
+package com.lightstreamer.kafka.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
+import java.util.Map;
 
-public interface MyKeySelectorSupplier extends KeySelectorSupplier<Object> {
+public interface ValuesExtractor<K, V> {
 
-    @Override
-    ConnectKeySelector newSelector(String name, String expression);
+    ValuesContainer extractValues(KafkaRecord<K, V> record);
+
+    Schema schema();
+
+    public static <K, V> Builder<K, V> builder() {
+        return new ValuesExtractorSupport.ValuesExtractorBuilder<>();
+    }
+
+    public interface Builder<K, V> {
+
+        Builder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers);
+
+        Builder<K, V> withExpressions(Map<String, String> expressions);
+
+        Builder<K, V> withSchemaName(String schema);
+
+        ValuesExtractor<K, V> build();
+    }
 }

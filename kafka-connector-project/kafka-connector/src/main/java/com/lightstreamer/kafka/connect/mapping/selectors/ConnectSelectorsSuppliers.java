@@ -32,8 +32,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -43,19 +41,16 @@ import java.util.Objects;
 
 public class ConnectSelectorsSuppliers {
 
-    public static MyKeySelectorSupplier keySelectorSupplier() {
-        return new ConnectKeySelectorSupplierImpl();
-    }
-
-    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
-        return new ConnectValueSelectorSupplierImpl();
-    }
-
-    private static Logger log = LoggerFactory.getLogger("ConnectSelectorsSuppliers");
-
     static class ConnectBaseSelector extends BaseSelector {
 
-        private static class FieldGetter implements NodeEvaluator<SchemaAndValue, SchemaAndValue> {
+        private static class FieldGetter implements NodeEvaluator<SchemaAndValueNode> {
+
+            public static SchemaAndValueNode get(String name, SchemaAndValueNode node) {
+                if (!node.has(name)) {
+                    ValueException.throwFieldNotFound(name);
+                }
+                return node.get(name);
+            }
 
             private final String name;
 
@@ -69,28 +64,15 @@ public class ConnectSelectorsSuppliers {
             }
 
             @Override
-            public SchemaAndValue get(SchemaAndValue composite) {
+            public SchemaAndValueNode eval(SchemaAndValueNode composite) {
                 return get(name, composite);
-            }
-
-            public static SchemaAndValue get(String name, SchemaAndValue composite) {
-                Field field = composite.schema().field(name);
-                if (field == null) {
-                    ValueException.throwFieldNotFound(name);
-                }
-                Struct struct = (Struct) composite.value();
-                Object value = struct.get(field);
-
-                return new SchemaAndValue(field.schema(), value);
             }
         }
 
-        private static class ArrayGetter implements NodeEvaluator<SchemaAndValue, SchemaAndValue> {
+        private static class ArrayGetter implements NodeEvaluator<SchemaAndValueNode> {
 
             private final String name;
-
             private final FieldGetter getter;
-
             private final List<GeneralizedKey> indexes;
 
             ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
@@ -104,100 +86,83 @@ public class ConnectSelectorsSuppliers {
                 return name;
             }
 
-            static SchemaAndValue get(int index, SchemaAndValue record) {
-                if (record.schema().type().equals(Schema.Type.ARRAY)) {
-                    Schema elementsSchema = record.schema().valueSchema();
-                    @SuppressWarnings("unchecked")
-                    List<Object> array = (List<Object>) record.value();
-                    if (index < array.size()) {
-                        return new SchemaAndValue(elementsSchema, array.get(index));
+            @Override
+            public SchemaAndValueNode eval(SchemaAndValueNode node) {
+                SchemaAndValueNode value = getter.eval(node);
+                for (GeneralizedKey i : indexes) {
+                    if (i.isIndex()) {
+                        value = get(i.index(), value);
+                    } else {
+                        value = FieldGetter.get(i.key(), value);
+                    }
+                }
+                return value;
+            }
+
+            SchemaAndValueNode get(int index, SchemaAndValueNode node) {
+                if (node.isArray()) {
+                    if (index < node.size()) {
+                        return node.get(index);
                     } else {
                         ValueException.throwIndexOfOutBoundex(index);
                         // Actually unreachable code
                         return null;
                     }
                 } else {
-                    ValueException.throwNoIndexedField();
+                    ValueException.throwNoIndexedField(name);
                     // Actually unreachable code
                     return null;
                 }
-            }
-
-            @Override
-            public SchemaAndValue get(SchemaAndValue record) {
-                SchemaAndValue schemAndValue = getter.get(record);
-                for (GeneralizedKey i : indexes) {
-                    if (i.isIndex()) {
-                        schemAndValue = get(i.index(), schemAndValue);
-                    } else {
-                        Schema schema = schemAndValue.schema();
-                        Object value = schemAndValue.value();
-                        schemAndValue =
-                                switch (schema.type()) {
-                                    case MAP -> {
-                                        Schema keySchema = schema.keySchema();
-                                        Schema valueSchema = schema.valueSchema();
-                                        @SuppressWarnings("unchecked")
-                                        Map<String, ?> map = (Map<String, ?>) value;
-                                        yield new SchemaAndValue(
-                                                valueSchema, map.get(i.key().toString()));
-                                    }
-
-                                    default -> FieldGetter.get(i.key().toString(), schemAndValue);
-                                };
-                    }
-                }
-                return schemAndValue;
+                // if (node.schema().type().equals(Schema.Type.ARRAY)) {
+                //     Schema elementsSchema = node.schema().valueSchema();
+                //     @SuppressWarnings("unchecked")
+                //     List<Object> array = (List<Object>) node.value();
+                //     if (index < array.size()) {
+                //         return new SchemaAndValue(elementsSchema, array.get(index));
+                //     } else {
+                //         ValueException.throwIndexOfOutBoundex(index);
+                //         // Actually unreachable code
+                //         return null;
+                //     }
+                // } else {
+                //     ValueException.throwNoIndexedField(name);
+                //     // Actually unreachable code
+                //     return null;
+                // }
             }
         }
 
-        private LinkedNode<NodeEvaluator<SchemaAndValue, SchemaAndValue>> rootNode;
-
-        private static final SelectorExpressionParser<SchemaAndValue, SchemaAndValue> PARSER =
-                new SelectorExpressionParser.Builder<SchemaAndValue, SchemaAndValue>()
+        private static final SelectorExpressionParser<SchemaAndValueNode> PARSER =
+                new SelectorExpressionParser.Builder<SchemaAndValueNode>()
                         .withFieldEvaluator(FieldGetter::new)
                         .withGenericIndexedEvaluator(ArrayGetter::new)
                         .build();
+
+        private LinkedNode<NodeEvaluator<SchemaAndValueNode>> rootNode;
 
         public ConnectBaseSelector(String name, String expression, String expectedRoot) {
             super(name, expression);
             this.rootNode = PARSER.parse(name, expression, expectedRoot);
         }
 
-        private boolean isScalar(SchemaAndValue value) {
-            return value.schema().type().isPrimitive();
-        }
-
-        protected Value eval(Object object, Schema schema) {
-            SchemaAndValue container = new SchemaAndValue(schema, object);
-            LinkedNode<NodeEvaluator<SchemaAndValue, SchemaAndValue>> currentLinkedNode = rootNode;
+        protected final Value eval(Object object, Schema schema) {
+            SchemaAndValueNode node = new SchemaAndValueNode(new SchemaAndValue(schema, object));
+            LinkedNode<NodeEvaluator<SchemaAndValueNode>> currentLinkedNode = rootNode;
             while (currentLinkedNode != null) {
-                NodeEvaluator<SchemaAndValue, SchemaAndValue> nodeEvaluator =
-                        currentLinkedNode.value();
-                container = nodeEvaluator.get(container);
+                NodeEvaluator<SchemaAndValueNode> nodeEvaluator = currentLinkedNode.value();
+                node = nodeEvaluator.eval(node);
                 currentLinkedNode = currentLinkedNode.next();
             }
 
-            if (!isScalar(container)) {
+            if (!node.isScalar()) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }
 
-            Object value = container.value();
-            String text = null;
-            if (value != null) {
-                if (value instanceof ByteBuffer buffer) {
-                    text = Arrays.toString(buffer.array());
-                } else if (value instanceof byte[] bt) {
-                    text = Arrays.toString(bt);
-                } else {
-                    text = value.toString();
-                }
-            }
-            return Value.of(name(), text);
+            return Value.of(name(), node.asText());
         }
     }
 
-    static class ConnectKeySelectorSupplierImpl implements MyKeySelectorSupplier {
+    static class ConnectKeySelectorSupplierImpl implements ConnectKeySelectorSupplier {
 
         public ConnectKeySelectorSupplierImpl() {}
 
@@ -213,7 +178,7 @@ public class ConnectSelectorsSuppliers {
 
         public boolean maySupply(String expression) {
             return expression.equals(expectedRoot())
-                    || MyKeySelectorSupplier.super.maySupply(expression);
+                    || ConnectKeySelectorSupplier.super.maySupply(expression);
         }
     }
 
@@ -263,5 +228,94 @@ public class ConnectSelectorsSuppliers {
             KafkaRecord.KafkaSinkRecord sinkRecord = (KafkaSinkRecord) record;
             return super.eval(record.value(), sinkRecord.valueSchema());
         }
+    }
+
+    public static ConnectKeySelectorSupplier keySelectorSupplier() {
+        return new ConnectKeySelectorSupplierImpl();
+    }
+
+    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
+        return new ConnectValueSelectorSupplierImpl();
+    }
+}
+
+class SchemaAndValueNode {
+
+    private final SchemaAndValue data;
+
+    SchemaAndValueNode(SchemaAndValue data) {
+        this.data = data;
+    }
+
+    boolean has(String name) {
+        Schema schema = data.schema();
+        return switch (schema.type()) {
+            case STRUCT -> schema.field(name) != null;
+
+            case MAP -> {
+                Map<String, ?> map = (Map<String, ?>) data.value();
+                yield map.containsKey(name);
+            }
+
+            default -> false;
+        };
+    }
+
+    boolean isArray() {
+        return data.schema().type().equals(Schema.Type.ARRAY);
+    }
+
+    int size() {
+        if (isArray()) {
+            List<Object> array = (List<Object>) data.value();
+            return array.size();
+        }
+        return 0;
+    }
+
+    SchemaAndValueNode get(String name) {
+        Schema schema = data.schema();
+
+        SchemaAndValue schemaAndValue =
+                switch (schema.type()) {
+                    case MAP -> {
+                        Schema keySchema = schema.keySchema();
+                        Schema valueSchema = schema.valueSchema();
+                        Map<String, ?> map = (Map<String, ?>) data.value();
+                        yield new SchemaAndValue(valueSchema, map.get(name));
+                    }
+
+                    default -> {
+                        Struct struct = (Struct) data.value();
+                        Field field = schema.field(name);
+                        yield new SchemaAndValue(field.schema(), struct.get(field));
+                    }
+                };
+        return new SchemaAndValueNode(schemaAndValue);
+    }
+
+    SchemaAndValueNode get(int index) {
+        List<Object> array = (List<Object>) data.value();
+        Schema elementsSchema = data.schema().valueSchema();
+        return new SchemaAndValueNode(new SchemaAndValue(elementsSchema, array.get(index)));
+    }
+
+    boolean isScalar() {
+        return data.schema().type().isPrimitive();
+    }
+
+    String asText() {
+        String text = null;
+        Object value = data.value();
+        if (value != null) {
+            if (value instanceof ByteBuffer buffer) {
+                text = Arrays.toString(buffer.array());
+            } else if (value instanceof byte[] bt) {
+                text = Arrays.toString(bt);
+            } else {
+                text = value.toString();
+            }
+        }
+        return text;
     }
 }

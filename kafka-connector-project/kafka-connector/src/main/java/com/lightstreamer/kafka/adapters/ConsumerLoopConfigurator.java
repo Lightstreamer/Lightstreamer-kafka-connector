@@ -30,9 +30,9 @@ import com.lightstreamer.kafka.mapping.Fields;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public class ConsumerLoopConfigurator {
 
         Properties consumerProperties();
 
-        Selectors<K, V> fieldSelectors();
+        ValuesExtractor<K, V> fieldsExtractor();
 
         ItemTemplates<K, V> itemTemplates();
 
@@ -79,30 +79,27 @@ public class ConsumerLoopConfigurator {
                         connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
                         connectorConfig.getValues(ConnectorConfig.TOPIC_MAPPING, true));
 
-        // Process "field.<field-name>"
+        // Process "field.<field-name>=#{...}"
         Map<String, String> fieldsMapping =
                 connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, true);
 
         try {
-            Selected<?, ?> selected =
-                    Selected.with(
+            SelectorSuppliers<?, ?> sSuppliers =
+                    SelectorSuppliers.of(
                             mkKeySelectorSupplier(connectorConfig),
                             mkValueSelectorSupplier(connectorConfig));
 
             Properties props = connectorConfig.baseConsumerProps();
-            Deserializer<?> keyDeserializer = selected.keySelectorSupplier().deseralizer();
-            Deserializer<?> valueDeserializer = selected.valueSelectorSupplier().deseralizer();
-
-            ItemTemplates<?, ?> itemTemplates = initItemTemplates(selected, topicsConfig);
-            Selectors<?, ?> fieldSelectors = initFieldSelectors(selected, fieldsMapping);
+            ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
+            ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers, fieldsMapping);
 
             return new DefaultConsumerLoopConfig(
                     connectorConfig.getAdapterName(),
                     props,
                     itemTemplates,
-                    fieldSelectors,
-                    keyDeserializer,
-                    valueDeserializer,
+                    fieldsExtractor,
+                    sSuppliers.keySelectorSupplier().deseralizer(),
+                    sSuppliers.valueSelectorSupplier().deseralizer(),
                     connectorConfig.getRecordExtractionErrorHandlingStrategy());
         } catch (Exception e) {
             log.atError().setCause(e).log();
@@ -110,33 +107,33 @@ public class ConsumerLoopConfigurator {
         }
     }
 
-    private Selectors<?, ?> initFieldSelectors(
-            Selected<?, ?> selected, Map<String, String> fieldsMapping) {
-        return initFieldSelectorsHelper(selected, fieldsMapping);
+    private ValuesExtractor<?, ?> initFieldsExtractor(
+            SelectorSuppliers<?, ?> selectorSuppliers, Map<String, String> fieldsMapping) {
+        return initFieldExtractorHelper(selectorSuppliers, fieldsMapping);
     }
 
-    private <K, V> Selectors<K, V> initFieldSelectorsHelper(
-            Selected<K, V> selected, Map<String, String> fieldsMapping) {
-        return Fields.fromMapping(fieldsMapping, selected);
+    private <K, V> ValuesExtractor<K, V> initFieldExtractorHelper(
+            SelectorSuppliers<K, V> selectorSuppliers, Map<String, String> fieldsMapping) {
+        return Fields.fromMapping(fieldsMapping, selectorSuppliers);
     }
 
     static record DefaultConsumerLoopConfig<K, V>(
             String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
-            Selectors<K, V> fieldSelectors,
+            ValuesExtractor<K, V> fieldsExtractor,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer,
             RecordErrorHandlingStrategy recordErrorHandlingStrategy)
             implements ConsumerLoopConfig<K, V> {}
 
     private ItemTemplates<?, ?> initItemTemplates(
-            Selected<?, ?> selected, TopicsConfig topicsConfig) {
+            SelectorSuppliers<?, ?> selected, TopicsConfig topicsConfig) {
         return initItemTemplatesHelper(topicsConfig, selected);
     }
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(
-            TopicsConfig topicsConfig, Selected<K, V> selected) {
+            TopicsConfig topicsConfig, SelectorSuppliers<K, V> selected) {
         return Items.templatesFrom(topicsConfig, selected);
     }
 

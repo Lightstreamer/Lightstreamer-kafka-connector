@@ -23,6 +23,7 @@ import com.lightstreamer.kafka.adapters.Loop;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
+import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 
 import org.slf4j.Logger;
@@ -34,7 +35,8 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
 
     protected final Logger log;
     protected final ConsumerLoopConfig<K, V> config;
-    protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
+            new ConcurrentHashMap<>();
     protected final AtomicInteger itemsCounter = new AtomicInteger(0);
     protected Object infoItemhande;
 
@@ -50,7 +52,7 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
     @Override
     public final Item subscribe(String item, Object itemHandle) throws SubscriptionException {
         try {
-            Item newItem = Items.itemFrom(item, itemHandle);
+            SubscribedItem newItem = Items.susbcribedFrom(item, itemHandle);
             if (!config.itemTemplates().matches(newItem)) {
                 log.atWarn().log("Item [{}] does not match any defined item templates", item);
                 throw new SubscriptionException("Item does not match any defined item templates");

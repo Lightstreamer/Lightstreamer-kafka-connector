@@ -23,11 +23,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,12 +35,14 @@ import java.util.Map;
 
 public class RecordMapperJsonTest {
 
-    private static Selectors<String, JsonNode> selectors(
-            String schemaName, Map<String, String> entries) {
-        return Selectors.from(
-                SelectedSuppplier.jsonValue(ConnectorConfigProvider.minimal()),
-                schemaName,
-                entries);
+    private static ValuesExtractor<String, JsonNode> extractor(
+            String schemaName, Map<String, String> expressions) {
+
+        return ValuesExtractor.<String, JsonNode>builder()
+                .withSuppliers(TestSelectorSuppliers.jsonValue(ConnectorConfigProvider.minimal()))
+                .withSchemaName(schemaName)
+                .withExpressions(expressions)
+                .build();
     }
 
     private static Builder<String, JsonNode> builder() {
@@ -58,8 +60,8 @@ public class RecordMapperJsonTest {
     public void shouldBuildMapperWithDuplicateSelectors() {
         RecordMapper<String, JsonNode> mapper =
                 builder()
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -70,8 +72,8 @@ public class RecordMapperJsonTest {
     public void shouldBuildMapperWithDifferentSelectors() {
         RecordMapper<String, JsonNode> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -94,9 +96,9 @@ public class RecordMapperJsonTest {
     public void shouldMapWithValues() {
         RecordMapper<String, JsonNode> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "TOPIC")))
-                        .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "TOPIC")))
+                        .withExtractor(extractor("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
@@ -108,27 +110,28 @@ public class RecordMapperJsonTest {
     @Test
     public void shoulNotFilterDueToUnboundSelectors() {
         RecordMapper<String, JsonNode> mapper =
-                builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
+                builder().withExtractor(extractor("test", Map.of("name", "PARTITION"))).build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        Selectors<String, JsonNode> unboundSelectors =
-                selectors("test", Map.of("name", "VALUE.any"));
+        ValuesExtractor<String, JsonNode> unboundSelectors =
+                extractor("test", Map.of("name", "VALUE.any"));
         assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
     }
 
     @Test
     public void shouldFilter() {
-        Selectors<String, JsonNode> nameSelectors = selectors("test", Map.of("name", "VALUE.name"));
+        ValuesExtractor<String, JsonNode> nameExtractor =
+                extractor("test", Map.of("name", "VALUE.name"));
 
-        Selectors<String, JsonNode> childSelectors1 =
-                selectors("test", Map.of("firstChildName", "VALUE.children[0].name"));
+        ValuesExtractor<String, JsonNode> childExtractor1 =
+                extractor("test", Map.of("firstChildName", "VALUE.children[0].name"));
 
-        Selectors<String, JsonNode> childSelectors2 =
-                selectors(
+        ValuesExtractor<String, JsonNode> childExtractor2 =
+                extractor(
                         "test",
                         Map.of(
                                 "secondChildName",
@@ -138,9 +141,9 @@ public class RecordMapperJsonTest {
 
         RecordMapper<String, JsonNode> mapper =
                 builder()
-                        .withSelectors(nameSelectors)
-                        .withSelectors(childSelectors1)
-                        .withSelectors(childSelectors2)
+                        .withExtractor(nameExtractor)
+                        .withExtractor(childExtractor1)
+                        .withExtractor(childExtractor2)
                         .build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
@@ -148,21 +151,21 @@ public class RecordMapperJsonTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
 
-        Map<String, String> parentName = mappedRecord.filter(nameSelectors);
+        Map<String, String> parentName = mappedRecord.filter(nameExtractor);
         assertThat(parentName).containsExactly("name", "joe");
 
-        Map<String, String> firstChildName = mappedRecord.filter(childSelectors1);
+        Map<String, String> firstChildName = mappedRecord.filter(childExtractor1);
         assertThat(firstChildName).containsExactly("firstChildName", "alex");
 
-        Map<String, String> otherPeopleNames = mappedRecord.filter(childSelectors2);
+        Map<String, String> otherPeopleNames = mappedRecord.filter(childExtractor2);
         assertThat(otherPeopleNames)
                 .containsExactly("secondChildName", "anna", "grandChildName", "terence");
     }
 
     @Test
     public void shouldFilterWithNullValues() {
-        Selectors<String, JsonNode> selectors =
-                selectors(
+        ValuesExtractor<String, JsonNode> extractor =
+                extractor(
                         "test",
                         Map.of(
                                 "name",
@@ -170,14 +173,14 @@ public class RecordMapperJsonTest {
                                 "signature",
                                 "VALUE.children[0].signature"));
 
-        RecordMapper<String, JsonNode> mapper = builder().withSelectors(selectors).build();
+        RecordMapper<String, JsonNode> mapper = builder().withExtractor(extractor).build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
                 ConsumerRecords.record("", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
-        Map<String, String> parentName = mappedRecord.filter(selectors);
+        Map<String, String> parentName = mappedRecord.filter(extractor);
         assertThat(parentName).containsExactly("name", "alex", "signature", null);
     }
 }

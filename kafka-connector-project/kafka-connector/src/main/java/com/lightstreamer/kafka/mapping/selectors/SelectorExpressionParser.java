@@ -19,8 +19,6 @@ package com.lightstreamer.kafka.mapping.selectors;
 
 import com.lightstreamer.kafka.utils.Either;
 
-import org.apache.avro.util.Utf8;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -29,16 +27,16 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SelectorExpressionParser<K, V> {
+public class SelectorExpressionParser<T> {
 
     public static String SELECTION_REGEX = "\\#\\{(.+)\\}";
 
     private static Pattern INDEXES = Pattern.compile("\\[(?:'([^']*)'|(\\d+))\\]");
 
-    public interface NodeEvaluator<K, V> {
+    public interface NodeEvaluator<T> {
         String name();
 
-        V get(K k) throws ValueException;
+        T eval(T t) throws ValueException;
     }
 
     public static class LinkedNode<T> {
@@ -72,9 +70,9 @@ public class SelectorExpressionParser<K, V> {
 
     public static class GeneralizedKey {
 
-        private Either<Utf8, Integer> genericKey;
+        private Either<String, Integer> genericKey;
 
-        GeneralizedKey(Utf8 key) {
+        GeneralizedKey(String key) {
             genericKey = Either.left(key);
         }
 
@@ -87,14 +85,14 @@ public class SelectorExpressionParser<K, V> {
         }
 
         static GeneralizedKey key(String key) {
-            return new GeneralizedKey(new Utf8(key));
+            return new GeneralizedKey(key);
         }
 
         public boolean isKey() {
             return genericKey.isLeft();
         }
 
-        public Utf8 key() {
+        public String key() {
             return genericKey.getLeft();
         }
 
@@ -111,58 +109,57 @@ public class SelectorExpressionParser<K, V> {
         }
     }
 
-    public static class Builder<K, V> {
+    public static class Builder<T> {
 
-        private Function<String, NodeEvaluator<K, V>> fieldEvaluator;
+        private Function<String, NodeEvaluator<T>> fieldEvaluator;
 
-        private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluator;
+        private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<T>> arrayEvaluator;
 
-        public Builder<K, V> withFieldEvaluator(
-                Function<String, NodeEvaluator<K, V>> fieldEvaluator) {
+        public Builder<T> withFieldEvaluator(Function<String, NodeEvaluator<T>> fieldEvaluator) {
             this.fieldEvaluator = fieldEvaluator;
             return this;
         }
 
-        public Builder<K, V> withGenericIndexedEvaluator(
-                BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluator) {
+        public Builder<T> withGenericIndexedEvaluator(
+                BiFunction<String, List<GeneralizedKey>, NodeEvaluator<T>> arrayEvaluator) {
             this.arrayEvaluator = arrayEvaluator;
             return this;
         }
 
-        public SelectorExpressionParser<K, V> build() {
+        public SelectorExpressionParser<T> build() {
             return new SelectorExpressionParser<>(this);
         }
     }
 
     record ParsingContext(String name, String expression, String expectedRoot) {}
 
-    private Function<String, NodeEvaluator<K, V>> fieldEvaluatorFactory;
+    private Function<String, NodeEvaluator<T>> fieldEvaluatorFactory;
 
-    private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<K, V>> arrayEvaluatorFactory;
+    private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<T>> arrayEvaluatorFactory;
 
-    SelectorExpressionParser(Builder<K, V> builder) {
+    SelectorExpressionParser(Builder<T> builder) {
         this.fieldEvaluatorFactory = builder.fieldEvaluator;
         this.arrayEvaluatorFactory = builder.arrayEvaluator;
     }
 
-    public LinkedNode<NodeEvaluator<K, V>> parse(
-            String name, String expression, String expectedRoot) throws ExpressionException {
+    public LinkedNode<NodeEvaluator<T>> parse(String name, String expression, String expectedRoot)
+            throws ExpressionException {
         ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
         try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
-            LinkedNode<NodeEvaluator<K, V>> root = parseRoot(scanner, ctx);
+            LinkedNode<NodeEvaluator<T>> root = parseRoot(scanner, ctx);
             return parseTokens(root, scanner, ctx);
         }
     }
 
-    private LinkedNode<NodeEvaluator<K, V>> parseRoot(Scanner scanner, ParsingContext ctx) {
+    private LinkedNode<NodeEvaluator<T>> parseRoot(Scanner scanner, ParsingContext ctx) {
         if (!scanner.hasNext()) {
             ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
         if (!ctx.expectedRoot().equals(scanner.next())) {
             ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
         }
-        NodeEvaluator<K, V> rootEvaluator =
-                new NodeEvaluator<K, V>() {
+        NodeEvaluator<T> rootEvaluator =
+                new NodeEvaluator<T>() {
 
                     @Override
                     public String name() {
@@ -170,24 +167,23 @@ public class SelectorExpressionParser<K, V> {
                     }
 
                     @Override
-                    public V get(K k) throws ValueException {
-                        return (V) k;
+                    public T eval(T t) throws ValueException {
+                        return t;
                     }
                 };
-        LinkedNode<NodeEvaluator<K, V>> linkedNode = new LinkedNode<>(rootEvaluator);
-        return linkedNode;
+        return new LinkedNode<>(rootEvaluator);
     }
 
-    private LinkedNode<NodeEvaluator<K, V>> parseTokens(
-            LinkedNode<NodeEvaluator<K, V>> head, Scanner scanner, ParsingContext ctx) {
-        LinkedNode<NodeEvaluator<K, V>> current = head;
+    private LinkedNode<NodeEvaluator<T>> parseTokens(
+            LinkedNode<NodeEvaluator<T>> head, Scanner scanner, ParsingContext ctx) {
+        LinkedNode<NodeEvaluator<T>> current = head;
         while (scanner.hasNext()) {
             String token = scanner.next();
             if (token.isBlank()) {
                 ExpressionException.throwBlankToken(ctx.name(), ctx.expression());
             }
             int lbracket = token.indexOf('[');
-            NodeEvaluator<K, V> node;
+            NodeEvaluator<T> node;
             if (lbracket != -1) {
                 String indexedExpression = token.substring(lbracket);
                 List<GeneralizedKey> indexes = parseIndexes(ctx, indexedExpression);
@@ -199,7 +195,7 @@ public class SelectorExpressionParser<K, V> {
             } else {
                 node = fieldEvaluatorFactory.apply(token);
             }
-            LinkedNode<NodeEvaluator<K, V>> linkedNode = new LinkedNode<>(node);
+            LinkedNode<NodeEvaluator<T>> linkedNode = new LinkedNode<>(node);
             if (current == null) {
                 current = linkedNode;
                 head = linkedNode;
@@ -209,9 +205,6 @@ public class SelectorExpressionParser<K, V> {
                 current = linkedNode;
             }
         }
-        // if (head == null) {
-        //     ExpressionException.throwInvalidExpression(ctx.name(), ctx.expression());
-        // }
         return head;
     }
 

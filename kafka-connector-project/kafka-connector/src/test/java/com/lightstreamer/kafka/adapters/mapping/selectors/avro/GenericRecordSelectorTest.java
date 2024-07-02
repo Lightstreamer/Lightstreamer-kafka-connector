@@ -31,7 +31,7 @@ import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -54,7 +54,7 @@ public class GenericRecordSelectorTest {
     }
 
     static ValueSelector<GenericRecord> valueSelector(String expression) {
-        return SelectedSuppplier.avro(config())
+        return TestSelectorSuppliers.avro(config())
                 .valueSelectorSupplier()
                 .newSelector("name", expression);
     }
@@ -120,15 +120,17 @@ public class GenericRecordSelectorTest {
                         VALUE.no_attrib,              Field [no_attrib] not found
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
-                        VALUE.name[0],                Current field is not indexed
+                        VALUE.name[0],                Field [name] is not indexed
+                        VALUE.name['no_key'],         Field [no_key] not found
                         VALUE.preferences,            The expression [VALUE.preferences] must evaluate to a non-complex object
+                        VALUE.documents,              The expression [VALUE.documents] must evaluate to a non-complex object
                         VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
                         VALUE.children[0]['no_key'],  Field [no_key] not found
                         VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
                         VALUE.children[3].name,       Field [name] not found
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
-                        VALUE.type.attrib,            Current field [EnumSymbol] is a terminal object
+                        VALUE.type.attrib,            Field [attrib] not found
                         """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -180,7 +182,8 @@ public class GenericRecordSelectorTest {
                         KEY.no_attrib,              Field [no_attrib] not found
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
-                        KEY.name[0],                Current field is not indexed
+                        KEY.name[0],                Field [name] is not indexed
+                        KEY.name['no_key'],         Field [no_key] not found
                         KEY.preferences,            The expression [KEY.preferences] must evaluate to a non-complex object
                         KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
                         KEY.children[0]['no_key'],  Field [no_key] not found
@@ -188,7 +191,7 @@ public class GenericRecordSelectorTest {
                         KEY.children[3].name,       Field [name] not found
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
-                        KEY.type.attrib,            Current field [EnumSymbol] is a terminal object
+                        KEY.type.attrib,            Field [attrib] not found
                         """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =

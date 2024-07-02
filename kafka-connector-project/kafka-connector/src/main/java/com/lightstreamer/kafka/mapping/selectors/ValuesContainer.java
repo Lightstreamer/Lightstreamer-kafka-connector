@@ -21,14 +21,14 @@ import java.util.Set;
 
 public interface ValuesContainer {
 
-    Selectors<?, ?> selectors();
+    ValuesExtractor<?, ?> extractor();
 
     Set<Value> values();
 
-    static ValuesContainer of(Selectors<?, ?> selectors, Set<Value> values) {
-        return new DefaultValuesContainer(selectors, values);
+    static ValuesContainer of(ValuesExtractor<?, ?> extractor, Set<Value> values) {
+        return new DefaultValuesContainer(extractor, values);
     }
 }
 
-record DefaultValuesContainer(Selectors<?, ?> selectors, Set<Value> values)
+record DefaultValuesContainer(ValuesExtractor<?, ?> extractor, Set<Value> values)
         implements ValuesContainer {}

@@ -25,7 +25,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -36,7 +36,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class SelectorsTest {
+public class ValuesExtractorTest {
+
+    static final String TEST_SCHEMA = "schema";
 
     static ConnectorConfig avroConfig() {
         return ConnectorConfigProvider.minimalWith(
@@ -48,17 +50,31 @@ public class SelectorsTest {
                         "value.avsc"));
     }
 
-    static Stream<Arguments> stringSelectorsArguments() {
+    static <K, V> ValuesExtractor<K, V> extractor(
+            Map<String, String> expressions, SelectorSuppliers<K, V> suppliers) {
+        return ValuesExtractor.<K, V>builder()
+                .withSuppliers(suppliers)
+                .withSchemaName(TEST_SCHEMA)
+                .withExpressions(expressions)
+                .build();
+    }
+
+    static Stream<Arguments> stringExtractorArguments() {
         return Stream.of(
-                arguments(Collections.emptyMap(), Schema.empty("schema"), Collections.emptySet()),
+                arguments(
+                        Collections.emptyMap(), Schema.empty(TEST_SCHEMA), Collections.emptySet()),
                 arguments(
                         Map.of("name", "VALUE"),
-                        Schema.from("schema", Set.of("name")),
+                        Schema.from(TEST_SCHEMA, Set.of("name")),
                         Set.of(Value.of("name", "aValue"))),
                 arguments(
                         Map.of("value", "VALUE", "key", "KEY"),
-                        Schema.from("schema", Set.of("value", "key")),
+                        Schema.from(TEST_SCHEMA, Set.of("value", "key")),
                         Set.of(Value.of("key", "aKey"), Value.of("value", "aValue"))),
+                arguments(
+                        Map.of("value1", "VALUE", "key1", "KEY"),
+                        Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
+                        Set.of(Value.of("key1", "aKey"), Value.of("value1", "aValue"))),
                 arguments(
                         Map.of(
                                 "timestamp",
@@ -67,7 +83,7 @@ public class SelectorsTest {
                                 "PARTITION",
                                 "topic",
                                 "TOPIC"),
-                        Schema.from("schema", Set.of("timestamp", "partition", "topic")),
+                        Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
                         Set.of(
                                 Value.of("partition", "150"),
                                 Value.of("topic", "record-topic"),
@@ -75,17 +91,18 @@ public class SelectorsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("stringSelectorsArguments")
+    @MethodSource("stringExtractorArguments")
     public void shouldCreateAndExtractValues(
             Map<String, String> expressions, Schema expectedSchema, Set<Value> expectedValues) {
-        Selectors<String, String> selectors =
-                Selectors.from(SelectedSuppplier.string(), "schema", expressions);
-        assertThat(selectors.schema()).isEqualTo(expectedSchema);
+        ValuesExtractor<String, String> extractor =
+                extractor(expressions, TestSelectorSuppliers.string());
+
+        assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
-        ValuesContainer values = selectors.extractValues(kafkaRecord);
+        ValuesContainer values = extractor.extractValues(kafkaRecord);
 
-        assertThat(values.selectors()).isSameInstanceAs(selectors);
+        assertThat(values.extractor()).isSameInstanceAs(extractor);
         Set<Value> values2 = values.values();
         assertThat(values2).isEqualTo(expectedValues);
     }
@@ -144,33 +161,31 @@ public class SelectorsTest {
 
     @ParameterizedTest
     @MethodSource("wrongArguments")
-    public void shouldNotCreateGenericRecordSelectors(
+    public void shouldNotCreateGenericRecordExtractor(
             Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception =
                 assertThrows(
                         ExpressionException.class,
-                        () ->
-                                Selectors.from(
-                                        SelectedSuppplier.avro(avroConfig()), "schema", input));
+                        () -> extractor(input, TestSelectorSuppliers.avro(avroConfig())));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest
     @MethodSource("wrongArguments")
-    public void shouldNotCreateJsonNodeSelectors(
+    public void shouldNotCreateJsonNodeExtractor(
             Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception =
                 assertThrows(
                         ExpressionException.class,
                         () ->
-                                Selectors.from(
-                                        SelectedSuppplier.json(ConnectorConfigProvider.minimal()),
-                                        "schema",
-                                        input));
+                                extractor(
+                                        input,
+                                        TestSelectorSuppliers.json(
+                                                ConnectorConfigProvider.minimal())));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
-    static Stream<Arguments> wrongArgumentsProviderForStringSelectors() {
+    static Stream<Arguments> wrongArgumentsProviderForStringExtractor() {
         return Stream.of(
                 arguments(
                         Map.of("name", "VALUE."),
@@ -190,13 +205,13 @@ public class SelectorsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("wrongArgumentsProviderForStringSelectors")
-    public void shouldNotCreateStringSelectors(
+    @MethodSource("wrongArgumentsProviderForStringExtractor")
+    public void shouldNotCreateStringExtractor(
             Map<String, String> input, String expectedErrorMessage) {
         ExpressionException exception =
                 assertThrows(
                         ExpressionException.class,
-                        () -> Selectors.from(SelectedSuppplier.string(), "schema", input));
+                        () -> extractor(input, TestSelectorSuppliers.string()));
         assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

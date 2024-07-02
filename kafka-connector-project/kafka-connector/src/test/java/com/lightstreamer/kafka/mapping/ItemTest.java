@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.mapping.Items.Item;
+import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
 
@@ -40,7 +41,7 @@ public class ItemTest {
 
     @Test
     public void shouldHaveSchemaAndValues() {
-        Item item = Items.itemFrom("source", "item", Map.of("a", "A", "b", "B"));
+        SubscribedItem item = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
 
         Schema schema = item.schema();
         assertThat(schema).isNotNull();
@@ -55,8 +56,8 @@ public class ItemTest {
     @MethodSource("matching")
     public void shouldMatch(
             Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
-        Item item1 = Items.itemFrom("source", "item", values1);
-        Item item2 = Items.itemFrom("source", "item", values2);
+        SubscribedItem item1 = Items.subscribedFrom("source", "item", values1);
+        SubscribedItem item2 = Items.subscribedFrom("source", "item", values2);
         assertThat(item1.matches(item2)).isTrue();
     }
 
@@ -64,8 +65,8 @@ public class ItemTest {
     @MethodSource("matching")
     public void shouldMatchWithNoExplicitItemHandle(
             Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
-        Item item1 = Items.itemFrom("source", "item", values1);
-        Item item2 = Items.itemFrom("source", "item", values2);
+        Item item1 = Items.subscribedFrom("source", "item", values1);
+        Item item2 = Items.subscribedFrom("source", "item", values2);
         assertThat(item1.matches(item2)).isTrue();
     }
 
@@ -81,8 +82,8 @@ public class ItemTest {
     @ParameterizedTest
     @MethodSource("notMatching")
     public void shouldNotMatch(Map<String, String> values1, Map<String, String> values2) {
-        Item item1 = Items.itemFrom("source", "prefix", values1);
-        Item item2 = Items.itemFrom("source", "prefix", values2);
+        SubscribedItem item1 = Items.subscribedFrom("source", "prefix", values1);
+        SubscribedItem item2 = Items.subscribedFrom("source", "prefix", values2);
         assertThat(item1.matches(item2)).isFalse();
     }
 
@@ -96,8 +97,8 @@ public class ItemTest {
     @Test
     public void shouldNotMatcDueToDifferentPrefix() {
         Map<String, String> sameValues = Map.of("n1", "1");
-        Item item1 = Items.itemFrom("source", "aPrefix", sameValues);
-        Item item2 = Items.itemFrom("source", "anotherPrefix", sameValues);
+        SubscribedItem item1 = Items.subscribedFrom("source", "aPrefix", sameValues);
+        SubscribedItem item2 = Items.subscribedFrom("source", "anotherPrefix", sameValues);
         assertThat(item1.matches(item2)).isFalse();
     }
 
@@ -116,7 +117,7 @@ public class ItemTest {
 						""")
     public void shouldMakeWithEmptySchemaKeys(String input, String expectedPrefix) {
         Object handle = new Object();
-        Item item = Items.itemFrom(input, handle);
+        SubscribedItem item = Items.susbcribedFrom(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
@@ -143,7 +144,7 @@ public class ItemTest {
     public void shouldMakeWithValue(
             String input, String expectedPrefix, String expectedName, String expectedValue) {
         Object handle = new Object();
-        Item item = Items.itemFrom(input, handle);
+        SubscribedItem item = Items.susbcribedFrom(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
@@ -167,7 +168,7 @@ public class ItemTest {
     public void shouldMakeWithMoreValues(
             String input, String name1, String val1, String name2, String value2) {
         Object handle = new Object();
-        Item item = Items.itemFrom(input, handle);
+        SubscribedItem item = Items.susbcribedFrom(input, handle);
 
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
@@ -179,7 +180,7 @@ public class ItemTest {
         assertThrows(
                 ExpressionException.class,
                 () -> {
-                    Items.itemFrom("item-<name1=field1,name1=field2>", new Object());
+                    Items.susbcribedFrom("item-<name1=field1,name1=field2>", new Object());
                 });
     }
 }

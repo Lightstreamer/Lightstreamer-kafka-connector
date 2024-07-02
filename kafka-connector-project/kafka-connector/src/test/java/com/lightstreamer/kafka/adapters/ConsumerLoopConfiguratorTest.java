@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -28,7 +29,7 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeseriali
 import com.lightstreamer.kafka.config.ConfigException;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -36,6 +37,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
@@ -44,21 +47,17 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConsumerLoopConfiguratorTest {
 
-    private static File adapterDir;
-
-    @BeforeEach
-    void before() throws IOException {
-        adapterDir = Files.createTempDirectory("adapter_dir").toFile();
-    }
+    static File adapterDir;
 
     static ConnectorConfig newConfig(Map<String, String> params) {
         return ConnectorConfig.newConfig(adapterDir, params);
     }
 
-    private Map<String, String> basicParameters() {
+    static Map<String, String> basicParameters() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -67,6 +66,11 @@ public class ConsumerLoopConfiguratorTest {
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
+    }
+
+    @BeforeEach
+    public void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir").toFile();
     }
 
     @ParameterizedTest
@@ -84,22 +88,23 @@ public class ConsumerLoopConfiguratorTest {
         assertThat(e.getMessage()).isEqualTo("No item template [" + template + "] found");
     }
 
-    @Test
-    public void shouldNotConfigureDueToInvalidFieldMappingExpression() {
-        Map<String, String> updatedConfigs = Map.of("field.fieldName1", "VALUE");
-
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
-        assertThat(e.getMessage())
-                .isEqualTo("Found the invalid expression [VALUE] while evaluating [fieldName1]");
+    static Stream<Arguments> invalidFieldExpressions() {
+        return Stream.of(
+                arguments(
+                        "NOT_WITHIN_BRACKET_NOTATION",
+                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: expression must be enclosed with #{...}"),
+                arguments(
+                        "VALUE",
+                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: expression must be enclosed with #{...}"),
+                arguments(
+                        "#{UNRECOGNIZED}",
+                        "Found the invalid expression [UNRECOGNIZED] while evaluating [fieldName1]"));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"VALUE", "#{UNRECOGNIZED}"})
-    public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(String expression) {
+    @MethodSource("invalidFieldExpressions")
+    public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(
+            String expression, String expectedErrorMessage) {
         Map<String, String> updatedConfigs = ConnectorConfigProvider.minimalConfigParams();
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH, "value.avsc");
@@ -110,11 +115,7 @@ public class ConsumerLoopConfiguratorTest {
         ConfigException e =
                 assertThrows(
                         ConfigException.class, () -> ConsumerLoopConfigurator.configure(config));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Found the invalid expression ["
-                                + expression
-                                + "] while evaluating [fieldName1]");
+        assertThat(e.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest
@@ -169,14 +170,14 @@ public class ConsumerLoopConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        Selectors<?, ?> fieldSelectors = loopConfig.fieldSelectors();
-        Schema schema = fieldSelectors.schema();
+        ValuesExtractor<?, ?> fieldExtractor = loopConfig.fieldsExtractor();
+        Schema schema = fieldExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
 
         ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
-        assertThat(itemTemplates.selectors().map(s -> s.schema().name())).containsExactly("item1");
+        assertThat(itemTemplates.extractors().map(s -> s.schema().name())).containsExactly("item1");
 
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
         assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(StringDeserializer.class);
@@ -198,14 +199,14 @@ public class ConsumerLoopConfiguratorTest {
         ConsumerLoopConfig<?, ?> loopConfig =
                 ConsumerLoopConfigurator.configure(newConfig(updatedConfigs));
 
-        Selectors<?, ?> fieldSelectors = loopConfig.fieldSelectors();
-        Schema schema = fieldSelectors.schema();
+        ValuesExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
-        assertThat(itemTemplates.selectors().map(s -> s.schema().name()))
+        assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
                 .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);

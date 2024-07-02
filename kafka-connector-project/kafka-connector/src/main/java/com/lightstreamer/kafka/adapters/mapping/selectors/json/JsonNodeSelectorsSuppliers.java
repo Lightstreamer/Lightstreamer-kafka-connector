@@ -49,7 +49,7 @@ public class JsonNodeSelectorsSuppliers {
 
     abstract static class JsonNodeBaseSelector extends BaseSelector {
 
-        private static class PropertyGetter implements NodeEvaluator<JsonNode, JsonNode> {
+        private static class PropertyGetter implements NodeEvaluator<JsonNode> {
 
             private final String name;
 
@@ -63,7 +63,7 @@ public class JsonNodeSelectorsSuppliers {
             }
 
             @Override
-            public JsonNode get(JsonNode node) {
+            public JsonNode eval(JsonNode node) {
                 return get(name, node);
             }
 
@@ -75,12 +75,10 @@ public class JsonNodeSelectorsSuppliers {
             }
         }
 
-        private static class ArrayGetter implements NodeEvaluator<JsonNode, JsonNode> {
+        private static class ArrayGetter implements NodeEvaluator<JsonNode> {
 
             private final String name;
-
             private final PropertyGetter getter;
-
             private final List<GeneralizedKey> indexes;
 
             ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
@@ -94,7 +92,7 @@ public class JsonNodeSelectorsSuppliers {
                 return name;
             }
 
-            static JsonNode get(int index, JsonNode node) {
+            JsonNode get(int index, JsonNode node) {
                 if (node.isArray()) {
                     if (index < node.size()) {
                         return node.get(index);
@@ -104,30 +102,30 @@ public class JsonNodeSelectorsSuppliers {
                         return null;
                     }
                 } else {
-                    ValueException.throwNoIndexedField();
+                    ValueException.throwNoIndexedField(name);
                     // Actually unreachable code
                     return null;
                 }
             }
 
             @Override
-            public JsonNode get(JsonNode node) {
-                JsonNode value = getter.get(node);
+            public JsonNode eval(JsonNode node) {
+                JsonNode value = getter.eval(node);
                 for (GeneralizedKey i : indexes) {
                     if (i.isIndex()) {
                         value = get(i.index(), value);
                     } else {
-                        value = PropertyGetter.get(i.key().toString(), value);
+                        value = PropertyGetter.get(i.key(), value);
                     }
                 }
                 return value;
             }
         }
 
-        private final LinkedNode<NodeEvaluator<JsonNode, JsonNode>> rootNode;
+        private final LinkedNode<NodeEvaluator<JsonNode>> rootNode;
 
-        private static final SelectorExpressionParser<JsonNode, JsonNode> PARSER =
-                new SelectorExpressionParser.Builder<JsonNode, JsonNode>()
+        private static final SelectorExpressionParser<JsonNode> PARSER =
+                new SelectorExpressionParser.Builder<JsonNode>()
                         .withFieldEvaluator(PropertyGetter::new)
                         .withGenericIndexedEvaluator(ArrayGetter::new)
                         .build();
@@ -137,13 +135,14 @@ public class JsonNodeSelectorsSuppliers {
             this.rootNode = PARSER.parse(name, expression, expectedRoot);
         }
 
-        Value eval(JsonNode node) {
-            LinkedNode<NodeEvaluator<JsonNode, JsonNode>> currentLinkedNode = rootNode;
-            while (currentLinkedNode != null) {
-                NodeEvaluator<JsonNode, JsonNode> nodeEvaluator = currentLinkedNode.value();
-                node = nodeEvaluator.get(node);
-                currentLinkedNode = currentLinkedNode.next();
+        protected final Value eval(JsonNode node) {
+            LinkedNode<NodeEvaluator<JsonNode>> currentNode = rootNode;
+            while (currentNode != null) {
+                NodeEvaluator<JsonNode> nodeEvaluator = currentNode.value();
+                node = nodeEvaluator.eval(node);
+                currentNode = currentNode.next();
             }
+
             if (node.isContainerNode()) {
                 ValueException.throwNonComplexObjectRequired(expression());
             }

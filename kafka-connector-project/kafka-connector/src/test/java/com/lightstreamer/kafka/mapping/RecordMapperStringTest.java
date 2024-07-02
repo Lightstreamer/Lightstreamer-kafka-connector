@@ -22,9 +22,9 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,9 +32,14 @@ import java.util.Map;
 
 public class RecordMapperStringTest {
 
-    private static Selectors<String, String> selectors(
-            String schemaName, Map<String, String> entries) {
-        return Selectors.from(SelectedSuppplier.string(), schemaName, entries);
+    private static ValuesExtractor<String, String> extractor(
+            String schemaName, Map<String, String> expressions) {
+
+        return ValuesExtractor.<String, String>builder()
+                .withSuppliers(TestSelectorSuppliers.string())
+                .withSchemaName(schemaName)
+                .withExpressions(expressions)
+                .build();
     }
 
     private static Builder<String, String> builder() {
@@ -52,8 +57,8 @@ public class RecordMapperStringTest {
     public void shouldBuildMapperWithDuplicateSelectors() {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -64,8 +69,8 @@ public class RecordMapperStringTest {
     public void shouldBuildMapperWithDifferentSelectors() {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -87,9 +92,9 @@ public class RecordMapperStringTest {
     public void shouldMapWithValues() {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "TOPIC")))
-                        .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "TOPIC")))
+                        .withExtractor(extractor("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record(null, "aValue");
@@ -100,51 +105,52 @@ public class RecordMapperStringTest {
     @Test
     public void shoulNotFilterDueToUnboundSelectors() {
         RecordMapper<String, String> mapper =
-                builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
+                builder().withExtractor(extractor("test", Map.of("name", "PARTITION"))).build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        Selectors<String, String> unboundSelectors = selectors("test", Map.of("name", "VALUE"));
-        assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
+        ValuesExtractor<String, String> unboundExtractor =
+                extractor("test", Map.of("name", "VALUE"));
+        assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() {
-        Selectors<String, String> valueSelectors = selectors("test", Map.of("name", "VALUE"));
-        Selectors<String, String> keySelectors = selectors("test", Map.of("name", "KEY"));
+        ValuesExtractor<String, String> valueExtractor = extractor("test", Map.of("name", "VALUE"));
+        ValuesExtractor<String, String> keyExtractor = extractor("test", Map.of("name", "KEY"));
 
         RecordMapper<String, String> mapper =
-                builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
+                builder().withExtractor(valueExtractor).withExtractor(keyExtractor).build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
-        Map<String, String> parentName = mappedRecord.filter(valueSelectors);
+        Map<String, String> parentName = mappedRecord.filter(valueExtractor);
         assertThat(parentName).containsExactly("name", "aValue");
 
-        Map<String, String> firstChildName = mappedRecord.filter(keySelectors);
+        Map<String, String> firstChildName = mappedRecord.filter(keyExtractor);
         assertThat(firstChildName).containsExactly("name", "");
     }
 
     @Test
     public void shouldFilterNulls() {
-        Selectors<String, String> valueSelectors = selectors("test", Map.of("name", "VALUE"));
-        Selectors<String, String> keySelectors = selectors("test", Map.of("name", "KEY"));
+        ValuesExtractor<String, String> valueExtractor = extractor("test", Map.of("name", "VALUE"));
+        ValuesExtractor<String, String> keyExtractor = extractor("test", Map.of("name", "KEY"));
 
         RecordMapper<String, String> mapper =
-                builder().withSelectors(valueSelectors).withSelectors(keySelectors).build();
+                builder().withExtractor(valueExtractor).withExtractor(keyExtractor).build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", null);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
-        Map<String, String> parentName = mappedRecord.filter(valueSelectors);
+        Map<String, String> parentName = mappedRecord.filter(valueExtractor);
         assertThat(parentName).containsExactly("name", null);
 
-        Map<String, String> firstChildName = mappedRecord.filter(keySelectors);
+        Map<String, String> firstChildName = mappedRecord.filter(keyExtractor);
         assertThat(firstChildName).containsExactly("name", "");
     }
 }

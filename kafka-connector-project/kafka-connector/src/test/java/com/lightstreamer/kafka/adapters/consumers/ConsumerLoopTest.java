@@ -32,8 +32,8 @@ import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
@@ -82,13 +82,13 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     }
 
     @Override
-    public Selectors<String, String> fieldSelectors() {
+    public ValuesExtractor<String, String> fieldsExtractor() {
         throw new UnsupportedOperationException("Unimplemented method 'fieldMappings'");
     }
 
     @Override
     public ItemTemplates<String, String> itemTemplates() {
-        return Items.templatesFrom(topicsConfig, SelectedSuppplier.string());
+        return Items.templatesFrom(topicsConfig, TestSelectorSuppliers.string());
     }
 
     @Override
@@ -130,7 +130,7 @@ public class ConsumerLoopTest {
         assertThat(consumerLoopTest.getItemsCounter()).isEqualTo(0);
         Object itemHandle = new Object();
         Item item = consumerLoopTest.subscribe("anItemTemplate", itemHandle);
-        assertThat(item).isEqualTo(Items.itemFrom("anItemTemplate", itemHandle));
+        assertThat(item).isEqualTo(Items.susbcribedFrom("anItemTemplate", itemHandle));
         assertThat(consumerLoopTest.getItemsCounter()).isEqualTo(1);
     }
 

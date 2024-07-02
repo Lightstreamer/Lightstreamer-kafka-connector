@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import static com.lightstreamer.kafka.mapping.selectors.Selectors.Selected.with;
+import static com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers.of;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -25,50 +25,51 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSele
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
 
-public interface SelectedSuppplier {
+public interface TestSelectorSuppliers {
 
-    public static Selected<String, String> string() {
-        return with(
+    public static SelectorSuppliers<String, String> string() {
+        return of(
                 StringSelectorSuppliers.keySelectorSupplier(),
                 StringSelectorSuppliers.valueSelectorSupplier());
     }
 
-    public static Selected<GenericRecord, GenericRecord> avro(ConnectorConfig config) {
-        return with(
+    public static SelectorSuppliers<GenericRecord, GenericRecord> avro(ConnectorConfig config) {
+        return of(
                 GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static Selected<String, GenericRecord> avroValue(ConnectorConfig config) {
-        return with(
+    public static SelectorSuppliers<String, GenericRecord> avroValue(ConnectorConfig config) {
+        return of(
                 StringSelectorSuppliers.keySelectorSupplier(),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static Selected<GenericRecord, JsonNode> avroKeyJsonValue(ConnectorConfig config) {
-        return with(
+    public static SelectorSuppliers<GenericRecord, JsonNode> avroKeyJsonValue(
+            ConnectorConfig config) {
+        return of(
                 GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static Selected<JsonNode, JsonNode> json(ConnectorConfig config) {
-        return with(
+    public static SelectorSuppliers<JsonNode, JsonNode> json(ConnectorConfig config) {
+        return of(
                 JsonNodeSelectorsSuppliers.keySelectorSupplier(config),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static Selected<String, JsonNode> jsonValue(ConnectorConfig config) {
-        return with(
+    public static SelectorSuppliers<String, JsonNode> jsonValue(ConnectorConfig config) {
+        return of(
                 StringSelectorSuppliers.keySelectorSupplier(),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
-    public static Selected<Object, Object> object() {
-        return with(
+    public static SelectorSuppliers<Object, Object> object() {
+        return of(
                 ConnectSelectorsSuppliers.keySelectorSupplier(),
                 ConnectSelectorsSuppliers.valueSelectorSupplier());
     }

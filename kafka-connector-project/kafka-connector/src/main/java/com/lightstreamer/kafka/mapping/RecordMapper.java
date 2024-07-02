@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.mapping;
 
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 import com.lightstreamer.kafka.mapping.selectors.ValuesContainer;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public interface RecordMapper<K, V> {
 
         int mappedValuesSize();
 
-        Map<String, String> filter(Selectors<?, ?> selectors);
+        Map<String, String> filter(ValuesExtractor<?, ?> extractor);
     }
 
     int selectorsSize();
@@ -55,17 +55,17 @@ public interface RecordMapper<K, V> {
 
     static class Builder<K, V> {
 
-        final Set<Selectors<K, V>> allSelectors = new HashSet<>();
+        final Set<ValuesExtractor<K, V>> allExtractors = new HashSet<>();
 
         private Builder() {}
 
-        public Builder<K, V> withSelectors(Stream<Selectors<K, V>> selector) {
-            allSelectors.addAll(selector.toList());
+        public Builder<K, V> withExtractor(Stream<ValuesExtractor<K, V>> extractor) {
+            allExtractors.addAll(extractor.toList());
             return this;
         }
 
-        public final Builder<K, V> withSelectors(Selectors<K, V> selector) {
-            allSelectors.add(selector);
+        public final Builder<K, V> withExtractor(ValuesExtractor<K, V> extractor) {
+            allExtractors.add(extractor);
             return this;
         }
 
@@ -79,22 +79,22 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-    private final Set<Selectors<K, V>> selectors;
+    private final Set<ValuesExtractor<K, V>> extractors;
 
     DefaultRecordMapper(Builder<K, V> builder) {
-        this.selectors = Collections.unmodifiableSet(builder.allSelectors);
+        this.extractors = Collections.unmodifiableSet(builder.allExtractors);
     }
 
     @Override
     public MappedRecord map(KafkaRecord<K, V> record) {
         Set<ValuesContainer> values =
-                selectors.stream().map(s -> s.extractValues(record)).collect(Collectors.toSet());
+                extractors.stream().map(s -> s.extractValues(record)).collect(Collectors.toSet());
         return new DefaultMappedRecord(record.topic(), values);
     }
 
     @Override
     public int selectorsSize() {
-        return this.selectors.size();
+        return this.extractors.size();
     }
 }
 
@@ -120,10 +120,10 @@ class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Map<String, String> filter(Selectors<?, ?> selectors) {
+    public Map<String, String> filter(ValuesExtractor<?, ?> extractor) {
         Map<String, String> eventsMap = new HashMap<>();
         valuesContainers.stream()
-                .filter(container -> container.selectors().equals(selectors))
+                .filter(container -> container.extractor().equals(extractor))
                 .flatMap(container -> container.values().stream())
                 .forEach(value -> eventsMap.put(value.name(), value.text()));
         return eventsMap;

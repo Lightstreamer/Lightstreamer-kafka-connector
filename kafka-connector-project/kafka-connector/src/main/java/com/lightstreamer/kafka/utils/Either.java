@@ -36,6 +36,9 @@ public class Either<Left, Right> {
             this.right = right;
             return;
         }
+        if (left == null && right == null) {
+            throw new IllegalArgumentException("Paremeters can't be both null");
+        }
         throw new IllegalArgumentException("Only one parameter can be specified");
     }
 

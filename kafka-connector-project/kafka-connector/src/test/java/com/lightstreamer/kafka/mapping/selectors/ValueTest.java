@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,12 +38,16 @@ public class ValueTest {
 
     @Test
     public void shouldCreateValuesContainer() {
-        Selectors<String, String> selectors =
-                Selectors.from(SelectedSuppplier.string(), "schema", Map.of("name", "VALUE"));
+        ValuesExtractor<String, String> extractor =
+                ValuesExtractor.<String, String>builder()
+                        .withSuppliers(TestSelectorSuppliers.string())
+                        .withSchemaName("schema")
+                        .withExpressions(Map.of("name", "VALUE"))
+                        .build();
         ValuesContainer container =
-                ValuesContainer.of(selectors, Set.of(Value.of("name", "aValue")));
+                ValuesContainer.of(extractor, Set.of(Value.of("name", "aValue")));
 
-        assertThat(container.selectors()).isSameInstanceAs(selectors);
+        assertThat(container.extractor()).isSameInstanceAs(extractor);
         assertThat(container.values()).containsExactly(Value.of("name", "aValue"));
     }
 }

@@ -26,8 +26,8 @@ import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator.Result;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,13 +46,16 @@ public class Items {
 
         Schema schema();
 
-        Object itemHandle();
-
         Map<String, String> values();
 
         String valueAt(String key);
 
         boolean matches(Item other);
+    }
+
+    public interface SubscribedItem extends Item {
+
+        Object itemHandle();
     }
 
     public interface ItemTemplates<K, V> {
@@ -61,49 +64,60 @@ public class Items {
 
         boolean matches(Item item);
 
-        Stream<Selectors<K, V>> selectors();
+        Stream<ValuesExtractor<K, V>> extractors();
 
         Set<String> topics();
 
-        public Set<Item> routes(MappedRecord record, Collection<? extends Item> subscribed);
+        public Set<SubscribedItem> routes(
+                MappedRecord record, Collection<? extends SubscribedItem> subscribed);
     }
 
-    public static Item itemFrom(String input) throws ExpressionException {
+    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
+        return susbcribedFrom(input, input);
+    }
+
+    public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
+            throws ExpressionException {
         Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        // return new DefaultItem(input, result.prefix(), result.params());
-        return itemFrom(input, input);
+        return subscribedFrom(itemHandle, result.prefix(), result.params());
     }
 
-    public static Item itemFrom(String input, Object itemHandle) throws ExpressionException {
-        Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        return itemFrom(itemHandle, result.prefix(), result.params());
+    public static SubscribedItem subscribedFrom(
+            Object itemHandle, String prefix, Map<String, String> values) {
+        return new DefaultSubscribedItem(itemHandle, prefix, values);
     }
 
-    public static Item itemFrom(Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultItem(itemHandle, prefix, values);
+    public static Item from(String prefix, Map<String, String> values) {
+        return new DefaultItem(prefix, values);
     }
 
     public static <K, V> ItemTemplates<K, V> templatesFrom(
-            TopicsConfig topcisConfig, Selected<K, V> selected) {
-
+            TopicsConfig topcisConfig, SelectorSuppliers<K, V> sSuppliers) {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
-            ItemReference itemReference = topicConfig.itemReference();
-            if (itemReference.isTemplate()) {
+            ItemReference reference = topicConfig.itemReference();
+            if (reference.isTemplate()) {
                 try {
                     Result result =
-                            ItemExpressionEvaluator.template().eval(itemReference.templateValue());
-                    Selectors<K, V> selectors =
-                            Selectors.from(selected, result.prefix(), result.params());
-                    templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
+                            ItemExpressionEvaluator.template().eval(reference.templateValue());
+                    ValuesExtractor<K, V> extractor =
+                            ValuesExtractor.<K, V>builder()
+                                    .withSuppliers(sSuppliers)
+                                    .withSchemaName(result.prefix())
+                                    .withExpressions(result.params())
+                                    .build();
+                    templates.add(new ItemTemplate<>(topicConfig.topic(), extractor));
                 } catch (ExpressionException e) {
-                    reThrowInvalidExpression(
-                            e, itemReference.templateKey(), itemReference.templateValue());
+                    reThrowInvalidExpression(e, reference.templateKey(), reference.templateValue());
                 }
             } else {
-                Selectors<K, V> selectors =
-                        Selectors.from(selected, itemReference.itemName(), Collections.emptyMap());
-                templates.add(new ItemTemplate<>(topicConfig.topic(), selectors));
+                ValuesExtractor<K, V> extractor =
+                        ValuesExtractor.<K, V>builder()
+                                .withSuppliers(sSuppliers)
+                                .withSchemaName(reference.itemName())
+                                .withExpressions(Collections.emptyMap())
+                                .build();
+                templates.add(new ItemTemplate<>(topicConfig.topic(), extractor));
             }
         }
         return new DefaultItemTemplates<>(templates);
@@ -111,17 +125,12 @@ public class Items {
 
     static class DefaultItem implements Item {
 
-        private final Object itemHandle;
-
         private final Map<String, String> valuesMap;
-
         private final Schema schema;
-
         private final String str;
 
-        DefaultItem(Object itemHandle, String prefix, Map<String, String> values) {
+        DefaultItem(String prefix, Map<String, String> values) {
             this.valuesMap = values;
-            this.itemHandle = itemHandle;
             this.schema = Schema.from(prefix, values.keySet());
             this.str =
                     String.format("(%s-<%s>), {%s}", prefix, values.toString(), schema.toString());
@@ -129,7 +138,7 @@ public class Items {
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, valuesMap, schema);
+            return Objects.hash(valuesMap, schema);
         }
 
         @Override
@@ -137,7 +146,6 @@ public class Items {
             if (this == obj) return true;
 
             return obj instanceof DefaultItem other
-                    && Objects.equals(itemHandle, other.itemHandle)
                     && Objects.equals(valuesMap, other.valuesMap)
                     && Objects.equals(schema, other.schema);
         }
@@ -145,11 +153,6 @@ public class Items {
         @Override
         public Schema schema() {
             return schema;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return itemHandle;
         }
 
         @Override
@@ -177,31 +180,78 @@ public class Items {
         }
     }
 
+    static class DefaultSubscribedItem implements SubscribedItem {
+
+        private final Object itemHandle;
+        private final DefaultItem wrappedItem;
+
+        DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
+            wrappedItem = new DefaultItem(prefix, values);
+            this.itemHandle = itemHandle;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemHandle, wrappedItem);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            return obj instanceof DefaultSubscribedItem other
+                    && wrappedItem.equals(other.wrappedItem)
+                    && Objects.equals(itemHandle, other.itemHandle);
+        }
+
+        @Override
+        public Schema schema() {
+            return wrappedItem.schema;
+        }
+
+        @Override
+        public Map<String, String> values() {
+            return wrappedItem.values();
+        }
+
+        @Override
+        public String valueAt(String key) {
+            return wrappedItem.valueAt(key);
+        }
+
+        @Override
+        public boolean matches(Item other) {
+            return wrappedItem.matches(other);
+        }
+
+        @Override
+        public Object itemHandle() {
+            return itemHandle;
+        }
+    }
+
     static class ItemTemplate<K, V> {
 
         private final Schema schema;
-
         private final String topic;
+        private final ValuesExtractor<K, V> extractor;
 
-        private final Selectors<K, V> selectors;
-
-        ItemTemplate(String topic, Selectors<K, V> selectors) {
+        ItemTemplate(String topic, ValuesExtractor<K, V> extractor) {
             this.topic = Objects.requireNonNull(topic);
-            this.selectors = Objects.requireNonNull(selectors);
-            this.schema = selectors.schema();
+            this.extractor = Objects.requireNonNull(extractor);
+            this.schema = extractor.schema();
         }
 
         Optional<Item> expand(MappedRecord record) {
             if (record.topic().equals(this.topic)) {
-                Map<String, String> values = record.filter(selectors);
-                return Optional.of(new DefaultItem("", schema.name(), values));
+                Map<String, String> values = record.filter(extractor);
+                return Optional.of(new DefaultItem(schema.name(), values));
             }
 
             return Optional.empty();
         }
 
-        Selectors<K, V> selectors() {
-            return selectors;
+        ValuesExtractor<K, V> selectors() {
+            return extractor;
         }
 
         String topic() {
@@ -223,14 +273,16 @@ public class Items {
 
         @Override
         public Stream<Item> expand(MappedRecord record) {
-            return templates.stream().flatMap(t -> t.expand(record).stream()).distinct();
+            return templates.stream()
+                    .flatMap(template -> template.expand(record).stream())
+                    .distinct();
         }
 
         @Override
-        public Set<Item> routes(MappedRecord record, Collection<? extends Item> subscribed) {
-            List<Item> expandeditems = expand(record).toList();
+        public Set<SubscribedItem> routes(
+                MappedRecord record, Collection<? extends SubscribedItem> subscribed) {
             return subscribed.stream()
-                    .filter(s -> expandeditems.stream().anyMatch(expanded -> expanded.matches(s)))
+                    .filter(sItem -> expand(record).anyMatch(eItem -> eItem.matches(sItem)))
                     .collect(Collectors.toSet());
         }
 
@@ -240,7 +292,7 @@ public class Items {
         }
 
         @Override
-        public Stream<Selectors<K, V>> selectors() {
+        public Stream<ValuesExtractor<K, V>> extractors() {
             return templates.stream().map(ItemTemplate::selectors).distinct();
         }
 

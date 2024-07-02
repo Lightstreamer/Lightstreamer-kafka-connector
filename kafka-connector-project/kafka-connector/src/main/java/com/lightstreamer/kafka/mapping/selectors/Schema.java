@@ -39,8 +39,14 @@ public interface Schema {
     }
 
     static Schema empty(String name) {
-        return new DefaultSchema(name, Collections.emptySet());
+        return from(name, Collections.emptySet());
     }
 }
 
-record DefaultSchema(String name, Set<String> keys) implements Schema {}
+final record DefaultSchema(String name, Set<String> keys) implements Schema {
+    DefaultSchema {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Schema name must be a non empty string");
+        }
+    }
+}

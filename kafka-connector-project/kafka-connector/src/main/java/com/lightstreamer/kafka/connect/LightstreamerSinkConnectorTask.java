@@ -26,8 +26,8 @@ import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSupplie
 import com.lightstreamer.kafka.mapping.Fields;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -76,11 +76,11 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         logger.info("item.templates: {}", itemTemplates);
 
         TopicsConfig topicsConfig = TopicsConfig.of(itemTemplates, topicMappings);
-        Selected<Object, Object> selected =
-                Selected.with(
+        SelectorSuppliers<Object, Object> sSuppliers =
+                SelectorSuppliers.of(
                         ConnectSelectorsSuppliers.keySelectorSupplier(),
                         ConnectSelectorsSuppliers.valueSelectorSupplier());
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, selected);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         logger.info("Constructed item templates: {}", itemTemplates);
 
         Map<String, String> fieldMappings =
@@ -88,9 +88,10 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
                         .collect(Collectors.toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
 
         logger.info("fieldsMapping: {}", fieldMappings);
-        Selectors<Object, Object> fieldsSelectors = Fields.fromMapping(fieldMappings, selected);
+        ValuesExtractor<Object, Object> fieldsExtractor =
+                Fields.fromMapping(fieldMappings, sSuppliers);
 
-        adapter = new StreamingDataAdapter(templates, fieldsSelectors);
+        adapter = new StreamingDataAdapter(templates, fieldsExtractor);
         DataProviderServer dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(adapter);
 

@@ -25,11 +25,12 @@ import com.lightstreamer.adapters.remote.SubscriptionException;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
@@ -50,12 +51,13 @@ public class StreamingDataAdapter implements DataProvider {
         void update(Collection<SinkRecord> records);
     }
 
-    protected final ConcurrentHashMap<String, Item> subscribedItems = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
+            new ConcurrentHashMap<>();
     private volatile ItemEventListener listener;
     private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
     private final RecordMapper<Object, Object> recordMapper;
-    private final Selectors<Object, Object> fieldsSelectors;
+    private final ValuesExtractor<Object, Object> fieldsExtractor;
     private final ItemTemplates<Object, Object> itemTemplates;
 
     private volatile DownstreamUpdater updater = FAKE_UPDATER;
@@ -67,13 +69,13 @@ public class StreamingDataAdapter implements DataProvider {
 
     StreamingDataAdapter(
             ItemTemplates<Object, Object> itemTemplates,
-            Selectors<Object, Object> fieldsSelectors) {
+            ValuesExtractor<Object, Object> fieldsExtractor) {
         this.itemTemplates = itemTemplates;
-        this.fieldsSelectors = fieldsSelectors;
+        this.fieldsExtractor = fieldsExtractor;
         this.recordMapper =
                 RecordMapper.builder()
-                        .withSelectors(itemTemplates.selectors())
-                        .withSelectors(fieldsSelectors)
+                        .withExtractor(itemTemplates.extractors())
+                        .withExtractor(fieldsExtractor)
                         .build();
     }
 
@@ -96,7 +98,7 @@ public class StreamingDataAdapter implements DataProvider {
     @Override
     public void subscribe(String item) throws SubscriptionException, FailureException {
         logger.info("Trying subscription to item [{}]", item);
-        Item newItem = Items.itemFrom(item);
+        SubscribedItem newItem = Items.subscribedFrom(item);
         try {
             if (!itemTemplates.matches(newItem)) {
                 logger.warn("Item [{}] does not match any defined item templates", newItem);
@@ -139,14 +141,15 @@ public class StreamingDataAdapter implements DataProvider {
             logger.info("Kafka record: {}", sinkRecord.toString());
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
 
-            Set<Item> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
+            Set<SubscribedItem> routable =
+                    itemTemplates.routes(mappedRecord, subscribedItems.values());
 
             logger.info("Routing record to {} items", routable.size());
 
-            for (Item sub : routable) {
+            for (SubscribedItem sub : routable) {
                 // logger.debug("Filtering updates");
                 logger.info("Filtering updates");
-                Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
+                Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
                 if (listener != null) {
                     // logger.debug("Sending updates: {}", updates);
                     logger.info("Sending updates: {}", updates);

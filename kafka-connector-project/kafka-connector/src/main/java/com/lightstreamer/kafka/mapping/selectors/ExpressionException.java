@@ -48,6 +48,13 @@ public class ExpressionException extends RuntimeException {
                         .formatted(expression, name));
     }
 
+    public static void throwInvalidFieldExpression(String fieldName, String expression)
+            throws ExpressionException {
+        throw new ExpressionException(
+                "Found the invalid expression [%s] while evaluating [%s]: expression must be enclosed with #{...}"
+                        .formatted(expression, fieldName));
+    }
+
     public static void throwInvalidIndexedExpression(String name, String expression)
             throws ExpressionException {
         throw new ExpressionException(

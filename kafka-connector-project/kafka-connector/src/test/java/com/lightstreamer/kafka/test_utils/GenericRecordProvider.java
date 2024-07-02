@@ -55,6 +55,8 @@ public class GenericRecordProvider {
     private GenericRecord newGenericRecord() {
         GenericRecord parentJoe = new GenericData.Record(valueSchema);
         parentJoe.put("name", "joe");
+
+        // Filling a Map of Strings
         parentJoe.put(
                 "preferences",
                 Map.of(new Utf8("pref1"), "pref_value1", new Utf8("pref2"), "pref_value2"));
@@ -66,6 +68,7 @@ public class GenericRecordProvider {
                 new GenericData.Fixed(
                         valueSchema.getField("signature").schema(), "abcd".getBytes()));
 
+        // Filling a Map of Records
         GenericRecord documentRecord =
                 new GenericData.Record(valueSchema.getField("main_document").schema());
         documentRecord.put("doc_id", "ID123");
@@ -98,6 +101,7 @@ public class GenericRecordProvider {
     }
 
     public static void main(String[] args) {
-        System.out.println(RECORD);
+        Object object = RECORD.get("name");
+        System.out.println(object);
     }
 }

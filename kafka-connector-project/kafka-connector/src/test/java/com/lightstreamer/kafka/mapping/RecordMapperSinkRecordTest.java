@@ -22,10 +22,10 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
-import com.lightstreamer.kafka.test_utils.SelectedSuppplier;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -35,9 +35,14 @@ import java.util.Map;
 
 public class RecordMapperSinkRecordTest {
 
-    private static Selectors<Object, Object> selectors(
-            String schemaName, Map<String, String> entries) {
-        return Selectors.from(SelectedSuppplier.object(), schemaName, entries);
+    private static ValuesExtractor<Object, Object> extractor(
+            String schemaName, Map<String, String> expressions) {
+
+        return ValuesExtractor.builder()
+                .withSuppliers(TestSelectorSuppliers.object())
+                .withSchemaName(schemaName)
+                .withExpressions(expressions)
+                .build();
     }
 
     private static Builder<Object, Object> builder() {
@@ -55,8 +60,8 @@ public class RecordMapperSinkRecordTest {
     public void shouldBuildMapperWithDuplicateSelectors() {
         RecordMapper<Object, Object> mapper =
                 builder()
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -67,8 +72,8 @@ public class RecordMapperSinkRecordTest {
     public void shouldBuildMapperWithDifferentSelectors() {
         RecordMapper<Object, Object> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "PARTITION")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -91,9 +96,9 @@ public class RecordMapperSinkRecordTest {
     public void shouldMapWithValues() {
         RecordMapper<Object, Object> mapper =
                 builder()
-                        .withSelectors(selectors("test1", Map.of("aKey", "PARTITION")))
-                        .withSelectors(selectors("test2", Map.of("aKey", "TOPIC")))
-                        .withSelectors(selectors("test3", Map.of("aKey", "TIMESTAMP")))
+                        .withExtractor(extractor("test1", Map.of("aKey", "PARTITION")))
+                        .withExtractor(extractor("test2", Map.of("aKey", "TOPIC")))
+                        .withExtractor(extractor("test3", Map.of("aKey", "TIMESTAMP")))
                         .build();
 
         KafkaRecord<Object, Object> kafkaRecord =
@@ -105,26 +110,28 @@ public class RecordMapperSinkRecordTest {
     @Test
     public void shoulNotFilterDueToUnboundSelectors() {
         RecordMapper<Object, Object> mapper =
-                builder().withSelectors(selectors("test", Map.of("name", "PARTITION"))).build();
+                builder().withExtractor(extractor("test", Map.of("name", "PARTITION"))).build();
 
         KafkaRecord<Object, Object> kafkaRecord =
                 ConsumerRecords.sinkRecord("topic", null, SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        Selectors<Object, Object> unboundSelectors = selectors("test", Map.of("name", "VALUE.any"));
-        assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
+        ValuesExtractor<Object, Object> unboundExtractor =
+                extractor("test", Map.of("name", "VALUE.any"));
+        assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() {
-        Selectors<Object, Object> nameSelectors = selectors("test", Map.of("name", "VALUE.name"));
+        ValuesExtractor<Object, Object> nameExtractor =
+                extractor("test", Map.of("name", "VALUE.name"));
 
-        Selectors<Object, Object> childSelectors1 =
-                selectors("test", Map.of("firstChildName", "VALUE.children[0].name"));
+        ValuesExtractor<Object, Object> childExtractor1 =
+                extractor("test", Map.of("firstChildName", "VALUE.children[0].name"));
 
-        Selectors<Object, Object> childSelectors2 =
-                selectors(
+        ValuesExtractor<Object, Object> childExtractor2 =
+                extractor(
                         "test",
                         Map.of(
                                 "secondChildName",
@@ -134,9 +141,9 @@ public class RecordMapperSinkRecordTest {
 
         RecordMapper<Object, Object> mapper =
                 builder()
-                        .withSelectors(nameSelectors)
-                        .withSelectors(childSelectors1)
-                        .withSelectors(childSelectors2)
+                        .withExtractor(nameExtractor)
+                        .withExtractor(childExtractor1)
+                        .withExtractor(childExtractor2)
                         .build();
 
         KafkaRecord<Object, Object> kafkaRecord =
@@ -149,21 +156,21 @@ public class RecordMapperSinkRecordTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(4);
 
-        Map<String, String> parentName = mappedRecord.filter(nameSelectors);
+        Map<String, String> parentName = mappedRecord.filter(nameExtractor);
         assertThat(parentName).containsExactly("name", "joe");
 
-        Map<String, String> firstChildName = mappedRecord.filter(childSelectors1);
+        Map<String, String> firstChildName = mappedRecord.filter(childExtractor1);
         assertThat(firstChildName).containsExactly("firstChildName", "alex");
 
-        Map<String, String> otherPeopleNames = mappedRecord.filter(childSelectors2);
+        Map<String, String> otherPeopleNames = mappedRecord.filter(childExtractor2);
         assertThat(otherPeopleNames)
                 .containsExactly("secondChildName", "anna", "grandChildName", "terence");
     }
 
     @Test
     public void shouldFilterWithNullValues() {
-        Selectors<Object, Object> selectors =
-                selectors(
+        ValuesExtractor<Object, Object> extractor =
+                extractor(
                         "test",
                         Map.of(
                                 "name",
@@ -171,7 +178,7 @@ public class RecordMapperSinkRecordTest {
                                 "signature",
                                 "VALUE.children[0].signature"));
 
-        RecordMapper<Object, Object> mapper = builder().withSelectors(selectors).build();
+        RecordMapper<Object, Object> mapper = builder().withExtractor(extractor).build();
 
         Struct STRUCT = SchemaAndValueProvider.STRUCT;
         KafkaRecord<Object, Object> kafkaRecord =
@@ -180,7 +187,7 @@ public class RecordMapperSinkRecordTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(2);
 
-        Map<String, String> parentName = mappedRecord.filter(selectors);
+        Map<String, String> parentName = mappedRecord.filter(extractor);
         assertThat(parentName).containsExactly("name", "alex", "signature", null);
     }
 }

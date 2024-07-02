@@ -23,12 +23,12 @@ import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopCon
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.mapping.Items.Item;
+import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -64,7 +64,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     private final MetadataListener metadataListener;
     private final ItemEventListener eventListener;
     private final RecordMapper<K, V> recordRemapper;
-    private final Selectors<K, V> fieldsSelectors;
+    private final ValuesExtractor<K, V> fieldsExtractor;
     private final ReentrantLock consumerLock = new ReentrantLock();
     private volatile ConsumerWrapper consumer;
     private AtomicBoolean infoLock = new AtomicBoolean(false);
@@ -78,11 +78,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             ItemEventListener eventListener) {
         super(config);
         this.metadataListener = metadataListener;
-        this.fieldsSelectors = config.fieldSelectors();
+        this.fieldsExtractor = config.fieldsExtractor();
         this.recordRemapper =
                 RecordMapper.<K, V>builder()
-                        .withSelectors(config.itemTemplates().selectors())
-                        .withSelectors(fieldsSelectors)
+                        .withExtractor(config.itemTemplates().extractors())
+                        .withExtractor(fieldsExtractor)
                         .build();
         this.eventListener = eventListener;
         this.pool = Executors.newFixedThreadPool(2);
@@ -308,14 +308,14 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log("Mapped Kafka record");
 
-            Set<Item> routable =
+            Set<SubscribedItem> routables =
                     config.itemTemplates().routes(mappedRecord, subscribedItems.values());
 
-            log.atInfo().log("Routing record to {} items", routable.size());
+            log.atInfo().log("Routing record to {} items", routables.size());
 
-            for (Item sub : routable) {
+            for (SubscribedItem sub : routables) {
                 log.atDebug().log("Filtering updates");
-                Map<String, String> updates = mappedRecord.filter(fieldsSelectors);
+                Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
                 log.atDebug().log("Sending updates: {}", updates);
                 eventListener.smartUpdate(sub.itemHandle(), updates, false);
             }

@@ -19,58 +19,44 @@ package com.lightstreamer.kafka.mapping;
 
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
-import com.lightstreamer.kafka.mapping.selectors.Selectors;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Builder;
-import com.lightstreamer.kafka.mapping.selectors.Selectors.Selected;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-public class Fields {
+public interface Fields {
 
-    public static <K, V> Selectors<K, V> fromMapping(
-            Map<String, String> fieldsMapping, Selected<K, V> selected) {
+    static String SCHEMA_NAME = "fields";
 
-        class Support {
+    static Pattern FIELD_MAPPING = Pattern.compile(SelectorExpressionParser.SELECTION_REGEX);
 
-            private static Pattern FIELD_MAPPING =
-                    Pattern.compile(SelectorExpressionParser.SELECTION_REGEX);
-
-            static String parseEntryValue(Entry<String, String> configEntry) {
-                Matcher matcher = FIELD_MAPPING.matcher(configEntry.getValue());
-                if (!matcher.matches()) {
-                    ExpressionException.throwInvalidExpression(
-                            configEntry.getKey(), configEntry.getValue());
-                }
-
-                return matcher.group(1);
-            }
-
-            static String removePrefixFromEntryKey(Entry<String, String> configEntry) {
-                String prefix = "field.";
-                String fieldConfigKey = configEntry.getKey();
-                if (!fieldConfigKey.startsWith(prefix)) {
-                    throw new RuntimeException(
-                            "Unexpected format for field mapping key [%s]"
-                                    .formatted(fieldConfigKey));
-                }
-                return fieldConfigKey.substring(prefix.length());
-            }
-
-            static <K, V> void fill(Builder<K, V> builder, Entry<String, String> configEntry) {
-                builder.withEntry(
-                        configEntry.getKey(),
-                        // removePrefixFromEntryKey(configEntry),
-                        configEntry.getKey(),
-                        configEntry.getValue(),
-                        parseEntryValue(configEntry));
-            }
+    // Strips the enclosing notation "#{...}" from the the specifed Entry value
+    private static String stripExpression(Map.Entry<String, String> entry) {
+        String param = entry.getKey();
+        String originalExpression = entry.getValue();
+        Matcher matcher = FIELD_MAPPING.matcher(originalExpression);
+        if (!matcher.matches()) {
+            ExpressionException.throwInvalidFieldExpression(param, originalExpression);
         }
 
-        Builder<K, V> builder = Selectors.builder(selected).withSchemaName("fields");
-        fieldsMapping.entrySet().stream().forEach(e -> Support.fill(builder, e));
-        return builder.build();
+        return matcher.group(1);
+    }
+
+    public static <K, V> ValuesExtractor<K, V> fromMapping(
+            Map<String, String> fieldsMapping, SelectorSuppliers<K, V> selectorSuppliers) {
+
+        Map<String, String> strippedExpressions =
+                fieldsMapping.entrySet().stream()
+                        .collect(Collectors.toMap(Entry::getKey, Fields::stripExpression));
+
+        return ValuesExtractor.<K, V>builder()
+                .withSuppliers(selectorSuppliers)
+                .withSchemaName(SCHEMA_NAME)
+                .withExpressions(strippedExpressions)
+                .build();
     }
 }

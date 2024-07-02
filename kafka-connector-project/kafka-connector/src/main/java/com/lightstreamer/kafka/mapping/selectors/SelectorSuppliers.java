@@ -15,8 +15,15 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.mapping.selectors;
+package com.lightstreamer.kafka.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
+public interface SelectorSuppliers<K, V> {
 
-public interface ConnectKeySelector extends KeySelector<Object> {}
+    KeySelectorSupplier<K> keySelectorSupplier();
+
+    ValueSelectorSupplier<V> valueSelectorSupplier();
+
+    static <K, V> SelectorSuppliers<K, V> of(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
+        return new SelectorSuppliersImpl<>(k, v);
+    }
+}

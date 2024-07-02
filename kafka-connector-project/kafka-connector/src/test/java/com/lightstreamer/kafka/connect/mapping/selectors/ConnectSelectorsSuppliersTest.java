@@ -101,7 +101,7 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.children[0].signature            |  NULL
                         VALUE.children[1].name                 |  anna
                         VALUE.children[2].name                 |  serena
-#                       VALUE.children[3]                      |  NULL
+                        VALUE.children[3]                      |  NULL
                         VALUE.children[1].children[0].name     |  gloria
                         VALUE.children[1].children[1].name     |  terence
                         VALUE.children[1].children[1]['name']  |  terence
@@ -128,7 +128,8 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.no_attrib,              Field [no_attrib] not found
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
-                        VALUE.name[0],                Current field is not indexed
+                        VALUE.name[0],                Field [name] is not indexed
+                        VALUE.name['no_key'],         Field [no_key] not found
                         VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
                         VALUE.children[0]['no_key'],  Field [no_key] not found
                         VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
@@ -160,7 +161,7 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.children[0].signature            | NULL
                         KEY.children[1].name                 | anna
                         KEY.children[2].name                 | serena
-#                       KEY.children[3]                      | NULL
+                        KEY.children[3]                      | NULL
                         KEY.children[1].children[0].name     | gloria
                         KEY.children[1].children[1].name     | terence
                         KEY.children[1].children[1]['name']  | terence
@@ -169,8 +170,8 @@ public class ConnectSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         keySelector(expression)
-                                // .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT))
-                                .extract(sinkFromKey("topic", null, STRUCT))
+                                .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT))
+                                // .extract(sinkFromKey("topic", null, STRUCT))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -188,7 +189,8 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.no_attrib,              Field [no_attrib] not found
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
-                        KEY.name[0],                Current field is not indexed
+                        KEY.name[0],                Field [name] is not indexed
+                        KEY.name['no_key'],         Field [no_key] not found
                         KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
                         KEY.children[0]['no_key'],  Field [no_key] not found
                         KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
@@ -211,7 +213,7 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        ESPRESSION,          EXPECTED_ERROR_MESSAGE
+                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
                         '',                  Expected the root token [VALUE] while evaluating [name]
                         invalidValue,        Expected the root token [VALUE] while evaluating [name]
                         VALUE,               Found the invalid expression [VALUE] while evaluating [name]
@@ -234,7 +236,7 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        ESPRESSION,        EXPECTED_ERROR_MESSAGE
+                        EXPRESSION,        EXPECTED_ERROR_MESSAGE
                         '',                Expected the root token [KEY] while evaluating [name]
                         invalidValue,      Expected the root token [KEY] while evaluating [name]
                         KEY,               Found the invalid expression [KEY] while evaluating [name]

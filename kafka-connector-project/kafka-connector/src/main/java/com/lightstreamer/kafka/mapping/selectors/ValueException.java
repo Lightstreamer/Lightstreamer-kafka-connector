@@ -35,16 +35,12 @@ public class ValueException extends RuntimeException {
         throwException(mkException("Field not found at index [%d]", index));
     }
 
-    public static void throwNoIndexedField() throws ValueException {
-        throwException(mkException("Current field is not indexed"));
+    public static void throwNoIndexedField(String field) throws ValueException {
+        throwException(mkException("Field [%s] is not indexed", field));
     }
 
     public static void throwNoKeyFound(String key) {
         throwException(mkException("Field not found at key ['%s']", key));
-    }
-
-    public static void throwConversionError(String type) throws ValueException {
-        throwException(mkException("Current field [%s] is a terminal object", type));
     }
 
     public static void throwNonComplexObjectRequired(String expression) {
