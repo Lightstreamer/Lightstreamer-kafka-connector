@@ -38,7 +38,7 @@ public class SchemaAndValueProvider {
                         .field("name", Schema.STRING_SCHEMA)
                         .field("signature", Schema.OPTIONAL_STRING_SCHEMA)
                         .field("children", SchemaBuilder.array(grandSonsSchema).optional().build())
-                        .optional()
+                        .optional() // This allows to put null entries.
                         .build();
 
         // Schema preferencesSchema =

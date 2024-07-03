@@ -86,7 +86,7 @@ public class OthersSelectorSuppliers {
         @Override
         public KeySelector<Object> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
-                ExpressionException.throwExpectedRootToken(name, expectedRoot());
+                throw ExpressionException.throwExpectedRootToken(name, expectedRoot());
             }
             return new OthersKeySelector(name, expression);
         }
@@ -128,7 +128,7 @@ public class OthersSelectorSuppliers {
         @Override
         public ValueSelector<Object> newSelector(String name, String expression) {
             if (!maySupply(expression)) {
-                ExpressionException.throwExpectedRootToken(name, expectedRoot());
+                throw ExpressionException.throwExpectedRootToken(name, expectedRoot());
             }
             return new OthersValueSelector(name, expression);
         }

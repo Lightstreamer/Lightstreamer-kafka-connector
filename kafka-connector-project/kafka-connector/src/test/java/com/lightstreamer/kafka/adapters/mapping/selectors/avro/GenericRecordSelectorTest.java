@@ -127,7 +127,7 @@ public class GenericRecordSelectorTest {
                         VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
                         VALUE.children[0]['no_key'],  Field [no_key] not found
                         VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
-                        VALUE.children[3].name,       Field [name] not found
+                        VALUE.children[3].name,       Cannot retrieve field [name] from a null object
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
                         VALUE.type.attrib,            Field [attrib] not found
@@ -188,7 +188,7 @@ public class GenericRecordSelectorTest {
                         KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
                         KEY.children[0]['no_key'],  Field [no_key] not found
                         KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
-                        KEY.children[3].name,       Field [name] not found
+                        KEY.children[3].name,       Cannot retrieve field [name] from a null object
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
                         KEY.type.attrib,            Field [attrib] not found

@@ -25,22 +25,6 @@ public class ExpressionException extends RuntimeException {
         super(message);
     }
 
-    public ExpressionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public static void throwBlankToken(String name, String expression) throws ExpressionException {
-        throw new ExpressionException(
-                "Found the invalid expression [%s] with missing tokens while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
-    public static void throwExpectedRootToken(String name, String token)
-            throws ExpressionException {
-        throw new ExpressionException(
-                "Expected the root token [%s] while evaluating [%s]".formatted(token, name));
-    }
-
     public static void throwInvalidExpression(String name, String expression)
             throws ExpressionException {
         throw new ExpressionException(
@@ -55,17 +39,30 @@ public class ExpressionException extends RuntimeException {
                         .formatted(expression, fieldName));
     }
 
-    public static void throwInvalidIndexedExpression(String name, String expression)
-            throws ExpressionException {
-        throw new ExpressionException(
-                "Found the invalid indexed expression [%s] while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
     public static void reThrowInvalidExpression(
             ExpressionException cause, String name, String expression) throws ExpressionException {
         throw new ExpressionException(
                 "Found the invalid expression [%s] while evaluating [%s]: <%s>"
                         .formatted(expression, name, cause.getMessage()));
+    }
+
+    public static ExpressionException blankToken(String name, String expression)
+            throws ExpressionException {
+        return new ExpressionException(
+                "Found the invalid expression [%s] with missing tokens while evaluating [%s]"
+                        .formatted(expression, name));
+    }
+
+    public static ExpressionException throwExpectedRootToken(String name, String token)
+            throws ExpressionException {
+        return new ExpressionException(
+                "Expected the root token [%s] while evaluating [%s]".formatted(token, name));
+    }
+
+    public static ExpressionException throwInvalidIndexedExpression(String name, String expression)
+            throws ExpressionException {
+        return new ExpressionException(
+                "Found the invalid indexed expression [%s] while evaluating [%s]"
+                        .formatted(expression, name));
     }
 }

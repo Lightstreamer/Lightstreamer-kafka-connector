@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.mapping;
 
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
+import com.lightstreamer.kafka.mapping.selectors.Parsers;
 import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
@@ -32,7 +32,7 @@ public interface Fields {
 
     static String SCHEMA_NAME = "fields";
 
-    static Pattern FIELD_MAPPING = Pattern.compile(SelectorExpressionParser.SELECTION_REGEX);
+    static Pattern FIELD_MAPPING = Pattern.compile(Parsers.SELECTION_REGEX);
 
     // Strips the enclosing notation "#{...}" from the the specifed Entry value
     private static String stripExpression(Map.Entry<String, String> entry) {

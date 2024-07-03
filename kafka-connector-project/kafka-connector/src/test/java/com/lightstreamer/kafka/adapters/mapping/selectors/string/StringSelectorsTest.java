@@ -73,22 +73,22 @@ public class StringSelectorsTest {
 
     @Test
     public void shouldNotCreate() {
-        ExpressionException e1 =
+        ExpressionException ee1 =
                 assertThrows(ExpressionException.class, () -> keySelector("invalidKey"));
-        assertThat(e1.getMessage())
+        assertThat(ee1.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [name]");
 
-        ExpressionException e2 = assertThrows(ExpressionException.class, () -> keySelector(""));
-        assertThat(e2.getMessage())
+        ExpressionException ee2 = assertThrows(ExpressionException.class, () -> keySelector(""));
+        assertThat(ee2.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [name]");
 
-        ExpressionException e3 =
+        ExpressionException ee3 =
                 assertThrows(ExpressionException.class, () -> valueSelector("invalidValue"));
-        assertThat(e3.getMessage())
+        assertThat(ee3.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
 
-        ExpressionException e4 = assertThrows(ExpressionException.class, () -> valueSelector(""));
-        assertThat(e4.getMessage())
+        ExpressionException ee4 = assertThrows(ExpressionException.class, () -> valueSelector(""));
+        assertThat(ee4.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
     }
 }

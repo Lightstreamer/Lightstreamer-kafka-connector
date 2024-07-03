@@ -23,34 +23,28 @@ public class ValueException extends RuntimeException {
         super(message);
     }
 
-    public static void throwNullObject(String field) throws ValueException {
-        throwException(mkException("Field [%s] is NULL", field));
+    public static ValueException nullObject(String field) throws ValueException {
+        return mkException("Cannot retrieve field [%s] from a null object", field);
     }
 
-    public static void throwFieldNotFound(String field) throws ValueException {
-        throwException(mkException("Field [%s] not found", field));
+    public static ValueException fieldNotFound(String field) throws ValueException {
+        return mkException("Field [%s] not found", field);
     }
 
-    public static void throwIndexOfOutBoundex(int index) throws ValueException {
-        throwException(mkException("Field not found at index [%d]", index));
+    public static ValueException indexOfOutBoundex(int index) throws ValueException {
+        return mkException("Field not found at index [%d]", index);
     }
 
-    public static void throwNoIndexedField(String field) throws ValueException {
-        throwException(mkException("Field [%s] is not indexed", field));
+    public static ValueException noIndexedField(String field) throws ValueException {
+        return mkException("Field [%s] is not indexed", field);
     }
 
-    public static void throwNoKeyFound(String key) {
-        throwException(mkException("Field not found at key ['%s']", key));
+    public static ValueException noKeyFound(String key) {
+        return mkException("Field not found at key ['%s']", key);
     }
 
-    public static void throwNonComplexObjectRequired(String expression) {
-        throwException(
-                mkException(
-                        "The expression [%s] must evaluate to a non-complex object", expression));
-    }
-
-    private static void throwException(ValueException ve) throws ValueException {
-        throw ve;
+    public static ValueException nonComplexObjectRequired(String expression) {
+        return mkException("The expression [%s] must evaluate to a non-complex object", expression);
     }
 
     private static ValueException mkException(String message, Object... args) {

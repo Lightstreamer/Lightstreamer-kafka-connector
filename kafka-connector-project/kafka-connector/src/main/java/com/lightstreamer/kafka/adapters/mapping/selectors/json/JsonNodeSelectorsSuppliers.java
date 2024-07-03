@@ -19,140 +19,69 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.mapping.selectors.BaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.GeneralizedKey;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.LinkedNode;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser.NodeEvaluator;
+import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.Value;
-import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.util.List;
-import java.util.Objects;
-
 public class JsonNodeSelectorsSuppliers {
 
-    public static KeySelectorSupplier<JsonNode> keySelectorSupplier(ConnectorConfig config) {
-        return new JsonNodeKeySelectorSupplier(config);
-    }
+    private static class JsonNodeNode implements Node<JsonNodeNode> {
 
-    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
-        return new JsonNodeValueSelectorSupplier(config);
-    }
+        private final JsonNode node;
 
-    abstract static class JsonNodeBaseSelector extends BaseSelector {
-
-        private static class PropertyGetter implements NodeEvaluator<JsonNode> {
-
-            private final String name;
-
-            PropertyGetter(String name) {
-                this.name = name;
-            }
-
-            @Override
-            public String name() {
-                return name;
-            }
-
-            @Override
-            public JsonNode eval(JsonNode node) {
-                return get(name, node);
-            }
-
-            public static JsonNode get(String name, JsonNode node) {
-                if (!node.has(name)) {
-                    ValueException.throwFieldNotFound(name);
-                }
-                return node.get(name);
-            }
+        JsonNodeNode(JsonNode node) {
+            this.node = node;
         }
 
-        private static class ArrayGetter implements NodeEvaluator<JsonNode> {
-
-            private final String name;
-            private final PropertyGetter getter;
-            private final List<GeneralizedKey> indexes;
-
-            ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
-                this.name = Objects.requireNonNull(fieldName);
-                this.indexes = Objects.requireNonNull(indexes);
-                this.getter = new PropertyGetter(name);
-            }
-
-            @Override
-            public String name() {
-                return name;
-            }
-
-            JsonNode get(int index, JsonNode node) {
-                if (node.isArray()) {
-                    if (index < node.size()) {
-                        return node.get(index);
-                    } else {
-                        ValueException.throwIndexOfOutBoundex(index);
-                        // Actually unreachable code
-                        return null;
-                    }
-                } else {
-                    ValueException.throwNoIndexedField(name);
-                    // Actually unreachable code
-                    return null;
-                }
-            }
-
-            @Override
-            public JsonNode eval(JsonNode node) {
-                JsonNode value = getter.eval(node);
-                for (GeneralizedKey i : indexes) {
-                    if (i.isIndex()) {
-                        value = get(i.index(), value);
-                    } else {
-                        value = PropertyGetter.get(i.key(), value);
-                    }
-                }
-                return value;
-            }
+        @Override
+        public boolean has(String propertyname) {
+            return node.has(propertyname);
         }
 
-        private final LinkedNode<NodeEvaluator<JsonNode>> rootNode;
-
-        private static final SelectorExpressionParser<JsonNode> PARSER =
-                new SelectorExpressionParser.Builder<JsonNode>()
-                        .withFieldEvaluator(PropertyGetter::new)
-                        .withGenericIndexedEvaluator(ArrayGetter::new)
-                        .build();
-
-        private JsonNodeBaseSelector(String name, String expression, String expectedRoot) {
-            super(name, expression);
-            this.rootNode = PARSER.parse(name, expression, expectedRoot);
+        @Override
+        public JsonNodeNode get(String propertyName) {
+            return new JsonNodeNode(node.get(propertyName));
         }
 
-        protected final Value eval(JsonNode node) {
-            LinkedNode<NodeEvaluator<JsonNode>> currentNode = rootNode;
-            while (currentNode != null) {
-                NodeEvaluator<JsonNode> nodeEvaluator = currentNode.value();
-                node = nodeEvaluator.eval(node);
-                currentNode = currentNode.next();
-            }
+        @Override
+        public boolean isArray() {
+            return node.isArray();
+        }
 
-            if (node.isContainerNode()) {
-                ValueException.throwNonComplexObjectRequired(expression());
-            }
+        @Override
+        public int size() {
+            return node.size();
+        }
 
-            String text = !node.isNull() ? node.asText() : null;
-            return Value.of(name(), text);
+        @Override
+        public JsonNodeNode get(int index) {
+            return new JsonNodeNode(node.get(index));
+        }
+
+        @Override
+        public boolean isNull() {
+            return node.isNull();
+        }
+
+        @Override
+        public boolean isScalar() {
+            return node.isValueNode();
+        }
+
+        @Override
+        public String asText(String defaultStr) {
+            return node.asText(defaultStr);
         }
     }
 
-    static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
+    private static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
 
         private final JsonNodeDeserializer deseralizer;
 
@@ -171,7 +100,7 @@ public class JsonNodeSelectorsSuppliers {
         }
     }
 
-    static final class JsonNodeKeySelector extends JsonNodeBaseSelector
+    private static final class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
             implements KeySelector<JsonNode> {
 
         JsonNodeKeySelector(String name, String expression, String expectedRoot) {
@@ -180,11 +109,12 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public Value extract(KafkaRecord<JsonNode, ?> record) {
-            return super.eval(record.key());
+            JsonNodeNode node = new JsonNodeNode(record.key());
+            return super.eval(node);
         }
     }
 
-    static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
+    private static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
 
         private final JsonNodeDeserializer deseralizer;
 
@@ -203,16 +133,25 @@ public class JsonNodeSelectorsSuppliers {
         }
     }
 
-    static final class JsonNodeValueSelector extends JsonNodeBaseSelector
+    private static final class JsonNodeValueSelector extends StructuredBaseSelector<JsonNodeNode>
             implements ValueSelector<JsonNode> {
 
-        protected JsonNodeValueSelector(String name, String expression, String expectedRoot) {
+        JsonNodeValueSelector(String name, String expression, String expectedRoot) {
             super(name, expression, expectedRoot);
         }
 
         @Override
         public Value extract(KafkaRecord<?, JsonNode> record) {
-            return super.eval(record.value());
+            JsonNodeNode node = new JsonNodeNode(record.value());
+            return super.eval(node);
         }
+    }
+
+    public static KeySelectorSupplier<JsonNode> keySelectorSupplier(ConnectorConfig config) {
+        return new JsonNodeKeySelectorSupplier(config);
+    }
+
+    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
+        return new JsonNodeValueSelectorSupplier(config);
     }
 }

@@ -145,24 +145,24 @@ public class OthersSelectorsTest {
 
     @Test
     public void shouldNotCreate() {
-        ExpressionException e1 =
+        ExpressionException ee1 =
                 assertThrows(ExpressionException.class, () -> keySelector(SHORT, "invalidKey"));
-        assertThat(e1.getMessage())
+        assertThat(ee1.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [name]");
 
-        ExpressionException e2 =
+        ExpressionException ee2 =
                 assertThrows(ExpressionException.class, () -> keySelector(SHORT, ""));
-        assertThat(e2.getMessage())
+        assertThat(ee2.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [name]");
 
-        ExpressionException e3 =
+        ExpressionException ee3 =
                 assertThrows(ExpressionException.class, () -> valueSelector(SHORT, "invalidValue"));
-        assertThat(e3.getMessage())
+        assertThat(ee3.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
 
-        ExpressionException e4 =
+        ExpressionException ee4 =
                 assertThrows(ExpressionException.class, () -> valueSelector(SHORT, ""));
-        assertThat(e4.getMessage())
+        assertThat(ee4.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
     }
 }

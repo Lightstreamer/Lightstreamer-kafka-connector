@@ -107,85 +107,7 @@ public class ValuesExtractorTest {
         assertThat(values2).isEqualTo(expectedValues);
     }
 
-    static Stream<Arguments> wrongArguments() {
-        return Stream.of(
-                arguments(
-                        Map.of("name", "VALUE."),
-                        "Found the invalid expression [VALUE.] while evaluating [name]"),
-                arguments(
-                        Map.of("name", "VALUE.."),
-                        "Found the invalid expression [VALUE..] with missing tokens while"
-                                + " evaluating [name]"),
-                arguments(
-                        Map.of("name", "VALUE"),
-                        "Found the invalid expression [VALUE] while evaluating [name]"),
-                arguments(
-                        Map.of("name", "VALUE.attrib[]"),
-                        "Found the invalid indexed expression [VALUE.attrib[]] while evaluating"
-                                + " [name]"),
-                arguments(
-                        Map.of("name", "VALUE.attrib[0]xsd"),
-                        "Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating"
-                                + " [name]"),
-                arguments(
-                        Map.of("name", "VALUE.attrib[1]xsd"),
-                        "Found the invalid indexed expression [VALUE.attrib[1]xsd] while evaluating"
-                                + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib[1]."),
-                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib.-"),
-                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-                arguments(
-                        Map.of("name", "KEY."),
-                        "Found the invalid expression [KEY.] while evaluating [name]"),
-                arguments(
-                        Map.of("name", "KEY.."),
-                        "Found the invalid expression [KEY..] with missing tokens while evaluating"
-                                + " [name]"),
-                arguments(
-                        Map.of("name", "KEY"),
-                        "Found the invalid expression [KEY] while evaluating [name]"),
-                arguments(
-                        Map.of("name", "wrong"),
-                        "Found the invalid expression [wrong] while evaluating [name]"),
-                arguments(
-                        Map.of("name", "\"\""),
-                        "Found the invalid expression [\"\"] while evaluating [name]"));
-    }
-
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateGenericRecordExtractor(
-            Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception =
-                assertThrows(
-                        ExpressionException.class,
-                        () -> extractor(input, TestSelectorSuppliers.avro(avroConfig())));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateJsonNodeExtractor(
-            Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception =
-                assertThrows(
-                        ExpressionException.class,
-                        () ->
-                                extractor(
-                                        input,
-                                        TestSelectorSuppliers.json(
-                                                ConnectorConfigProvider.minimal())));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    static Stream<Arguments> wrongArgumentsProviderForStringExtractor() {
+    static Stream<Arguments> wrongStringExtractorArguments() {
         return Stream.of(
                 arguments(
                         Map.of("name", "VALUE."),
@@ -205,13 +127,92 @@ public class ValuesExtractorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("wrongArgumentsProviderForStringExtractor")
+    @MethodSource("wrongStringExtractorArguments")
     public void shouldNotCreateStringExtractor(
             Map<String, String> input, String expectedErrorMessage) {
-        ExpressionException exception =
+        ExpressionException ee =
                 assertThrows(
                         ExpressionException.class,
                         () -> extractor(input, TestSelectorSuppliers.string()));
-        assertThat(exception.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    static Stream<Arguments> wrongArguments() {
+        return Stream.of(
+                arguments(
+                        Map.of("name", "VALUE."),
+                        "Found the invalid expression [VALUE.] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "VALUE.."),
+                        "Found the invalid expression [VALUE..] with missing tokens while evaluating [name]"),
+                arguments(
+                        Map.of("name", "VALUE"),
+                        "Found the invalid expression [VALUE] while evaluating [name]"),
+                // arguments(
+                //         Map.of("name", "VALUE.attrib[]"),
+                //         "Found the invalid indexed expression [VALUE.attrib[]] while evaluating"
+                //                 + " [name]"),
+                // arguments(
+                //         Map.of("name", "VALUE.attrib[0]xsd"),
+                //         "Found the invalid indexed expression [VALUE.attrib[0]xsd] while
+                // evaluating"
+                //                 + " [name]"),
+                // arguments(
+                //         Map.of("name", "VALUE.attrib[1]xsd"),
+                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
+                // evaluating"
+                //                 + " [name]"),
+                // arguments(
+                //         Map.of("name", "VALUE.attrib[1]."),
+                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
+                // evaluating"
+                //                 + " [name]"),
+                // arguments(
+                //         Map.of("name", "VALUE.attrib.-"),
+                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
+                // evaluating"
+                //                 + " [name]"),
+
+                arguments(
+                        Map.of("name", "KEY."),
+                        "Found the invalid expression [KEY.] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "KEY.."),
+                        "Found the invalid expression [KEY..] with missing tokens while evaluating [name]"),
+                arguments(
+                        Map.of("name", "KEY"),
+                        "Found the invalid expression [KEY] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "wrong"),
+                        "Found the invalid expression [wrong] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "\"\""),
+                        "Found the invalid expression [\"\"] while evaluating [name]"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("wrongArguments")
+    public void shouldNotCreateGenericRecordExtractor(
+            Map<String, String> input, String expectedErrorMessage) {
+        ExpressionException ee =
+                assertThrows(
+                        ExpressionException.class,
+                        () -> extractor(input, TestSelectorSuppliers.avro(avroConfig())));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    @ParameterizedTest
+    @MethodSource("wrongArguments")
+    public void shouldNotCreateJsonNodeExtractor(
+            Map<String, String> input, String expectedErrorMessage) {
+        ExpressionException ee =
+                assertThrows(
+                        ExpressionException.class,
+                        () ->
+                                extractor(
+                                        input,
+                                        TestSelectorSuppliers.json(
+                                                ConnectorConfigProvider.minimal())));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

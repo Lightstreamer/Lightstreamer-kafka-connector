@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.mapping;
 
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.SelectorExpressionParser;
+import com.lightstreamer.kafka.mapping.selectors.Parsers;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,8 +42,7 @@ public interface ItemExpressionEvaluator {
 
 enum ItemEvaluator implements ItemExpressionEvaluator {
     TEMPLATE(
-            Pattern.compile(
-                    "(^[a-zA-Z0-9_-]+)(-" + SelectorExpressionParser.SELECTION_REGEX + ")$"),
+            Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + Parsers.SELECTION_REGEX + ")$"),
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?")) {
 
         String errorMessage() {

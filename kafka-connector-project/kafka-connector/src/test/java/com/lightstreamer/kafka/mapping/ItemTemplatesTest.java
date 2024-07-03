@@ -124,11 +124,11 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
-        ExpressionException e =
+        ExpressionException ee =
                 assertThrows(
                         ExpressionException.class,
                         () -> mkItemTemplates(string(), "item-#{name=VALUE,name=PARTITION}"));
-        assertThat(e.getMessage())
+        assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while"
                                 + " evaluating [item-template]: <No duplicated keys are allowed>");
@@ -153,11 +153,11 @@ public class ItemTemplatesTest {
                 "prefix-#{}"
             })
     public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
-        ExpressionException e =
+        ExpressionException ee =
                 assertThrows(
                         ExpressionException.class,
                         () -> mkItemTemplates(string(), templateExpression));
-        assertThat(e.getMessage())
+        assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + templateExpression

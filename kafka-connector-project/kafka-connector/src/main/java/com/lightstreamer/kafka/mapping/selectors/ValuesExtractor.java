@@ -37,6 +37,6 @@ public interface ValuesExtractor<K, V> {
 
         Builder<K, V> withSchemaName(String schema);
 
-        ValuesExtractor<K, V> build();
+        ValuesExtractor<K, V> build() throws ExpressionException;
     }
 }

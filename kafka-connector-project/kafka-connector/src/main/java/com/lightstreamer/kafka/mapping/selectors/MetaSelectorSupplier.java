@@ -63,7 +63,7 @@ public class MetaSelectorSupplier implements SelectorSupplier<MetaSelector> {
     @Override
     public MetaSelector newSelector(String name, String expression) {
         if (!maySupply(expression)) {
-            ExpressionException.throwExpectedRootToken(
+            throw ExpressionException.throwExpectedRootToken(
                     name,
                     Attribute.validAttributes().stream()
                             .map(a -> a.toString())
