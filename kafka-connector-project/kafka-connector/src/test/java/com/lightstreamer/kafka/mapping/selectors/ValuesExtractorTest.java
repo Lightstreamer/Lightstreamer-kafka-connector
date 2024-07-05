@@ -22,6 +22,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
@@ -31,7 +34,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -61,8 +63,7 @@ public class ValuesExtractorTest {
 
     static Stream<Arguments> stringExtractorArguments() {
         return Stream.of(
-                arguments(
-                        Collections.emptyMap(), Schema.empty(TEST_SCHEMA), Collections.emptySet()),
+                arguments(emptyMap(), Schema.empty(TEST_SCHEMA), emptySet()),
                 arguments(
                         Map.of("name", "VALUE"),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
@@ -110,20 +111,35 @@ public class ValuesExtractorTest {
     static Stream<Arguments> wrongStringExtractorArguments() {
         return Stream.of(
                 arguments(
+                        Map.of("name", "."),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", ""),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
                         Map.of("name", "VALUE."),
-                        "Found the invalid expression [VALUE.] while evaluating [name]"),
+                        "Expected the root token [VALUE] while evaluating [name]"),
                 arguments(
                         Map.of("name", "VALUE.."),
-                        "Found the invalid expression [VALUE..] while evaluating [name]"),
+                        "Expected the root token [VALUE] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "VALUE.a"),
+                        "Expected the root token [VALUE] while evaluating [name]"),
                 arguments(
                         Map.of("name", "KEY."),
-                        "Found the invalid expression [KEY.] while evaluating [name]"),
+                        "Expected the root token [KEY] while evaluating [name]"),
                 arguments(
                         Map.of("name", "KEY.."),
-                        "Found the invalid expression [KEY..] while evaluating [name]"),
+                        "Expected the root token [KEY] while evaluating [name]"),
                 arguments(
                         Map.of("name", "wrong"),
-                        "Found the invalid expression [wrong] while evaluating [name]"));
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "wrong."),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "wrong.."),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"));
     }
 
     @ParameterizedTest
@@ -140,59 +156,46 @@ public class ValuesExtractorTest {
     static Stream<Arguments> wrongArguments() {
         return Stream.of(
                 arguments(
+                        Map.of("name", ". ."),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "."),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", ""),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", ""),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
+                arguments(
+                        Map.of("name", "VALUE.a. .b"),
+                        "Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]"),
+                arguments(
                         Map.of("name", "VALUE."),
-                        "Found the invalid expression [VALUE.] while evaluating [name]"),
+                        "Found unexpected trailing dot(s) in the expression [VALUE.] while evaluating [name]"),
                 arguments(
                         Map.of("name", "VALUE.."),
-                        "Found the invalid expression [VALUE..] with missing tokens while evaluating [name]"),
+                        "Found unexpected trailing dot(s) in the expression [VALUE..] while evaluating [name]"),
                 arguments(
-                        Map.of("name", "VALUE"),
-                        "Found the invalid expression [VALUE] while evaluating [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib[]"),
-                //         "Found the invalid indexed expression [VALUE.attrib[]] while evaluating"
-                //                 + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib[0]xsd"),
-                //         "Found the invalid indexed expression [VALUE.attrib[0]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib[1]xsd"),
-                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib[1]."),
-                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-                // arguments(
-                //         Map.of("name", "VALUE.attrib.-"),
-                //         "Found the invalid indexed expression [VALUE.attrib[1]xsd] while
-                // evaluating"
-                //                 + " [name]"),
-
+                        Map.of("name", "KEY.a. .b"),
+                        "Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]"),
                 arguments(
                         Map.of("name", "KEY."),
-                        "Found the invalid expression [KEY.] while evaluating [name]"),
+                        "Found unexpected trailing dot(s) in the expression [KEY.] while evaluating [name]"),
                 arguments(
                         Map.of("name", "KEY.."),
-                        "Found the invalid expression [KEY..] with missing tokens while evaluating [name]"),
-                arguments(
-                        Map.of("name", "KEY"),
-                        "Found the invalid expression [KEY] while evaluating [name]"),
+                        "Found unexpected trailing dot(s) in the expression [KEY..] while evaluating [name]"),
                 arguments(
                         Map.of("name", "wrong"),
-                        "Found the invalid expression [wrong] while evaluating [name]"),
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
                 arguments(
                         Map.of("name", "\"\""),
-                        "Found the invalid expression [\"\"] while evaluating [name]"));
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"));
     }
 
     @ParameterizedTest
     @MethodSource("wrongArguments")
-    public void shouldNotCreateGenericRecordExtractor(
+    public void shouldNotCreateGenericRecordValueExtractor(
             Map<String, String> input, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(

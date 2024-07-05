@@ -17,13 +17,18 @@
 
 package com.lightstreamer.kafka.mapping.selectors;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toSet;
+
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,103 +36,64 @@ class ValuesExtractorSupport {
 
     private ValuesExtractorSupport() {}
 
-    private interface SelectorProvider {
+    private static class SelectorDispatcher<K, V> {
 
-        boolean add(String param, String expression);
-    }
+        private Map<Constant, Dispatcher<?>> dispatchers = new HashMap<>();
 
-    private static class SelectorProviders<K, V> {
+        private static class Dispatcher<T extends Selector> {
 
-        private SelectorSupplier<MetaSelector> metaSelectorSupplier = new MetaSelectorSupplier();
-        private ValuesExtractorBuilder<K, V> builder;
-        private KeySelectorSupplier<K> keySelectorSupplier;
-        private ValueSelectorSupplier<V> valueSelectorSupplier;
-        private final SelectorProvider rootProvider;
+            private final Set<T> selectors;
+            private final SelectorSupplier<T> selectorSupplier;
 
-        private abstract sealed class SelectorProviderChain implements SelectorProvider
-                permits KeySelectorProvider, ValueSelectorProvider, MetaSelectorProvider {
-
-            private final SelectorProvider ref;
-
-            SelectorProviderChain(SelectorProvider ref) {
-                this.ref = ref;
+            Dispatcher(Set<T> set, SelectorSupplier<T> selectorSupplier) {
+                this.selectors = set;
+                this.selectorSupplier = selectorSupplier;
             }
 
-            SelectorProviderChain() {
-                this(null);
-            }
-
-            @Override
-            public boolean add(String param, String expression) {
-                boolean added = false;
-                if (ref != null) {
-                    added = ref.add(param, expression);
+            void dispatch(String param, String expression) {
+                T newSelector = selectorSupplier.newSelector(param, expression);
+                if (!selectors.add(newSelector)) {
+                    throw ExpressionException.invalidExpression(param, expression);
                 }
-                if (!added) {
-                    return doAdd(param, expression);
-                }
-                return added;
-            }
-
-            abstract boolean doAdd(String param, String expression);
-        }
-
-        private final class KeySelectorProvider extends SelectorProviderChain {
-
-            KeySelectorProvider(SelectorProvider ref) {
-                super(ref);
-            }
-
-            @Override
-            boolean doAdd(String param, String expression) {
-                if (keySelectorSupplier.maySupply(expression)) {
-                    return builder.keySelectors.add(
-                            keySelectorSupplier.newSelector(param, expression));
-                }
-                return false;
             }
         }
 
-        private final class ValueSelectorProvider extends SelectorProviderChain {
-
-            @Override
-            boolean doAdd(String param, String expression) {
-                if (valueSelectorSupplier.maySupply(expression)) {
-                    return builder.valueSelectors.add(
-                            valueSelectorSupplier.newSelector(param, expression));
-                }
-                return false;
-            }
-        }
-
-        private final class MetaSelectorProvider extends SelectorProviderChain {
-
-            MetaSelectorProvider(SelectorProvider ref) {
-                super(ref);
-            }
-
-            @Override
-            boolean doAdd(String param, String expression) {
-                if (metaSelectorSupplier.maySupply(expression)) {
-                    return builder.metaSelectors.add(
-                            metaSelectorSupplier.newSelector(param, expression));
-                }
-                return false;
-            }
-        }
-
-        SelectorProviders(ValuesExtractorBuilder<K, V> builder) {
-            this.builder = builder;
-            this.keySelectorSupplier =
+        SelectorDispatcher(ValuesExtractorBuilder<K, V> builder) {
+            KeySelectorSupplier<K> keySelectorSupplier =
                     Objects.requireNonNull(builder.sSuppliers.keySelectorSupplier());
-            this.valueSelectorSupplier =
+            ValueSelectorSupplier<V> valueSelectorSupplier =
                     Objects.requireNonNull(builder.sSuppliers.valueSelectorSupplier());
-            this.rootProvider =
-                    new MetaSelectorProvider(new KeySelectorProvider(new ValueSelectorProvider()));
+            GeneralSelectorSupplier metaSelectorSupplier = new GeneralSelectorSupplier();
+
+            Dispatcher<KeySelector<K>> kDispatcher =
+                    new Dispatcher<>(builder.keySelectors, keySelectorSupplier);
+            Dispatcher<ValueSelector<V>> vDispatcher =
+                    new Dispatcher<>(builder.valueSelectors, valueSelectorSupplier);
+            Dispatcher<GeneralSelector> mDispatcher =
+                    new Dispatcher<>(builder.metaSelectors, metaSelectorSupplier);
+
+            dispatchers.put(Constant.KEY, kDispatcher);
+            dispatchers.put(Constant.VALUE, vDispatcher);
+            dispatchers.put(Constant.OFFSET, mDispatcher);
+            dispatchers.put(Constant.TOPIC, mDispatcher);
+            dispatchers.put(Constant.PARTITION, mDispatcher);
+            dispatchers.put(Constant.TIMESTAMP, mDispatcher);
         }
 
-        public boolean add(String param, String expression) {
-            return rootProvider.add(param, expression);
+        void dispatch(Map.Entry<String, String> boundExpression) throws ExpressionException {
+            String param = boundExpression.getKey();
+            String expression = boundExpression.getValue();
+            String[] tokens = expression.split("\\.");
+            Constant root = tokens.length > 0 ? Constant.from(tokens[0]) : null;
+            if (root == null) {
+                String t =
+                        Arrays.stream(Constant.values())
+                                .map(a -> a.toString())
+                                .collect(Collectors.joining("|"));
+                throw ExpressionException.expectedRootToken(param, t);
+            }
+            Dispatcher<?> dispatch = dispatchers.get(root);
+            dispatch.dispatch(param, expression);
         }
     }
 
@@ -137,7 +103,7 @@ class ValuesExtractorSupport {
 
         final Set<KeySelector<K>> keySelectors = new HashSet<>();
         final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
-        final Set<MetaSelector> metaSelectors = new HashSet<>();
+        final Set<GeneralSelector> metaSelectors = new HashSet<>();
 
         private Map<String, String> expressions = new HashMap<>();
 
@@ -166,16 +132,8 @@ class ValuesExtractorSupport {
         }
 
         public ValuesExtractor<K, V> build() throws ExpressionException {
-            SelectorProviders<K, V> selectorProviders = new SelectorProviders<>(this);
-            expressions.entrySet().stream()
-                    .forEach(
-                            e -> {
-                                String param = e.getKey();
-                                String value = e.getValue();
-                                if (!selectorProviders.add(param, value)) {
-                                    ExpressionException.throwInvalidExpression(param, value);
-                                }
-                            });
+            SelectorDispatcher<K, V> dispatcher = new SelectorDispatcher<>(this);
+            expressions.entrySet().stream().forEach(dispatcher::dispatch);
             return new ValuesExtractorImpl<>(this);
         }
     }
@@ -186,7 +144,7 @@ class ValuesExtractorSupport {
 
         private final Set<ValueSelector<V>> valueSelectors;
 
-        private final Set<MetaSelector> metaSelectors;
+        private final Set<GeneralSelector> metaSelectors;
 
         private final Schema schema;
 
@@ -205,8 +163,8 @@ class ValuesExtractorSupport {
             return Schema.from(
                     schemaName,
                     Stream.of(metaNames, keyNames, valueNames)
-                            .flatMap(Function.identity())
-                            .collect(Collectors.toSet()));
+                            .flatMap(identity())
+                            .collect(toSet()));
         }
 
         @Override
@@ -222,8 +180,8 @@ class ValuesExtractorSupport {
                                     keySelectors.stream().map(k -> k.extract(record)),
                                     valueSelectors.stream().map(v -> v.extract(record)),
                                     metaSelectors.stream().map(m -> m.extract(record)))
-                            .flatMap(Function.identity())
-                            .collect(Collectors.toSet()));
+                            .flatMap(identity())
+                            .collect(toSet()));
         }
 
         @Override

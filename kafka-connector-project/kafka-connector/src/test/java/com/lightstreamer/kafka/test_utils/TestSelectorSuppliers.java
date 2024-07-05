@@ -21,20 +21,26 @@ import static com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers.of;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.string.StringSelectorSuppliers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
+import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.avro.generic.GenericRecord;
 
 public interface TestSelectorSuppliers {
 
+    @SuppressWarnings("unchecked")
     public static SelectorSuppliers<String, String> string() {
         return of(
-                StringSelectorSuppliers.keySelectorSupplier(),
-                StringSelectorSuppliers.valueSelectorSupplier());
+                (KeySelectorSupplier<String>)
+                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
+                (ValueSelectorSupplier<String>)
+                        OthersSelectorSuppliers.valueSelectorSupplier(EvaluatorType.STRING));
     }
 
     public static SelectorSuppliers<GenericRecord, GenericRecord> avro(ConnectorConfig config) {
@@ -43,9 +49,11 @@ public interface TestSelectorSuppliers {
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
+    @SuppressWarnings("unchecked")
     public static SelectorSuppliers<String, GenericRecord> avroValue(ConnectorConfig config) {
         return of(
-                StringSelectorSuppliers.keySelectorSupplier(),
+                (KeySelectorSupplier<String>)
+                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
                 GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
@@ -62,15 +70,17 @@ public interface TestSelectorSuppliers {
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
+    @SuppressWarnings("unchecked")
     public static SelectorSuppliers<String, JsonNode> jsonValue(ConnectorConfig config) {
         return of(
-                StringSelectorSuppliers.keySelectorSupplier(),
+                (KeySelectorSupplier<String>)
+                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
                 JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
     }
 
     public static SelectorSuppliers<Object, Object> object() {
         return of(
-                ConnectSelectorsSuppliers.keySelectorSupplier(),
-                ConnectSelectorsSuppliers.valueSelectorSupplier());
+                ConnectSelectorsSuppliers.keySelectorSupplier(false),
+                ConnectSelectorsSuppliers.valueSelectorSupplier(false));
     }
 }

@@ -40,7 +40,7 @@ public interface Fields {
         String originalExpression = entry.getValue();
         Matcher matcher = FIELD_MAPPING.matcher(originalExpression);
         if (!matcher.matches()) {
-            ExpressionException.throwInvalidFieldExpression(param, originalExpression);
+            ExpressionException.invalidFieldExpression(param, originalExpression);
         }
 
         return matcher.group(1);

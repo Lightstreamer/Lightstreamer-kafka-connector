@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.mapping.selectors;
 
-public interface MetaSelector extends Selector {
+public interface GeneralSelector extends Selector {
 
     Value extract(KafkaRecord<?, ?> record) throws ValueException;
 }

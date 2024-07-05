@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.mapping;
 
-import static com.lightstreamer.kafka.mapping.selectors.ExpressionException.reThrowInvalidExpression;
+import static com.lightstreamer.kafka.mapping.selectors.ExpressionException.wrapInvalidExpression;
 
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
@@ -108,7 +108,7 @@ public class Items {
                                     .build();
                     templates.add(new ItemTemplate<>(topicConfig.topic(), extractor));
                 } catch (ExpressionException e) {
-                    reThrowInvalidExpression(e, reference.templateKey(), reference.templateValue());
+                    wrapInvalidExpression(e, reference.templateKey(), reference.templateValue());
                 }
             } else {
                 ValuesExtractor<K, V> extractor =

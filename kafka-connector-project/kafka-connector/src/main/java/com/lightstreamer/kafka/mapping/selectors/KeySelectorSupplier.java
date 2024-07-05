@@ -19,13 +19,7 @@ package com.lightstreamer.kafka.mapping.selectors;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-public interface KeySelectorSupplier<V> extends SelectorSupplier<KeySelector<V>> {
+public interface KeySelectorSupplier<K> extends SelectorSupplier<KeySelector<K>> {
 
-    KeySelector<V> newSelector(String name, String expression);
-
-    Deserializer<V> deseralizer();
-
-    default String expectedRoot() {
-        return "KEY";
-    }
+    Deserializer<K> deseralizer();
 }

@@ -25,41 +25,48 @@ public class ExpressionException extends RuntimeException {
         super(message);
     }
 
-    public static void throwInvalidExpression(String name, String expression)
+    public static ExpressionException unexpectedTrailingDots(String name, String expression)
             throws ExpressionException {
-        throw new ExpressionException(
+        return new ExpressionException(
+                "Found unexpected trailing dot(s) in the expression [%s] while evaluating [%s]"
+                        .formatted(expression, name));
+    }
+
+    public static ExpressionException invalidExpression(String name, String expression)
+            throws ExpressionException {
+        return new ExpressionException(
                 "Found the invalid expression [%s] while evaluating [%s]"
                         .formatted(expression, name));
     }
 
-    public static void throwInvalidFieldExpression(String fieldName, String expression)
+    public static void invalidFieldExpression(String fieldName, String expression)
             throws ExpressionException {
         throw new ExpressionException(
-                "Found the invalid expression [%s] while evaluating [%s]: expression must be enclosed with #{...}"
+                "Found the invalid expression [%s] while evaluating [%s]: a valid expression must be enclosed within #{...}"
                         .formatted(expression, fieldName));
     }
 
-    public static void reThrowInvalidExpression(
+    public static void wrapInvalidExpression(
             ExpressionException cause, String name, String expression) throws ExpressionException {
         throw new ExpressionException(
                 "Found the invalid expression [%s] while evaluating [%s]: <%s>"
                         .formatted(expression, name, cause.getMessage()));
     }
 
-    public static ExpressionException blankToken(String name, String expression)
+    public static ExpressionException missingToken(String name, String expression)
             throws ExpressionException {
         return new ExpressionException(
                 "Found the invalid expression [%s] with missing tokens while evaluating [%s]"
                         .formatted(expression, name));
     }
 
-    public static ExpressionException throwExpectedRootToken(String name, String token)
+    public static ExpressionException expectedRootToken(String name, String token)
             throws ExpressionException {
         return new ExpressionException(
                 "Expected the root token [%s] while evaluating [%s]".formatted(token, name));
     }
 
-    public static ExpressionException throwInvalidIndexedExpression(String name, String expression)
+    public static ExpressionException invalidIndexedExpression(String name, String expression)
             throws ExpressionException {
         return new ExpressionException(
                 "Found the invalid indexed expression [%s] while evaluating [%s]"

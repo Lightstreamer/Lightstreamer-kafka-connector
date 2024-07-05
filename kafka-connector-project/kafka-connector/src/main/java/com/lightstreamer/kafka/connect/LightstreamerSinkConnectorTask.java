@@ -78,8 +78,8 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         TopicsConfig topicsConfig = TopicsConfig.of(itemTemplates, topicMappings);
         SelectorSuppliers<Object, Object> sSuppliers =
                 SelectorSuppliers.of(
-                        ConnectSelectorsSuppliers.keySelectorSupplier(),
-                        ConnectSelectorsSuppliers.valueSelectorSupplier());
+                        ConnectSelectorsSuppliers.keySelectorSupplier(false),
+                        ConnectSelectorsSuppliers.valueSelectorSupplier(false));
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         logger.info("Constructed item templates: {}", itemTemplates);
 

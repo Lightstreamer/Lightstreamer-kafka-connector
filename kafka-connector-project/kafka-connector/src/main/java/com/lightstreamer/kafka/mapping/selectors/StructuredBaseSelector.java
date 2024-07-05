@@ -21,6 +21,7 @@ import com.lightstreamer.kafka.mapping.selectors.Parsers.GeneralizedKey;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.LinkedNodeEvaluator;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.NodeEvaluator;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 
 import java.util.List;
 import java.util.Objects;
@@ -104,7 +105,7 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
 
     private final LinkedNodeEvaluator<T> rootEvaluator;
 
-    protected StructuredBaseSelector(String name, String expression, String expectedRoot) {
+    protected StructuredBaseSelector(String name, String expression, Constant expectedRoot) {
         super(name, expression);
         this.rootEvaluator = parser.parse(name, expression, expectedRoot);
     }
@@ -117,7 +118,7 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         }
 
         if (!node.isScalar()) {
-            ValueException.nonComplexObjectRequired(expression());
+            throw ValueException.nonComplexObjectRequired(expression());
         }
 
         return Value.of(name(), node.asText(null));

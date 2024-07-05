@@ -19,19 +19,25 @@ package com.lightstreamer.kafka.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
 import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 
 public class FieldsTest {
 
     @Test
-    void shoudCreateBuilderFromMappings() {
+    void shoudCreateExtractorFromMappings() {
         SelectorSuppliers<String, String> selectorSuppliers = TestSelectorSuppliers.string();
         Map<String, String> fieldMappings = Map.of("field1", "#{VALUE}");
         ValuesExtractor<String, String> extractor =
@@ -39,5 +45,22 @@ public class FieldsTest {
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(strings = {"", "#{}", ".", "\\"})
+    void shoudNotCreateExtractorFromMappings(String fieldExpression) {
+        SelectorSuppliers<String, String> selectorSuppliers = TestSelectorSuppliers.string();
+        Map<String, String> fieldMappings = Map.of("field1", fieldExpression);
+        ExpressionException ee =
+                assertThrows(
+                        ExpressionException.class,
+                        () -> Fields.fromMapping(fieldMappings, selectorSuppliers));
+        assertThat(ee.getMessage())
+                .isEqualTo(
+                        "Found the invalid expression ["
+                                + fieldExpression
+                                + "] while evaluating [field1]: a valid expression must be enclosed within #{...}");
     }
 }

@@ -150,6 +150,14 @@ public interface ConfigTypes {
                 case GSSAPI -> "com.sun.security.auth.module.Krb5LoginModule";
             };
         }
+
+        public String toString() {
+            return switch (this) {
+                case SCRAM_256 -> "SCRAM-SHA-256";
+                case SCRAM_512 -> "SCRAM-SHA-512";
+                default -> super.toString();
+            };
+        }
     }
 
     public enum RecordComsumeFrom {

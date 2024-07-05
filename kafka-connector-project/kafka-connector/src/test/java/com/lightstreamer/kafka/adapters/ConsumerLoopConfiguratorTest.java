@@ -92,13 +92,13 @@ public class ConsumerLoopConfiguratorTest {
         return Stream.of(
                 arguments(
                         "NOT_WITHIN_BRACKET_NOTATION",
-                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: expression must be enclosed with #{...}"),
+                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: a valid expression must be enclosed within #{...}"),
                 arguments(
                         "VALUE",
-                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: expression must be enclosed with #{...}"),
+                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: a valid expression must be enclosed within #{...}"),
                 arguments(
                         "#{UNRECOGNIZED}",
-                        "Found the invalid expression [UNRECOGNIZED] while evaluating [fieldName1]"));
+                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [fieldName1]"));
     }
 
     @ParameterizedTest

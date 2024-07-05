@@ -19,13 +19,15 @@ package com.lightstreamer.kafka.mapping.selectors;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
+import java.util.List;
+
 public interface ValueSelectorSupplier<V> extends SelectorSupplier<ValueSelector<V>> {
 
-    ValueSelector<V> newSelector(String name, String expression);
+    static final String ROOT_TOKEN = "VALUE";
 
     Deserializer<V> deseralizer();
 
-    default String expectedRoot() {
-        return "VALUE";
+    static List<String> rootTokens() {
+        return List.of(ROOT_TOKEN);
     }
 }

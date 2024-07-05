@@ -17,11 +17,12 @@
 
 package com.lightstreamer.kafka.mapping.selectors;
 
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.utils.Either;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -48,10 +49,79 @@ public interface Parsers {
         String asText(String defaultStr);
     }
 
+    public static class SimpleNode implements Node<SimpleNode> {
+
+        private final Object value;
+
+        public SimpleNode(Object value) {
+            this.value = value;
+        }
+
+        @Override
+        public boolean has(String propertyname) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'has'");
+        }
+
+        @Override
+        public Node<SimpleNode> get(String propertyName) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'get'");
+        }
+
+        @Override
+        public boolean isArray() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'isArray'");
+        }
+
+        @Override
+        public int size() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'size'");
+        }
+
+        @Override
+        public Node<SimpleNode> get(int index) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'get'");
+        }
+
+        @Override
+        public boolean isNull() {
+            return this.value == null;
+        }
+
+        @Override
+        public boolean isScalar() {
+            return true;
+        }
+
+        @Override
+        public String asText(String defaultStr) {
+            return Objects.toString(value, defaultStr);
+        }
+    }
+
     public interface NodeEvaluator<T extends Node<T>> {
         String name();
 
         Node<T> eval(Node<T> node) throws ValueException;
+
+        static <T extends Node<T>> NodeEvaluator<T> identity(String name) {
+            return new NodeEvaluator<T>() {
+
+                @Override
+                public String name() {
+                    return name;
+                }
+
+                @Override
+                public Node<T> eval(Node<T> node) throws ValueException {
+                    return node;
+                }
+            };
+        }
     }
 
     public static final class LinkedNodeEvaluator<T extends Node<T>> {
@@ -122,9 +192,56 @@ public interface Parsers {
         }
     }
 
-    public class SelectorExpressionParser<T extends Node<T>> {
+    static final class ParsingContext {
 
-        record ParsingContext(String name, String expression, String expectedRoot) {}
+        private final String name;
+        private final String expression;
+        private final Constant expectedRoot;
+
+        private final String[] tokens;
+        private int tokenIndex = 0;
+
+        ParsingContext(String name, String expression, Constant expectedRoot) {
+            this.name = name;
+            this.expression = expression;
+            this.expectedRoot = expectedRoot;
+            tokens = expression.splitWithDelimiters("\\.", 0);
+        }
+
+        String name() {
+            return name;
+        }
+
+        String expression() {
+            return expression;
+        }
+
+        Constant expectedRoot() {
+            return expectedRoot;
+        }
+
+        void matchRoot() {
+            if (!(hasNext() && next().equals(expectedRoot.toString()))) {
+                throw ExpressionException.expectedRootToken(name, expectedRoot.toString());
+            }
+        }
+
+        boolean hasNext() {
+            return tokenIndex < tokens.length;
+        }
+
+        boolean hasTrailingDelimiters() {
+            return tokens[tokens.length - 1].equals(".");
+        }
+
+        String next() {
+            String currentToken = tokens[tokenIndex];
+            tokenIndex += 2;
+            return currentToken;
+        }
+    }
+
+    public class SelectorExpressionParser<T extends Node<T>> {
 
         private static Pattern INDEXES = Pattern.compile("\\[(?:'([^']*)'|(\\d+))\\]");
 
@@ -136,7 +253,7 @@ public interface Parsers {
             while (matcher.find()) {
                 int currentStart = matcher.start();
                 if (currentStart != previousEnd) {
-                    throw ExpressionException.throwInvalidIndexedExpression(
+                    throw ExpressionException.invalidIndexedExpression(
                             ctx.name(), ctx.expression());
                 }
                 previousEnd = matcher.end();
@@ -149,8 +266,7 @@ public interface Parsers {
                 indexes.add(gk);
             }
             if (previousEnd < indexedExpression.length()) {
-                throw ExpressionException.throwInvalidIndexedExpression(
-                        ctx.name(), ctx.expression());
+                throw ExpressionException.invalidIndexedExpression(ctx.name(), ctx.expression());
             }
             return indexes;
         }
@@ -165,45 +281,28 @@ public interface Parsers {
             this.arrayEvaluatorFactory = arrayEvaluator;
         }
 
-        public LinkedNodeEvaluator<T> parse(String name, String expression, String expectedRoot)
+        public LinkedNodeEvaluator<T> parse(String name, String expression, Constant expectedRoot)
                 throws ExpressionException {
             ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
-            try (Scanner scanner = new Scanner(expression).useDelimiter("\\.")) {
-                LinkedNodeEvaluator<T> root = parseRoot(scanner, ctx);
-                return parseTokens(root, scanner, ctx);
+            if (ctx.hasTrailingDelimiters()) {
+                throw ExpressionException.unexpectedTrailingDots(name, expression);
             }
+            LinkedNodeEvaluator<T> root = parseRoot(ctx);
+            return parseTokens(root, ctx);
         }
 
-        private LinkedNodeEvaluator<T> parseRoot(Scanner scanner, ParsingContext ctx) {
-            if (!scanner.hasNext()) {
-                throw ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
-            }
-            if (!ctx.expectedRoot().equals(scanner.next())) {
-                throw ExpressionException.throwExpectedRootToken(ctx.name(), ctx.expectedRoot());
-            }
-            NodeEvaluator<T> rootEvaluator =
-                    new NodeEvaluator<>() {
-
-                        @Override
-                        public String name() {
-                            return "root";
-                        }
-
-                        @Override
-                        public Node<T> eval(Node<T> node) throws ValueException {
-                            return node;
-                        }
-                    };
-            return new LinkedNodeEvaluator<>(rootEvaluator);
+        private LinkedNodeEvaluator<T> parseRoot(ParsingContext ctx) {
+            ctx.matchRoot();
+            return new LinkedNodeEvaluator<T>(NodeEvaluator.identity("root"));
         }
 
         private LinkedNodeEvaluator<T> parseTokens(
-                LinkedNodeEvaluator<T> head, Scanner scanner, ParsingContext ctx) {
+                LinkedNodeEvaluator<T> head, ParsingContext ctx) {
             LinkedNodeEvaluator<T> current = head;
-            while (scanner.hasNext()) {
-                String token = scanner.next();
+            while (ctx.hasNext()) {
+                String token = ctx.next();
                 if (token.isBlank()) {
-                    throw ExpressionException.blankToken(ctx.name(), ctx.expression());
+                    throw ExpressionException.missingToken(ctx.name(), ctx.expression());
                 }
                 int lbracket = token.indexOf('[');
                 NodeEvaluator<T> node;
@@ -211,7 +310,7 @@ public interface Parsers {
                     String indexedExpression = token.substring(lbracket);
                     List<GeneralizedKey> indexes = parseIndexes(ctx, indexedExpression);
                     if (indexes.isEmpty()) {
-                        throw ExpressionException.throwInvalidIndexedExpression(
+                        throw ExpressionException.invalidIndexedExpression(
                                 ctx.name(), ctx.expression());
                     }
                     String field = token.substring(0, lbracket);

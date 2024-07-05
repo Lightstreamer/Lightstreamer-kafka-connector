@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord.KafkaSinkRecord;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 
@@ -141,25 +142,20 @@ public class ConnectSelectorsSuppliers {
 
         @Override
         public ConnectKeySelector newSelector(String name, String expression) {
-            return new ConnectKeySelectorImpl(name, expression, expectedRoot());
+            return new ConnectKeySelectorImpl(name, expression);
         }
 
         @Override
         public Deserializer<Object> deseralizer() {
             throw new UnsupportedOperationException();
         }
-
-        public boolean maySupply(String expression) {
-            return expression.equals(expectedRoot())
-                    || ConnectKeySelectorSupplier.super.maySupply(expression);
-        }
     }
 
     private static class ConnectKeySelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectKeySelector {
 
-        ConnectKeySelectorImpl(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+        ConnectKeySelectorImpl(String name, String expression) {
+            super(name, expression, Constant.KEY);
         }
 
         @Override
@@ -176,43 +172,38 @@ public class ConnectSelectorsSuppliers {
 
         @Override
         public ConnectValueSelector newSelector(String name, String expression) {
-            return new ConnectValueSelectorImpl(name, expression, expectedRoot());
+            return new ConnectValueSelectorImpl(name, expression);
         }
 
         @Override
         public Deserializer<Object> deseralizer() {
             throw new UnsupportedOperationException();
         }
-
-        @Override
-        public boolean maySupply(String expression) {
-            return expression.equals(expectedRoot())
-                    || ConnectValueSelectorSupplier.super.maySupply(expression);
-        }
     }
 
     private static class ConnectValueSelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectValueSelector {
 
-        ConnectValueSelectorImpl(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+        ConnectValueSelectorImpl(String name, String expression) {
+            super(name, expression, Constant.VALUE);
         }
 
         @Override
         public Value extract(KafkaRecord<?, Object> record) {
-            KafkaRecord.KafkaSinkRecord sinkRecord = (KafkaSinkRecord) record;
-            SchemaAndValueNode node =
-                    new SchemaAndValueNode(
-                            new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
-            return super.eval(node);
+            return eval(asNode((KafkaSinkRecord) record));
+        }
+
+        private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+            return new SchemaAndValueNode(
+                    new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
         }
     }
 
-    public static ConnectKeySelectorSupplier keySelectorSupplier() {
+    public static ConnectKeySelectorSupplier keySelectorSupplier(boolean useStructuredData) {
         return new ConnectKeySelectorSupplierImpl();
     }
 
-    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
+    public static ConnectValueSelectorSupplier valueSelectorSupplier(boolean usStructuredData) {
         return new ConnectValueSelectorSupplierImpl();
     }
 }

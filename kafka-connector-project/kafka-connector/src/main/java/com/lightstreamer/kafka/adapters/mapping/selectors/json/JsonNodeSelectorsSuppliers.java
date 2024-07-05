@@ -23,6 +23,7 @@ import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
@@ -91,7 +92,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public KeySelector<JsonNode> newSelector(String name, String expression) {
-            return new JsonNodeKeySelector(name, expression, expectedRoot());
+            return new JsonNodeKeySelector(name, expression);
         }
 
         @Override
@@ -103,8 +104,8 @@ public class JsonNodeSelectorsSuppliers {
     private static final class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
             implements KeySelector<JsonNode> {
 
-        JsonNodeKeySelector(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+        JsonNodeKeySelector(String name, String expression) {
+            super(name, expression, Constant.KEY);
         }
 
         @Override
@@ -124,7 +125,7 @@ public class JsonNodeSelectorsSuppliers {
 
         @Override
         public ValueSelector<JsonNode> newSelector(String name, String expression) {
-            return new JsonNodeValueSelector(name, expression, expectedRoot());
+            return new JsonNodeValueSelector(name, expression);
         }
 
         @Override
@@ -136,8 +137,8 @@ public class JsonNodeSelectorsSuppliers {
     private static final class JsonNodeValueSelector extends StructuredBaseSelector<JsonNodeNode>
             implements ValueSelector<JsonNode> {
 
-        JsonNodeValueSelector(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+        JsonNodeValueSelector(String name, String expression) {
+            super(name, expression, Constant.VALUE);
         }
 
         @Override

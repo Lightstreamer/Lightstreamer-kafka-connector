@@ -80,11 +80,12 @@ public class ConnectSelectorsSuppliersTest {
                     .build();
 
     static ConnectValueSelector valueSelector(String expression) {
-        return ConnectSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
+        return ConnectSelectorsSuppliers.valueSelectorSupplier(false)
+                .newSelector("name", expression);
     }
 
     static ConnectKeySelector keySelector(String expression) {
-        return ConnectSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
+        return ConnectSelectorsSuppliers.keySelectorSupplier(false).newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -125,6 +126,7 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                        VALUE,                        The expression [VALUE] must evaluate to a non-complex object
                         VALUE.no_attrib,              Field [no_attrib] not found
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
@@ -186,6 +188,7 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,                 EXPECTED_ERROR_MESSAGE
+                        KEY,                        The expression [KEY] must evaluate to a non-complex object
                         KEY.no_attrib,              Field [no_attrib] not found
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
@@ -216,14 +219,13 @@ public class ConnectSelectorsSuppliersTest {
                         EXPRESSION,          EXPECTED_ERROR_MESSAGE
                         '',                  Expected the root token [VALUE] while evaluating [name]
                         invalidValue,        Expected the root token [VALUE] while evaluating [name]
-                        VALUE,               Found the invalid expression [VALUE] while evaluating [name]
-                        VALUE.,              Found the invalid expression [VALUE.] while evaluating [name]
-                        VALUE..,             Found the invalid expression [VALUE..] with missing tokens while evaluating [name]
+                        VALUE..,             Found unexpected trailing dot(s) in the expression [VALUE..] while evaluating [name]
+                        VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                        VALUE.attrib[a].,    Found the invalid indexed expression [VALUE.attrib[a].] while evaluating [name]
+                        VALUE.attrib[a].,    Found unexpected trailing dot(s) in the expression [VALUE.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExpressionException ee =
@@ -238,15 +240,14 @@ public class ConnectSelectorsSuppliersTest {
                     """
                         EXPRESSION,        EXPECTED_ERROR_MESSAGE
                         '',                Expected the root token [KEY] while evaluating [name]
-                        invalidValue,      Expected the root token [KEY] while evaluating [name]
-                        KEY,               Found the invalid expression [KEY] while evaluating [name]
-                        KEY.,              Found the invalid expression [KEY.] while evaluating [name]
-                        KEY..,             Found the invalid expression [KEY..] with missing tokens while evaluating [name]
+                        invalidKey,        Expected the root token [KEY] while evaluating [name]
+                        KEY..,             Found unexpected trailing dot(s) in the expression [KEY..] while evaluating [name]
+                        KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                        KEY.attrib[a].,    Found the invalid indexed expression [KEY.attrib[a].] while evaluating [name]
+                        KEY.attrib[a].,    Found unexpected trailing dot(s) in the expression [KEY.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExpressionException ee =

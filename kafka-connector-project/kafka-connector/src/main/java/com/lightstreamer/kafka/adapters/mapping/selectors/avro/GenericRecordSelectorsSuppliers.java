@@ -22,6 +22,7 @@ import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 import com.lightstreamer.kafka.mapping.selectors.ValueException;
@@ -184,7 +185,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public KeySelector<GenericRecord> newSelector(String name, String expression) {
-            return new GenericRecordKeySelector(name, expression, expectedRoot());
+            return new GenericRecordKeySelector(name, expression);
         }
 
         @Override
@@ -195,8 +196,9 @@ public class GenericRecordSelectorsSuppliers {
 
     private static final class GenericRecordKeySelector extends StructuredBaseSelector<AvroNode>
             implements KeySelector<GenericRecord> {
-        GenericRecordKeySelector(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+
+        GenericRecordKeySelector(String name, String expression) {
+            super(name, expression, Constant.KEY);
         }
 
         @Override
@@ -217,7 +219,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public ValueSelector<GenericRecord> newSelector(String name, String expression) {
-            return new GenericRecordValueSelector(name, expression, expectedRoot());
+            return new GenericRecordValueSelector(name, expression);
         }
 
         @Override
@@ -229,8 +231,8 @@ public class GenericRecordSelectorsSuppliers {
     private static final class GenericRecordValueSelector extends StructuredBaseSelector<AvroNode>
             implements ValueSelector<GenericRecord> {
 
-        GenericRecordValueSelector(String name, String expression, String expectedRoot) {
-            super(name, expression, expectedRoot);
+        GenericRecordValueSelector(String name, String expression) {
+            super(name, expression, Constant.VALUE);
         }
 
         @Override

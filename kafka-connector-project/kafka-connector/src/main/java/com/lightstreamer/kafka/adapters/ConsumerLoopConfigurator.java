@@ -23,7 +23,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.string.StringSelectorSuppliers;
 import com.lightstreamer.kafka.config.ConfigException;
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.mapping.Fields;
@@ -142,7 +141,6 @@ public class ConsumerLoopConfigurator {
         return switch (evaluatorType) {
             case AVRO -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
-            case STRING -> StringSelectorSuppliers.keySelectorSupplier();
             default -> OthersSelectorSuppliers.keySelectorSupplier(evaluatorType);
         };
     }
@@ -152,7 +150,6 @@ public class ConsumerLoopConfigurator {
         return switch (evaluatorType) {
             case AVRO -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
             case JSON -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
-            case STRING -> StringSelectorSuppliers.valueSelectorSupplier();
             default -> OthersSelectorSuppliers.valueSelectorSupplier(evaluatorType);
         };
     }

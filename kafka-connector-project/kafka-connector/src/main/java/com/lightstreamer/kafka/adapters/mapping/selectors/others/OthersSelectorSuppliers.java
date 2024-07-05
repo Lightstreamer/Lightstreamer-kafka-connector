@@ -18,12 +18,10 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.mapping.selectors.BaseSelector;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.mapping.selectors.GeneralSelectorSupplier;
 import com.lightstreamer.kafka.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.Value;
+import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
@@ -37,10 +35,10 @@ import org.apache.kafka.common.serialization.FloatDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.ShortDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.UUIDDeserializer;
 
 import java.util.EnumMap;
-import java.util.Objects;
 
 public class OthersSelectorSuppliers {
 
@@ -48,6 +46,8 @@ public class OthersSelectorSuppliers {
             new EnumMap<>(EvaluatorType.class);
 
     static {
+        DESERIALIAZERS.put(EvaluatorType.STRING, new StringDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
         DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
         DESERIALIAZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
         DESERIALIAZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
@@ -60,96 +60,60 @@ public class OthersSelectorSuppliers {
         DESERIALIAZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> ValueSelectorSupplier<T> valueSelectorSupplier(EvaluatorType type) {
-        return (ValueSelectorSupplier<T>) new OthersValueSelectorSupplier(type);
+    public static ValueSelectorSupplier<?> valueSelectorSupplier(EvaluatorType type) {
+        return new OthersValueSelectorSupplier(type);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> KeySelectorSupplier<T> keySelectorSupplier(EvaluatorType type) {
-        return (KeySelectorSupplier<T>) new OthersKeySelectorSupplier(type);
+    public static KeySelectorSupplier<?> keySelectorSupplier(EvaluatorType type) {
+        return new OthersKeySelectorSupplier(type);
     }
 
-    private static class OthersKeySelectorSupplier implements KeySelectorSupplier<Object> {
+    private static class BaseOthersSelectorSupplier {
+        private final Deserializer<?> deseralizer;
+        private final GeneralSelectorSupplier generalSelectorSupplier;
 
-        private Deserializer<?> deseralizer;
-
-        OthersKeySelectorSupplier(EvaluatorType type) {
+        BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
             this.deseralizer = DESERIALIAZERS.get(type);
+            this.generalSelectorSupplier = new GeneralSelectorSupplier(constant);
         }
 
-        @Override
-        public boolean maySupply(String expression) {
-            return expectedRoot().equals(expression);
+        public KeySelector<Object> newKeySelector(String name, String expression) {
+            return generalSelectorSupplier.newKeySelectorSelector(name, expression);
+        }
+
+        public ValueSelector<Object> newValueSelector(String name, String expression) {
+            return generalSelectorSupplier.newValueSelectorSelector(name, expression);
+        }
+
+        @SuppressWarnings("unchecked")
+        public Deserializer<Object> deseralizer() {
+            return (Deserializer<Object>) deseralizer;
+        }
+    }
+
+    private static class OthersKeySelectorSupplier extends BaseOthersSelectorSupplier
+            implements KeySelectorSupplier<Object> {
+
+        OthersKeySelectorSupplier(EvaluatorType type) {
+            super(type, Constant.KEY);
         }
 
         @Override
         public KeySelector<Object> newSelector(String name, String expression) {
-            if (!maySupply(expression)) {
-                throw ExpressionException.throwExpectedRootToken(name, expectedRoot());
-            }
-            return new OthersKeySelector(name, expression);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public Deserializer<Object> deseralizer() {
-            return (Deserializer<Object>) deseralizer;
+            return newKeySelector(name, expression);
         }
     }
 
-    private static final class OthersKeySelector extends BaseSelector
-            implements KeySelector<Object> {
-
-        private OthersKeySelector(String name, String expression) {
-            super(name, expression);
-        }
-
-        @Override
-        public Value extract(KafkaRecord<Object, ?> record) {
-            String text = Objects.toString(record.key(), null);
-            return Value.of(name(), text);
-        }
-    }
-
-    private static class OthersValueSelectorSupplier implements ValueSelectorSupplier<Object> {
-
-        private Deserializer<?> deseralizer;
+    private static class OthersValueSelectorSupplier extends BaseOthersSelectorSupplier
+            implements ValueSelectorSupplier<Object> {
 
         OthersValueSelectorSupplier(EvaluatorType type) {
-            this.deseralizer = DESERIALIAZERS.get(type);
-        }
-
-        @Override
-        public boolean maySupply(String expression) {
-            return expression.equals(expectedRoot());
+            super(type, Constant.VALUE);
         }
 
         @Override
         public ValueSelector<Object> newSelector(String name, String expression) {
-            if (!maySupply(expression)) {
-                throw ExpressionException.throwExpectedRootToken(name, expectedRoot());
-            }
-            return new OthersValueSelector(name, expression);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public Deserializer<Object> deseralizer() {
-            return (Deserializer<Object>) deseralizer;
-        }
-    }
-
-    private static class OthersValueSelector extends BaseSelector implements ValueSelector<Object> {
-
-        private OthersValueSelector(String name, String expression) {
-            super(name, expression);
-        }
-
-        @Override
-        public Value extract(KafkaRecord<?, Object> record) {
-            String text = Objects.toString(record.value(), null);
-            return Value.of(name(), text);
+            return newValueSelector(name, expression);
         }
     }
 }

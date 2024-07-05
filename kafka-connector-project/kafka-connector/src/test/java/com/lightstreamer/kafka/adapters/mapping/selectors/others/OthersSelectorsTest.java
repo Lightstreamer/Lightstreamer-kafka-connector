@@ -25,6 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.INTEGER;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.SHORT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,20 +41,12 @@ import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes.BooleanSerde;
-import org.apache.kafka.common.serialization.Serdes.ByteArraySerde;
-import org.apache.kafka.common.serialization.Serdes.ByteBufferSerde;
-import org.apache.kafka.common.serialization.Serdes.BytesSerde;
-import org.apache.kafka.common.serialization.Serdes.DoubleSerde;
-import org.apache.kafka.common.serialization.Serdes.FloatSerde;
-import org.apache.kafka.common.serialization.Serdes.IntegerSerde;
-import org.apache.kafka.common.serialization.Serdes.LongSerde;
-import org.apache.kafka.common.serialization.Serdes.ShortSerde;
-import org.apache.kafka.common.serialization.Serdes.UUIDSerde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.ByteBuffer;
@@ -80,22 +73,23 @@ public class OthersSelectorsTest {
 
     static Stream<Arguments> recordArgs() {
         return Stream.of(
-                arguments(INTEGER, new IntegerSerde(), 123482),
-                arguments(LONG, new LongSerde(), Long.MAX_VALUE),
-                arguments(BOOLEAN, new BooleanSerde(), false),
-                arguments(BOOLEAN, new BooleanSerde(), true),
-                arguments(SHORT, new ShortSerde(), Short.MAX_VALUE),
-                arguments(FLOAT, new FloatSerde(), 1.23f),
-                arguments(DOUBLE, new DoubleSerde(), -121.23d),
-                arguments(UUID, new UUIDSerde(), new UUID(4, 5)),
-                arguments(BYTES, new BytesSerde(), new Bytes(new byte[] {-1, 4, 23, 56, 87})),
+                arguments(STRING, Serdes.String(), "alex"),
+                arguments(INTEGER, Serdes.Integer(), 123482),
+                arguments(LONG, Serdes.Long(), Long.MAX_VALUE),
+                arguments(BOOLEAN, Serdes.Boolean(), false),
+                arguments(BOOLEAN, Serdes.Boolean(), true),
+                arguments(SHORT, Serdes.Short(), Short.MAX_VALUE),
+                arguments(FLOAT, Serdes.Float(), 1.23f),
+                arguments(DOUBLE, Serdes.Double(), -121.23d),
+                arguments(UUID, Serdes.UUID(), new UUID(4, 5)),
+                arguments(BYTES, Serdes.Bytes(), new Bytes(new byte[] {-1, 4, 23, 56, 87})),
                 arguments(
                         EvaluatorType.BYTE_ARRAY,
-                        new ByteArraySerde(),
+                        Serdes.ByteArray(),
                         new byte[] {-1, 4, 23, 56, 87}),
                 arguments(
                         EvaluatorType.BYTE_BUFFER,
-                        new ByteBufferSerde(),
+                        Serdes.ByteBuffer(),
                         ByteBuffer.wrap(new byte[] {54, -12, 3})));
     }
 
@@ -143,26 +137,35 @@ public class OthersSelectorsTest {
         assertThat(text).isEqualTo(String.valueOf(data));
     }
 
-    @Test
-    public void shouldNotCreate() {
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
+                        invalidKey,          Expected the root token [KEY] while evaluating [name]
+                        invalidKey.,         Expected the root token [KEY] while evaluating [name]
+                        '',                  Expected the root token [KEY] while evaluating [name]
+                    """)
+    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExpressionException ee1 =
-                assertThrows(ExpressionException.class, () -> keySelector(SHORT, "invalidKey"));
-        assertThat(ee1.getMessage())
-                .isEqualTo("Expected the root token [KEY] while evaluating [name]");
+                assertThrows(ExpressionException.class, () -> keySelector(SHORT, expression));
+        assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
+    }
 
-        ExpressionException ee2 =
-                assertThrows(ExpressionException.class, () -> keySelector(SHORT, ""));
-        assertThat(ee2.getMessage())
-                .isEqualTo("Expected the root token [KEY] while evaluating [name]");
-
-        ExpressionException ee3 =
-                assertThrows(ExpressionException.class, () -> valueSelector(SHORT, "invalidValue"));
-        assertThat(ee3.getMessage())
-                .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
-
-        ExpressionException ee4 =
-                assertThrows(ExpressionException.class, () -> valueSelector(SHORT, ""));
-        assertThat(ee4.getMessage())
-                .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
+                        invalidValue,        Expected the root token [VALUE] while evaluating [name]
+                        invalidValue.,       Expected the root token [VALUE] while evaluating [name]
+                        '',                  Expected the root token [VALUE] while evaluating [name]
+                    """)
+    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+        ExpressionException ee1 =
+                assertThrows(ExpressionException.class, () -> valueSelector(SHORT, expression));
+        assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }
