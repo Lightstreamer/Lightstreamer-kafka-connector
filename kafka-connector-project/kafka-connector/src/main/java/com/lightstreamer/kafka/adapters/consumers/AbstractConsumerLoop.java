@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.Loop;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.mapping.Items;

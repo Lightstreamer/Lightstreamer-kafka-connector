@@ -147,20 +147,14 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
                         .formatted(key, type));
     }
 
-    public final Map<String, String> getValues(String configKey, boolean remap) {
+    public final Map<String, String> getValues(String configKey) {
         ConfParameter param = configSpec.getParameter(configKey);
         if (param.multiple()) {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {
-                if (remap) {
-                    Optional<String> infix = ConfigsSpec.extractInfix(param, e.getKey());
-                    if (infix.isPresent()) {
-                        newMap.put(infix.get(), e.getValue());
-                    }
-                } else {
-                    if (e.getKey().startsWith(configKey)) {
-                        newMap.put(e.getKey(), e.getValue());
-                    }
+                Optional<String> infix = ConfigsSpec.extractInfix(param, e.getKey());
+                if (infix.isPresent()) {
+                    newMap.put(infix.get(), e.getValue());
                 }
             }
             return newMap;
@@ -170,7 +164,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public final <T> List<T> getAsList(
             String configKey, Function<? super Entry<String, String>, T> conv) {
-        Map<String, String> values = getValues(configKey, true);
+        Map<String, String> values = getValues(configKey);
         return values.entrySet().stream().map(conv).toList();
     }
 

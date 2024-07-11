@@ -22,6 +22,7 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
+import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
@@ -30,9 +31,13 @@ import com.lightstreamer.kafka.mapping.RecordMapper;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,14 +56,17 @@ public class StreamingDataAdapter implements DataProvider {
         void update(Collection<SinkRecord> records);
     }
 
+    private final ValuesExtractor<Object, Object> fieldsExtractor;
+    private final ItemTemplates<Object, Object> itemTemplates;
+    private final RecordErrorHandlingStrategy errorHandlingStrategy;
+    private final ErrantRecordReporter reporter;
+
     protected final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
             new ConcurrentHashMap<>();
     private volatile ItemEventListener listener;
     private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
     private final RecordMapper<Object, Object> recordMapper;
-    private final ValuesExtractor<Object, Object> fieldsExtractor;
-    private final ItemTemplates<Object, Object> itemTemplates;
 
     private volatile DownstreamUpdater updater = FAKE_UPDATER;
 
@@ -69,7 +77,9 @@ public class StreamingDataAdapter implements DataProvider {
 
     StreamingDataAdapter(
             ItemTemplates<Object, Object> itemTemplates,
-            ValuesExtractor<Object, Object> fieldsExtractor) {
+            ValuesExtractor<Object, Object> fieldsExtractor,
+            SinkTaskContext context,
+            RecordErrorHandlingStrategy errorHandlingStrategy) {
         this.itemTemplates = itemTemplates;
         this.fieldsExtractor = fieldsExtractor;
         this.recordMapper =
@@ -77,6 +87,24 @@ public class StreamingDataAdapter implements DataProvider {
                         .withExtractor(itemTemplates.extractors())
                         .withExtractor(fieldsExtractor)
                         .build();
+
+        this.errorHandlingStrategy = errorHandlingStrategy;
+        this.reporter = errantRecordReporter(context);
+    }
+
+    ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
+        try {
+            // may be null if DLQ not enabled
+            ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
+            if (errantRecordReporter != null) {
+                logger.info("Errant record reporter not configured.");
+            }
+            return errantRecordReporter;
+        } catch (NoClassDefFoundError | NoSuchMethodError e) {
+            logger.warn(
+                    "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
+            return null;
+        }
     }
 
     @Override
@@ -135,26 +163,56 @@ public class StreamingDataAdapter implements DataProvider {
 
     private void update(Collection<SinkRecord> records) {
         for (SinkRecord sinkRecord : records) {
-            // logger.debug("Mapping incoming Kafka record");
-            logger.info("Mapping incoming Kafka record");
-            // logger.trace("Kafka record: {}", sinkRecord.toString());
-            logger.info("Kafka record: {}", sinkRecord.toString());
-            MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
+            try {
+                updateRecord(sinkRecord);
+            } catch (ValueException ve) {
+                handleValueException(sinkRecord, ve);
+            }
+        }
+    }
 
-            Set<SubscribedItem> routable =
-                    itemTemplates.routes(mappedRecord, subscribedItems.values());
-
-            logger.info("Routing record to {} items", routable.size());
-
-            for (SubscribedItem sub : routable) {
-                // logger.debug("Filtering updates");
-                logger.info("Filtering updates");
-                Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
-                if (listener != null) {
-                    // logger.debug("Sending updates: {}", updates);
-                    logger.info("Sending updates: {}", updates);
-                    listener.update(sub.itemHandle().toString(), updates, false);
+    private void handleValueException(SinkRecord sinkRecord, ValueException ve) {
+        logger.warn("Error while extracting record: {}", ve.getMessage());
+        logger.warn("Applying the {} strategy", errorHandlingStrategy);
+        switch (errorHandlingStrategy) {
+            case IGNORE_AND_CONTINUE -> {
+                logger.warn("Ignoring the error and continuing");
+            }
+            case FORWARD_TO_DLQ -> {
+                if (this.reporter != null) {
+                    logger.warn("Forwarding the error to DLQ");
+                    reporter.report(sinkRecord, ve);
+                } else {
+                    logger.warn("Since no DQL has been configured, terminating task");
+                    throw new ConnectException(ve);
                 }
+            }
+            case TERMINATE_TASK -> {
+                logger.error("Terminating task");
+                throw new ConnectException(ve);
+            }
+        }
+    }
+
+    private void updateRecord(SinkRecord sinkRecord) throws ValueException {
+        // logger.debug("Mapping incoming Kafka record");
+        logger.info("Mapping incoming Kafka record");
+        // logger.trace("Kafka record: {}", sinkRecord.toString());
+        logger.info("Kafka record: {}", sinkRecord.toString());
+        MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
+
+        Set<SubscribedItem> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
+
+        logger.info("Routing record to {} items", routable.size());
+
+        for (SubscribedItem sub : routable) {
+            // logger.debug("Filtering updates");
+            logger.info("Filtering updates");
+            Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+            if (listener != null) {
+                // logger.debug("Sending updates: {}", updates);
+                logger.info("Sending updates: {}", updates);
+                listener.update(sub.itemHandle().toString(), updates, false);
             }
         }
     }

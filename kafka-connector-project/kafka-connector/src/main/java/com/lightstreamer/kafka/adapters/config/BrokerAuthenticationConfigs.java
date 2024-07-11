@@ -79,7 +79,7 @@ public class BrokerAuthenticationConfigs {
                         SaslConfigs.SASL_KERBEROS_SERVICE_NAME, config.gssapiKerberosServiceName());
             }
         }
-        return props.properties();
+        return props.unmodifiables();
     }
 
     static String configuredWith(ConnectorConfig config) {

@@ -87,12 +87,6 @@ public class TopicsConfig {
         this.topicConfigurations = List.of(config);
     }
 
-    // private TopicsConfig(ConnectorConfig config) {
-    //     this(
-    //             config.getValues(ConnectorConfig.ITEM_TEMPLATE, false),
-    //             config.getValues(ConnectorConfig.TOPIC_MAPPING, true));
-    // }
-
     private TopicsConfig(Map<String, String> itemTemplates, Map<String, String> topicMappings) {
         this.topicConfigurations = initConfigurations(itemTemplates, topicMappings);
     }

@@ -108,6 +108,6 @@ public class EncryptionConfigs {
                 props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, cfg.keyPassword());
             }
         }
-        return props.properties();
+        return props.unmodifiables();
     }
 }

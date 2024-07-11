@@ -37,10 +37,11 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Properties;
 
-public class ConsumerLoopConfigurator {
+public class ConnectorConfigurator {
 
     public interface ConsumerLoopConfig<K, V> {
 
@@ -59,47 +60,59 @@ public class ConsumerLoopConfigurator {
         RecordErrorHandlingStrategy recordErrorHandlingStrategy();
     }
 
-    private final ConnectorConfig connectorConfig;
+    private static record ConsumerLoopConfigImpl<K, V>(
+            String connectionName,
+            Properties consumerProperties,
+            ItemTemplates<K, V> itemTemplates,
+            ValuesExtractor<K, V> fieldsExtractor,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer,
+            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
+            implements ConsumerLoopConfig<K, V> {}
 
+    private final ConnectorConfig config;
     private final Logger log;
 
-    private ConsumerLoopConfigurator(ConnectorConfig config) {
-        this.connectorConfig = config;
+    public ConnectorConfigurator(Map<String, String> params, File configDir)
+            throws ConfigException {
+        this(ConnectorConfig.newConfig(configDir, params));
+    }
+
+    private ConnectorConfigurator(ConnectorConfig config) {
+        this.config = config;
         this.log = LoggerFactory.getLogger(config.getAdapterName());
     }
 
-    public static ConsumerLoopConfig<?, ?> configure(ConnectorConfig config) {
-        return new ConsumerLoopConfigurator(config).configure();
+    public ConnectorConfig getConfig() {
+        return config;
     }
 
-    private ConsumerLoopConfig<?, ?> configure() throws ConfigException {
+    protected ConsumerLoopConfig<?, ?> configure() throws ConfigException {
         TopicsConfig topicsConfig =
                 TopicsConfig.of(
-                        connectorConfig.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        connectorConfig.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        config.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        config.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         // Process "field.<field-name>=#{...}"
-        Map<String, String> fieldsMapping =
-                connectorConfig.getValues(ConnectorConfig.FIELD_MAPPING, true);
+        Map<String, String> fieldsMapping = config.getValues(ConnectorConfig.FIELD_MAPPING);
 
         try {
             SelectorSuppliers<?, ?> sSuppliers =
                     SelectorSuppliers.of(
-                            mkKeySelectorSupplier(connectorConfig),
-                            mkValueSelectorSupplier(connectorConfig));
+                            mkKeySelectorSupplier(config), mkValueSelectorSupplier(config));
 
-            Properties props = connectorConfig.baseConsumerProps();
+            Properties props = config.baseConsumerProps();
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
             ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers, fieldsMapping);
 
-            return new DefaultConsumerLoopConfig(
-                    connectorConfig.getAdapterName(),
+            return new ConsumerLoopConfigImpl(
+                    config.getAdapterName(),
                     props,
                     itemTemplates,
                     fieldsExtractor,
                     sSuppliers.keySelectorSupplier().deseralizer(),
                     sSuppliers.valueSelectorSupplier().deseralizer(),
-                    connectorConfig.getRecordExtractionErrorHandlingStrategy());
+                    config.getRecordExtractionErrorHandlingStrategy());
         } catch (Exception e) {
             log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
@@ -115,16 +128,6 @@ public class ConsumerLoopConfigurator {
             SelectorSuppliers<K, V> selectorSuppliers, Map<String, String> fieldsMapping) {
         return Fields.fromMapping(fieldsMapping, selectorSuppliers);
     }
-
-    static record DefaultConsumerLoopConfig<K, V>(
-            String connectionName,
-            Properties consumerProperties,
-            ItemTemplates<K, V> itemTemplates,
-            ValuesExtractor<K, V> fieldsExtractor,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer,
-            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
-            implements ConsumerLoopConfig<K, V> {}
 
     private ItemTemplates<?, ?> initItemTemplates(
             SelectorSuppliers<?, ?> selected, TopicsConfig topicsConfig) {

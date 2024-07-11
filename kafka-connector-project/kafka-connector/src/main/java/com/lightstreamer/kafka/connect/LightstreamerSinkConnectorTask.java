@@ -91,7 +91,12 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         ValuesExtractor<Object, Object> fieldsExtractor =
                 Fields.fromMapping(fieldMappings, sSuppliers);
 
-        adapter = new StreamingDataAdapter(templates, fieldsExtractor);
+        adapter =
+                new StreamingDataAdapter(
+                        templates,
+                        fieldsExtractor,
+                        context,
+                        config.getErrRecordErrorHandlingStrategy());
         DataProviderServer dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(adapter);
 
@@ -100,9 +105,11 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
     private Socket startAdapter(Map<String, String> props, DataProviderServer dataProviderServer) {
         try {
-            String host = config.getString(LightstreamerConnectorConfig.LIGHTREAMER_HOST);
-            int port = config.getInt(LightstreamerConnectorConfig.LIGHTREAMER_PORT);
-            Socket socket = new Socket(host, port);
+            String address =
+                    config.getString(
+                            LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS);
+            String[] addressTokens = address.split(":");
+            Socket socket = new Socket(addressTokens[0], Integer.valueOf(addressTokens[1]));
             dataProviderServer.setReplyStream(socket.getOutputStream());
             dataProviderServer.setRequestStream(socket.getInputStream());
             dataProviderServer.start();

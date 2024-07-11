@@ -62,99 +62,6 @@ public class ConfigsSpec {
         }
     }
 
-    static class Options implements Type {
-
-        private Set<String> choiches;
-
-        Options(String... options) {
-            this.choiches = Set.of(options);
-        }
-
-        Options(Set<String> choiches) {
-            this.choiches = Set.copyOf(choiches);
-        }
-
-        public String toString() {
-            return choiches.toString();
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(choiches);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-
-            return obj instanceof Options other && Objects.equals(choiches, other.choiches);
-        }
-
-        @Override
-        public boolean isValid(String param) {
-            return choiches.contains(param);
-        }
-
-        static Options booleans() {
-            return new Options("true", "false");
-        }
-
-        static Options evaluatorTypes() {
-            return new Options(EvaluatorType.names());
-        }
-
-        static Options errorStrategies() {
-            return new Options(RecordErrorHandlingStrategy.names());
-        }
-
-        static Options securityProtocols() {
-            return new Options(SecurityProtocol.names());
-        }
-
-        static Options keystoreTypes() {
-            return new Options(KeystoreType.names());
-        }
-
-        static Options sslProtocols() {
-            return new Options(SslProtocol.names());
-        }
-
-        static Options saslMechanisms() {
-            return new Options(SaslMechanism.names());
-        }
-
-        public static Options consumeEventsFrom() {
-            return new Options(RecordComsumeFrom.names());
-        }
-    }
-
-    static class ListType implements Type {
-
-        private Type type;
-
-        ListType(Type type) {
-            this.type = type;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(type);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-
-            return obj instanceof ListType other && Objects.equals(type, other.type);
-        }
-
-        @Override
-        public boolean isValid(String param) {
-            String[] params = param.split(",");
-            return Arrays.stream(params).allMatch(type::isValid);
-        }
-    }
-
     public enum ConfType implements Type {
         TEXT,
 
@@ -274,8 +181,7 @@ public class ConfigsSpec {
         @Override
         public final boolean isValid(String param) {
             if (embeddedType != null) {
-                boolean valid = embeddedType.isValid(param);
-                return valid;
+                return embeddedType.isValid(param);
             }
             return checkValidity(param);
         }
@@ -286,6 +192,22 @@ public class ConfigsSpec {
     }
 
     public static class DefaultHolder<T> {
+
+        public static <T> DefaultHolder<T> defaultValue(T value) {
+            return new DefaultHolder<>(value);
+        }
+
+        public static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
+            return new DefaultHolder<>(supplier);
+        }
+
+        public static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
+            return new DefaultHolder<>(function);
+        }
+
+        public static <T> DefaultHolder<T> defaultNull() {
+            return new DefaultHolder<>(() -> null);
+        }
 
         Either<Supplier<T>, Function<Map<String, String>, T>> either;
 
@@ -323,25 +245,13 @@ public class ConfigsSpec {
         public T value() {
             return value(Collections.emptyMap());
         }
-
-        public static <T> DefaultHolder<T> defaultValue(T value) {
-            return new DefaultHolder<>(value);
-        }
-
-        public static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
-            return new DefaultHolder<>(supplier);
-        }
-
-        public static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
-            return new DefaultHolder<>(function);
-        }
-
-        public static <T> DefaultHolder<T> defaultNull() {
-            return new DefaultHolder<>(() -> null);
-        }
     }
 
     public static class EnablingKey {
+
+        public static EnablingKey of(String... key) {
+            return new EnablingKey(key);
+        }
 
         private final List<String> keys;
 
@@ -353,23 +263,213 @@ public class ConfigsSpec {
             this.keys = List.copyOf(keys);
         }
 
-        Stream<String> key() {
-            return keys.stream();
-        }
-
-        public static EnablingKey of(String... key) {
-            return new EnablingKey(key);
-        }
-
         public EnablingKey newNameSpaced(String ns) {
             return new EnablingKey(key().map(k -> ns + "." + k).toList());
         }
+
+        Stream<String> key() {
+            return keys.stream();
+        }
+    }
+
+    public static record ConfParameter(
+            String name,
+            boolean required,
+            boolean multiple,
+            String suffix,
+            ConfigsSpec.Type type,
+            boolean mutable,
+            DefaultHolder<String> defaultHolder) {
+
+        public String defaultValue() {
+            return defaultHolder().value();
+        }
+
+        private String fullName() {
+            if (multiple()) {
+                return "%s.<...>%s"
+                        .formatted(
+                                name(), Optional.ofNullable(suffix()).map(s -> "." + s).orElse(""));
+            }
+            return name();
+        }
+
+        void populate(Map<String, String> source, Map<String, String> destination)
+                throws ConfigException {
+            List<String> keys = Collections.singletonList(name());
+            if (multiple()) {
+                keys =
+                        source.keySet().stream()
+                                .filter(
+                                        key -> {
+                                            String[] components = key.split("\\.");
+                                            return components[0].equals(name())
+                                                    && (suffix != null
+                                                            ? components[components.length - 1]
+                                                                    .equals(suffix)
+                                                            : true);
+                                        })
+                                .toList();
+                if (keys.isEmpty() && required()) {
+                    throw new ConfigException(
+                            "Specify at least one parameter [%s]".formatted(fullName()));
+                }
+            }
+
+            for (String key : keys) {
+                if (source.containsKey(key)) {
+                    if (multiple()) {
+                        extractInfix(this, key)
+                                .orElseThrow(
+                                        () ->
+                                                new ConfigException(
+                                                        "Specify a valid parameter [%s]"
+                                                                .formatted(fullName())));
+                    }
+                    String paramValue = source.get(key);
+                    if ((paramValue != null && !type.isValid(paramValue))
+                            || paramValue == null
+                            || paramValue.isBlank()) {
+                        throw new ConfigException(type().formatErrorMessage(key, paramValue));
+                    }
+                    destination.put(key, type.getValue(paramValue));
+                } else if (required()) {
+                    throw new ConfigException(
+                            String.format("Missing required parameter [%s]", key));
+                }
+            }
+        }
+    }
+
+    static class Options implements Type {
+
+        public static Options consumeEventsFrom() {
+            return new Options(RecordComsumeFrom.names());
+        }
+
+        static Options booleans() {
+            return new Options("true", "false");
+        }
+
+        static Options evaluatorTypes() {
+            return new Options(EvaluatorType.names());
+        }
+
+        static Options errorStrategies() {
+            return new Options(RecordErrorHandlingStrategy.names());
+        }
+
+        static Options securityProtocols() {
+            return new Options(SecurityProtocol.names());
+        }
+
+        static Options keystoreTypes() {
+            return new Options(KeystoreType.names());
+        }
+
+        static Options sslProtocols() {
+            return new Options(SslProtocol.names());
+        }
+
+        static Options saslMechanisms() {
+            return new Options(SaslMechanism.names());
+        }
+
+        private Set<String> choiches;
+
+        Options(String... options) {
+            this.choiches = Set.of(options);
+        }
+
+        Options(Set<String> choiches) {
+            this.choiches = Set.copyOf(choiches);
+        }
+
+        public String toString() {
+            return choiches.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(choiches);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof Options other && Objects.equals(choiches, other.choiches);
+        }
+
+        @Override
+        public boolean isValid(String param) {
+            return choiches.contains(param);
+        }
+    }
+
+    static class ListType implements Type {
+
+        private Type type;
+
+        ListType(Type type) {
+            this.type = type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(type);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof ListType other && Objects.equals(type, other.type);
+        }
+
+        @Override
+        public boolean isValid(String param) {
+            String[] params = param.split(",");
+            return Arrays.stream(params).allMatch(type::isValid);
+        }
+    }
+
+    private static record ChildSpec(
+            EnablingKey enablingKey,
+            ConfigsSpec spec,
+            BiFunction<Map<String, String>, String, Boolean> evalStrategy) {}
+
+    public static Optional<String> extractInfix(ConfParameter param, String entry) {
+        final Optional<String> EMPTY = Optional.empty();
+        if (!param.multiple()) {
+            return EMPTY;
+        }
+
+        String prefix = param.name() + ".";
+        if (!entry.startsWith(prefix)) {
+            return EMPTY;
+        }
+
+        int endIndex =
+                Optional.ofNullable(param.suffix())
+                        .map(
+                                suffix ->
+                                        entry.endsWith(suffix)
+                                                ? entry.lastIndexOf("." + suffix)
+                                                : -1)
+                        .orElse(entry.length());
+        if (endIndex < prefix.length()) {
+            return EMPTY;
+        }
+        String infix = entry.substring(prefix.length(), endIndex);
+        if (infix.isBlank()) {
+            return EMPTY;
+        }
+        return Optional.of(infix);
     }
 
     private final Map<String, ConfParameter> paramSpec = new LinkedHashMap<>();
-
     private final List<ChildSpec> specChildren = new ArrayList<>();
-
     private final String name;
 
     public ConfigsSpec(String name) {
@@ -458,11 +558,6 @@ public class ConfigsSpec {
                 && Objects.equals(specChildren, other.specChildren);
     }
 
-    ConfigsSpec add(ConfParameter confParameter) {
-        paramSpec.put(confParameter.name(), confParameter);
-        return this;
-    }
-
     public ConfigsSpec add(
             String name,
             boolean required,
@@ -519,11 +614,6 @@ public class ConfigsSpec {
                         name, true, false, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
-
-    private static record ChildSpec(
-            EnablingKey enablingKey,
-            ConfigsSpec spec,
-            BiFunction<Map<String, String>, String, Boolean> evalStrategy) {}
 
     public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, String enablingKey) {
         return withEnabledChildConfigs(
@@ -584,51 +674,6 @@ public class ConfigsSpec {
                 .toList();
     }
 
-    public static Optional<String> extractInfix(ConfParameter param, String value) {
-        if (!param.multiple()) {
-            return Optional.empty();
-        }
-
-        String infix = "";
-        String prefix = param.name() + ".";
-        boolean startsWith = value.startsWith(prefix);
-        if (!startsWith) {
-            return Optional.empty();
-        }
-
-        infix = value.substring(prefix.length());
-        if (param.suffix() != null) {
-            String suffix = "." + param.suffix();
-            if (!infix.endsWith(suffix)) {
-                return Optional.empty();
-            }
-            infix = infix.substring(0, infix.lastIndexOf(suffix));
-        }
-        return Optional.of(infix);
-    }
-
-    // public static Optional<String> extractPrefix(ConfParameter param, String value) {
-    //     if (!param.multiple()) {
-    //         return Optional.empty();
-    //     }
-
-    //     String prefix = param.name() + ".";
-    //     boolean startsWith = value.startsWith(prefix);
-    //     if (!startsWith) {
-    //         return Optional.empty();
-    //     }
-
-    //     infix = value.substring(prefix.length());
-    //     if (param.suffix() != null) {
-    //         String suffix = "." + param.suffix();
-    //         if (!infix.endsWith(suffix)) {
-    //             return Optional.empty();
-    //         }
-    //         infix = infix.substring(0, infix.lastIndexOf(suffix));
-    //     }
-    //     return Optional.of(infix);
-    // }
-
     public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.
         Map<String, String> parsedValues = new HashMap<>();
@@ -641,7 +686,6 @@ public class ConfigsSpec {
         for (ChildSpec trigger : specChildren) {
             Stream<String> key = trigger.enablingKey.key();
             boolean enabled = key.anyMatch(k -> trigger.evalStrategy().apply(parsedValues, k));
-            // boolean enabled = trigger.evalStrategy().apply(parsedValues, trigger.enablingKey());
             if (enabled) {
                 parsedValues.putAll(trigger.spec().parse(originals));
             }
@@ -649,63 +693,8 @@ public class ConfigsSpec {
         return parsedValues;
     }
 
-    public static record ConfParameter(
-            String name,
-            boolean required,
-            boolean multiple,
-            String suffix,
-            ConfigsSpec.Type type,
-            boolean mutable,
-            DefaultHolder<String> defaultHolder) {
-
-        public String defaultValue() {
-            return defaultHolder().value();
-        }
-
-        void populate(Map<String, String> source, Map<String, String> destination)
-                throws ConfigException {
-            List<String> keys = Collections.singletonList(name());
-            if (multiple()) {
-                keys =
-                        source.keySet().stream()
-                                .filter(
-                                        key -> {
-                                            String[] components = key.split("\\.");
-                                            return components[0].equals(name())
-                                                    && (suffix != null
-                                                            ? components[components.length - 1]
-                                                                    .equals(suffix)
-                                                            : true);
-                                        })
-                                .toList();
-                if (keys.isEmpty() && required()) {
-                    String templateReplacement =
-                            Optional.ofNullable(suffix()).map(s -> "." + s).orElse("");
-                    throw new ConfigException(
-                            String.format(
-                                    "Specify at least one parameter [%s.<...>%s]",
-                                    name, templateReplacement));
-                }
-            }
-
-            for (String key : keys) {
-                if (required()) {
-                    if (!source.containsKey(key)) {
-                        throw new ConfigException(
-                                String.format("Missing required parameter [%s]", key));
-                    }
-                }
-
-                if (source.containsKey(key)) {
-                    String paramValue = source.get(key);
-                    if ((paramValue != null && !type.isValid(paramValue))
-                            || paramValue == null
-                            || paramValue.isBlank()) {
-                        throw new ConfigException(type().formatErrorMessage(key, paramValue));
-                    }
-                    destination.put(key, type.getValue(paramValue));
-                }
-            }
-        }
+    ConfigsSpec add(ConfParameter confParameter) {
+        paramSpec.put(confParameter.name(), confParameter);
+        return this;
     }
 }

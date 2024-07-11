@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.mapping;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.mapping.selectors.Value;
+import com.lightstreamer.kafka.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.mapping.selectors.ValuesContainer;
 import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
@@ -86,10 +87,12 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public MappedRecord map(KafkaRecord<K, V> record) {
-        Set<ValuesContainer> values =
-                extractors.stream().map(s -> s.extractValues(record)).collect(Collectors.toSet());
-        return new DefaultMappedRecord(record.topic(), values);
+    public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
+        return new DefaultMappedRecord(
+                record.topic(),
+                extractors.stream()
+                        .map(ve -> ve.extractValues(record))
+                        .collect(Collectors.toSet()));
     }
 
     @Override

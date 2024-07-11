@@ -92,13 +92,13 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         assertDoesNotThrow(
                 () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams2 =
-                ConnectorConfigProvider.minimalConfigParamsWith(
+                ConnectorConfigProvider.minimalConfigWith(
                         Map.of(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR2"));
         assertDoesNotThrow(
                 () -> connectorDataAdapter2.init(dataAdapterParams2, adapterDir.toFile()));
@@ -117,7 +117,7 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
         TableInfo[] tables = mkTable("CONNECTOR", Mode.DISTINCT);
@@ -132,7 +132,7 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
         TableInfo[] tables = mkTable("OTHER-ADAPTER", Mode.DISTINCT);
@@ -146,7 +146,7 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         dataAdapterParams.put(ConnectorConfig.ENABLE, "false");
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
@@ -166,7 +166,7 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigParams();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
 
         TableInfo[] tables = mkTable("CONNECTOR", Mode.COMMAND);

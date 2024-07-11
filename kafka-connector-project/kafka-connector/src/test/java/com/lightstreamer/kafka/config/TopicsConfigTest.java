@@ -42,8 +42,8 @@ public class TopicsConfigTest {
 
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -88,8 +88,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -133,8 +133,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
@@ -165,8 +165,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, false),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
@@ -198,8 +198,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -221,8 +221,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(udpatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, false),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
@@ -255,8 +255,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
@@ -279,8 +279,8 @@ public class TopicsConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
         TopicsConfig topicConfig =
                 TopicsConfig.of(
-                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE, true),
-                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING, true));
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
 
         List<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(2);
@@ -297,5 +297,29 @@ public class TopicsConfigTest {
         assertThat(itemReference.templateKey()).isNull();
         assertThat(itemReference.templateValue()).isNull();
         assertThat(itemReference).isEqualTo(topicConfiguration2.itemReference());
+    }
+
+    @Test
+    void shouldConfigOneToOneTemplate3() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map..to", "item");
+        ConnectorConfig cgg = ConnectorConfigProvider.minimalWith(updatedConfigs);
+
+        TopicsConfig topicConfig =
+                TopicsConfig.of(
+                        cgg.getValues(ConnectorConfig.ITEM_TEMPLATE),
+                        cgg.getValues(ConnectorConfig.TOPIC_MAPPING));
+
+        List<TopicConfiguration> configurations = topicConfig.configurations();
+        assertThat(configurations).hasSize(1);
+
+        TopicConfiguration topicConfiguration = configurations.get(0);
+        assertThat(topicConfiguration.topic()).isEqualTo("topic");
+
+        ItemReference itemReference = topicConfiguration.itemReference();
+        assertThat(itemReference.isTemplate()).isTrue();
+        assertThat(itemReference.templateKey()).isEqualTo("template1");
+        assertThat(itemReference.templateValue()).isEqualTo("item");
+        assertThat(itemReference.itemName()).isNull();
     }
 }

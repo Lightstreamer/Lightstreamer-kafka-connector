@@ -118,7 +118,7 @@ public class SchemaRegistryConfigs {
         }
 
         if (!cfg.isSchemaRegistryEnabled()) {
-            return props.properties();
+            return props.unmodifiables();
         }
 
         props.setProperty(
@@ -182,6 +182,6 @@ public class SchemaRegistryConfigs {
                                     cfg.schemaRegistryBasicAuthenticationUserName(),
                                     cfg.schemaRegistryBasicAuthenticationPassword()));
         }
-        return props.properties();
+        return props.unmodifiables();
     }
 }

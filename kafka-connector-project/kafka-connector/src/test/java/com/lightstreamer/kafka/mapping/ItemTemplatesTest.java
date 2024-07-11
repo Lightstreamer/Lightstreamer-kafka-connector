@@ -150,7 +150,8 @@ public class ItemTemplatesTest {
                 "item@",
                 "item\\",
                 "item-",
-                "prefix-#{}"
+                "prefix-#{}",
+                "prefix-#{VALUE}"
             })
     public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
         ExpressionException ee =

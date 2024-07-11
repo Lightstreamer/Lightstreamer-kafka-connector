@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;

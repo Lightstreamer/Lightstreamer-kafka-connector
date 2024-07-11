@@ -28,18 +28,9 @@ import java.util.Map;
 
 public class ConnectorConfigProvider {
 
-    private static Path createTempAdapterDir() {
-        try {
-            return Files.createTempDirectory("adapter_dir");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static Map<String, String> minimalConfigParams() {
+    public static Map<String, String> minimalConfig() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        // adapterParams.put(ConnectorConfig.ITEM_TEMPLATE, "item.template1");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put("map.topic.to", "item");
@@ -47,9 +38,8 @@ public class ConnectorConfigProvider {
         return adapterParams;
     }
 
-    public static Map<String, String> minimalConfigParamsWith(
-            Map<String, String> additionalConfigs) {
-        Map<String, String> essentialConfigs = minimalConfigParams();
+    public static Map<String, String> minimalConfigWith(Map<String, String> additionalConfigs) {
+        Map<String, String> essentialConfigs = minimalConfig();
         essentialConfigs.putAll(additionalConfigs);
         return essentialConfigs;
     }
@@ -69,6 +59,14 @@ public class ConnectorConfigProvider {
     public static ConnectorConfig minimalWith(
             String adapterDir, Map<String, String> additionalConfigs) {
         return ConnectorConfig.newConfig(
-                Path.of(adapterDir).toFile(), minimalConfigParamsWith(additionalConfigs));
+                Path.of(adapterDir).toFile(), minimalConfigWith(additionalConfigs));
+    }
+
+    private static Path createTempAdapterDir() {
+        try {
+            return Files.createTempDirectory("adapter_dir");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

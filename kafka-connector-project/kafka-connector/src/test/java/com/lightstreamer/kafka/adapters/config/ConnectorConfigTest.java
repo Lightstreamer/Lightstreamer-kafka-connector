@@ -46,7 +46,6 @@ import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
@@ -56,7 +55,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 public class ConnectorConfigTest {
@@ -275,77 +273,6 @@ public class ConnectorConfigTest {
         assertThat(authenticationEnabled.type()).isEqualTo(ConfType.BOOL);
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                        KEY                      | EXPECTED_INFIX
-                        map.topic.to             | topic
-                        map.topicprefix.topic.to | topicprefix.topic
-                        map.topic                | ''
-                        pam.topic.to             | ''
-                        map.map.my.topic.to.to   | map.my.topic.to
-                        """)
-    public void shouldExtractInfixForMap(String key, String expectedInfix) {
-        ConfigsSpec configSpec = ConnectorConfig.configSpec();
-        Optional<String> infix =
-                ConfigsSpec.extractInfix(
-                        configSpec.getParameter(ConnectorConfig.TOPIC_MAPPING), key);
-        if (!expectedInfix.isBlank()) {
-            assertThat(infix).hasValue(expectedInfix);
-        } else {
-            assertThat(infix).isEmpty();
-        }
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                        KEY                      | EXPECTED_INFIX
-                        field.name               | name
-                        myfield.name             | ''
-                        field.my.name            | my.name
-                        """)
-    public void shouldGetInfixForField(String key, String expectedInfix) {
-        ConfigsSpec configSpec = ConnectorConfig.configSpec();
-        Optional<String> infix =
-                ConfigsSpec.extractInfix(
-                        configSpec.getParameter(ConnectorConfig.FIELD_MAPPING), key);
-        if (!expectedInfix.isBlank()) {
-            assertThat(infix).hasValue(expectedInfix);
-        } else {
-            assertThat(infix).isEmpty();
-        }
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                        KEY                        | EXPECTED_INFIX
-                        item-template.template1    | template1
-                        myitem.template1           | ''
-                        item-template.my.template1 | my.template1
-                        """)
-    public void shouldGetInfixForItemTemplate(String key, String expectedInfix) {
-        ConfigsSpec configSpec = ConnectorConfig.configSpec();
-        Optional<String> infix =
-                ConfigsSpec.extractInfix(
-                        configSpec.getParameter(ConnectorConfig.ITEM_TEMPLATE), key);
-        if (!expectedInfix.isBlank()) {
-            assertThat(infix).hasValue(expectedInfix);
-        } else {
-            assertThat(infix).isEmpty();
-        }
-    }
-
     private Map<String, String> standardParameters() {
         Map<String, String> standardParams = new HashMap<>();
         standardParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
@@ -469,25 +396,21 @@ public class ConnectorConfigTest {
 
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        // assertThat(ce.getMessage())
-        //         .isEqualTo("Specify at least one parameter [item-template.<...>]");
-
-        // params.put("item-template.template1", "");
-        // ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        // assertThat(ce.getMessage())
-        //         .isEqualTo("Specify a valid value for parameter [item-template.template1]");
-
-        // params.put("item-template.template1", "template");
-        // ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
 
-        params.put("map.topic.to", "");
+        params.put("map.to", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [map.<...>.to]");
+        params.remove("map.to");
 
         params.put("map.topic.to", "aTemplate");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
+
+        params.put("field.", "");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [field.<...>]");
+        params.remove("field.");
 
         params.put("field.field1", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
@@ -689,17 +612,12 @@ public class ConnectorConfigTest {
     public void shouldGetValues() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        Map<String, String> topics = config.getValues(ConnectorConfig.TOPIC_MAPPING, true);
+
+        Map<String, String> topics = config.getValues(ConnectorConfig.TOPIC_MAPPING);
         assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
 
-        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE, true);
+        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE);
         assertThat(itemTemplates).containsExactly("template1", "item1", "template2", "item2");
-
-        Map<String, String> noRemappledItemTemplates =
-                config.getValues(ConnectorConfig.ITEM_TEMPLATE, false);
-        assertThat(noRemappledItemTemplates)
-                .containsExactly(
-                        "item-template.template1", "item1", "item-template.template2", "item2");
     }
 
     @Test
@@ -801,6 +719,21 @@ public class ConnectorConfigTest {
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getRecordExtractionErrorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
+    }
+
+    @Test
+    public void shouldFailDueToInvalidErrorStragetyType() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, "invalidType");
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter ["
+                                + ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY
+                                + "]");
     }
 
     @Test

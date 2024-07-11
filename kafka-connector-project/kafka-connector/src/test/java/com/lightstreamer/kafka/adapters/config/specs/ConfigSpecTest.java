@@ -18,13 +18,25 @@
 package com.lightstreamer.kafka.adapters.config.specs;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultNull;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Options;
+import com.lightstreamer.kafka.config.ConfigException;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 public class ConfigSpecTest {
 
@@ -84,5 +96,95 @@ public class ConfigSpecTest {
         assertThat(nameSpaced.required()).isEqualTo(origin.required());
         assertThat(nameSpaced.mutable()).isEqualTo(origin.mutable());
         assertThat(nameSpaced.suffix()).isEqualTo(origin.suffix());
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        CONFIG        | SUFFIX | KEY                        | EXPECTED_INFIX
+                        field         |        | field.name                 | name
+                        field         |        | field.                     | ''
+                        field         |        | field..                    | '.'
+                        field         |        | field.name.                | name.
+                        field         |        | field.field                | field
+                        field         |        | field..field               | .field
+                        field         |        | myfield.name               | ''
+                        field         |        | field.my.name              | my.name
+                        field         |        | field.my.first.name        | my.first.name
+                        map           | to     | map.topic.to               | topic
+                        map           | to     | map...to                   | .
+                        map           | to     | map. . .to                 | ' . '
+                        map           | to     | map.topicprefix.topic.to   | topicprefix.topic
+                        map           | to     | map.topic                  | ''
+                        map           | to     | map.to                     | ''
+                        map           | to     | map.topic.                 | ''
+                        map           | to     | pam.topic.to               | ''
+                        map           | to     | map.map.my.topic.to.to     | map.my.topic.to
+                        item-template |        | item-template.template1    | template1
+                        item-template |        | myitem.template1           | ''
+                        item-template |        | item-template.my.template1 | my.template1
+                        item-template |        | item-template              | ''
+                        item-template |        | item-template.             | ''
+                        """)
+    public void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
+        ConfParameter param =
+                new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
+        Optional<String> infix = ConfigsSpec.extractInfix(param, key);
+        if (!expectedInfix.isBlank()) {
+            assertThat(infix).hasValue(expectedInfix);
+        } else {
+            assertThat(infix).isEmpty();
+        }
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        CONFIG        | SUFFIX | KEY                    | VALUE
+                        field         |        | field.name             | name
+                        field         |        | field..                | name
+                        map           | to     | map.topic.to           | topic
+                        map           | to     | map...to               | topic
+                        item-template |        | item-template.template | my-template
+                        item-template |        | item-template..        | my-template
+                        """)
+    public void shouldPopulateMultipleParam(
+            String config, String suffix, String key, String expectedValue) {
+        ConfParameter param =
+                new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
+        Map<String, String> source = Map.of(key, expectedValue);
+        Map<String, String> dest = new HashMap<>();
+        param.populate(source, dest);
+        assertThat(dest).containsExactly(key, expectedValue);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        CONFIG        | SUFFIX | KEY
+                        field         |        | field
+                        field         |        | field.
+                        map           | to     | map.to
+                        map           | to     | map..to
+                        map           | to     | map. .to
+                        item-template |        | item-template
+                        item-template |        | item-template.
+                        """)
+    public void shouldNotPopulateMultipleParamDueToMissingInfix(
+            String config, String suffix, String key) {
+        ConfParameter param =
+                new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
+        Map<String, String> source = Map.of(key, "value");
+        Map<String, String> dest = new HashMap<>();
+        assertThrows(ConfigException.class, () -> param.populate(source, dest));
     }
 }

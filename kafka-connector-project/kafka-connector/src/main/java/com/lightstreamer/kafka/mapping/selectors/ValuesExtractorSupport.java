@@ -173,7 +173,7 @@ class ValuesExtractorSupport {
         }
 
         @Override
-        public ValuesContainer extractValues(KafkaRecord<K, V> record) {
+        public ValuesContainer extractValues(KafkaRecord<K, V> record) throws ValueException {
             return new DefaultValuesContainer(
                     this,
                     Stream.of(

@@ -22,7 +22,7 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConsumerLoopConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -40,28 +40,25 @@ import javax.annotation.Nonnull;
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
-
     private Loop loop;
-
     private ConsumerLoopConfig<?, ?> loopConfig;
-
     private ConnectorConfig connectorConfig;
-
-    private MetadataListener metadataAdapter;
+    private MetadataListener metadataListener;
 
     public KafkaConnectorDataAdapter() {}
 
     @Override
     @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
-        this.connectorConfig = ConnectorConfig.newConfig(configDir, params);
+        ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
+        this.connectorConfig = configurator.getConfig();
         this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
-        this.metadataAdapter =
+        this.metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
                         connectorConfig.getAdapterName(), connectorConfig.isEnabled());
 
         log.info("Configuring Kafka Connector");
-        loopConfig = ConsumerLoopConfigurator.configure(connectorConfig);
+        loopConfig = configurator.configure();
         log.info("Configuration complete");
     }
 
@@ -71,7 +68,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     }
 
     private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        return new ConsumerLoop<>(config, metadataAdapter, eventListener);
+        return new ConsumerLoop<>(config, metadataListener, eventListener);
     }
 
     private Loop makeLoop(ConsumerLoopConfig<?, ?> config, ItemEventListener eventListener) {
