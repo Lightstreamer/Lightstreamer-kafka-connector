@@ -22,7 +22,6 @@ import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avroKeyJsonValue;
-import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.jsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.string;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
