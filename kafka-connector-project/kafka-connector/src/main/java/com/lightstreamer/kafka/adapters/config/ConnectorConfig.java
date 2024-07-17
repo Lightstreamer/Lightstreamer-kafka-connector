@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
@@ -54,6 +55,8 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.EnablingKey;
 import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
+import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -167,7 +170,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                                             suffix);
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
-                        .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT)
+                        .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
@@ -267,10 +270,14 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private final Properties consumerProps;
+    private final ItemTemplateConfigs itemTemplateConfigs;
+    private final List<TopicMappingConfig> topicMappings;
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
         this.consumerProps = initProps();
+        itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
+        topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -727,5 +734,13 @@ public final class ConnectorConfig extends AbstractConfig {
     public String schemaRegistryBasicAuthenticationPassword() {
         checkSchemaRegistryBasicAuthentication();
         return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
+    }
+
+    public ItemTemplateConfigs getItemTemplateConfigs() {
+        return itemTemplateConfigs;
+    }
+
+    public List<TopicMappingConfig> getTopicMappings() {
+        return topicMappings;
     }
 }

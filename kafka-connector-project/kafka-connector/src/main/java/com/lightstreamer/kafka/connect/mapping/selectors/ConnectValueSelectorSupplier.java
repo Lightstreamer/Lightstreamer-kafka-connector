@@ -19,8 +19,14 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
+import org.apache.kafka.common.serialization.Deserializer;
+
 public interface ConnectValueSelectorSupplier extends ValueSelectorSupplier<Object> {
 
     @Override
     ConnectValueSelector newSelector(String name, String expression);
+
+    public default Deserializer<Object> deseralizer() {
+        throw new UnsupportedOperationException();
+    }
 }

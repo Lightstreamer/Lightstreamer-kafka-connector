@@ -17,119 +17,212 @@
 
 package com.lightstreamer.kafka.config;
 
-import java.util.ArrayList;
+import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator;
+import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator.EvaluatedExpression;
+import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
+import com.lightstreamer.kafka.utils.Either;
+import com.lightstreamer.kafka.utils.Split;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class TopicsConfig {
 
-    public static record TopicConfiguration(String topic, ItemReference itemReference) {}
+    public static class TopicMappingConfig {
+        private final String topic;
+        private final Set<String> mappings;
 
-    public static class ItemReference {
-
-        private String templateKey;
-        private String templateValue;
-        private String itemName;
-
-        ItemReference(String itemTemplateKey, String itemTemplateValue) {
-            this.templateKey = itemTemplateKey;
-            this.templateValue = itemTemplateValue;
+        private TopicMappingConfig(String topic, Set<String> mappings) {
+            check(mappings);
+            if (topic == null || topic.isBlank()) {
+                throw new ConfigException("Topic must be non-empt string");
+            }
+            this.topic = topic;
+            this.mappings = Collections.unmodifiableSet(mappings);
         }
 
-        ItemReference(String itemName) {
-            this.itemName = itemName;
+        public String topic() {
+            return topic;
         }
 
-        public String templateKey() {
-            return templateKey;
+        public Set<String> mappings() {
+            return mappings;
         }
 
-        public String templateValue() {
-            return templateValue;
+        private void check(Set<String> mappings) {
+            for (String mapping : mappings) {
+                if (mapping == null || mapping.isBlank()) {
+                    throw new ConfigException("Topic mappings must be non-empty strings");
+                }
+            }
+        }
+
+        public static TopicMappingConfig fromDelimitedMappings(
+                String topic, String delimitedMappings) {
+            return from(topic, Split.byComma(delimitedMappings));
+        }
+
+        public static TopicMappingConfig from(String topic, String... mapping) {
+            return from(topic, Arrays.asList(mapping));
+        }
+
+        public static List<TopicMappingConfig> from(Map<String, String> configs) {
+            return configs.entrySet().stream()
+                    .map(e -> fromDelimitedMappings(e.getKey(), e.getValue()))
+                    .toList();
+        }
+
+        private static TopicMappingConfig from(String topic, Collection<String> mapping) {
+            return new TopicMappingConfig(topic, new LinkedHashSet<>(mapping));
+        }
+    }
+
+    public static final class ItemTemplateConfigs {
+
+        private static final ItemTemplateConfigs EMPTY = new ItemTemplateConfigs();
+
+        public static ItemTemplateConfigs from(Map<String, String> configs) {
+            return new ItemTemplateConfigs(configs);
+        }
+
+        public static ItemTemplateConfigs empty() {
+            return EMPTY;
+        }
+
+        private final Map<String, EvaluatedExpression> expressions = new HashMap<>();
+
+        private ItemTemplateConfigs() {
+            this(Collections.emptyMap());
+        }
+
+        private ItemTemplateConfigs(Map<String, String> configs) {
+            for (Map.Entry<String, String> entry : configs.entrySet()) {
+                String templateName = entry.getKey();
+                String templateExpression = entry.getValue();
+                try {
+                    EvaluatedExpression result =
+                            ItemExpressionEvaluator.template().eval(templateExpression);
+                    expressions.put(templateName, result);
+                } catch (ExpressionException e) {
+                    String msg =
+                            "Found the invalid expression [%s] while evaluating [%s]: <%s>"
+                                    .formatted(templateExpression, templateName, e.getMessage());
+                    throw new ConfigException(msg);
+                }
+            }
+        }
+
+        public Map<String, EvaluatedExpression> expressions() {
+            return new HashMap<>(expressions);
+        }
+
+        public boolean contains(String templateName) {
+            return expressions.containsKey(templateName);
+        }
+
+        public EvaluatedExpression getExpression(String templateName) {
+            return expressions.get(templateName);
+        }
+    }
+
+    public static final class ItemReference {
+
+        public static ItemReference template(EvaluatedExpression result) {
+            return new ItemReference(result);
+        }
+
+        public static ItemReference name(String itemName) {
+            if (itemName == null || itemName.isBlank()) {
+                throw new ConfigException("Item name must be a non-empty string");
+            }
+            return new ItemReference(itemName);
+        }
+
+        static ItemReference from(String itemRef, ItemTemplateConfigs itemTemplateConfigs) {
+            if (itemRef == null) {
+                throw new IllegalArgumentException("itemRef is null");
+            }
+            if (itemRef.startsWith("item-template.")) {
+                String templateName = itemRef.substring(itemRef.indexOf(".") + 1);
+                if (templateName.isBlank()) {
+                    throw new ConfigException("Item template reference must be a non-empty string");
+                }
+                if (!itemTemplateConfigs.contains(templateName)) {
+                    throw new ConfigException(
+                            "No item template [%s] found".formatted(templateName));
+                }
+                EvaluatedExpression expression = itemTemplateConfigs.getExpression(templateName);
+                return ItemReference.template(expression);
+            }
+            return ItemReference.name(itemRef);
+        }
+
+        private Either<String, EvaluatedExpression> item;
+
+        private ItemReference(EvaluatedExpression result) {
+            item = Either.right(result);
+        }
+
+        private ItemReference(String itemName) {
+            item = Either.left(itemName);
         }
 
         public String itemName() {
-            return itemName;
+            return item.getLeft();
         }
 
         public boolean isTemplate() {
-            return Objects.isNull(itemName);
+            return item.isRight();
+        }
+
+        public EvaluatedExpression template() {
+            return item.getRight();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(templateKey, templateValue, itemName);
+            return Objects.hash(item);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof ItemReference other
-                    && Objects.equals(templateKey, other.templateKey)
-                    && Objects.equals(templateValue, other.templateValue)
-                    && Objects.equals(itemName, other.itemName);
-        }
-
-        public static ItemReference forTemplate(String templateKey, String templateValue) {
-            return new ItemReference(templateKey, templateValue);
-        }
-
-        public static ItemReference forSimpleName(String itemName) {
-            return new ItemReference(itemName);
+            return obj instanceof ItemReference other && Objects.equals(item, other.item);
         }
     }
 
-    private final List<TopicConfiguration> topicConfigurations;
-
-    private TopicsConfig(TopicConfiguration... config) {
-        this.topicConfigurations = List.of(config);
-    }
-
-    private TopicsConfig(Map<String, String> itemTemplates, Map<String, String> topicMappings) {
-        this.topicConfigurations = initConfigurations(itemTemplates, topicMappings);
-    }
-
-    private List<TopicConfiguration> initConfigurations(
-            Map<String, String> itemTemplates, Map<String, String> topicMappings) {
-        List<TopicConfiguration> configs = new ArrayList<>();
-        for (Map.Entry<String, String> topicMapping : topicMappings.entrySet()) {
-            String topic = topicMapping.getKey();
-            String[] itemRefs = topicMapping.getValue().split(",");
-            for (String itemRef : itemRefs) {
-                ItemReference itemReference = null;
-                if (itemRef.startsWith("item-template.")) {
-                    String templateName = itemRef.substring(itemRef.indexOf(".") + 1);
-                    if (!itemTemplates.containsKey(templateName)) {
-                        throw new ConfigException(
-                                "No item template [%s] found".formatted(templateName));
-                    }
-                    String templateValue = itemTemplates.get(templateName);
-                    itemReference = ItemReference.forTemplate(templateName, templateValue);
-                } else {
-                    itemReference = ItemReference.forSimpleName(itemRef);
-                }
-                configs.add(new TopicConfiguration(topic, itemReference));
-            }
-        }
-        return configs.stream().distinct().toList();
-    }
-
-    public List<TopicConfiguration> configurations() {
-        return topicConfigurations;
-    }
-
-    public static TopicsConfig of(TopicConfiguration... config) {
-        return new TopicsConfig(config);
-    }
-
-    // public static TopicsConfig of(ConnectorConfig connectorConfig) {
-    //     return new TopicsConfig(connectorConfig);
-    // }
+    public static record TopicConfiguration(String topic, List<ItemReference> itemReferences) {}
 
     public static TopicsConfig of(
-            Map<String, String> itemTemplates, Map<String, String> topicMappings) {
-        return new TopicsConfig(itemTemplates, topicMappings);
+            ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
+        return new TopicsConfig(itemTemplateConfigs, topicMappingConfigs);
+    }
+
+    private final Set<TopicConfiguration> topicConfigurations;
+
+    private TopicsConfig(
+            ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
+        Set<TopicConfiguration> configs = new HashSet<>();
+        for (TopicMappingConfig topicMapping : topicMappingConfigs) {
+            List<ItemReference> refs =
+                    topicMapping.mappings().stream()
+                            .map(itemRef -> ItemReference.from(itemRef, itemTemplateConfigs))
+                            .toList();
+            configs.add(new TopicConfiguration(topicMapping.topic(), refs));
+        }
+        this.topicConfigurations = Collections.unmodifiableSet(configs);
+    }
+
+    public Set<TopicConfiguration> configurations() {
+        return topicConfigurations;
     }
 }

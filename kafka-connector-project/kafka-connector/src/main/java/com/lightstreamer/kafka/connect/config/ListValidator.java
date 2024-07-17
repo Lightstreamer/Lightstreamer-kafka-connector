@@ -20,12 +20,14 @@ package com.lightstreamer.kafka.connect.config;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public interface ListValidator extends Validator {
+public class ListValidator implements Validator {
 
     @Override
-    default void ensureValid(String name, Object value) throws ConfigException {
+    public final void ensureValid(String name, Object value) throws ConfigException {
         if (value == null) {
             throw new ConfigException(
                     String.format(
@@ -34,21 +36,48 @@ public interface ListValidator extends Validator {
 
         if (!(value instanceof List)) {
             throw new ConfigException(
-                    String.format(
-                            "Invalid value for configuration \"%s\": Must be a string", name));
+                    String.format("Invalid value for configuration \"%s\": Must be a list", name));
         }
 
-        @SuppressWarnings("unchecked")
-        List<String> list = (List<String>) value;
+        List<?> list = (List<?>) value;
         if (list.isEmpty())
             throw new ConfigException(
                     String.format(
                             "Invalid value for configuration \"%s\": Must be a non-empty list",
                             name));
-        for (String element : list) {
-            validateElement(name, element);
+
+        Set<String> keys = new HashSet<>();
+        for (Object element : list) {
+            String key = validateElement(name, element);
+            if (keys.contains(key)) {
+                throw new ConfigException(
+                        String.format(
+                                "Invalid value for configuration \"%s\": Duplicate key \"%s\"",
+                                name, key));
+            }
+            keys.add(key);
         }
     }
 
-    void validateElement(String name, String element) throws ConfigException;
+    private String validateElement(String name, Object element) throws ConfigException {
+        if (!(element instanceof String)) {
+            throw new ConfigException(
+                    String.format(
+                            "Invalid value for configuration \"%s\": Must be a list of non-empty strings",
+                            name));
+        }
+
+        String stringElemnt = (String) element;
+        if (stringElemnt.isBlank()) {
+            throw new ConfigException(
+                    String.format(
+                            "Invalid value for configuration \"%s\": Must be a list of non-empty strings",
+                            name));
+        }
+        return validateStringElement(name, stringElemnt);
+    }
+
+    protected String validateStringElement(String name, String element) throws ConfigException {
+        return element;
+    }
 }

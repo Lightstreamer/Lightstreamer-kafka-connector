@@ -17,19 +17,22 @@
 
 package com.lightstreamer.kafka.connect.config;
 
+import com.lightstreamer.kafka.utils.Split;
+import com.lightstreamer.kafka.utils.Split.Pair;
+
 import org.apache.kafka.common.config.ConfigException;
 
-public class FieldMappingsValidator implements ListValidator {
+public class FieldMappingsValidator extends ListValidator {
 
     @Override
-    public void validateElement(String name, String element) {
-        if (element.isBlank()) {
-            throw new ConfigException(
-                    String.format(
-                            "Invalid value for configuration \"%s\": Must be a list of non-empty strings",
-                            name));
-        }
-
-        ValidatorUtils.ensureSplittable(name, element, "<field-name:expression>");
+    public String validateStringElement(String name, String element) {
+        return Split.pair(element)
+                .map(Pair::key)
+                .orElseThrow(
+                        () ->
+                                new ConfigException(
+                                        String.format(
+                                                "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
+                                                name, "<field-name:expression>")));
     }
 }

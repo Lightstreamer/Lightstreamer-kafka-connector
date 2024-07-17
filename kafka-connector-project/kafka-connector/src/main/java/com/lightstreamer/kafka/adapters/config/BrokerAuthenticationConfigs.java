@@ -185,6 +185,4 @@ public class BrokerAuthenticationConfigs {
                     mechanism.loginModule(), username, password);
         }
     }
-
-    public static void main(String[] args) {}
 }

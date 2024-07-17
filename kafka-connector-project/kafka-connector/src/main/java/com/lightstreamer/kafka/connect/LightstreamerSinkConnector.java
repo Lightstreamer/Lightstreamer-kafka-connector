@@ -18,17 +18,19 @@
 package com.lightstreamer.kafka.connect;
 
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.lightstreamer.kafka.utils.Version;
 
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class LightstreamerSinkConnector extends SinkConnector {
 
@@ -36,30 +38,20 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     private Map<String, String> props;
 
-    private LightstreamerConnectorConfig config;
-
     @Override
     public String version() {
-        return AppInfoParser.getVersion();
+        return Version.getVersion();
+    }
+
+    Map<String, String> configs() {
+        return Optional.ofNullable(props).orElse(Collections.emptyMap());
     }
 
     @Override
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnector");
         this.props = props;
-        this.config = new LightstreamerConnectorConfig(props);
     }
-
-    //   @Override
-    //   public void start(Map<String, String> props) throws ConnectException {
-    //     try {
-    //       configProperties = props;
-    //       config = new HdfsSinkConnectorConfig(props);
-    //     } catch (ConfigException e) {
-    //       throw new ConnectException("Couldn't start HdfsSinkConnector due to configuration
-    // error", e);
-    //     }
-    //   }
 
     @Override
     public Class<? extends Task> taskClass() {
@@ -78,6 +70,7 @@ public class LightstreamerSinkConnector extends SinkConnector {
     @Override
     public void stop() {
         logger.info("Stopping LightstreamerSinkConnector");
+        this.props = null;
     }
 
     @Override

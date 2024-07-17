@@ -37,9 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.function.Function;
 
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
@@ -160,12 +158,6 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             return newMap;
         }
         return Collections.emptyMap();
-    }
-
-    public final <T> List<T> getAsList(
-            String configKey, Function<? super Entry<String, String>, T> conv) {
-        Map<String, String> values = getValues(configKey);
-        return values.entrySet().stream().map(conv).toList();
     }
 
     public static final Map<String, String> appendAdapterDir(

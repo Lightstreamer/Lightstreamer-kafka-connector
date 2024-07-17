@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
 
@@ -33,6 +32,8 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
+import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator.EvaluatedExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
@@ -209,7 +210,7 @@ public class ConnectorConfigTest {
         assertThat(topicMapping.suffix()).isEqualTo("to");
         assertThat(topicMapping.mutable()).isTrue();
         assertThat(topicMapping.defaultValue()).isNull();
-        assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT);
+        assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
 
         ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
         assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
@@ -298,8 +299,8 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
         standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
         standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
-        standardParams.put("item-template.template1", "item1");
-        standardParams.put("item-template.template2", "item2");
+        standardParams.put("item-template.template1", "template1-#{v=VALUE}");
+        standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
         standardParams.put("map.topic2.to", "template2");
         standardParams.put("field.fieldName1", "bar");
@@ -394,6 +395,14 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter [%s]"
                                 .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
 
+        // Trailing "," not allowed
+        params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(ConnectorConfig.BOOTSTRAP_SERVERS));
+
         params.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
@@ -402,6 +411,15 @@ public class ConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [map.<...>.to]");
         params.remove("map.to");
+
+        params.put("map.topic.to", "");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
+
+        // Trailing "," not allowed
+        params.put("map.topic.to", "item1,");
+        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
+        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         params.put("map.topic.to", "aTemplate");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
@@ -609,39 +627,68 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetValues() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
+    void shouldGetTopicMappingWithOneReference() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map.topic-test.to", "item-template.template1");
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
 
-        Map<String, String> topics = config.getValues(ConnectorConfig.TOPIC_MAPPING);
-        assertThat(topics).containsExactly("topic1", "template1", "topic2", "template2");
+        List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
+        assertThat(topicMappings).hasSize(2);
 
-        Map<String, String> itemTemplates = config.getValues(ConnectorConfig.ITEM_TEMPLATE);
-        assertThat(itemTemplates).containsExactly("template1", "item1", "template2", "item2");
+        TopicMappingConfig tm1 = topicMappings.get(0);
+        assertThat(tm1.topic()).isEqualTo("topic-test");
+        assertThat(tm1.mappings()).containsExactly("item-template.template1");
     }
 
     @Test
-    public void shouldGetAsList() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        List<String> values =
-                config.getAsList(
-                        ConnectorConfig.TOPIC_MAPPING, e -> e.getKey() + "_" + e.getValue());
-        assertThat(values).containsExactly("topic1_template1", "topic2_template2");
+    void shouldGetTopicMappingWithMoreReferences() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put("map.topic-test.to", "item-template.template1,item1,item1,item2");
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+
+        List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
+        assertThat(topicMappings).hasSize(2);
+
+        TopicMappingConfig tm1 = topicMappings.get(0);
+        assertThat(tm1.topic()).isEqualTo("topic-test");
+        assertThat(tm1.mappings()).containsExactly("item-template.template1", "item1", "item2");
     }
 
     @Test
-    public void shouldGetItemTemplateList() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        List<String> values =
-                config.getAsList(
-                        ConnectorConfig.ITEM_TEMPLATE, e -> e.getKey() + "_" + e.getValue());
-        assertThat(values).containsExactly("template1_item1", "template2_item2");
+    void shouldGetItemTemplateConfigs() {
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
+
+        var templateConfig = cgg1.getItemTemplateConfigs();
+        assertThat(templateConfig.expressions()).isEmpty();
+
+        ConnectorConfig cgg2 =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                "item-template.template1",
+                                "item1-#{param1=value1}",
+                                "item-template.template2",
+                                "item2-#{param2=value2}"));
+
+        var templateConfigs = cgg2.getItemTemplateConfigs();
+        assertThat(templateConfigs.expressions()).hasSize(2);
+
+        EvaluatedExpression ee1 = templateConfigs.getExpression("template1");
+        assertThat(ee1.prefix()).isEqualTo("item1");
+        assertThat(ee1.params()).containsExactly("param1", "value1");
+
+        EvaluatedExpression ee2 = templateConfigs.getExpression("template2");
+        assertThat(ee2.prefix()).isEqualTo("item2");
+        assertThat(ee2.params()).containsExactly("param2", "value2");
     }
 
     @Test
-    public void shouldGetHostLists() {
+    void shouldFailDueToInvalidTemplateExpressions() {
+        ConnectorConfig cgg =
+                ConnectorConfigProvider.minimalWith(Map.of("item-template.template1", "item1-#{}"));
+    }
+
+    @Test
+    public void shouldGetHostList() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getHostsList(ConnectorConfig.BOOTSTRAP_SERVERS))
                 .isEqualTo("server:8080,server:8081");

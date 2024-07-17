@@ -19,8 +19,15 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
 
+import org.apache.kafka.common.serialization.Deserializer;
+
 public interface ConnectKeySelectorSupplier extends KeySelectorSupplier<Object> {
 
     @Override
     ConnectKeySelector newSelector(String name, String expression);
+
+    @Override
+    public default Deserializer<Object> deseralizer() {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -80,7 +80,7 @@ public interface TestSelectorSuppliers {
 
     public static SelectorSuppliers<Object, Object> object() {
         return of(
-                ConnectSelectorsSuppliers.keySelectorSupplier(false),
-                ConnectSelectorsSuppliers.valueSelectorSupplier(false));
+                ConnectSelectorsSuppliers.keySelectorSupplier(),
+                ConnectSelectorsSuppliers.valueSelectorSupplier());
     }
 }

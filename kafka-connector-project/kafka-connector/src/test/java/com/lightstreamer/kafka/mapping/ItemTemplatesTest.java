@@ -22,7 +22,7 @@ import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avroKeyJsonValue;
-import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.string;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.jsonValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -34,8 +34,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.config.TopicsConfig;
-import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
-import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
+import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
+import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
@@ -54,11 +54,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
-import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,27 +73,32 @@ public class ItemTemplatesTest {
     private static <K, V> ItemTemplates<K, V> mkItemTemplates(
             SelectorSuppliers<K, V> sSuppliers, String... template) {
 
-        TopicConfiguration[] topicsConfigurations = new TopicConfiguration[template.length];
+        List<TopicMappingConfig> topicMappings = new ArrayList<>();
+        Map<String, String> templates = new HashMap<>();
         for (int i = 0; i < template.length; i++) {
-            topicsConfigurations[i] =
-                    new TopicConfiguration(
-                            TEST_TOPIC, ItemReference.forTemplate("item-template", template[i]));
+            // Add a new item template with name "template-<i>"
+            templates.put("template-" + i, template[i]);
+            // Add a new TopicMapping referencing the template
+            topicMappings.add(TopicMappingConfig.from(TEST_TOPIC, "item-template.template-" + i));
         }
-
-        TopicsConfig topicsConfig = TopicsConfig.of(topicsConfigurations);
-        return Items.templatesFrom(topicsConfig, sSuppliers);
+        TopicsConfig topicsConfig =
+                TopicsConfig.of(ItemTemplateConfigs.from(templates), topicMappings);
+        return Items.from(topicsConfig, sSuppliers);
     }
 
     private static <K, V> ItemTemplates<K, V> mkSimpleItems(
             SelectorSuppliers<K, V> sSuppliers, String... items) {
-        TopicConfiguration[] topicsConfigurations = new TopicConfiguration[items.length];
+        List<TopicMappingConfig> topicMappings = new ArrayList<>();
         for (int i = 0; i < items.length; i++) {
-            topicsConfigurations[i] =
-                    new TopicConfiguration(TEST_TOPIC, ItemReference.forSimpleName(items[i]));
+            // Add a new TopicMapping referencing the item name
+            topicMappings.add(TopicMappingConfig.from(TEST_TOPIC, items[i]));
         }
 
-        TopicsConfig topicsConfig = TopicsConfig.of(topicsConfigurations);
-        return Items.templatesFrom(topicsConfig, sSuppliers);
+        // No templates required in this case
+        ItemTemplateConfigs noTemplatesMap = ItemTemplateConfigs.empty();
+
+        TopicsConfig topicsConfig = TopicsConfig.of(noTemplatesMap, topicMappings);
+        return Items.from(topicsConfig, sSuppliers);
     }
 
     private static ItemTemplates<GenericRecord, GenericRecord> getAvroAvroTemplates(
@@ -122,58 +127,15 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
-        ExpressionException ee =
-                assertThrows(
-                        ExpressionException.class,
-                        () -> mkItemTemplates(string(), "item-#{name=VALUE,name=PARTITION}"));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while"
-                                + " evaluating [item-template]: <No duplicated keys are allowed>");
-    }
-
-    @ParameterizedTest
-    @EmptySource
-    @ValueSource(
-            strings = {
-                "-",
-                "-",
-                "\\",
-                "@",
-                "|",
-                "!",
-                "item-first",
-                "item_123_",
-                "item!",
-                "item@",
-                "item\\",
-                "item-",
-                "prefix-#{}",
-                "prefix-#{VALUE}"
-            })
-    public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
-        ExpressionException ee =
-                assertThrows(
-                        ExpressionException.class,
-                        () -> mkItemTemplates(string(), templateExpression));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Found the invalid expression ["
-                                + templateExpression
-                                + "] while"
-                                + " evaluating [item-template]: <Invalid template expression>");
-    }
-
-    @Test
-    public void shouldOneToManyT() {
+    public void shouldOneToManyTemplates() {
         SelectorSuppliers<Object, Object> sSuppliers = TestSelectorSuppliers.object();
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(
-                        new TopicConfiguration(
-                                "stock", ItemReference.forTemplate("", "stock-#{index=KEY}")));
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY}"));
 
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
+        TopicMappingConfig topicMapping =
+                TopicMappingConfig.from("stock", "item-template.template");
+        TopicsConfig topicsConfig = TopicsConfig.of(templateConfigs, List.of(topicMapping));
+        ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly("stock");
 
         Item subcribingItem1 = Items.subscribedFrom("stock-[index=1]");
@@ -185,15 +147,12 @@ public class ItemTemplatesTest {
         SelectorSuppliers<String, JsonNode> sSuppliers =
                 jsonValue(ConnectorConfigProvider.minimal());
 
-        // One topic mapping ttwo items.
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(
-                        new TopicConfiguration(
-                                TEST_TOPIC, ItemReference.forSimpleName("simple-item-1")),
-                        new TopicConfiguration(
-                                TEST_TOPIC, ItemReference.forSimpleName("simple-item-2")));
+        // One topic mapping two items.
+        TopicMappingConfig tm =
+                TopicMappingConfig.from(TEST_TOPIC, "simple-item-1", "simple-item-2");
+        TopicsConfig topicsConfig = TopicsConfig.of(ItemTemplateConfigs.empty(), List.of(tm));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
+        ItemTemplates<String, JsonNode> templates = Items.from(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(TEST_TOPIC);
 
         SubscribedItem item1 = Items.susbcribedFrom("simple-item-1", "itemHandle1");
@@ -225,18 +184,20 @@ public class ItemTemplatesTest {
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two item templates.
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(
-                        new TopicConfiguration(
-                                TEST_TOPIC,
-                                ItemReference.forTemplate(
-                                        "", "template-family-#{topic=TOPIC,info=PARTITION}")),
-                        new TopicConfiguration(
-                                TEST_TOPIC,
-                                ItemReference.forTemplate(
-                                        "", "template-relatives-#{topic=TOPIC,info1=TIMESTAMP}")));
+        TopicMappingConfig tm =
+                TopicMappingConfig.from(
+                        TEST_TOPIC, "item-template.family", "item-template.relatives");
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(
+                        Map.of(
+                                "family",
+                                "template-family-#{topic=TOPIC,info=PARTITION}",
+                                "relatives",
+                                "template-relatives-#{topic=TOPIC,info1=TIMESTAMP}"));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
+        TopicsConfig topicsConfig = TopicsConfig.of(templateConfigs, List.of(tm));
+
+        ItemTemplates<String, JsonNode> templates = Items.from(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(TEST_TOPIC);
 
         SubscribedItem item1 =
@@ -276,15 +237,16 @@ public class ItemTemplatesTest {
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One item.
-        ItemReference ordersTemplate = ItemReference.forSimpleName("orders");
+        String item = "orders";
 
         // Two topics mapping the item.
+        TopicMappingConfig orderMapping = TopicMappingConfig.from("new_orders", item);
+        TopicMappingConfig pastOrderMapping = TopicMappingConfig.from("past_orders", item);
         TopicsConfig topicsConfig =
                 TopicsConfig.of(
-                        new TopicConfiguration("new_orders", ordersTemplate),
-                        new TopicConfiguration("past_orders", ordersTemplate));
+                        ItemTemplateConfigs.empty(), List.of(orderMapping, pastOrderMapping));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
+        ItemTemplates<String, JsonNode> templates = Items.from(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly("new_orders", "past_orders");
 
         SubscribedItem subcribingItem = Items.susbcribedFrom("orders", "");
@@ -320,15 +282,20 @@ public class ItemTemplatesTest {
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.
-        ItemReference orders = ItemReference.forTemplate("", "template-orders-#{topic=TOPIC}");
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(
+                        Map.of("template-order", "template-orders-#{topic=TOPIC}"));
+        // ItemReference orders = ItemReference.forTemplate("", "template-orders-#{topic=TOPIC}");
 
         // Two topics mapping the template.
+        TopicMappingConfig orderMapping =
+                TopicMappingConfig.from("new_orders", "item-template.template-order");
+        TopicMappingConfig pastOrderMapping =
+                TopicMappingConfig.from("past_orders", "item-template.template-order");
         TopicsConfig topicsConfig =
-                TopicsConfig.of(
-                        new TopicConfiguration("new_orders", orders),
-                        new TopicConfiguration("past_orders", orders));
+                TopicsConfig.of(templateConfigs, List.of(orderMapping, pastOrderMapping));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
+        ItemTemplates<String, JsonNode> templates = Items.from(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly("new_orders", "past_orders");
 
         SubscribedItem subcribingItem =
@@ -508,12 +475,12 @@ public class ItemTemplatesTest {
         return Stream.of(
                 arguments(
                         """
-                        {
-                        "name": "James",
-                        "surname": "Kirk",
-                        "age": 37
-                        }
-                        """,
+                            {
+                            "name": "James",
+                            "surname": "Kirk",
+                            "age": 37
+                            }
+                            """,
                         List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
                         List.of(
                                 Items.susbcribedFrom(
@@ -555,5 +522,19 @@ public class ItemTemplatesTest {
 
         Set<SubscribedItem> routed = templates.routes(mapped, all);
         assertThat(routed).containsExactlyElementsIn(routables);
+    }
+
+    @Test
+    void shouldFailDueToInvalidTemplateException() {
+        var templateConfigs = ItemTemplateConfigs.from(Map.of("template", "template-#{name=FOO}"));
+        var topicMappingConfigs =
+                List.of(TopicMappingConfig.from("topic", "item-template.template"));
+
+        assertThrows(
+                ExpressionException.class,
+                () ->
+                        Items.from(
+                                TopicsConfig.of(templateConfigs, topicMappingConfigs),
+                                TestSelectorSuppliers.string()));
     }
 }

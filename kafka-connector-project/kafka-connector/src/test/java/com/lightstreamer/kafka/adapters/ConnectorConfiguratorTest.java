@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
@@ -158,23 +159,35 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"item-template", "item-template."})
-    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameters(
+    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameterFormat(
             String itemTemplateParam) {
         Map<String, String> config = minimalConfigWith(Map.of(itemTemplateParam, "field_name"));
-        ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+        ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
         assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [item-template.<...>]");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"no-valid-template", "", "."})
-    public void shouldNotConfigureDueToInvalidTemplateReference(String template) {
-        Map<String, String> config =
-                minimalConfigWith(Map.of("map.topic1.to", "item-template." + template));
+    @NullAndEmptySource
+    @ValueSource(strings = {","})
+    public void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
+        Map<String, String> configs = new HashMap<>();
+        configs.put("map.topic1.to", itemRef);
+        Map<String, String> config = minimalConfigWith(configs);
+        ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
+
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [map.topic1.to]");
+    }
+
+    @Test
+    public void shouldNotConfigureDueToNotExistingItemTemplate() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put("map.topic1.to", "item-template.no-valid-template");
+        Map<String, String> config = minimalConfigWith(configs);
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
 
-        assertThat(ce.getMessage()).isEqualTo("No item template [" + template + "] found");
+        assertThat(ce.getMessage()).isEqualTo("No item template [no-valid-template] found");
     }
 
     static Stream<Arguments> invalidFieldExpressions() {

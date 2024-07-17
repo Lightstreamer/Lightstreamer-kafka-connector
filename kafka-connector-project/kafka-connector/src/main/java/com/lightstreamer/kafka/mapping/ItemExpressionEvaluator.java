@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 
 public interface ItemExpressionEvaluator {
 
-    record Result(String prefix, Map<String, String> params) {}
+    record EvaluatedExpression(String prefix, Map<String, String> params) {}
 
     static ItemExpressionEvaluator template() {
         return ItemEvaluator.TEMPLATE;
@@ -37,7 +37,7 @@ public interface ItemExpressionEvaluator {
         return ItemEvaluator.SUBSCRIBED;
     }
 
-    Result eval(String expression) throws ExpressionException;
+    EvaluatedExpression eval(String expression) throws ExpressionException;
 }
 
 enum ItemEvaluator implements ItemExpressionEvaluator {
@@ -55,7 +55,6 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
             Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?"));
 
     private final Pattern gobal;
-
     private final Pattern local;
 
     private ItemEvaluator(Pattern global, Pattern local) {
@@ -70,7 +69,7 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
     /**
      * @throws ExpressionException
      */
-    public Result eval(String expression) throws ExpressionException {
+    public EvaluatedExpression eval(String expression) throws ExpressionException {
         Matcher matcher = gobal.matcher(expression);
         if (!matcher.matches()) {
             throw new ExpressionException(errorMessage());
@@ -97,6 +96,6 @@ enum ItemEvaluator implements ItemExpressionEvaluator {
             }
         }
 
-        return new Result(prefix, queryParams);
+        return new EvaluatedExpression(prefix, queryParams);
     }
 }

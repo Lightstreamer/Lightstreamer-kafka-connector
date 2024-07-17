@@ -17,12 +17,10 @@
 
 package com.lightstreamer.kafka.mapping;
 
-import static com.lightstreamer.kafka.mapping.selectors.ExpressionException.wrapInvalidExpression;
-
 import com.lightstreamer.kafka.config.TopicsConfig;
 import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
 import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
-import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator.Result;
+import com.lightstreamer.kafka.mapping.ItemExpressionEvaluator.EvaluatedExpression;
 import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
 import com.lightstreamer.kafka.mapping.selectors.Schema;
@@ -72,58 +70,7 @@ public class Items {
                 MappedRecord record, Collection<? extends SubscribedItem> subscribed);
     }
 
-    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return susbcribedFrom(input, input);
-    }
-
-    public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
-            throws ExpressionException {
-        Result result = ItemExpressionEvaluator.subscribed().eval(input);
-        return subscribedFrom(itemHandle, result.prefix(), result.params());
-    }
-
-    public static SubscribedItem subscribedFrom(
-            Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultSubscribedItem(itemHandle, prefix, values);
-    }
-
-    public static Item from(String prefix, Map<String, String> values) {
-        return new DefaultItem(prefix, values);
-    }
-
-    public static <K, V> ItemTemplates<K, V> templatesFrom(
-            TopicsConfig topcisConfig, SelectorSuppliers<K, V> sSuppliers) {
-        List<ItemTemplate<K, V>> templates = new ArrayList<>();
-        for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
-            ItemReference reference = topicConfig.itemReference();
-            if (reference.isTemplate()) {
-                try {
-                    Result result =
-                            ItemExpressionEvaluator.template().eval(reference.templateValue());
-                    ValuesExtractor<K, V> extractor =
-                            ValuesExtractor.<K, V>builder()
-                                    .withSuppliers(sSuppliers)
-                                    .withSchemaName(result.prefix())
-                                    .withExpressions(result.params())
-                                    .build();
-                    templates.add(new ItemTemplate<>(topicConfig.topic(), extractor));
-                } catch (ExpressionException e) {
-                    wrapInvalidExpression(e, reference.templateKey(), reference.templateValue());
-                }
-            } else {
-                ValuesExtractor<K, V> extractor =
-                        ValuesExtractor.<K, V>builder()
-                                .withSuppliers(sSuppliers)
-                                .withSchemaName(reference.itemName())
-                                .withExpressions(Collections.emptyMap())
-                                .build();
-                templates.add(new ItemTemplate<>(topicConfig.topic(), extractor));
-            }
-        }
-        return new DefaultItemTemplates<>(templates);
-    }
-
-    static class DefaultItem implements Item {
+    private static class DefaultItem implements Item {
 
         private final Map<String, String> valuesMap;
         private final Schema schema;
@@ -180,7 +127,7 @@ public class Items {
         }
     }
 
-    static class DefaultSubscribedItem implements SubscribedItem {
+    private static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
         private final DefaultItem wrappedItem;
@@ -229,7 +176,7 @@ public class Items {
         }
     }
 
-    static class ItemTemplate<K, V> {
+    private static class ItemTemplate<K, V> {
 
         private final Schema schema;
         private final String topic;
@@ -239,6 +186,10 @@ public class Items {
             this.topic = Objects.requireNonNull(topic);
             this.extractor = Objects.requireNonNull(extractor);
             this.schema = extractor.schema();
+        }
+
+        public boolean matches(Item item) {
+            return schema.matches(item.schema());
         }
 
         Optional<Item> expand(MappedRecord record) {
@@ -257,13 +208,9 @@ public class Items {
         String topic() {
             return topic;
         }
-
-        public boolean matches(Item item) {
-            return schema.matches(item.schema());
-        }
     }
 
-    static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
+    private static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
 
         private final List<ItemTemplate<K, V>> templates;
 
@@ -301,4 +248,45 @@ public class Items {
             return templates.stream().map(ItemTemplate::topic).collect(Collectors.toSet());
         }
     }
+
+    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
+        return susbcribedFrom(input, input);
+    }
+
+    public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
+            throws ExpressionException {
+        EvaluatedExpression result = ItemExpressionEvaluator.subscribed().eval(input);
+        return subscribedFrom(itemHandle, result.prefix(), result.params());
+    }
+
+    public static SubscribedItem subscribedFrom(
+            Object itemHandle, String prefix, Map<String, String> values) {
+        return new DefaultSubscribedItem(itemHandle, prefix, values);
+    }
+
+    public static Item from(String prefix, Map<String, String> values) {
+        return new DefaultItem(prefix, values);
+    }
+
+    public static <K, V> ItemTemplates<K, V> from(
+            TopicsConfig topcisConfig, SelectorSuppliers<K, V> sSuppliers) {
+        List<ItemTemplate<K, V>> templates = new ArrayList<>();
+        for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
+            for (ItemReference reference : topicConfig.itemReferences()) {
+                ValuesExtractor.Builder<K, V> builder =
+                        ValuesExtractor.<K, V>builder().withSuppliers(sSuppliers);
+
+                if (reference.isTemplate()) {
+                    EvaluatedExpression evaluated = reference.template();
+                    builder.withSchemaName(evaluated.prefix()).withExpressions(evaluated.params());
+                } else {
+                    builder.withSchemaName(reference.itemName());
+                }
+                templates.add(new ItemTemplate<>(topicConfig.topic(), builder.build()));
+            }
+        }
+        return new DefaultItemTemplates<>(templates);
+    }
+
+    private Items() {}
 }

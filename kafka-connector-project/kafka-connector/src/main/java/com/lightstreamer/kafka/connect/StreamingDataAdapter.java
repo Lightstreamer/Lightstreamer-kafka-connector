@@ -22,6 +22,7 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
+import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
@@ -75,20 +76,16 @@ public class StreamingDataAdapter implements DataProvider {
                 logger.info("Skipping record");
             };
 
-    StreamingDataAdapter(
-            ItemTemplates<Object, Object> itemTemplates,
-            ValuesExtractor<Object, Object> fieldsExtractor,
-            SinkTaskContext context,
-            RecordErrorHandlingStrategy errorHandlingStrategy) {
-        this.itemTemplates = itemTemplates;
-        this.fieldsExtractor = fieldsExtractor;
+    StreamingDataAdapter(DataAdapterConfig config, SinkTaskContext context) {
+        this.itemTemplates = config.itemTemplates();
+        this.fieldsExtractor = config.fieldsExtractor();
         this.recordMapper =
                 RecordMapper.builder()
                         .withExtractor(itemTemplates.extractors())
                         .withExtractor(fieldsExtractor)
                         .build();
 
-        this.errorHandlingStrategy = errorHandlingStrategy;
+        this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
         this.reporter = errantRecordReporter(context);
     }
 

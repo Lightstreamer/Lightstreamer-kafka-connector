@@ -27,8 +27,8 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.config.TopicsConfig;
-import com.lightstreamer.kafka.config.TopicsConfig.ItemReference;
-import com.lightstreamer.kafka.config.TopicsConfig.TopicConfiguration;
+import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
+import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
 import com.lightstreamer.kafka.mapping.Items;
 import com.lightstreamer.kafka.mapping.Items.Item;
 import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
@@ -38,6 +38,7 @@ import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Properties;
 
 class TestMetadataListener implements MetadataListener {
@@ -88,7 +89,7 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 
     @Override
     public ItemTemplates<String, String> itemTemplates() {
-        return Items.templatesFrom(topicsConfig, TestSelectorSuppliers.string());
+        return Items.from(topicsConfig, TestSelectorSuppliers.string());
     }
 
     @Override
@@ -115,9 +116,10 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 public class ConsumerLoopTest {
 
     private static TestConsumerLoopTest consumerLoopTest() {
-        TopicConfiguration t =
-                new TopicConfiguration("aTopic", ItemReference.forSimpleName("anItemTemplate"));
-        TopicsConfig topicsConfig = TopicsConfig.of(t);
+        TopicsConfig topicsConfig =
+                TopicsConfig.of(
+                        ItemTemplateConfigs.empty(),
+                        List.of(TopicMappingConfig.from("aTopic", "anItemTemplate")));
         ConsumerLoopConfig<String, String> c = new TestLoopConfig(topicsConfig);
 
         TestConsumerLoopTest consumerLoopTest = new TestConsumerLoopTest(c);

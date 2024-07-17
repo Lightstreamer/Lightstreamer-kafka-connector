@@ -52,8 +52,15 @@ public class GenericRecordSelectorsSuppliers {
                     }
                 };
 
-        static AvroNode from(GenericContainer container) {
+        static AvroNode fromContainer(GenericContainer container) {
             return new AvroNode(container);
+        }
+
+        static AvroNode fromObject(Object object) {
+            if (object == null) {
+                object = NULL_DATA;
+            }
+            return new AvroNode(object);
         }
 
         private static AvroNode of(Object avroNode) {
@@ -61,11 +68,11 @@ public class GenericRecordSelectorsSuppliers {
                 Schema schema = container.getSchema();
                 Type valueType = schema.getType();
                 return switch (valueType) {
-                    case RECORD, FIXED, ARRAY, ENUM -> from(container);
-                    default -> new AvroNode(avroNode);
+                    case RECORD, FIXED, ARRAY, ENUM -> fromContainer(container);
+                    default -> fromObject(avroNode);
                 };
             }
-            return new AvroNode(avroNode);
+            return fromObject(avroNode);
         }
 
         private final Either<GenericContainer, Object> data;
@@ -75,9 +82,6 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         private AvroNode(Object object) {
-            if (object == null) {
-                object = NULL_DATA;
-            }
             data = Either.right(object);
         }
 
@@ -86,10 +90,14 @@ public class GenericRecordSelectorsSuppliers {
             if (isContainer()) {
                 GenericContainer genericContainer = container();
                 Schema schema = genericContainer.getSchema();
-                if (schema.getType().equals(Type.RECORD)) {
-                    GenericData.Record record = (GenericData.Record) genericContainer;
-                    return record.hasField(name);
-                }
+                Type type = schema.getType();
+                return switch (type) {
+                    case Type.RECORD -> {
+                        GenericData.Record record = (GenericData.Record) genericContainer;
+                        yield record.hasField(name);
+                    }
+                    default -> false;
+                };
             }
             if (object() instanceof Map map) {
                 return map.containsKey(new Utf8(name));
@@ -133,6 +141,9 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public boolean isNull() {
+            if (isContainer()) {
+                return false;
+            }
             return object() == NULL_DATA;
         }
 
@@ -203,7 +214,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public Value extract(KafkaRecord<GenericRecord, ?> record) throws ValueException {
-            AvroNode node = AvroNode.from(record.key());
+            AvroNode node = AvroNode.fromContainer(record.key());
             return super.eval(node);
         }
     }
@@ -237,7 +248,7 @@ public class GenericRecordSelectorsSuppliers {
 
         @Override
         public Value extract(KafkaRecord<?, GenericRecord> record) throws ValueException {
-            AvroNode node = AvroNode.from(record.value());
+            AvroNode node = AvroNode.fromContainer(record.value());
             return super.eval(node);
         }
     }

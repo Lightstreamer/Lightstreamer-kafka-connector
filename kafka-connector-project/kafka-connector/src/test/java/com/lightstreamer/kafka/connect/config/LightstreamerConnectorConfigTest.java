@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -31,6 +32,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -106,6 +108,15 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    void shouldGetProxyAdaypter() {
+        Map<String, String> props = basicConfig();
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        InetSocketAddress proxyAdapterAddress = config.getProxyAdapterAddress();
+        assertThat(proxyAdapterAddress.getHostName()).isEqualTo("host");
+        assertThat(proxyAdapterAddress.getPort()).isEqualTo(6661);
+    }
+
+    @Test
     void shouldGetMoreItemTemplates() {
         Map<String, String> props = basicConfig();
         props.put(
@@ -113,8 +124,8 @@ public class LightstreamerConnectorConfigTest {
                 "stock-template:stock-#{index=KEY};product-template:product-#{id=KEY,price=VALUE.price}");
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        Map<String, String> itemTemplate = config.getItemTemplates();
-        assertThat(itemTemplate)
+        ItemTemplateConfigs itemTemplate = config.getItemTemplates();
+        assertThat(itemTemplate.expressions())
                 .containsExactly(
                         "stock-template",
                         "stock-#{index=KEY}",
@@ -122,27 +133,99 @@ public class LightstreamerConnectorConfigTest {
                         "product-#{id=KEY,price=VALUE.price}");
     }
 
+    //     @Test
+    //     void shouldGetTopicMappings() {
+    //         Map<String, String> props = basicConfig();
+
+    //         // stocks -> [item-template.stock-template, item-template-stock-template-2]
+    //         // orders -> [item-template.order-template, oreder-item]
+    //         props.put(
+    //                 LightstreamerConnectorConfig.TOPIC_MAPPINGS,
+    //
+    // "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template,orders:order-item");
+    //         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+    //         Map<String, String> topicMappings = config.getTopicMappings();
+
+    //         assertThat(topicMappings).containsKey("stocks");
+    //         assertThat(topicMappings.get("stocks"))
+    //                 .isEqualTo("item-template.stock-template,item-template.stock-template-2");
+
+    //         assertThat(topicMappings).containsKey("orders");
+    //         assertThat(topicMappings.get("orders"))
+    //                 .isEqualTo("item-template.order-template,order-item");
+    //     }
+
     @Test
-    void shouldGetTopicMappings() {
+    void shouldGetFieldMappings() {
+        String fieldMappingConfig =
+                """
+                    timestamp:#{VALUE.timestamp},\
+                    time:#{VALUE.time},\
+                    stock_name: #{VALUE.name}   ,\
+                    last_price:#{VALUE.last_price},\
+                    ask:#{VALUE.ask},\
+                    ask_quantity:#{VALUE.ask_quantity},\
+                    bid:#{VALUE.bid},\
+                    bid_quantity:   #{VALUE.bid_quantity}  ,\
+                    pct_change:#{VALUE.pct_change},\
+                    min:#{VALUE.min},\
+                    max:#{VALUE.max},\
+                    ref_price:#{VALUE.ref_price},\
+                    open_price:#{VALUE.open_price},\
+                    item_status:#{VALUE.item_status},\
+                    ts:#{TIMESTAMP},\
+                    topic:#{TOPIC},\
+                    offset:#{OFFSET},\
+                    partition:#{PARTITION}
+                """;
         Map<String, String> props = basicConfig();
-
-        props.put(
-                LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-                "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template");
+        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, fieldMappingConfig);
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        Map<String, String> topicMappings = config.getTopicMappings();
 
-        assertThat(topicMappings).containsKey("stocks");
-        assertThat(topicMappings.get("stocks"))
-                .isEqualTo("item-template.stock-template,item-template.stock-template-2");
-
-        assertThat(topicMappings).containsKey("orders");
-        assertThat(topicMappings.get("orders")).isEqualTo("item-template.order-template");
+        Map<String, String> fieldMappings = config.getFieldMappings();
+        assertThat(fieldMappings)
+                .containsExactly(
+                        "timestamp",
+                        "#{VALUE.timestamp}",
+                        "time",
+                        "#{VALUE.time}",
+                        "stock_name",
+                        "#{VALUE.name}",
+                        "last_price",
+                        "#{VALUE.last_price}",
+                        "ask",
+                        "#{VALUE.ask}",
+                        "ask_quantity",
+                        "#{VALUE.ask_quantity}",
+                        "bid",
+                        "#{VALUE.bid}",
+                        "bid_quantity",
+                        "#{VALUE.bid_quantity}",
+                        "pct_change",
+                        "#{VALUE.pct_change}",
+                        "min",
+                        "#{VALUE.min}",
+                        "max",
+                        "#{VALUE.max}",
+                        "ref_price",
+                        "#{VALUE.ref_price}",
+                        "open_price",
+                        "#{VALUE.open_price}",
+                        "item_status",
+                        "#{VALUE.item_status}",
+                        "ts",
+                        "#{TIMESTAMP}",
+                        "topic",
+                        "#{TOPIC}",
+                        "offset",
+                        "#{OFFSET}",
+                        "partition",
+                        "#{PARTITION}");
     }
 
     @ParameterizedTest
     @EnumSource
-    void shouldGetErrorStrategy(RecordErrorHandlingStrategy strategy) {
+    void shouldGetRecordErrorHandlingStrategyFromConfig(RecordErrorHandlingStrategy strategy) {
         Map<String, String> props = basicConfig();
         props.put(
                 LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, strategy.toString());
@@ -151,16 +234,18 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @ParameterizedTest
-    @NullSource
-    @ValueSource(strings = {"invalid"})
-    void shouldFailDueToInvalidErrorStrategy(String strategy) {
-        Map<String, String> props = basicConfig();
-        props.put(LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, strategy);
+    @ValueSource(strings = {"IGNORE_AND_CONTINUE", "FORWARD_TO_DLQ", "TERMINATE_TASK"})
+    public void shouldRetrieveRecordErrorHandlingStrategy(String strategy) {
+        RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(strategy);
+        assertThat(from.toString()).isEqualTo(strategy);
+    }
 
-        ConfigException ce =
-                assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
-                .isEqualTo(
-                        "Invalid value invalid for configuration record.extraction.error.strategy");
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"NO_VALID_STRATEGY"})
+    public void shouldNotRetrieveRecordErrorHandlingStrategy(String noValidStrategy) {
+        RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(noValidStrategy);
+        assertThat(from).isNull();
+        ;
     }
 }

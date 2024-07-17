@@ -19,64 +19,95 @@ package com.lightstreamer.kafka.utils;
 
 import java.util.Objects;
 
-public class Either<Left, Right> {
+public abstract class Either<L, R> {
 
-    private final Left left;
+    private static class Left<L, R> extends Either<L, R> {
 
-    private final Right right;
-
-    private Either(Left left, Right right) {
-        if (left != null & right == null) {
-            this.left = left;
-            this.right = null;
-            return;
+        private Left(L left) {
+            super(left);
         }
-        if (left == null && right != null) {
-            this.left = null;
-            this.right = right;
-            return;
+
+        @Override
+        public boolean isLeft() {
+            return true;
         }
-        if (left == null && right == null) {
-            throw new IllegalArgumentException("Paremeters can't be both null");
+
+        @Override
+        public boolean isRight() {
+            return false;
         }
-        throw new IllegalArgumentException("Only one parameter can be specified");
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public L getLeft() {
+            return (L) value;
+        }
+
+        @Override
+        public R getRight() {
+            throw new RuntimeException("Can't access an undefined object");
+        }
     }
 
-    public Left getLeft() {
-        return left;
+    private static class Right<L, R> extends Either<L, R> {
+
+        private Right(R right) {
+            super(right);
+        }
+
+        @Override
+        public boolean isLeft() {
+            return false;
+        }
+
+        @Override
+        public boolean isRight() {
+            return true;
+        }
+
+        @Override
+        public L getLeft() {
+            throw new RuntimeException("Can't access an undefined object");
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public R getRight() {
+            return (R) value;
+        }
     }
 
-    public Right getRight() {
-        return right;
+    protected final Object value;
+
+    Either(Object value) {
+        this.value = value;
     }
 
-    public boolean isLeft() {
-        return left != null;
-    }
+    public abstract L getLeft();
 
-    public boolean isRight() {
-        return right != null;
-    }
+    public abstract R getRight();
+
+    public abstract boolean isLeft();
+
+    public abstract boolean isRight();
 
     @Override
     public int hashCode() {
-        return Objects.hash(left, right);
+        return value.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
 
-        return obj instanceof Either other
-                && Objects.equals(left, other.left)
-                && Objects.equals(right, other.right);
+        return obj instanceof Either other && Objects.equals(value, other.value);
     }
 
-    public static <Left, Right> Either<Left, Right> left(Left left) {
-        return new Either<>(left, null);
+    public static <L, R> Either<L, R> left(L left) {
+        return new Left<>(left);
     }
 
-    public static <Left, Right> Either<Left, Right> right(Right right) {
-        return new Either<>(null, right);
+    public static <L, R> Either<L, R> right(R right) {
+        return new Right<>(right);
     }
 }

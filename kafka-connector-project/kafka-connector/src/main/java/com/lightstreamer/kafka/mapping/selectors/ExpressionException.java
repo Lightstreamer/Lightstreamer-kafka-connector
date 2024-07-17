@@ -46,13 +46,6 @@ public class ExpressionException extends RuntimeException {
                         .formatted(expression, fieldName));
     }
 
-    public static void wrapInvalidExpression(
-            ExpressionException cause, String name, String expression) throws ExpressionException {
-        throw new ExpressionException(
-                "Found the invalid expression [%s] while evaluating [%s]: <%s>"
-                        .formatted(expression, name, cause.getMessage()));
-    }
-
     public static ExpressionException missingToken(String name, String expression)
             throws ExpressionException {
         return new ExpressionException(

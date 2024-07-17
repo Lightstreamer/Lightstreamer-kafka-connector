@@ -26,13 +26,7 @@ public interface Schema {
 
     String name();
 
-    default boolean isEmpty() {
-        return keys().isEmpty();
-    }
-
-    public default boolean matches(Schema other) {
-        return this.equals(other);
-    }
+    public boolean matches(Schema other);
 
     static Schema from(String name, Set<String> keys) {
         return new DefaultSchema(name, keys);
@@ -48,5 +42,10 @@ final record DefaultSchema(String name, Set<String> keys) implements Schema {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Schema name must be a non empty string");
         }
+    }
+
+    @Override
+    public boolean matches(Schema other) {
+        return this.equals(other);
     }
 }

@@ -23,7 +23,8 @@ public interface SelectorSuppliers<K, V> {
 
     ValueSelectorSupplier<V> valueSelectorSupplier();
 
-    static <K, V> SelectorSuppliers<K, V> of(KeySelectorSupplier<K> k, ValueSelectorSupplier<V> v) {
+    static <K, V> SelectorSuppliers<K, V> of(
+            final KeySelectorSupplier<K> k, final ValueSelectorSupplier<V> v) {
         return new SelectorSuppliers<K, V>() {
 
             @Override

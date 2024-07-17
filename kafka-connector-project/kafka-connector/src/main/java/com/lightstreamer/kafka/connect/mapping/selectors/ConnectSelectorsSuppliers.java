@@ -24,7 +24,6 @@ import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.mapping.selectors.Value;
 
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -144,11 +143,6 @@ public class ConnectSelectorsSuppliers {
         public ConnectKeySelector newSelector(String name, String expression) {
             return new ConnectKeySelectorImpl(name, expression);
         }
-
-        @Override
-        public Deserializer<Object> deseralizer() {
-            throw new UnsupportedOperationException();
-        }
     }
 
     private static class ConnectKeySelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
@@ -174,11 +168,6 @@ public class ConnectSelectorsSuppliers {
         public ConnectValueSelector newSelector(String name, String expression) {
             return new ConnectValueSelectorImpl(name, expression);
         }
-
-        @Override
-        public Deserializer<Object> deseralizer() {
-            throw new UnsupportedOperationException();
-        }
     }
 
     private static class ConnectValueSelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
@@ -199,11 +188,11 @@ public class ConnectSelectorsSuppliers {
         }
     }
 
-    public static ConnectKeySelectorSupplier keySelectorSupplier(boolean useStructuredData) {
+    public static ConnectKeySelectorSupplier keySelectorSupplier() {
         return new ConnectKeySelectorSupplierImpl();
     }
 
-    public static ConnectValueSelectorSupplier valueSelectorSupplier(boolean usStructuredData) {
+    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
         return new ConnectValueSelectorSupplierImpl();
     }
 }

@@ -26,13 +26,13 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtoco
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.config.ConfigException;
 import com.lightstreamer.kafka.utils.Either;
+import com.lightstreamer.kafka.utils.Split;
 
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -63,7 +63,12 @@ public class ConfigsSpec {
     }
 
     public enum ConfType implements Type {
-        TEXT,
+        TEXT {
+            @Override
+            public boolean checkValidity(String param) {
+                return !param.isBlank();
+            }
+        },
 
         TEXT_LIST(new ListType(TEXT)),
 
@@ -429,8 +434,7 @@ public class ConfigsSpec {
 
         @Override
         public boolean isValid(String param) {
-            String[] params = param.split(",");
-            return Arrays.stream(params).allMatch(type::isValid);
+            return Split.byComma(param).stream().allMatch(type::isValid);
         }
     }
 

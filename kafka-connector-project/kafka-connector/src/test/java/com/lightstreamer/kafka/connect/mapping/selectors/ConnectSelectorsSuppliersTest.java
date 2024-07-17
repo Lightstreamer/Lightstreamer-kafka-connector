@@ -80,12 +80,11 @@ public class ConnectSelectorsSuppliersTest {
                     .build();
 
     static ConnectValueSelector valueSelector(String expression) {
-        return ConnectSelectorsSuppliers.valueSelectorSupplier(false)
-                .newSelector("name", expression);
+        return ConnectSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
     static ConnectKeySelector keySelector(String expression) {
-        return ConnectSelectorsSuppliers.keySelectorSupplier(false).newSelector("name", expression);
+        return ConnectSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

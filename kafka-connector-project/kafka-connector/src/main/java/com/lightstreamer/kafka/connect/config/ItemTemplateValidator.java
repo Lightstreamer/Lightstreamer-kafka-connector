@@ -17,8 +17,15 @@
 
 package com.lightstreamer.kafka.connect.config;
 
+import com.lightstreamer.kafka.utils.Split;
+import com.lightstreamer.kafka.utils.Split.Pair;
+
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class ItemTemplateValidator implements Validator {
 
@@ -41,20 +48,21 @@ public class ItemTemplateValidator implements Validator {
                             "Invalid value for configuration \"%s\": Must be a non-empty semicolon-separated list",
                             name));
         }
-        String[] templates = strValue.split(";", -1);
-        if (templates.length == 0) {
-            throw new ConfigException(
-                    String.format(
-                            "Invalid value for configuration \"%s\": Must be a semicolon-separated list of non-empty strings",
-                            name));
-        }
-
+        List<String> templates = Split.bySemicolon(strValue);
+        Set<String> keys = new HashSet<>();
         for (String template : templates) {
-            validateTemplate(name, template);
+            String key = validateTemplate(name, template);
+            if (keys.contains(key)) {
+                throw new ConfigException(
+                        String.format(
+                                "Invalid value for configuration \"%s\": Duplicate key \"%s\"",
+                                name, key));
+            }
+            keys.add(key);
         }
     }
 
-    private void validateTemplate(String name, String template) {
+    private String validateTemplate(String name, String template) {
         if (template.isBlank()) {
             throw new ConfigException(
                     String.format(
@@ -62,6 +70,13 @@ public class ItemTemplateValidator implements Validator {
                             name));
         }
 
-        ValidatorUtils.ensureSplittable(name, template, "<template-name:template-value>");
+        return Split.pair(template)
+                .map(Pair::key)
+                .orElseThrow(
+                        () ->
+                                new ConfigException(
+                                        String.format(
+                                                "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
+                                                name, "<template-name:template-value>")));
     }
 }

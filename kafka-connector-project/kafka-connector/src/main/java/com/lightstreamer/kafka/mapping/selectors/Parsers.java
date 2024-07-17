@@ -22,7 +22,6 @@ import com.lightstreamer.kafka.utils.Either;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -47,60 +46,6 @@ public interface Parsers {
         boolean isScalar();
 
         String asText(String defaultStr);
-    }
-
-    public static class SimpleNode implements Node<SimpleNode> {
-
-        private final Object value;
-
-        public SimpleNode(Object value) {
-            this.value = value;
-        }
-
-        @Override
-        public boolean has(String propertyname) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'has'");
-        }
-
-        @Override
-        public Node<SimpleNode> get(String propertyName) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'get'");
-        }
-
-        @Override
-        public boolean isArray() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'isArray'");
-        }
-
-        @Override
-        public int size() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'size'");
-        }
-
-        @Override
-        public Node<SimpleNode> get(int index) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'get'");
-        }
-
-        @Override
-        public boolean isNull() {
-            return this.value == null;
-        }
-
-        @Override
-        public boolean isScalar() {
-            return true;
-        }
-
-        @Override
-        public String asText(String defaultStr) {
-            return Objects.toString(value, defaultStr);
-        }
     }
 
     public interface NodeEvaluator<T extends Node<T>> {

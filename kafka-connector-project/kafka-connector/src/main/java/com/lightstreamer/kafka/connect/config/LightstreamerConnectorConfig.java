@@ -23,13 +23,19 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
 
+import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
+import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
+import com.lightstreamer.kafka.utils.Split;
+import com.lightstreamer.kafka.utils.Split.Pair;
+
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -41,15 +47,21 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         TERMINATE_TASK;
 
         private static final Map<String, RecordErrorHandlingStrategy> NAME_CACHE;
+        private static final List<Object> RECOMMENDED;
 
         static {
             NAME_CACHE =
                     Stream.of(values())
                             .collect(toMap(RecordErrorHandlingStrategy::toString, identity()));
+            RECOMMENDED = Arrays.asList(NAME_CACHE.keySet().toArray(new Object[0]));
         }
 
         static RecordErrorHandlingStrategy from(String name) {
             return NAME_CACHE.get(name);
+        }
+
+        static List<Object> recommended() {
+            return RECOMMENDED;
         }
     }
 
@@ -64,62 +76,83 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static ConfigDef makeConfig() {
         return new ConfigDef()
                 .define(
-                        LIGHTREAMER_PROXY_ADAPTER_ADDRESS,
-                        Type.STRING,
-                        ConfigDef.NO_DEFAULT_VALUE,
-                        new ProxyAdapterAddressValidator(),
-                        Importance.HIGH,
-                        "The Lightstreamer server's proxy adapter address")
+                        new ConfigKeyBuilder()
+                                .name(LIGHTREAMER_PROXY_ADAPTER_ADDRESS)
+                                .type(Type.STRING)
+                                .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
+                                .validator(new ProxyAdapterAddressValidator())
+                                .importance(Importance.HIGH)
+                                .documentation("The Lightstreamer server's proxy adapter address")
+                                .build())
                 .define(
-                        ITEM_TEMPLATES,
-                        ConfigDef.Type.STRING,
-                        null,
-                        new ItemTemplateValidator(),
-                        ConfigDef.Importance.MEDIUM,
-                        "Item template expressions")
+                        new ConfigKeyBuilder()
+                                .name(ITEM_TEMPLATES)
+                                .type(Type.STRING)
+                                .defaultValue(null)
+                                .validator(new ItemTemplateValidator())
+                                .importance(Importance.MEDIUM)
+                                .documentation("Item template expressions")
+                                .build())
                 .define(
-                        TOPIC_MAPPINGS,
-                        ConfigDef.Type.LIST,
-                        ConfigDef.NO_DEFAULT_VALUE,
-                        new TopicMappingsValidator(),
-                        ConfigDef.Importance.HIGH,
-                        "")
+                        new ConfigKeyBuilder()
+                                .name(TOPIC_MAPPINGS)
+                                .type(Type.LIST)
+                                .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
+                                .validator(new ListValidator())
+                                .importance(Importance.HIGH)
+                                .documentation("")
+                                .build())
                 .define(
-                        FIELD_MAPPINGS,
-                        ConfigDef.Type.LIST,
-                        ConfigDef.NO_DEFAULT_VALUE,
-                        new FieldMappingsValidator(),
-                        ConfigDef.Importance.HIGH,
-                        "Name of the Lightsteramer fields to be mapped")
+                        new ConfigKeyBuilder()
+                                .name(FIELD_MAPPINGS)
+                                .type(Type.LIST)
+                                .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
+                                .validator(new FieldMappingsValidator())
+                                .importance(Importance.HIGH)
+                                .documentation("Name of the Lightsteramer fields to be mapped")
+                                .build())
                 .define(
-                        RECORD_EXTRACTION_ERROR_STRATEGY,
-                        ConfigDef.Type.STRING,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE.toString(),
-                        new RecordErrorHandlingStrategyValidator(),
-                        ConfigDef.Importance.MEDIUM,
-                        "The error handling strategy to be used if an error occurs while extracting data from incoming deserialized records");
+                        new ConfigKeyBuilder()
+                                .name(RECORD_EXTRACTION_ERROR_STRATEGY)
+                                .type(Type.STRING)
+                                .defaultValue(
+                                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE.toString())
+                                .validator(RecordErrorHandlingStrategies.VALIDATOR)
+                                .recommender(RecordErrorHandlingStrategies.RECOMMENDER)
+                                .importance(Importance.LOW)
+                                .documentation(
+                                        "The error handling strategy to be used if an error occurs while extracting data from incoming deserialized records")
+                                .build());
     }
-
-    private Map<String, String> topicMappings;
 
     public LightstreamerConnectorConfig(Map<?, ?> originals) {
         super(makeConfig(), originals);
     }
 
-    public Map<String, String> getTopicMappings() {
-        return getList(TOPIC_MAPPINGS).stream()
-                .collect(
-                        groupingBy(
-                                s -> s.split(":")[0], mapping(s -> s.split(":")[1], joining(","))));
+    public InetSocketAddress getProxyAdapterAddress() {
+        return Split.pair(getString(LIGHTREAMER_PROXY_ADAPTER_ADDRESS))
+                .map(p -> new InetSocketAddress(p.key(), Integer.valueOf(p.value())))
+                .orElseThrow(() -> new RuntimeException());
     }
 
-    public Map<String, String> getItemTemplates() {
-        String it = getString(ITEM_TEMPLATES);
-        if (it != null) {
-            return Arrays.stream(it.split(";"))
-                    .collect(toMap(s -> s.split(":")[0], s -> s.split(":")[1]));
-        }
-        return Collections.emptyMap();
+    public List<TopicMappingConfig> getTopicMappings() {
+        return TopicMappingConfig.from(
+                getList(TOPIC_MAPPINGS).stream()
+                        .flatMap(t -> Split.pair(t).stream())
+                        .collect(groupingBy(Pair::key, mapping(Pair::value, joining(",")))));
+    }
+
+    public Map<String, String> getFieldMappings() {
+        return getList(FIELD_MAPPINGS).stream()
+                .flatMap(t -> Split.pair(t).stream())
+                .collect(toMap(Pair::key, Pair::value));
+    }
+
+    public ItemTemplateConfigs getItemTemplates() {
+        return ItemTemplateConfigs.from(
+                Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
+                        .flatMap(s -> Split.pair(s).stream())
+                        .collect(toMap(Pair::key, Pair::value)));
     }
 
     public RecordErrorHandlingStrategy getErrRecordErrorHandlingStrategy() {

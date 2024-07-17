@@ -88,26 +88,22 @@ public class ConnectorConfigurator {
     }
 
     protected ConsumerLoopConfig<?, ?> configure() throws ConfigException {
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(
-                        config.getValues(ConnectorConfig.ITEM_TEMPLATE),
-                        config.getValues(ConnectorConfig.TOPIC_MAPPING));
-
         // Process "field.<field-name>=#{...}"
         Map<String, String> fieldsMapping = config.getValues(ConnectorConfig.FIELD_MAPPING);
 
         try {
+            TopicsConfig topicsConfig =
+                    TopicsConfig.of(config.getItemTemplateConfigs(), config.getTopicMappings());
             SelectorSuppliers<?, ?> sSuppliers =
                     SelectorSuppliers.of(
                             mkKeySelectorSupplier(config), mkValueSelectorSupplier(config));
 
-            Properties props = config.baseConsumerProps();
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
             ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers, fieldsMapping);
 
             return new ConsumerLoopConfigImpl(
                     config.getAdapterName(),
-                    props,
+                    config.baseConsumerProps(),
                     itemTemplates,
                     fieldsExtractor,
                     sSuppliers.keySelectorSupplier().deseralizer(),
@@ -136,7 +132,7 @@ public class ConnectorConfigurator {
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(
             TopicsConfig topicsConfig, SelectorSuppliers<K, V> selected) {
-        return Items.templatesFrom(topicsConfig, selected);
+        return Items.from(topicsConfig, selected);
     }
 
     private KeySelectorSupplier<?> mkKeySelectorSupplier(ConnectorConfig config) {

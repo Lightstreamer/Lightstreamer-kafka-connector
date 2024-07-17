@@ -141,9 +141,7 @@ class ValuesExtractorSupport {
     private static final class ValuesExtractorImpl<K, V> implements ValuesExtractor<K, V> {
 
         private final Set<KeySelector<K>> keySelectors;
-
         private final Set<ValueSelector<V>> valueSelectors;
-
         private final Set<GeneralSelector> metaSelectors;
 
         private final Schema schema;
