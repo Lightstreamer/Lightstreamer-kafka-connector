@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.test_utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

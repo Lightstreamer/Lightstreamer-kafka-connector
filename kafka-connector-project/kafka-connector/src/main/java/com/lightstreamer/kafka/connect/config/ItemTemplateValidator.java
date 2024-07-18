@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka.connect.config;
 
-import com.lightstreamer.kafka.utils.Split;
-import com.lightstreamer.kafka.utils.Split.Pair;
+import com.lightstreamer.kafka.common.utils.Split;
+import com.lightstreamer.kafka.common.utils.Split.Pair;
 
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;

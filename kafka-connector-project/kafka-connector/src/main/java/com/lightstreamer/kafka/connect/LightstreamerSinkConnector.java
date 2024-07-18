@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka.connect;
 
+import com.lightstreamer.kafka.common.utils.Version;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
-import com.lightstreamer.kafka.utils.Version;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;

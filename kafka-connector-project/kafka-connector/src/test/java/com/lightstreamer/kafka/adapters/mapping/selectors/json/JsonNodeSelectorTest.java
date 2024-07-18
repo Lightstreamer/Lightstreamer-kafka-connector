@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -42,12 +42,12 @@ public class JsonNodeSelectorTest {
 
     static ConnectorConfig config = ConnectorConfigProvider.minimal();
 
-    static ValueSelector<JsonNode> valueSelector(String expression) {
+    static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
         return JsonNodeSelectorsSuppliers.valueSelectorSupplier(config)
                 .newSelector("name", expression);
     }
 
-    static KeySelector<JsonNode> keySelector(String expression) {
+    static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
         return JsonNodeSelectorsSuppliers.keySelectorSupplier(config)
                 .newSelector("name", expression);
     }
@@ -83,7 +83,7 @@ public class JsonNodeSelectorTest {
                         VALUE.children[1].children[1].name,     terence
                         VALUE.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractValue(String expression, String expected) {
+    public void shouldExtractValue(String expression, String expected) throws ExtractionException {
         StringSubject subject =
                 assertThat(valueSelector(expression).extract(fromValue(RECORD)).text());
         if (expected.equals("NULL")) {
@@ -138,7 +138,7 @@ public class JsonNodeSelectorTest {
                         KEY.children[1].children[1].name,     terence
                         KEY.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractKey(String expression, String expected) {
+    public void shouldExtractKey(String expression, String expected) throws ExtractionException {
         StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -190,8 +190,8 @@ public class JsonNodeSelectorTest {
                         VALUE.attrib[a].,    Found unexpected trailing dot(s) in the expression [VALUE.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> valueSelector(expression));
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -212,8 +212,8 @@ public class JsonNodeSelectorTest {
                         KEY.attrib[a].,    Found unexpected trailing dot(s) in the expression [KEY.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> keySelector(expression));
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

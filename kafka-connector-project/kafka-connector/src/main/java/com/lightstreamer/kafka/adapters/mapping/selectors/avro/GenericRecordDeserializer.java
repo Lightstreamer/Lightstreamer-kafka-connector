@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
-import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.common.config.ConfigException;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 

@@ -26,13 +26,14 @@ import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.config.TopicsConfig;
-import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
-import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
-import com.lightstreamer.kafka.mapping.Items;
-import com.lightstreamer.kafka.mapping.Items.Item;
-import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
+import com.lightstreamer.kafka.common.config.TopicConfigurations;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -71,9 +72,9 @@ class TestConsumerLoopTest extends AbstractConsumerLoop<String, String> {
 
 class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 
-    private final TopicsConfig topicsConfig;
+    private final TopicConfigurations topicsConfig;
 
-    TestLoopConfig(TopicsConfig topicsConfig) {
+    TestLoopConfig(TopicConfigurations topicsConfig) {
         this.topicsConfig = topicsConfig;
     }
 
@@ -89,7 +90,11 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 
     @Override
     public ItemTemplates<String, String> itemTemplates() {
-        return Items.from(topicsConfig, TestSelectorSuppliers.string());
+        try {
+            return Items.from(topicsConfig, TestSelectorSuppliers.string());
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -116,8 +121,8 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
 public class ConsumerLoopTest {
 
     private static TestConsumerLoopTest consumerLoopTest() {
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
                         List.of(TopicMappingConfig.from("aTopic", "anItemTemplate")));
         ConsumerLoopConfig<String, String> c = new TestLoopConfig(topicsConfig);

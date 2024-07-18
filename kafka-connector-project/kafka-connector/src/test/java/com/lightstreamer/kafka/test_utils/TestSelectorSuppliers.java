@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import static com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers.of;
+import static com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers.of;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -25,10 +25,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.avro.generic.GenericRecord;
 

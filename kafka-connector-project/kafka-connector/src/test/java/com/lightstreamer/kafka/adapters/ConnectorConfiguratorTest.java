@@ -27,11 +27,13 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializer;
-import com.lightstreamer.kafka.config.ConfigException;
-import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.Schema;
-import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -133,7 +135,40 @@ public class ConnectorConfiguratorTest {
 
         assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
         assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
-        loopConfig.valueDeserializer();
+    }
+
+    @Test
+    public void shouldConfigureWithComplexParametersAvro() throws IOException {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
+        updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
+        updatedConfigs.put("map.topic2.to", "item-template.template1");
+        updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
+        updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+
+        ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
+        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
+
+        ValuesExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        Schema schema = fieldsExtractor.schema();
+        assertThat(schema.name()).isEqualTo("fields");
+        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+
+        ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
+        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
+                .containsExactly("item1", "item2", "simple-item1", "simple-item2");
+
+        assertThat(loopConfig.keyDeserializer().getClass())
+                .isEqualTo(GenericRecordDeserializer.class);
+        assertThat(loopConfig.valueDeserializer().getClass())
+                .isEqualTo(GenericRecordDeserializer.class);
     }
 
     @ParameterizedTest
@@ -167,6 +202,16 @@ public class ConnectorConfiguratorTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"value"})
+    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
+        Map<String, String> config = minimalConfigWith(Map.of("item-template.template", template));
+        ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Found the invalid expression [value] while evaluating [template]: <Invalid template expression>");
+    }
+
+    @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {","})
     public void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
@@ -194,10 +239,10 @@ public class ConnectorConfiguratorTest {
         return Stream.of(
                 arguments(
                         "NOT_WITHIN_BRACKET_NOTATION",
-                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: a valid expression must be enclosed within #{...}"),
+                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: <Invalid field expression>"),
                 arguments(
                         "VALUE",
-                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: a valid expression must be enclosed within #{...}"),
+                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: <Invalid field expression>"),
                 arguments(
                         "#{UNRECOGNIZED}",
                         "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [fieldName1]"));

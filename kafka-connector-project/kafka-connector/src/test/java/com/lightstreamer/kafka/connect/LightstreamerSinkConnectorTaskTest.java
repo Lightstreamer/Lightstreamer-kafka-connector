@@ -31,7 +31,7 @@ public class LightstreamerSinkConnectorTaskTest {
 
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS, "host:");
+        config.put(LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
         config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
@@ -47,22 +47,23 @@ public class LightstreamerSinkConnectorTaskTest {
         assertThat(connector.version()).isEqualTo(VersionUtils.currentVersion());
     }
 
-    // @Test
-    // void shouldShouldStartAndStop() {
-    //     LightstreamerSinkConnector connector = createTask();
-    //     Map<String, String> configs = basicConfig();
-    //     connector.start(configs);
+    @Test
+    void shouldShouldStartAndStop() {
+        LightstreamerSinkConnectorTask task = createTask();
+        Map<String, String> configs = basicConfig();
+        task.start(configs);
 
-    //     assertThat(connector.configs()).isEqualTo(basicConfig());
-    //     List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
-    //     assertThat(taskConfigs).containsExactly(basicConfig());
+        // task.
+        // assertThat(task.configs()).isEqualTo(basicConfig());
+        // List<Map<String, String>> taskConfigs = task.taskConfigs(1);
+        // assertThat(taskConfigs).containsExactly(basicConfig());
 
-    //     taskConfigs = connector.taskConfigs(2);
-    //     assertThat(taskConfigs).containsExactly(configs, configs);
+        // taskConfigs = task.taskConfigs(2);
+        // assertThat(taskConfigs).containsExactly(configs, configs);
 
-    //     connector.stop();
-    //     assertThat(connector.configs()).isEmpty();
-    // }
+        // task.stop();
+        // assertThat(task.configs()).isEmpty();
+    }
 
     // @Test
     // void shouldGetConfig() {

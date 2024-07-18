@@ -25,7 +25,7 @@ import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
-import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.common.config.ConfigException;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;

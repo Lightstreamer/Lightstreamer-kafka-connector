@@ -22,7 +22,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -34,6 +36,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LightstreamerConnectorConfigTest {
@@ -54,7 +57,7 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Missing required configuration \"lightstreamer.server.proxy_adapter_address\" which has no default value.");
+                        "Missing required configuration \"lightstreamer.server.proxy_adapter.address\" which has no default value.");
 
         // Put valid address and go on checking
         props.put(
@@ -125,35 +128,41 @@ public class LightstreamerConnectorConfigTest {
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         ItemTemplateConfigs itemTemplate = config.getItemTemplates();
-        assertThat(itemTemplate.expressions())
-                .containsExactly(
-                        "stock-template",
-                        "stock-#{index=KEY}",
-                        "product-template",
-                        "product-#{id=KEY,price=VALUE.price}");
+
+        Map<String, TemplateExpression> expressions = itemTemplate.expressions();
+        assertThat(expressions).hasSize(2);
+
+        TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
+        assertThat(stockExpression.prefix()).isEqualTo("stock");
+        assertThat(stockExpression.params()).containsExactly("index", "KEY");
+
+        TemplateExpression productExpression = itemTemplate.getExpression("product-template");
+        assertThat(productExpression.prefix()).isEqualTo("product");
+        assertThat(productExpression.params()).containsExactly("id", "KEY", "price", "VALUE.price");
     }
 
-    //     @Test
-    //     void shouldGetTopicMappings() {
-    //         Map<String, String> props = basicConfig();
+    @Test
+    void shouldGetTopicMappings() {
+        // stocks -> [item-template.stock-template, item-template-stock-template-2]
+        // orders -> [item-template.order-template, oreder-item]
+        Map<String, String> props = basicConfig();
+        props.put(
+                LightstreamerConnectorConfig.TOPIC_MAPPINGS,
+                "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template,orders:order-item");
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        List<TopicMappingConfig> topicMappings = config.getTopicMappings();
+        assertThat(topicMappings).hasSize(2);
 
-    //         // stocks -> [item-template.stock-template, item-template-stock-template-2]
-    //         // orders -> [item-template.order-template, oreder-item]
-    //         props.put(
-    //                 LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-    //
-    // "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template,orders:order-item");
-    //         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-    //         Map<String, String> topicMappings = config.getTopicMappings();
+        TopicMappingConfig orderTopicMapping = topicMappings.get(0);
+        assertThat(orderTopicMapping.topic()).isEqualTo("orders");
+        assertThat(orderTopicMapping.mappings())
+                .containsExactly("item-template.order-template", "order-item");
 
-    //         assertThat(topicMappings).containsKey("stocks");
-    //         assertThat(topicMappings.get("stocks"))
-    //                 .isEqualTo("item-template.stock-template,item-template.stock-template-2");
-
-    //         assertThat(topicMappings).containsKey("orders");
-    //         assertThat(topicMappings.get("orders"))
-    //                 .isEqualTo("item-template.order-template,order-item");
-    //     }
+        TopicMappingConfig stockTopicMappingConfig = topicMappings.get(1);
+        assertThat(stockTopicMappingConfig.topic()).isEqualTo("stocks");
+        assertThat(stockTopicMappingConfig.mappings())
+                .containsExactly("item-template.stock-template", "item-template.stock-template-2");
+    }
 
     @Test
     void shouldGetFieldMappings() {
@@ -246,6 +255,5 @@ public class LightstreamerConnectorConfigTest {
     public void shouldNotRetrieveRecordErrorHandlingStrategy(String noValidStrategy) {
         RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(noValidStrategy);
         assertThat(from).isNull();
-        ;
     }
 }

@@ -23,15 +23,16 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.config.ConfigException;
-import com.lightstreamer.kafka.config.TopicsConfig;
-import com.lightstreamer.kafka.mapping.Fields;
-import com.lightstreamer.kafka.mapping.Items;
-import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -89,17 +90,21 @@ public class ConnectorConfigurator {
 
     protected ConsumerLoopConfig<?, ?> configure() throws ConfigException {
         // Process "field.<field-name>=#{...}"
-        Map<String, String> fieldsMapping = config.getValues(ConnectorConfig.FIELD_MAPPING);
+        // Map<String, String> fieldsMapping = config.getFieldMappings();
+        FieldConfigs fieldConfigs = config.getFieldConfigs();
 
         try {
-            TopicsConfig topicsConfig =
-                    TopicsConfig.of(config.getItemTemplateConfigs(), config.getTopicMappings());
+            TopicConfigurations topicsConfig =
+                    TopicConfigurations.of(
+                            config.getItemTemplateConfigs(), config.getTopicMappings());
             SelectorSuppliers<?, ?> sSuppliers =
                     SelectorSuppliers.of(
                             mkKeySelectorSupplier(config), mkValueSelectorSupplier(config));
 
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
-            ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers, fieldsMapping);
+            ValuesExtractor<?, ?> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+            // ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers,
+            // fieldsMapping);
 
             return new ConsumerLoopConfigImpl(
                     config.getAdapterName(),
@@ -116,22 +121,27 @@ public class ConnectorConfigurator {
     }
 
     private ValuesExtractor<?, ?> initFieldsExtractor(
-            SelectorSuppliers<?, ?> selectorSuppliers, Map<String, String> fieldsMapping) {
+            SelectorSuppliers<?, ?> selectorSuppliers, Map<String, String> fieldsMapping)
+            throws ExtractionException {
         return initFieldExtractorHelper(selectorSuppliers, fieldsMapping);
     }
 
     private <K, V> ValuesExtractor<K, V> initFieldExtractorHelper(
-            SelectorSuppliers<K, V> selectorSuppliers, Map<String, String> fieldsMapping) {
-        return Fields.fromMapping(fieldsMapping, selectorSuppliers);
+            SelectorSuppliers<K, V> selectorSuppliers, Map<String, String> fieldsMapping)
+            throws ExtractionException {
+        // return FieldConfigs.extractorFrom(fieldsMapping, selectorSuppliers);
+        return null;
     }
 
     private ItemTemplates<?, ?> initItemTemplates(
-            SelectorSuppliers<?, ?> selected, TopicsConfig topicsConfig) {
+            SelectorSuppliers<?, ?> selected, TopicConfigurations topicsConfig)
+            throws ExtractionException {
         return initItemTemplatesHelper(topicsConfig, selected);
     }
 
     private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(
-            TopicsConfig topicsConfig, SelectorSuppliers<K, V> selected) {
+            TopicConfigurations topicsConfig, SelectorSuppliers<K, V> selected)
+            throws ExtractionException {
         return Items.from(topicsConfig, selected);
     }
 

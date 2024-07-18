@@ -24,9 +24,9 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
-import com.lightstreamer.kafka.config.ConfigException;
-import com.lightstreamer.kafka.utils.Either;
-import com.lightstreamer.kafka.utils.Split;
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.utils.Either;
+import com.lightstreamer.kafka.common.utils.Split;
 
 import java.io.File;
 import java.net.URI;
@@ -114,15 +114,6 @@ public class ConfigsSpec {
         },
 
         HOST_LIST(new ListType(HOST)),
-
-        ITEM_SPEC {
-            private static Pattern ITEM_SEPC = Pattern.compile("([a-zA-Z0-9_-]+)(-\\$\\{(.*)\\})?");
-
-            @Override
-            public boolean checkValidity(String param) {
-                return ITEM_SEPC.matcher(param).matches();
-            }
-        },
 
         FILE {
             @Override

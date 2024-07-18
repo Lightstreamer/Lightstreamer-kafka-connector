@@ -93,4 +93,6 @@ public class TlsConfigs {
     public static ConfigsSpec spec() {
         return CONFIG_SPEC;
     }
+
+    private TlsConfigs() {}
 }

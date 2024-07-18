@@ -17,12 +17,13 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord.KafkaSinkRecord;
-import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
-import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
-import com.lightstreamer.kafka.mapping.selectors.Value;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.Value;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -140,7 +141,8 @@ public class ConnectSelectorsSuppliers {
         ConnectKeySelectorSupplierImpl() {}
 
         @Override
-        public ConnectKeySelector newSelector(String name, String expression) {
+        public ConnectKeySelector newSelector(String name, String expression)
+                throws ExtractionException {
             return new ConnectKeySelectorImpl(name, expression);
         }
     }
@@ -148,7 +150,7 @@ public class ConnectSelectorsSuppliers {
     private static class ConnectKeySelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectKeySelector {
 
-        ConnectKeySelectorImpl(String name, String expression) {
+        ConnectKeySelectorImpl(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.KEY);
         }
 
@@ -165,7 +167,8 @@ public class ConnectSelectorsSuppliers {
     private static class ConnectValueSelectorSupplierImpl implements ConnectValueSelectorSupplier {
 
         @Override
-        public ConnectValueSelector newSelector(String name, String expression) {
+        public ConnectValueSelector newSelector(String name, String expression)
+                throws ExtractionException {
             return new ConnectValueSelectorImpl(name, expression);
         }
     }
@@ -173,7 +176,7 @@ public class ConnectSelectorsSuppliers {
     private static class ConnectValueSelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectValueSelector {
 
-        ConnectValueSelectorImpl(String name, String expression) {
+        ConnectValueSelectorImpl(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.VALUE);
         }
 

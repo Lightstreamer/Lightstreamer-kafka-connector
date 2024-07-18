@@ -184,4 +184,6 @@ public class SchemaRegistryConfigs {
         }
         return props.unmodifiables();
     }
+
+    private SchemaRegistryConfigs() {}
 }

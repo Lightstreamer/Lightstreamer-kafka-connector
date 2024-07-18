@@ -17,14 +17,15 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
 public interface ConnectValueSelectorSupplier extends ValueSelectorSupplier<Object> {
 
     @Override
-    ConnectValueSelector newSelector(String name, String expression);
+    ConnectValueSelector newSelector(String name, String expression) throws ExtractionException;
 
     public default Deserializer<Object> deseralizer() {
         throw new UnsupportedOperationException();

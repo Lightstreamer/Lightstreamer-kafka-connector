@@ -18,17 +18,18 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
-import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
-import com.lightstreamer.kafka.mapping.selectors.Value;
-import com.lightstreamer.kafka.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka.utils.Either;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.Value;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.utils.Either;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -195,7 +196,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public KeySelector<GenericRecord> newSelector(String name, String expression) {
+        public KeySelector<GenericRecord> newSelector(String name, String expression)
+                throws ExtractionException {
             return new GenericRecordKeySelector(name, expression);
         }
 
@@ -208,7 +210,7 @@ public class GenericRecordSelectorsSuppliers {
     private static final class GenericRecordKeySelector extends StructuredBaseSelector<AvroNode>
             implements KeySelector<GenericRecord> {
 
-        GenericRecordKeySelector(String name, String expression) {
+        GenericRecordKeySelector(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.KEY);
         }
 
@@ -229,7 +231,8 @@ public class GenericRecordSelectorsSuppliers {
         }
 
         @Override
-        public ValueSelector<GenericRecord> newSelector(String name, String expression) {
+        public ValueSelector<GenericRecord> newSelector(String name, String expression)
+                throws ExtractionException {
             return new GenericRecordValueSelector(name, expression);
         }
 
@@ -242,7 +245,7 @@ public class GenericRecordSelectorsSuppliers {
     private static final class GenericRecordValueSelector extends StructuredBaseSelector<AvroNode>
             implements ValueSelector<GenericRecord> {
 
-        GenericRecordValueSelector(String name, String expression) {
+        GenericRecordValueSelector(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.VALUE);
         }
 

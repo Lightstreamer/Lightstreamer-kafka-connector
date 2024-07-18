@@ -49,4 +49,6 @@ public class GssapiConfigs {
     public static ConfigsSpec spec() {
         return GSSAPI_CONFIG_SEPC;
     }
+
+    private GssapiConfigs() {}
 }

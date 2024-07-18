@@ -21,10 +21,10 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.Loop;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.mapping.Items;
-import com.lightstreamer.kafka.mapping.Items.Item;
-import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 
 import org.slf4j.Logger;
 

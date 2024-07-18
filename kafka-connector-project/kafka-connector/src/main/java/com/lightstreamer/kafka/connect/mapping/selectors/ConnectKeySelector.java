@@ -17,6 +17,6 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 
 public interface ConnectKeySelector extends KeySelector<Object> {}

@@ -19,15 +19,16 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.Parsers.Node;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSupplier.Constant;
-import com.lightstreamer.kafka.mapping.selectors.StructuredBaseSelector;
-import com.lightstreamer.kafka.mapping.selectors.Value;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.Value;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -91,7 +92,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public KeySelector<JsonNode> newSelector(String name, String expression) {
+        public KeySelector<JsonNode> newSelector(String name, String expression)
+                throws ExtractionException {
             return new JsonNodeKeySelector(name, expression);
         }
 
@@ -104,7 +106,7 @@ public class JsonNodeSelectorsSuppliers {
     private static final class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
             implements KeySelector<JsonNode> {
 
-        JsonNodeKeySelector(String name, String expression) {
+        JsonNodeKeySelector(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.KEY);
         }
 
@@ -124,7 +126,8 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public ValueSelector<JsonNode> newSelector(String name, String expression) {
+        public ValueSelector<JsonNode> newSelector(String name, String expression)
+                throws ExtractionException {
             return new JsonNodeValueSelector(name, expression);
         }
 
@@ -137,7 +140,7 @@ public class JsonNodeSelectorsSuppliers {
     private static final class JsonNodeValueSelector extends StructuredBaseSelector<JsonNodeNode>
             implements ValueSelector<JsonNode> {
 
-        JsonNodeValueSelector(String name, String expression) {
+        JsonNodeValueSelector(String name, String expression) throws ExtractionException {
             super(name, expression, Constant.VALUE);
         }
 

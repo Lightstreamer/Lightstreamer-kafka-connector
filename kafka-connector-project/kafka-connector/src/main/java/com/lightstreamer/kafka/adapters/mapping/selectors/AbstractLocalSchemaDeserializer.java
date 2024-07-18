@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.config.ConfigException;
+import com.lightstreamer.kafka.common.config.ConfigException;
 
 import org.apache.kafka.common.serialization.Deserializer;
 

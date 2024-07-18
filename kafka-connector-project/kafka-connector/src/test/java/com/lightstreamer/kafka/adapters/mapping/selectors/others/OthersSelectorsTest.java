@@ -32,12 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 
 import org.apache.kafka.common.serialization.Serde;
@@ -55,11 +55,13 @@ import java.util.stream.Stream;
 
 public class OthersSelectorsTest {
 
-    static ValueSelector<?> valueSelector(EvaluatorType type, String expression) {
+    static ValueSelector<?> valueSelector(EvaluatorType type, String expression)
+            throws ExtractionException {
         return OthersSelectorSuppliers.valueSelectorSupplier(type).newSelector("name", expression);
     }
 
-    static KeySelector<?> keySelector(EvaluatorType type, String expression) {
+    static KeySelector<?> keySelector(EvaluatorType type, String expression)
+            throws ExtractionException {
         return OthersSelectorSuppliers.keySelectorSupplier(type).newSelector("name", expression);
     }
 
@@ -96,7 +98,8 @@ public class OthersSelectorsTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @ParameterizedTest()
     @MethodSource("recordArgs")
-    public void shouldDeserializeAndExtractValue(EvaluatorType type, Serde serde, Object data) {
+    public void shouldDeserializeAndExtractValue(EvaluatorType type, Serde serde, Object data)
+            throws ExtractionException {
         byte[] bytes = serde.serializer().serialize("topic", data);
         ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(type);
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
@@ -108,7 +111,7 @@ public class OthersSelectorsTest {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Test
-    public void shouldExtractNullValue() {
+    public void shouldExtractNullValue() throws ExtractionException {
         ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(EvaluatorType.INTEGER);
         KafkaRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
         String text = valueSupplier.newSelector("name", "VALUE").extract(kafkaRecord).text();
@@ -117,7 +120,7 @@ public class OthersSelectorsTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
-    public void shouldExtractNullKey() {
+    public void shouldExtractNullKey() throws ExtractionException {
         KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(EvaluatorType.INTEGER);
         KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
         String text = valueSupplier.newSelector("name", "KEY").extract(kafkaRecord).text();
@@ -127,7 +130,8 @@ public class OthersSelectorsTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @ParameterizedTest()
     @MethodSource("recordArgs")
-    public void shouldDeserializeAndExtractKey(EvaluatorType type, Serde serde, Object data) {
+    public void shouldDeserializeAndExtractKey(EvaluatorType type, Serde serde, Object data)
+            throws ExtractionException {
         byte[] bytes = serde.serializer().serialize("topic", data);
         KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(type);
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
@@ -148,8 +152,8 @@ public class OthersSelectorsTest {
                         '',                  Expected the root token [KEY] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee1 =
-                assertThrows(ExpressionException.class, () -> keySelector(SHORT, expression));
+        ExtractionException ee1 =
+                assertThrows(ExtractionException.class, () -> keySelector(SHORT, expression));
         assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -164,8 +168,8 @@ public class OthersSelectorsTest {
                         '',                  Expected the root token [VALUE] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee1 =
-                assertThrows(ExpressionException.class, () -> valueSelector(SHORT, expression));
+        ExtractionException ee1 =
+                assertThrows(ExtractionException.class, () -> valueSelector(SHORT, expression));
         assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

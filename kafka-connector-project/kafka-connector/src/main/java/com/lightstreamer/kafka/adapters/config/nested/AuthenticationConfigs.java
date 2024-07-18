@@ -32,8 +32,6 @@ public class AuthenticationConfigs {
 
     private static ConfigsSpec CONFIG_SPEC;
 
-    private AuthenticationConfigs() {}
-
     static {
         CONFIG_SPEC =
                 new ConfigsSpec("authentication")
@@ -54,4 +52,6 @@ public class AuthenticationConfigs {
     public static ConfigsSpec cloneSpec() {
         return new ConfigsSpec(CONFIG_SPEC);
     }
+
+    private AuthenticationConfigs() {}
 }

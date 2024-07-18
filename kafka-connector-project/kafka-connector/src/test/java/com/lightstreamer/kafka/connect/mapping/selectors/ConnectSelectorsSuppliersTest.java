@@ -26,9 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.google.common.truth.StringSubject;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -79,11 +79,11 @@ public class ConnectSelectorsSuppliersTest {
                     .field("mapOfMap", OPTIONAL_MAP_OF_MAP_SCHEMA)
                     .build();
 
-    static ConnectValueSelector valueSelector(String expression) {
+    static ConnectValueSelector valueSelector(String expression) throws ExtractionException {
         return ConnectSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
     }
 
-    static ConnectKeySelector keySelector(String expression) {
+    static ConnectKeySelector keySelector(String expression) throws ExtractionException {
         return ConnectSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
     }
 
@@ -106,7 +106,7 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.children[1].children[1].name     |  terence
                         VALUE.children[1].children[1]['name']  |  terence
                         """)
-    public void shouldExtractValue(String expression, String expected) {
+    public void shouldExtractValue(String expression, String expected) throws ExtractionException {
         StringSubject subject =
                 assertThat(
                         valueSelector(expression)
@@ -167,7 +167,7 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.children[1].children[1].name     | terence
                         KEY.children[1].children[1]['name']  | terence
                         """)
-    public void shouldExtractKey(String expression, String expected) {
+    public void shouldExtractKey(String expression, String expected) throws ExtractionException {
         StringSubject subject =
                 assertThat(
                         keySelector(expression)
@@ -227,8 +227,8 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.attrib[a].,    Found unexpected trailing dot(s) in the expression [VALUE.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> valueSelector(expression));
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -249,8 +249,8 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.attrib[a].,    Found unexpected trailing dot(s) in the expression [KEY.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> keySelector(expression));
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -272,7 +272,7 @@ public class ConnectSelectorsSuppliersTest {
 
     @ParameterizedTest
     @MethodSource("scalars")
-    public void shouldExtractFromScalar(Schema schema, Object value) {
+    public void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
         // Make a very generic SinkRecord by popoluating either key and value so that we can test
         // selectors for each
         // of them
@@ -290,7 +290,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromFlatStruct() {
+    public void shouldExtractFromFlatStruct() throws ExtractionException {
         Struct struct = makeFlatStruct();
         Schema schema = struct.schema();
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
@@ -319,7 +319,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromNested() {
+    public void shouldExtractFromNested() throws ExtractionException {
         Struct struct = new Struct(NESTED_SCHEMA).put("nested", makeFlatStruct());
         Schema schema = struct.schema();
 
@@ -342,7 +342,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMap() {
+    public void shouldExtractFromMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA).put("map", Collections.singletonMap("key", "value"));
         Schema schema = struct.schema();
@@ -355,7 +355,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromComplexMap() {
+    public void shouldExtractFromComplexMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put("complexMap", Collections.singletonMap("key", makeFlatStruct()));
@@ -375,7 +375,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMapOfMap() {
+    public void shouldExtractFromMapOfMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put(

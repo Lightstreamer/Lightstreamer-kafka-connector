@@ -17,14 +17,15 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
 public interface ConnectKeySelectorSupplier extends KeySelectorSupplier<Object> {
 
     @Override
-    ConnectKeySelector newSelector(String name, String expression);
+    ConnectKeySelector newSelector(String name, String expression) throws ExtractionException;
 
     @Override
     public default Deserializer<Object> deseralizer() {

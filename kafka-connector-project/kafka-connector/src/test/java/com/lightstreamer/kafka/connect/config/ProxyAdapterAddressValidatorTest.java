@@ -71,7 +71,7 @@ public class ProxyAdapterAddressValidatorTest {
                                         LIGHTREAMER_PROXY_ADAPTER_ADDRESS, new Object()));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"lightstreamer.server.proxy_adapter_address\": Must be a string");
+                        "Invalid value for configuration \"lightstreamer.server.proxy_adapter.address\": Must be a string");
     }
 
     @ParameterizedTest

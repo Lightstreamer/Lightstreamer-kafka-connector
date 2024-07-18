@@ -18,8 +18,9 @@
 package com.lightstreamer.kafka.connect;
 
 import com.lightstreamer.adapters.remote.DataProviderServer;
+import com.lightstreamer.kafka.common.utils.Version;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
-import com.lightstreamer.kafka.utils.Version;
+import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -53,13 +54,14 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnectorTask");
         this.props = props;
-        DataAdapterConfig config = DataAdapterConfigurator.configure(props);
+        LightstreamerConnectorConfig cfg = new LightstreamerConnectorConfig(props);
+        DataAdapterConfig config = DataAdapterConfigurator.configure(cfg);
 
         adapter = new StreamingDataAdapter(config, context);
         DataProviderServer dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(adapter);
 
-        socket = startAdapter(dataProviderServer, config.proxyAdapterAddress());
+        socket = startAdapter(dataProviderServer, cfg);
     }
 
     @Override
@@ -81,10 +83,15 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         }
     }
 
-    private Socket startAdapter(DataProviderServer dataProviderServer, SocketAddress address) {
+    private Socket startAdapter(
+            DataProviderServer dataProviderServer, LightstreamerConnectorConfig cfg) {
         try {
             Socket socket = new Socket();
-            socket.connect(address);
+            try {
+                socket.connect(cfg.getProxyAdapterAddress(), cfg.getSetupConnectionTimeoutMs());
+            } catch (SocketTimeoutException s) {
+                logger.warn(s.getMessage());
+            }
             dataProviderServer.setReplyStream(socket.getOutputStream());
             dataProviderServer.setRequestStream(socket.getInputStream());
             dataProviderServer.start();

@@ -51,4 +51,6 @@ public class KeystoreConfigs {
     static ConfigsSpec spec() {
         return CONFIG_SPEC;
     }
+
+    private KeystoreConfigs() {}
 }

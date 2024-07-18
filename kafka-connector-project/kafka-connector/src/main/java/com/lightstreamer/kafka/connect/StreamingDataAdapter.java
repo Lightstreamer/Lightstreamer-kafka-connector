@@ -22,18 +22,18 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.mapping.Items;
-import com.lightstreamer.kafka.mapping.Items.Item;
-import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.mapping.RecordMapper;
-import com.lightstreamer.kafka.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.mapping.selectors.ExpressionException;
-import com.lightstreamer.kafka.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
@@ -90,18 +90,22 @@ public class StreamingDataAdapter implements DataProvider {
     }
 
     ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
-        try {
-            // may be null if DLQ not enabled
-            ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
-            if (errantRecordReporter != null) {
-                logger.info("Errant record reporter not configured.");
+        if (context != null) {
+            try {
+                // may be null if DLQ not enabled
+                ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
+                if (errantRecordReporter != null) {
+                    logger.info("Errant record reporter not configured.");
+                }
+                return errantRecordReporter;
+            } catch (NoClassDefFoundError | NoSuchMethodError e) {
+                logger.warn(
+                        "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
+                return null;
             }
-            return errantRecordReporter;
-        } catch (NoClassDefFoundError | NoSuchMethodError e) {
-            logger.warn(
-                    "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
-            return null;
         }
+        logger.info("Running tests, no context available");
+        return null;
     }
 
     @Override

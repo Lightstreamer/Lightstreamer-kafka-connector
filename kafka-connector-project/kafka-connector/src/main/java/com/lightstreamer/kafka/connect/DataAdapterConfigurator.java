@@ -17,15 +17,16 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.kafka.config.TopicsConfig;
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.TopicConfigurations;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
-import com.lightstreamer.kafka.mapping.Fields;
-import com.lightstreamer.kafka.mapping.Items;
-import com.lightstreamer.kafka.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.mapping.selectors.ValuesExtractor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,27 +58,30 @@ public class DataAdapterConfigurator {
 
     private DataAdapterConfigurator() {}
 
-    static DataAdapterConfig configure(Map<String, String> props) {
-        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        TopicsConfig topicsConfig =
-                TopicsConfig.of(config.getItemTemplates(), config.getTopicMappings());
+    static DataAdapterConfig configure(LightstreamerConnectorConfig config) {
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(config.getItemTemplates(), config.getTopicMappings());
         SelectorSuppliers<Object, Object> sSuppliers =
                 SelectorSuppliers.of(
                         ConnectSelectorsSuppliers.keySelectorSupplier(),
                         ConnectSelectorsSuppliers.valueSelectorSupplier());
-        ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
-        // logger.info("Constructed item templates: {}", itemTemplates);
+        try {
+            ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
+            // logger.info("Constructed item templates: {}", itemTemplates);
 
-        Map<String, String> fieldMappings = config.getFieldMappings();
-        logger.info("fieldsMapping: {}", fieldMappings);
+            Map<String, String> fieldMappings = config.getFieldMappings();
+            logger.info("fieldsMapping: {}", fieldMappings);
 
-        ValuesExtractor<Object, Object> fieldsExtractor =
-                Fields.fromMapping(fieldMappings, sSuppliers);
+            ValuesExtractor<Object, Object> fieldsExtractor = null;
+            // FieldConfigs.extractorFrom(fieldMappings, sSuppliers);
 
-        return new DataAdapterConfigImpl(
-                config.getProxyAdapterAddress(),
-                fieldsExtractor,
-                templates,
-                config.getErrRecordErrorHandlingStrategy());
+            return new DataAdapterConfigImpl(
+                    config.getProxyAdapterAddress(),
+                    fieldsExtractor,
+                    templates,
+                    config.getErrRecordErrorHandlingStrategy());
+        } catch (ExtractionException e) {
+            throw new ConfigException(e.getMessage());
+        }
     }
 }

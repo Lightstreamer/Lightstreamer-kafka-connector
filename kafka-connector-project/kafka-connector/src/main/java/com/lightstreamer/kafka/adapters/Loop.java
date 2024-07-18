@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.InfoItem;
-import com.lightstreamer.kafka.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.Item;
 
 public interface Loop {
 

@@ -54,9 +54,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.EnablingKey;
-import com.lightstreamer.kafka.config.ConfigException;
-import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
-import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
@@ -273,11 +274,14 @@ public final class ConnectorConfig extends AbstractConfig {
     private final ItemTemplateConfigs itemTemplateConfigs;
     private final List<TopicMappingConfig> topicMappings;
 
+    private FieldConfigs fieldConfigs;
+
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
         this.consumerProps = initProps();
         itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
         topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
+        fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -742,5 +746,13 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public List<TopicMappingConfig> getTopicMappings() {
         return topicMappings;
+    }
+
+    public Map<String, String> getFieldMappings() {
+        return getValues(FIELD_MAPPING);
+    }
+
+    public FieldConfigs getFieldConfigs() {
+        return fieldConfigs;
     }
 }

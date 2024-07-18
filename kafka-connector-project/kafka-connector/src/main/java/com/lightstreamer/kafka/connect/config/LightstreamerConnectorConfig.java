@@ -23,10 +23,10 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
 
-import com.lightstreamer.kafka.config.TopicsConfig.ItemTemplateConfigs;
-import com.lightstreamer.kafka.config.TopicsConfig.TopicMappingConfig;
-import com.lightstreamer.kafka.utils.Split;
-import com.lightstreamer.kafka.utils.Split.Pair;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.utils.Split;
+import com.lightstreamer.kafka.common.utils.Split.Pair;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -66,7 +66,9 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     public static final String LIGHTREAMER_PROXY_ADAPTER_ADDRESS =
-            "lightstreamer.server.proxy_adapter_address";
+            "lightstreamer.server.proxy_adapter.address";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS =
+            "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
     public static final String ITEM_TEMPLATES = "item.templates";
     public static final String TOPIC_MAPPINGS = "topic.mappings";
     public static final String FIELD_MAPPINGS = "field.mappings";
@@ -78,11 +80,19 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                 .define(
                         new ConfigKeyBuilder()
                                 .name(LIGHTREAMER_PROXY_ADAPTER_ADDRESS)
-                                .type(Type.STRING)
+                                .type(Type.INT)
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
                                 .validator(new ProxyAdapterAddressValidator())
                                 .importance(Importance.HIGH)
                                 .documentation("The Lightstreamer server's proxy adapter address")
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS)
+                                .type(Type.INT)
+                                .defaultValue(5)
+                                .importance(Importance.LOW)
+                                .documentation("")
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -133,6 +143,10 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return Split.pair(getString(LIGHTREAMER_PROXY_ADAPTER_ADDRESS))
                 .map(p -> new InetSocketAddress(p.key(), Integer.valueOf(p.value())))
                 .orElseThrow(() -> new RuntimeException());
+    }
+
+    public int getSetupConnectionTimeoutMs() {
+        return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS);
     }
 
     public List<TopicMappingConfig> getTopicMappings() {

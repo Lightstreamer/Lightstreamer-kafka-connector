@@ -17,6 +17,6 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
-import com.lightstreamer.kafka.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 
 public interface ConnectValueSelector extends ValueSelector<Object> {}
