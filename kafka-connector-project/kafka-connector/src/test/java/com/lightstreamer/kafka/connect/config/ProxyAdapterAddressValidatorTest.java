@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -58,7 +58,7 @@ public class ProxyAdapterAddressValidatorTest {
     void shouldNotValidate(String value, String expectedErrMessage) {
         assertThrows(
                 ConfigException.class,
-                () -> validator.ensureValid(LIGHTREAMER_PROXY_ADAPTER_ADDRESS, value));
+                () -> validator.ensureValid(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, value));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class ProxyAdapterAddressValidatorTest {
                         ConfigException.class,
                         () ->
                                 validator.ensureValid(
-                                        LIGHTREAMER_PROXY_ADAPTER_ADDRESS, new Object()));
+                                        LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, new Object()));
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Invalid value for configuration \"lightstreamer.server.proxy_adapter.address\": Must be a string");
@@ -77,6 +77,6 @@ public class ProxyAdapterAddressValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"host:6661", "my-host:66662"})
     void shouldValidate(String value) {
-        assertDoesNotThrow(() -> validator.ensureValid(LIGHTREAMER_PROXY_ADAPTER_ADDRESS, value));
+        assertDoesNotThrow(() -> validator.ensureValid(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, value));
     }
 }

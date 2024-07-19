@@ -22,10 +22,13 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
@@ -34,7 +37,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,14 +45,14 @@ public class LightstreamerConnectorConfigTest {
 
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
+        config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
         config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
 
     @Test
-    void shouldConfig() {
+    void shouldConfigWithRequiredParameters() {
         // No lightstreamer.server.proxy.adapter.address specified
         Map<String, String> props = new HashMap<>();
         ConfigException ce =
@@ -61,7 +63,7 @@ public class LightstreamerConnectorConfigTest {
 
         // Put valid address and go on checking
         props.put(
-                LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS,
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS,
                 "lighstreamer_host:6661");
 
         // No topic.mappings
@@ -105,18 +107,42 @@ public class LightstreamerConnectorConfigTest {
                 .isEqualTo(
                         "Invalid value for configuration \"field.mappings\": Must be a non-empty list");
 
-        // Put valid field mappings and go on checking
+        // Invalid field mappings
         props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:value1");
+        ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value for configuration \"field.mappings\": Field expression must be expressed in the form #{...}");
+
+        // Put valid field mappings and go on checking
+        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         assertDoesNotThrow(() -> new LightstreamerConnectorConfig(props));
     }
 
     @Test
-    void shouldGetProxyAdaypter() {
+    void shouldGetProxyAdapterClientOptions() {
         Map<String, String> props = basicConfig();
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        InetSocketAddress proxyAdapterAddress = config.getProxyAdapterAddress();
-        assertThat(proxyAdapterAddress.getHostName()).isEqualTo("host");
-        assertThat(proxyAdapterAddress.getPort()).isEqualTo(6661);
+        ProxyAdapterClientOptions proxyAdapterClientOptions = config.getProxyAdapterClientOptions();
+
+        assertThat(proxyAdapterClientOptions.hostname).isEqualTo("host");
+        assertThat(proxyAdapterClientOptions.port).isEqualTo(6661);
+        assertThat(proxyAdapterClientOptions.timeout).isEqualTo(5000);
+
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "hostname:6662");
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
+                "10000");
+        config = new LightstreamerConnectorConfig(updateConfigs);
+
+        proxyAdapterClientOptions = config.getProxyAdapterClientOptions();
+
+        assertThat(proxyAdapterClientOptions.hostname).isEqualTo("hostname");
+        assertThat(proxyAdapterClientOptions.port).isEqualTo(6662);
+        assertThat(proxyAdapterClientOptions.timeout).isEqualTo(10000);
     }
 
     @Test
@@ -134,11 +160,17 @@ public class LightstreamerConnectorConfigTest {
 
         TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
-        assertThat(stockExpression.params()).containsExactly("index", "KEY");
+        assertThat(stockExpression.params())
+                .containsExactly("index", ExtractionExpression.of("KEY"));
 
         TemplateExpression productExpression = itemTemplate.getExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
-        assertThat(productExpression.params()).containsExactly("id", "KEY", "price", "VALUE.price");
+        assertThat(productExpression.params())
+                .containsExactly(
+                        "id",
+                        ExtractionExpression.of("KEY"),
+                        "price",
+                        ExtractionExpression.of("VALUE.price"));
     }
 
     @Test
@@ -191,45 +223,46 @@ public class LightstreamerConnectorConfigTest {
         props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, fieldMappingConfig);
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
 
-        Map<String, String> fieldMappings = config.getFieldMappings();
-        assertThat(fieldMappings)
+        FieldConfigs fieldMappings = config.getFieldConfigs();
+
+        assertThat(fieldMappings.expressions())
                 .containsExactly(
                         "timestamp",
-                        "#{VALUE.timestamp}",
+                        ExtractionExpression.of("VALUE.timestamp"),
                         "time",
-                        "#{VALUE.time}",
+                        ExtractionExpression.of("VALUE.time"),
                         "stock_name",
-                        "#{VALUE.name}",
+                        ExtractionExpression.of("VALUE.name"),
                         "last_price",
-                        "#{VALUE.last_price}",
+                        ExtractionExpression.of("VALUE.last_price"),
                         "ask",
-                        "#{VALUE.ask}",
+                        ExtractionExpression.of("VALUE.ask"),
                         "ask_quantity",
-                        "#{VALUE.ask_quantity}",
+                        ExtractionExpression.of("VALUE.ask_quantity"),
                         "bid",
-                        "#{VALUE.bid}",
+                        ExtractionExpression.of("VALUE.bid"),
                         "bid_quantity",
-                        "#{VALUE.bid_quantity}",
+                        ExtractionExpression.of("VALUE.bid_quantity"),
                         "pct_change",
-                        "#{VALUE.pct_change}",
+                        ExtractionExpression.of("VALUE.pct_change"),
                         "min",
-                        "#{VALUE.min}",
+                        ExtractionExpression.of("VALUE.min"),
                         "max",
-                        "#{VALUE.max}",
+                        ExtractionExpression.of("VALUE.max"),
                         "ref_price",
-                        "#{VALUE.ref_price}",
+                        ExtractionExpression.of("VALUE.ref_price"),
                         "open_price",
-                        "#{VALUE.open_price}",
+                        ExtractionExpression.of("VALUE.open_price"),
                         "item_status",
-                        "#{VALUE.item_status}",
+                        ExtractionExpression.of("VALUE.item_status"),
                         "ts",
-                        "#{TIMESTAMP}",
+                        ExtractionExpression.of("TIMESTAMP"),
                         "topic",
-                        "#{TOPIC}",
+                        ExtractionExpression.of("TOPIC"),
                         "offset",
-                        "#{OFFSET}",
+                        ExtractionExpression.of("OFFSET"),
                         "partition",
-                        "#{PARTITION}");
+                        ExtractionExpression.of("PARTITION"));
     }
 
     @ParameterizedTest

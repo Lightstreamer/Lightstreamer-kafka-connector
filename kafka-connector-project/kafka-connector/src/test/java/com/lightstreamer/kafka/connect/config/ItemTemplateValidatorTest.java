@@ -44,10 +44,10 @@ public class ItemTemplateValidatorTest {
     @NullSource
     @ValueSource(
             strings = {
-                "template-name:template-value",
-                "  template-name  :  template-value  ",
-                "template-name1:template-value1;template-name2:template-value2",
-                "template-name1:template-value1;   template-name2:template-value2  "
+                "template-name:template-prefix-#{param=VALUE}",
+                "  template-name  :  template-prefix-#{param=VALUE}  ",
+                "template-name1:template1-prefix1-#{param=VALUE};template-name2:template-prefix2-#{param=VALUE}",
+                "template-name1:template1-prefix1-#{param=VALUE};   template-name2:template-prefix2-#{param=VALUE}  "
             })
     public void shouldValidate(Object value) {
         assertDoesNotThrow(() -> validator.ensureValid(ITEM_TEMPLATES, value));
@@ -59,16 +59,17 @@ public class ItemTemplateValidatorTest {
             delimiter = '|',
             textBlock =
                     """
-                    VALUE                         | EXPECTED_ERR_MESSAGE
-                    ''                            | Invalid value for configuration "item.templates": Must be a non-empty semicolon-separated list
-                    '  '                          | Invalid value for configuration "item.templates": Must be a non-empty semicolon-separated list
-                    ;                             | Invalid value for configuration "item.templates": Must be a semicolon-separated list of non-empty strings
-                    :                             | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-value>
-                    template-name:template-value; | Invalid value for configuration "item.templates": Must be a semicolon-separated list of non-empty strings
-                    template-name                 | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-value>
-                    template-name:                | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-value>
-                    :template-value               | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-value>
-                    t1:v1;t1:v1                   | Invalid value for configuration "item.templates": Duplicate key "t1"
+                    VALUE                                        | EXPECTED_ERR_MESSAGE
+                    ''                                           | Invalid value for configuration "item.templates": Must be a non-empty semicolon-separated list
+                    '  '                                         | Invalid value for configuration "item.templates": Must be a non-empty semicolon-separated list
+                    ;                                            | Invalid value for configuration "item.templates": Must be a semicolon-separated list of non-empty strings
+                    :                                            | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-expression>
+                    template-name:t1-prefix-#{p1=v1};            | Invalid value for configuration "item.templates": Must be a semicolon-separated list of non-empty strings
+                    template-name:t1-prefix-#{}                  | Invalid value for configuration "item.templates": Template expression must be expressed in the form <template-prefix-#{par1=val1,...parN=valN}
+                    template-name                                | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-expression>
+                    template-name:                               | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-expression>
+                    :t1-prefix-#{p1=v1}                          | Invalid value for configuration "item.templates": Each entry must be expressed in the form <template-name:template-expression>
+                    t1:t1-prefix-#{p1=v1};t1:t1-prefix2-#{p2=v2} | Invalid value for configuration "item.templates": Duplicate key "t1"
                 """)
     public void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =

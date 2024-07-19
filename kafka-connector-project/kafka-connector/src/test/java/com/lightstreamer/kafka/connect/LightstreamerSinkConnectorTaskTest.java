@@ -31,7 +31,7 @@ public class LightstreamerSinkConnectorTaskTest {
 
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
+        config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
         config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;

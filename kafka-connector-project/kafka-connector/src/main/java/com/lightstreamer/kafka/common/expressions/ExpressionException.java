@@ -24,11 +24,4 @@ public class ExpressionException extends RuntimeException {
     public ExpressionException(String message) {
         super(message);
     }
-
-    public static ExpressionException invalidFieldExpression(String fieldName, String expression)
-            throws ExpressionException {
-        return new ExpressionException(
-                "Found the invalid expression [%s] while evaluating [%s]: a valid expression must be enclosed within #{...}"
-                        .formatted(expression, fieldName));
-    }
 }

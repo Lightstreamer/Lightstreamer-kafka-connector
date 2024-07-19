@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.connect.config;
 
+import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
 
@@ -26,13 +28,24 @@ public class FieldMappingsValidator extends ListValidator {
 
     @Override
     public String validateStringElement(String name, String element) {
-        return Split.pair(element)
-                .map(Pair::key)
-                .orElseThrow(
-                        () ->
-                                new ConfigException(
-                                        String.format(
-                                                "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
-                                                name, "<field-name:expression>")));
+        // Gets the <field-name>:<field-expression> pair
+        Pair pair =
+                Split.pair(element)
+                        .orElseThrow(
+                                () ->
+                                        new ConfigException(
+                                                String.format(
+                                                        "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
+                                                        name, "<field-name:field-expression>")));
+        try {
+            // Validates <template-expression>
+            ExpressionEvaluators.field().eval(pair.value());
+            return pair.key();
+        } catch (ExpressionException ee) {
+            throw new ConfigException(
+                    String.format(
+                            "Invalid value for configuration \"%s\": Field expression must be expressed in the form %s",
+                            name, "#{...}"));
+        }
     }
 }

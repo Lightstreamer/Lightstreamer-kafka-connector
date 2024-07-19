@@ -23,17 +23,19 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
 
+import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -65,13 +67,30 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         }
     }
 
-    public static final String LIGHTREAMER_PROXY_ADAPTER_ADDRESS =
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS =
             "lightstreamer.server.proxy_adapter.address";
+
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
+
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT =
+            "lightstreamer.server.proxy_adapter.socket.connection.setup.retries.count";
+
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS =
+            "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms";
+
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME =
+            "lightstreamer.server.proxy_adapter.username";
+
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD =
+            "lightstreamer.server.proxy_adapter.password";
+
     public static final String ITEM_TEMPLATES = "item.templates";
+
     public static final String TOPIC_MAPPINGS = "topic.mappings";
+
     public static final String FIELD_MAPPINGS = "field.mappings";
+
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
             "record.extraction.error.strategy";
 
@@ -79,8 +98,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return new ConfigDef()
                 .define(
                         new ConfigKeyBuilder()
-                                .name(LIGHTREAMER_PROXY_ADAPTER_ADDRESS)
-                                .type(Type.INT)
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS)
+                                .type(Type.STRING)
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
                                 .validator(new ProxyAdapterAddressValidator())
                                 .importance(Importance.HIGH)
@@ -90,8 +109,40 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                         new ConfigKeyBuilder()
                                 .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS)
                                 .type(Type.INT)
-                                .defaultValue(5)
+                                .defaultValue(5000)
                                 .importance(Importance.LOW)
+                                .documentation("")
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT)
+                                .type(Type.INT)
+                                .defaultValue(0)
+                                .importance(Importance.LOW)
+                                .documentation("")
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS)
+                                .type(Type.INT)
+                                .defaultValue(0)
+                                .importance(Importance.LOW)
+                                .documentation("")
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_USERNAME)
+                                .type(Type.STRING)
+                                .defaultValue(null)
+                                .importance(Importance.MEDIUM)
+                                .documentation("")
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD)
+                                .type(Type.PASSWORD)
+                                .defaultValue(null)
+                                .importance(Importance.MEDIUM)
                                 .documentation("")
                                 .build())
                 .define(
@@ -135,13 +186,33 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .build());
     }
 
+    private final ItemTemplateConfigs itemTemplateConfigs;
+    private final List<TopicMappingConfig> topicMppingCofigs;
+    private final FieldConfigs fieldConfigs;
+    private final ProxyAdapterClientOptions proxyAdapterClientOptions;
+
     public LightstreamerConnectorConfig(Map<?, ?> originals) {
         super(makeConfig(), originals);
+
+        itemTemplateConfigs = initItemTemplateConfigs();
+        topicMppingCofigs = initTopicMappingConfigs();
+        fieldConfigs = initFieldConfigs();
+
+        Pair address = getProxyAdapterAddress();
+        proxyAdapterClientOptions =
+                new ProxyAdapterClientOptions.Builder()
+                        .hostname(address.key())
+                        .port(Integer.valueOf(address.value()))
+                        .timeout(getSetupConnectionTimeoutMs())
+                        .build();
     }
 
-    public InetSocketAddress getProxyAdapterAddress() {
-        return Split.pair(getString(LIGHTREAMER_PROXY_ADAPTER_ADDRESS))
-                .map(p -> new InetSocketAddress(p.key(), Integer.valueOf(p.value())))
+    public ProxyAdapterClientOptions getProxyAdapterClientOptions() {
+        return proxyAdapterClientOptions;
+    }
+
+    private Pair getProxyAdapterAddress() {
+        return Split.pair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
                 .orElseThrow(() -> new RuntimeException());
     }
 
@@ -150,26 +221,43 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
+        return topicMppingCofigs;
+    }
+
+    public FieldConfigs getFieldConfigs() {
+        return fieldConfigs;
+    }
+
+    public ItemTemplateConfigs getItemTemplates() {
+        return itemTemplateConfigs;
+    }
+
+    public RecordErrorHandlingStrategy getErrRecordErrorHandlingStrategy() {
+        return RecordErrorHandlingStrategy.valueOf(getString(RECORD_EXTRACTION_ERROR_STRATEGY));
+    }
+
+    private FieldConfigs initFieldConfigs() {
+        return FieldConfigs.from(
+                getList(FIELD_MAPPINGS).stream()
+                        .flatMap(t -> Split.pair(t).stream())
+                        .collect(toMap(Pair::key, Pair::value)));
+    }
+
+    private List<TopicMappingConfig> initTopicMappingConfigs() {
         return TopicMappingConfig.from(
                 getList(TOPIC_MAPPINGS).stream()
                         .flatMap(t -> Split.pair(t).stream())
                         .collect(groupingBy(Pair::key, mapping(Pair::value, joining(",")))));
     }
 
-    public Map<String, String> getFieldMappings() {
-        return getList(FIELD_MAPPINGS).stream()
-                .flatMap(t -> Split.pair(t).stream())
-                .collect(toMap(Pair::key, Pair::value));
-    }
-
-    public ItemTemplateConfigs getItemTemplates() {
-        return ItemTemplateConfigs.from(
-                Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
-                        .flatMap(s -> Split.pair(s).stream())
-                        .collect(toMap(Pair::key, Pair::value)));
-    }
-
-    public RecordErrorHandlingStrategy getErrRecordErrorHandlingStrategy() {
-        return RecordErrorHandlingStrategy.valueOf(getString(RECORD_EXTRACTION_ERROR_STRATEGY));
+    private ItemTemplateConfigs initItemTemplateConfigs() {
+        try {
+            return ItemTemplateConfigs.from(
+                    Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
+                            .flatMap(s -> Split.pair(s).stream())
+                            .collect(toMap(Pair::key, Pair::value)));
+        } catch (ConfigException ce) {
+            throw new org.apache.kafka.common.config.ConfigException("");
+        }
     }
 }

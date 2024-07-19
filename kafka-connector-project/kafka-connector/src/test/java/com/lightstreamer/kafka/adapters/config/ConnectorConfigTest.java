@@ -32,6 +32,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
@@ -686,6 +687,14 @@ public class ConnectorConfigTest {
         TemplateExpression te2 = templateConfigs.getExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
         assertThat(te2.params()).containsExactly("param2", ExtractionExpression.of("value2"));
+    }
+
+    @Test
+    void shouldGetFieldConfigs() {
+        ConnectorConfig cgg = ConnectorConfigProvider.minimal();
+        FieldConfigs fieldConfigs = cgg.getFieldConfigs();
+        assertThat(fieldConfigs.expressions()).hasSize(1);
+        assertThat(fieldConfigs.getExression("fieldName1").toString()).isEqualTo("VALUE");
     }
 
     @Test

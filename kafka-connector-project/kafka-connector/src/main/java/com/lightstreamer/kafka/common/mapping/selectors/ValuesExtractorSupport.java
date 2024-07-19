@@ -37,21 +37,21 @@ class ValuesExtractorSupport {
 
     private ValuesExtractorSupport() {}
 
-    private static class SelectorDispatcher<K, V> {
+    private static class SelectorsFiller<K, V> {
 
-        private Map<Constant, Dispatcher<?>> dispatchers = new HashMap<>();
+        private Map<Constant, Filler<?>> fillers = new HashMap<>();
 
-        private static class Dispatcher<T extends Selector> {
+        private static class Filler<T extends Selector> {
 
             private final Set<T> selectors;
             private final SelectorSupplier<T> selectorSupplier;
 
-            Dispatcher(Set<T> set, SelectorSupplier<T> selectorSupplier) {
+            Filler(Set<T> set, SelectorSupplier<T> selectorSupplier) {
                 this.selectors = set;
                 this.selectorSupplier = selectorSupplier;
             }
 
-            void dispatch(String param, String expression) throws ExtractionException {
+            void fill(String param, String expression) throws ExtractionException {
                 T newSelector = selectorSupplier.newSelector(param, expression);
                 if (!selectors.add(newSelector)) {
                     throw ExtractionException.invalidExpression(param, expression);
@@ -59,26 +59,26 @@ class ValuesExtractorSupport {
             }
         }
 
-        SelectorDispatcher(ValuesExtractorBuilder<K, V> builder) {
+        SelectorsFiller(ValuesExtractorBuilder<K, V> builder) {
             KeySelectorSupplier<K> keySelectorSupplier =
                     Objects.requireNonNull(builder.sSuppliers.keySelectorSupplier());
             ValueSelectorSupplier<V> valueSelectorSupplier =
                     Objects.requireNonNull(builder.sSuppliers.valueSelectorSupplier());
             GeneralSelectorSupplier metaSelectorSupplier = new GeneralSelectorSupplier();
 
-            Dispatcher<KeySelector<K>> kDispatcher =
-                    new Dispatcher<>(builder.keySelectors, keySelectorSupplier);
-            Dispatcher<ValueSelector<V>> vDispatcher =
-                    new Dispatcher<>(builder.valueSelectors, valueSelectorSupplier);
-            Dispatcher<GeneralSelector> mDispatcher =
-                    new Dispatcher<>(builder.metaSelectors, metaSelectorSupplier);
+            Filler<KeySelector<K>> kFiller =
+                    new Filler<>(builder.keySelectors, keySelectorSupplier);
+            Filler<ValueSelector<V>> vFiller =
+                    new Filler<>(builder.valueSelectors, valueSelectorSupplier);
+            Filler<GeneralSelector> mFiller =
+                    new Filler<>(builder.metaSelectors, metaSelectorSupplier);
 
-            dispatchers.put(Constant.KEY, kDispatcher);
-            dispatchers.put(Constant.VALUE, vDispatcher);
-            dispatchers.put(Constant.OFFSET, mDispatcher);
-            dispatchers.put(Constant.TOPIC, mDispatcher);
-            dispatchers.put(Constant.PARTITION, mDispatcher);
-            dispatchers.put(Constant.TIMESTAMP, mDispatcher);
+            fillers.put(Constant.KEY, kFiller);
+            fillers.put(Constant.VALUE, vFiller);
+            fillers.put(Constant.OFFSET, mFiller);
+            fillers.put(Constant.TOPIC, mFiller);
+            fillers.put(Constant.PARTITION, mFiller);
+            fillers.put(Constant.TIMESTAMP, mFiller);
         }
 
         void dispatch(Map.Entry<String, ExtractionExpression> boundExpression)
@@ -94,8 +94,8 @@ class ValuesExtractorSupport {
                                 .collect(Collectors.joining("|"));
                 throw ExtractionException.expectedRootToken(param, t);
             }
-            Dispatcher<?> dispatch = dispatchers.get(root);
-            dispatch.dispatch(param, expression);
+            Filler<?> filler = fillers.get(root);
+            filler.fill(param, expression);
         }
     }
 
@@ -135,7 +135,7 @@ class ValuesExtractorSupport {
         }
 
         public ValuesExtractor<K, V> build() throws ExtractionException {
-            SelectorDispatcher<K, V> dispatcher = new SelectorDispatcher<>(this);
+            SelectorsFiller<K, V> dispatcher = new SelectorsFiller<>(this);
             for (Map.Entry<String, ExtractionExpression> entry : expressions.entrySet()) {
                 dispatcher.dispatch(entry);
             }

@@ -18,8 +18,14 @@
 package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.FIELD_MAPPINGS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.ITEM_TEMPLATES;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 
-import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.google.common.truth.Ordered;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
 import org.apache.kafka.common.config.ConfigDef;
@@ -32,11 +38,13 @@ import java.util.Set;
 
 public class LightstreamerSinkConnectorTest {
 
+    private Ordered containsExactly;
+
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS, "host:");
-        config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
-        config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
+        config.put(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:");
+        config.put(TOPIC_MAPPINGS, "item1");
+        config.put(FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
 
@@ -72,13 +80,15 @@ public class LightstreamerSinkConnectorTest {
         LightstreamerSinkConnector connector = createConnector();
         ConfigDef config = connector.config();
         Set<String> configKeys = config.configKeys().keySet();
-        assertThat(configKeys)
-                .containsExactly(
-                        LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS,
-                        LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-                        LightstreamerConnectorConfig.ITEM_TEMPLATES,
-                        LightstreamerConnectorConfig.FIELD_MAPPINGS,
-                        LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY);
+        containsExactly =
+                assertThat(configKeys)
+                        .containsExactly(
+                                LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS,
+                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
+                                TOPIC_MAPPINGS,
+                                ITEM_TEMPLATES,
+                                FIELD_MAPPINGS,
+                                RECORD_EXTRACTION_ERROR_STRATEGY);
     }
 
     @Test

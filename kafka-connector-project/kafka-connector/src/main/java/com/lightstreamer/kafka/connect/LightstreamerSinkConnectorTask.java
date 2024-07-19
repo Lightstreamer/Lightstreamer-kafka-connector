@@ -17,10 +17,10 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.adapters.remote.DataProviderServer;
 import com.lightstreamer.kafka.common.utils.Version;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -29,9 +29,6 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -41,7 +38,8 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
     private Map<String, String> props;
     private StreamingDataAdapter adapter;
-    private Socket socket;
+
+    private ProxyAdapterClient proxyAdapterClient;
 
     public LightstreamerSinkConnectorTask() {}
 
@@ -58,10 +56,8 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         DataAdapterConfig config = DataAdapterConfigurator.configure(cfg);
 
         adapter = new StreamingDataAdapter(config, context);
-        DataProviderServer dataProviderServer = new DataProviderServer();
-        dataProviderServer.setAdapter(adapter);
-
-        socket = startAdapter(dataProviderServer, cfg);
+        proxyAdapterClient = new ProxyAdapterClient(cfg.getProxyAdapterClientOptions());
+        proxyAdapterClient.start(adapter);
     }
 
     @Override
@@ -74,31 +70,6 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
     @Override
     public void stop() {
-        if (socket != null && socket.isConnected()) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                logger.error("Error while closing the connection with the Proxy Adapter", e);
-            }
-        }
-    }
-
-    private Socket startAdapter(
-            DataProviderServer dataProviderServer, LightstreamerConnectorConfig cfg) {
-        try {
-            Socket socket = new Socket();
-            try {
-                socket.connect(cfg.getProxyAdapterAddress(), cfg.getSetupConnectionTimeoutMs());
-            } catch (SocketTimeoutException s) {
-                logger.warn(s.getMessage());
-            }
-            dataProviderServer.setReplyStream(socket.getOutputStream());
-            dataProviderServer.setRequestStream(socket.getInputStream());
-            dataProviderServer.start();
-            return socket;
-        } catch (Exception e) {
-            logger.error("Error while opening the connection with the Proxy Adapter", e);
-            throw new RuntimeException(e);
-        }
+        proxyAdapterClient.stop();
     }
 }

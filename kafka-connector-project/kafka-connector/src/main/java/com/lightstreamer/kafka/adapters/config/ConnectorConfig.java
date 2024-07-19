@@ -748,10 +748,6 @@ public final class ConnectorConfig extends AbstractConfig {
         return topicMappings;
     }
 
-    public Map<String, String> getFieldMappings() {
-        return getValues(FIELD_MAPPING);
-    }
-
     public FieldConfigs getFieldConfigs() {
         return fieldConfigs;
     }

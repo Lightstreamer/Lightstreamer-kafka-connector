@@ -74,10 +74,10 @@ public class FieldMappingsValidatorTest {
                 // List of mixed non-empty/empty-strings
                 arguments(
                         List.of("field1"),
-                        "Invalid value for configuration \"field.mappings\": Each entry must be expressed in the form <field-name:expression>"),
+                        "Invalid value for configuration \"field.mappings\": Each entry must be expressed in the form <field-name:field-expression>"),
                 // List of duplicate entry
                 arguments(
-                        List.of("field1:value1", "field1:value2"),
+                        List.of("field1:#{value1}", "field1:#{value2}"),
                         "Invalid value for configuration \"field.mappings\": Duplicate key \"field1\""));
     }
 
@@ -92,9 +92,9 @@ public class FieldMappingsValidatorTest {
 
     static Stream<Arguments> values() {
         return Stream.of(
-                arguments(List.of("field1:expression1")),
-                arguments(List.of("  field1 :  expression1  ")),
-                arguments(List.of("field1:expression1", "field2:expression2")));
+                arguments(List.of("field1:#{expression1}")),
+                arguments(List.of("  field1 :  #{expression1}  ")),
+                arguments(List.of("field1:#{expression1}", "field2:#{expression2}")));
     }
 
     @ParameterizedTest

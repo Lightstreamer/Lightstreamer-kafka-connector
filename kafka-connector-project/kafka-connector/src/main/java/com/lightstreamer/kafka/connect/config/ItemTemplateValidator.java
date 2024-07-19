@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.connect.config;
 
+import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
 
@@ -70,13 +72,28 @@ public class ItemTemplateValidator implements Validator {
                             name));
         }
 
-        return Split.pair(template)
-                .map(Pair::key)
-                .orElseThrow(
-                        () ->
-                                new ConfigException(
-                                        String.format(
-                                                "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
-                                                name, "<template-name:template-value>")));
+        // Gets the <template-name>:<template-expression> pair
+        Pair pair =
+                Split.pair(template)
+                        .orElseThrow(
+                                () ->
+                                        new ConfigException(
+                                                String.format(
+                                                        "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
+                                                        name,
+                                                        "<template-name:template-expression>")));
+
+        try {
+            // Validates <template-expression>
+            ExpressionEvaluators.template().eval(pair.value()).toString();
+
+            // Retruns <template-name>
+            return pair.key();
+        } catch (ExpressionException ee) {
+            throw new ConfigException(
+                    String.format(
+                            "Invalid value for configuration \"%s\": Template expression must be expressed in the form %s",
+                            name, "<template-prefix-#{par1=val1,...parN=valN}"));
+        }
     }
 }

@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.connect;
 
 import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -31,14 +32,9 @@ import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSupplie
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.SocketAddress;
-import java.util.Map;
-
 public class DataAdapterConfigurator {
 
     public interface DataAdapterConfig {
-
-        SocketAddress proxyAdapterAddress();
 
         ValuesExtractor<Object, Object> fieldsExtractor();
 
@@ -48,7 +44,6 @@ public class DataAdapterConfigurator {
     }
 
     private static record DataAdapterConfigImpl(
-            SocketAddress proxyAdapterAddress,
             ValuesExtractor<Object, Object> fieldsExtractor,
             ItemTemplates<Object, Object> itemTemplates,
             RecordErrorHandlingStrategy recordErrorHandlingStrategy)
@@ -69,17 +64,13 @@ public class DataAdapterConfigurator {
             ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
             // logger.info("Constructed item templates: {}", itemTemplates);
 
-            Map<String, String> fieldMappings = config.getFieldMappings();
-            logger.info("fieldsMapping: {}", fieldMappings);
+            FieldConfigs fieldConfigs = config.getFieldConfigs();
+            logger.info("fieldsMapping: {}", fieldConfigs);
 
-            ValuesExtractor<Object, Object> fieldsExtractor = null;
-            // FieldConfigs.extractorFrom(fieldMappings, sSuppliers);
+            ValuesExtractor<Object, Object> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
 
             return new DataAdapterConfigImpl(
-                    config.getProxyAdapterAddress(),
-                    fieldsExtractor,
-                    templates,
-                    config.getErrRecordErrorHandlingStrategy());
+                    fieldsExtractor, templates, config.getErrRecordErrorHandlingStrategy());
         } catch (ExtractionException e) {
             throw new ConfigException(e.getMessage());
         }
