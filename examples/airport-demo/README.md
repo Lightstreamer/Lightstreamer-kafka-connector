@@ -101,7 +101,12 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 2. create the topic with the following configurations:
    ```sh
-   $ ./bin/kafka-topics.sh --create --topic Flights --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --config cleanup.policy=compact
+   $ ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic Flights \
+              --replication-factor 1 \
+              --partitions 1 \
+              --config cleanup.policy=compact \
+              --config segment.ms=30000
+
    $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name Flights --describe
    ```
 
