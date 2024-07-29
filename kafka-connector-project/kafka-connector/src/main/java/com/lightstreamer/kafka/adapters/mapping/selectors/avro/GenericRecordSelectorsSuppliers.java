@@ -93,7 +93,7 @@ public class GenericRecordSelectorsSuppliers {
                 Schema schema = genericContainer.getSchema();
                 Type type = schema.getType();
                 return switch (type) {
-                    case Type.RECORD -> {
+                    case RECORD -> {
                         GenericData.Record record = (GenericData.Record) genericContainer;
                         yield record.hasField(name);
                     }

@@ -22,6 +22,7 @@ import com.lightstreamer.kafka.common.utils.Either;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -49,10 +50,6 @@ public interface Parsers {
     }
 
     public interface NodeEvaluator<T extends Node<T>> {
-        String name();
-
-        Node<T> eval(Node<T> node) throws ValueException;
-
         static <T extends Node<T>> NodeEvaluator<T> identity(String name) {
             return new NodeEvaluator<T>() {
 
@@ -67,6 +64,10 @@ public interface Parsers {
                 }
             };
         }
+
+        String name();
+
+        Node<T> eval(Node<T> node) throws ValueException;
     }
 
     public static final class LinkedNodeEvaluator<T extends Node<T>> {
@@ -139,18 +140,28 @@ public interface Parsers {
 
     static final class ParsingContext {
 
+        private static String[] getTokens(String expression) {
+            // expression.splitWithDelimiters("\\.", 0); // Valid for Java 21
+            StringTokenizer st = new StringTokenizer(expression, ".", true);
+            String[] tokens = new String[st.countTokens()];
+            for (int i = 0; i < tokens.length; i++) {
+                tokens[i] = st.nextToken();
+            }
+            return tokens;
+        }
+
         private final String name;
         private final String expression;
         private final Constant expectedRoot;
-
         private final String[] tokens;
+
         private int tokenIndex = 0;
 
         ParsingContext(String name, String expression, Constant expectedRoot) {
             this.name = name;
             this.expression = expression;
             this.expectedRoot = expectedRoot;
-            tokens = expression.splitWithDelimiters("\\.", 0);
+            this.tokens = getTokens(expression);
         }
 
         String name() {
@@ -176,7 +187,7 @@ public interface Parsers {
         }
 
         boolean hasTrailingDelimiters() {
-            return tokens[tokens.length - 1].equals(".");
+            return tokens.length > 0 && tokens[tokens.length - 1].equals(".");
         }
 
         String next() {

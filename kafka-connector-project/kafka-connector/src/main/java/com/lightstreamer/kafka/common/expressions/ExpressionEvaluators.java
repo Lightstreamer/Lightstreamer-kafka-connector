@@ -115,13 +115,11 @@ public class ExpressionEvaluators {
         }
     }
 
-    private static class TempalteExpressionEvaluator implements TemplateEvaluator {
+    private static class TemplateExpressionEvaluator implements TemplateEvaluator {
 
-        private final Patterns patterns;
+        private final Patterns patterns = Patterns.TEMPLATE;
 
-        private TempalteExpressionEvaluator(Patterns patterns) {
-            this.patterns = patterns;
-        }
+        private TemplateExpressionEvaluator() {}
 
         @Override
         public TemplateExpression eval(String expression) throws ExpressionException {
@@ -157,11 +155,9 @@ public class ExpressionEvaluators {
 
     private static class ItemExpressionEvaluator implements ItemEvaluator {
 
-        private final Patterns patterns;
+        private final Patterns patterns = Patterns.SUBSCRIBED;
 
-        private ItemExpressionEvaluator(Patterns patterns) {
-            this.patterns = patterns;
-        }
+        private ItemExpressionEvaluator() {}
 
         @Override
         public SubscriptionExpression eval(String expression) throws ExpressionException {
@@ -197,12 +193,8 @@ public class ExpressionEvaluators {
 
     private static final String SELECTION_REGEX = "\\#\\{(.+)\\}";
 
-    static TemplateEvaluator TEMPLATE_EVALUATOR =
-            new TempalteExpressionEvaluator(Patterns.TEMPLATE);
-
-    static ItemExpressionEvaluator SUBSCRIPTION_EVALUATOR =
-            new ItemExpressionEvaluator(Patterns.SUBSCRIBED);
-
+    static TemplateEvaluator TEMPLATE_EVALUATOR = new TemplateExpressionEvaluator();
+    static ItemExpressionEvaluator SUBSCRIPTION_EVALUATOR = new ItemExpressionEvaluator();
     static FieldExpressionEvaluator FIELD_EVALUATOR = new FieldExpressionEvaluator();
 
     public static TemplateEvaluator template() {

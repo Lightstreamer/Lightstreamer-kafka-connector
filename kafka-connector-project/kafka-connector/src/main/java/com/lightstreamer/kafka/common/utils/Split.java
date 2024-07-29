@@ -26,13 +26,13 @@ import java.util.Optional;
 
 public class Split {
 
-    private static final Pattern COMMA_WITH_WHITESPACE = Pattern.compile("\\s*,\\s*");
-    private static final Pattern COLON_WITH_WHITESPACE = Pattern.compile("\\s*:\\s*");
-    private static final Pattern SEMICOLON_WITH_WHITESPACE = Pattern.compile("\\s*;\\s*");
-
     public static record Pair(String key, String value) {}
 
-    private Split() {}
+    private static final String TEMPLATE_PATTERN = "\\s*%s\\s*";
+
+    private static final Pattern COMMA_WITH_WHITESPACE = splitPattern(',');
+    private static final Pattern COLON_WITH_WHITESPACE = splitPattern(':');
+    private static final Pattern SEMICOLON_WITH_WHITESPACE = splitPattern(';');
 
     public static Optional<Pair> pair(String splittable) {
         List<String> tokens = byColon(splittable);
@@ -58,8 +58,18 @@ public class Split {
         return by(SEMICOLON_WITH_WHITESPACE, input);
     }
 
+    public static List<String> bySeparator(char separator, String input) {
+        return by(splitPattern(separator), input);
+    }
+
+    private static Pattern splitPattern(char separator) {
+        return Pattern.compile(TEMPLATE_PATTERN.formatted(separator));
+    }
+
     private static List<String> by(Pattern pattern, String input) {
         String trimmed = Objects.toString(input, "").trim();
         return Arrays.asList(pattern.split(trimmed, -1));
     }
+
+    private Split() {}
 }

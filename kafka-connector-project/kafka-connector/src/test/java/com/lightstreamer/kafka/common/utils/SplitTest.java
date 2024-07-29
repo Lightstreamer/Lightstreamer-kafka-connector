@@ -18,12 +18,17 @@
 package com.lightstreamer.kafka.common.utils;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import com.lightstreamer.kafka.common.utils.Split.Pair;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -40,6 +45,10 @@ public class SplitTest {
 
     static Stream<Arguments> commaTestValues() {
         return values(',');
+    }
+
+    static Stream<Arguments> testValues() {
+        return values('@');
     }
 
     static Stream<Arguments> values(char symbol) {
@@ -59,21 +68,37 @@ public class SplitTest {
     @ParameterizedTest
     @MethodSource("semicolonTestValues")
     void shouldSplitBySemicolon(String input, List<String> expected) {
-        List<String> tokens = Split.bySemicolon(input);
-        assertThat(tokens).containsExactlyElementsIn(expected);
+        assertThat(Split.bySemicolon(input)).containsExactlyElementsIn(expected);
     }
 
     @ParameterizedTest
     @MethodSource("colonTestValues")
     void shouldSplitByColon(String input, List<String> expected) {
-        List<String> tokens = Split.byColon(input);
-        assertThat(tokens).containsExactlyElementsIn(expected);
+        assertThat(Split.byColon(input)).containsExactlyElementsIn(expected);
     }
 
     @ParameterizedTest
     @MethodSource("commaTestValues")
     void shouldSplitByComma(String input, List<String> expected) {
-        List<String> tokens = Split.byComma(input);
-        assertThat(tokens).containsExactlyElementsIn(expected);
+        assertThat(Split.byComma(input)).containsExactlyElementsIn(expected);
+    }
+
+    @ParameterizedTest
+    @MethodSource("testValues")
+    void shouldSplitByAnySeparator(String input, List<String> expected) {
+        assertThat(Split.bySeparator('@', input)).containsExactlyElementsIn(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a:b", "  a:b  ", "a:  b ", "  a:b", " a  : b  "})
+    void shouldReturnPair(String splittable) {
+        assertThat(Split.pair(splittable)).hasValue(new Pair("a", "b"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"a", "a:", "  :b  ", ":  b ", ":", " : "})
+    void shouldReturnEmptyPair(String splittable) {
+        assertThat(Split.pair(splittable)).isEmpty();
     }
 }

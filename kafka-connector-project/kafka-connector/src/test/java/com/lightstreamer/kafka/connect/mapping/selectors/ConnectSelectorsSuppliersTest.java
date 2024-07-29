@@ -279,12 +279,20 @@ public class ConnectSelectorsSuppliersTest {
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, value, schema, value, 0);
         KafkaRecord<Object, Object> record = KafkaRecord.from(sinkRecord);
 
-        String expected =
-                switch (value) {
-                    case byte[] bytes -> Arrays.toString(bytes);
-                    case ByteBuffer buffer -> Arrays.toString(buffer.array());
-                    default -> value.toString();
-                };
+        // String expected =
+        //         switch (value) {
+        //             case byte[] bytes -> Arrays.toString(bytes);
+        //             case ByteBuffer buffer -> Arrays.toString(buffer.array());
+        //             default -> value.toString();
+        //         };
+        String expected;
+        if (value instanceof byte[] bytes) {
+            expected = Arrays.toString(bytes);
+        } else if (value instanceof ByteBuffer buffer) {
+            expected = Arrays.toString(buffer.array());
+        } else {
+            expected = value.toString();
+        }
         assertThat(valueSelector("VALUE").extract(record).text()).isEqualTo(expected);
         assertThat(keySelector("KEY").extract(record).text()).isEqualTo(expected);
     }
