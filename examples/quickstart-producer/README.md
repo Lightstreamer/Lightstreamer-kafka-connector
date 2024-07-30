@@ -5,7 +5,7 @@ This folder contains the Gradle project of the Kafka native producer used for th
 To build the producer:
 
  ```sh
-./gradlew distribuite 
+./gradlew distribute 
 ```
 
 which generates the `quickstart-producer-all` under the `deploy` folder.

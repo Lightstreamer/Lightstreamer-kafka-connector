@@ -114,7 +114,7 @@ This section will guide you through the installation of Kafka Connector to get i
 Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
-$ ./gradlew distribuite
+$ ./gradlew distribute
 ```
 
 which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `kafka-connector-project/deploy` folder.
@@ -285,7 +285,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ```sh
    $ cd examples/quickstart-producer
-   $ ./gradlew distribuite
+   $ ./gradlew distribute
    ```
 
    which generates the `quickstart-producer-all` under the `deploy` folder.
