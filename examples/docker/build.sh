@@ -5,7 +5,7 @@ TMP_DIR=${SCRIPT_DIR}/tmp
 
 # Generate the deployment package
 echo "Making the deployment package"
-$_gradle distribuite
+$_gradle distribute
 
 mkdir -p ${TMP_DIR}
 cp ${projectDir}/deploy/lightstreamer-kafka-connector-${version}.zip ${TMP_DIR}

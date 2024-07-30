@@ -34,7 +34,7 @@ tasks.register('consumerJar', Jar) {
 	}
 }
 
-task distribuiteConsumer(type: Copy) {
+task distributeConsumer(type: Copy) {
 	from consumerJar
 	into "$rootDir/$consumerDeployDirName"
 }

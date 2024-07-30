@@ -12,7 +12,7 @@ COPY settings.gradle .
 COPY gradle.properties .
 
 # Generate the jar
-RUN gradle distribuite 
+RUN gradle distribute 
 
 # Use the official Eclipse Temuring image  
 FROM eclipse-temurin:21-jdk

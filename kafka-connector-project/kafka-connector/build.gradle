@@ -64,7 +64,7 @@ distributions {
 	}
 }
 
-task distribuite(type: Copy) {
+task distribute(type: Copy) {
 	dependsOn build
 	from (connectorDistZip)
 	into "$rootDir/$connectorDeployDirName"

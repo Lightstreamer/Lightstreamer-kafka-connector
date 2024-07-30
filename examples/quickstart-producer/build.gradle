@@ -33,7 +33,7 @@ tasks.register('uberJar', Jar) {
 	}
 }
 
-task distribuite(type: Copy) {
+task distribute(type: Copy) {
 	from uberJar
 	into "$rootDir/$deployDirName"
 }
