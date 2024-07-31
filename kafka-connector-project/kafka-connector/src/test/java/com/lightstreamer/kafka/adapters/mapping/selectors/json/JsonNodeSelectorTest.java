@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -42,12 +44,14 @@ public class JsonNodeSelectorTest {
 
     static ConnectorConfig config = ConnectorConfigProvider.minimal();
 
-    static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
+    static ValueSelector<JsonNode> valueSelector(ExtractionExpression expression)
+            throws ExtractionException {
         return JsonNodeSelectorsSuppliers.valueSelectorSupplier(config)
                 .newSelector("name", expression);
     }
 
-    static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
+    static KeySelector<JsonNode> keySelector(ExtractionExpression expression)
+            throws ExtractionException {
         return JsonNodeSelectorsSuppliers.keySelectorSupplier(config)
                 .newSelector("name", expression);
     }
@@ -83,7 +87,9 @@ public class JsonNodeSelectorTest {
                         VALUE.children[1].children[1].name,     terence
                         VALUE.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractValue(String expression, String expected) throws ExtractionException {
+    public void shouldExtractValue(String expressionStr, String expected)
+            throws ExtractionException {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         StringSubject subject =
                 assertThat(valueSelector(expression).extract(fromValue(RECORD)).text());
         if (expected.equals("NULL")) {
@@ -99,7 +105,6 @@ public class JsonNodeSelectorTest {
             textBlock =
                     """
                         EXPRESSION,                   EXPECTED_ERROR_MESSAGE
-                        VALUE,                        The expression [VALUE] must evaluate to a non-complex object
                         VALUE.no_attrib,              Field [no_attrib] not found
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
@@ -112,7 +117,8 @@ public class JsonNodeSelectorTest {
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
                         """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -138,7 +144,8 @@ public class JsonNodeSelectorTest {
                         KEY.children[1].children[1].name,     terence
                         KEY.children[1].children[1]['name'],  terence
                         """)
-    public void shouldExtractKey(String expression, String expected) throws ExtractionException {
+    public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -153,7 +160,6 @@ public class JsonNodeSelectorTest {
             textBlock =
                     """
                         EXPRESSION,                 EXPECTED_ERROR_MESSAGE
-                        KEY,                        The expression [KEY] must evaluate to a non-complex object
                         KEY.no_attrib,              Field [no_attrib] not found
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
@@ -165,7 +171,8 @@ public class JsonNodeSelectorTest {
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
                         """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -179,17 +186,15 @@ public class JsonNodeSelectorTest {
             textBlock =
                     """
                         EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        '',                  Expected the root token [VALUE] while evaluating [name]
-                        invalidValue,        Expected the root token [VALUE] while evaluating [name]
-                        VALUE..,             Found unexpected trailing dot(s) in the expression [VALUE..] while evaluating [name]
+                        VALUE,               Found the invalid expression [VALUE] with missing attribute while evaluating [name]
                         VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                        VALUE.attrib[a].,    Found unexpected trailing dot(s) in the expression [VALUE.attrib[a].] while evaluating [name]
                     """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
@@ -201,17 +206,15 @@ public class JsonNodeSelectorTest {
             textBlock =
                     """
                         EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                        '',                Expected the root token [KEY] while evaluating [name]
-                        invalidKey,        Expected the root token [KEY] while evaluating [name]
-                        KEY..,             Found unexpected trailing dot(s) in the expression [KEY..] while evaluating [name]
+                        KEY,               Found the invalid expression [KEY] with missing attribute while evaluating [name]
                         KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                        KEY.attrib[a].,    Found unexpected trailing dot(s) in the expression [KEY.attrib[a].] while evaluating [name]
                     """)
-    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
+    public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);

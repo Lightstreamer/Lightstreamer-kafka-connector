@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.google.common.truth.StringSubject;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -80,11 +81,13 @@ public class ConnectSelectorsSuppliersTest {
                     .build();
 
     static ConnectValueSelector valueSelector(String expression) throws ExtractionException {
-        return ConnectSelectorsSuppliers.valueSelectorSupplier().newSelector("name", expression);
+        return ConnectSelectorsSuppliers.valueSelectorSupplier()
+                .newSelector("name", Expressions.expression(expression));
     }
 
     static ConnectKeySelector keySelector(String expression) throws ExtractionException {
-        return ConnectSelectorsSuppliers.keySelectorSupplier().newSelector("name", expression);
+        return ConnectSelectorsSuppliers.keySelectorSupplier()
+                .newSelector("name", Expressions.expression(expression));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -216,15 +219,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        '',                  Expected the root token [VALUE] while evaluating [name]
-                        invalidValue,        Expected the root token [VALUE] while evaluating [name]
-                        VALUE..,             Found unexpected trailing dot(s) in the expression [VALUE..] while evaluating [name]
                         VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                        VALUE.attrib[a].,    Found unexpected trailing dot(s) in the expression [VALUE.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
@@ -238,15 +237,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                        '',                Expected the root token [KEY] while evaluating [name]
-                        invalidKey,        Expected the root token [KEY] while evaluating [name]
-                        KEY..,             Found unexpected trailing dot(s) in the expression [KEY..] while evaluating [name]
                         KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                        KEY.attrib[a].,    Found unexpected trailing dot(s) in the expression [KEY.attrib[a].] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
@@ -273,12 +268,13 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest
     @MethodSource("scalars")
     public void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
-        // Make a very generic SinkRecord by popoluating either key and value so that we can test
+        // Make a very generic SinkRecord by populating either key and value so that we can test
         // selectors for each
         // of them
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, value, schema, value, 0);
         KafkaRecord<Object, Object> record = KafkaRecord.from(sinkRecord);
 
+        // Valid ony on JDK 21
         // String expected =
         //         switch (value) {
         //             case byte[] bytes -> Arrays.toString(bytes);

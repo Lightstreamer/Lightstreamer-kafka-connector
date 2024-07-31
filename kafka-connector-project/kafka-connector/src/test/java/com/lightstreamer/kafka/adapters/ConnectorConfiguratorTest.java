@@ -245,7 +245,7 @@ public class ConnectorConfiguratorTest {
                         "Found the invalid expression [VALUE] while evaluating [fieldName1]: <Invalid field expression>"),
                 arguments(
                         "#{UNRECOGNIZED}",
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [fieldName1]"));
+                        "Found the invalid expression [#{UNRECOGNIZED}] while evaluating [fieldName1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]>"));
     }
 
     @ParameterizedTest

@@ -20,7 +20,8 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -66,11 +67,11 @@ public class RecordMapperJsonTest {
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -84,11 +85,11 @@ public class RecordMapperJsonTest {
                         .withExtractor(
                                 extractor(
                                         "test1",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
                                 extractor(
                                         "test2",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -114,14 +115,13 @@ public class RecordMapperJsonTest {
                         .withExtractor(
                                 extractor(
                                         "test1",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
-                                extractor(
-                                        "test2", Map.of("aKey", ExtractionExpression.of("TOPIC"))))
+                                extractor("test2", Map.of("aKey", Expressions.expression("TOPIC"))))
                         .withExtractor(
                                 extractor(
                                         "test3",
-                                        Map.of("aKey", ExtractionExpression.of("TIMESTAMP"))))
+                                        Map.of("aKey", Expressions.expression("TIMESTAMP"))))
                         .build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
@@ -137,7 +137,7 @@ public class RecordMapperJsonTest {
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("name", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("name", Expressions.expression("PARTITION"))))
                         .build();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
@@ -146,30 +146,28 @@ public class RecordMapperJsonTest {
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
         ValuesExtractor<String, JsonNode> unboundSelectors =
-                extractor("test", Map.of("name", ExtractionExpression.of("VALUE.any")));
+                extractor("test", Map.of("name", Expressions.expression("VALUE.any")));
         assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
         ValuesExtractor<String, JsonNode> nameExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("VALUE.name")));
+                extractor("test", Map.of("name", Expressions.expression("VALUE.name")));
 
         ValuesExtractor<String, JsonNode> childExtractor1 =
                 extractor(
                         "test",
-                        Map.of(
-                                "firstChildName",
-                                ExtractionExpression.of("VALUE.children[0].name")));
+                        Map.of("firstChildName", Expressions.expression("VALUE.children[0].name")));
 
         ValuesExtractor<String, JsonNode> childExtractor2 =
                 extractor(
                         "test",
                         Map.of(
                                 "secondChildName",
-                                ExtractionExpression.of("VALUE.children[1].name"),
+                                Expressions.expression("VALUE.children[1].name"),
                                 "grandChildName",
-                                ExtractionExpression.of("VALUE.children[1].children[1].name")));
+                                Expressions.expression("VALUE.children[1].children[1].name")));
 
         RecordMapper<String, JsonNode> mapper =
                 builder()
@@ -201,9 +199,9 @@ public class RecordMapperJsonTest {
                         "test",
                         Map.of(
                                 "name",
-                                ExtractionExpression.of("VALUE.children[0].name"),
+                                Expressions.expression("VALUE.children[0].name"),
                                 "signature",
-                                ExtractionExpression.of("VALUE.children[0].signature")));
+                                Expressions.expression("VALUE.children[0].signature")));
 
         RecordMapper<String, JsonNode> mapper = builder().withExtractor(extractor).build();
 

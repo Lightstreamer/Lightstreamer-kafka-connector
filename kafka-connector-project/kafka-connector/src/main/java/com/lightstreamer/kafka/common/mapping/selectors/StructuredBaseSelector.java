@@ -17,11 +17,13 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.GeneralizedKey;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.LinkedNodeEvaluator;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.NodeEvaluator;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.ParsingContext;
 
 import java.util.List;
 import java.util.Objects;
@@ -103,23 +105,34 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
     private final Parsers.SelectorExpressionParser<T> parser =
             new Parsers.SelectorExpressionParser<>(PropertyGetter::new, ArrayGetter::new);
 
-    private final LinkedNodeEvaluator<T> rootEvaluator;
+    private final LinkedNodeEvaluator<T> evaluator;
 
-    protected StructuredBaseSelector(String name, String expression, Constant expectedRoot)
+    protected StructuredBaseSelector(
+            String name, ExtractionExpression expression, Constant expectedRoot)
+            throws ExtractionException {
+        this(name, expression, expectedRoot, true);
+    }
+
+    protected StructuredBaseSelector(
+            String name,
+            ExtractionExpression expression,
+            Constant expectedRoot,
+            boolean enforceStructured)
             throws ExtractionException {
         super(name, expression);
-        this.rootEvaluator = parser.parse(name, expression, expectedRoot);
+        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot, enforceStructured);
+        this.evaluator = parser.parse(ctx);
     }
 
     protected final Value eval(Node<T> node) {
-        LinkedNodeEvaluator<T> evaluator = rootEvaluator;
-        while (evaluator != null) {
-            node = evaluator.current().eval(node);
-            evaluator = evaluator.next();
+        LinkedNodeEvaluator<T> currentEvaluator = evaluator;
+        while (currentEvaluator != null) {
+            node = currentEvaluator.current().eval(node);
+            currentEvaluator = currentEvaluator.next();
         }
 
         if (!node.isScalar()) {
-            throw ValueException.nonComplexObjectRequired(expression());
+            throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
         return Value.of(name(), node.asText(null));

@@ -19,7 +19,8 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -63,11 +64,11 @@ public class RecordMapperStringTest {
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -81,11 +82,11 @@ public class RecordMapperStringTest {
                         .withExtractor(
                                 extractor(
                                         "test1",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
                                 extractor(
                                         "test2",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -110,14 +111,13 @@ public class RecordMapperStringTest {
                         .withExtractor(
                                 extractor(
                                         "test1",
-                                        Map.of("aKey", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("aKey", Expressions.expression("PARTITION"))))
                         .withExtractor(
-                                extractor(
-                                        "test2", Map.of("aKey", ExtractionExpression.of("TOPIC"))))
+                                extractor("test2", Map.of("aKey", Expressions.expression("TOPIC"))))
                         .withExtractor(
                                 extractor(
                                         "test3",
-                                        Map.of("aKey", ExtractionExpression.of("TIMESTAMP"))))
+                                        Map.of("aKey", Expressions.expression("TIMESTAMP"))))
                         .build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record(null, "aValue");
@@ -132,7 +132,7 @@ public class RecordMapperStringTest {
                         .withExtractor(
                                 extractor(
                                         "test",
-                                        Map.of("name", ExtractionExpression.of("PARTITION"))))
+                                        Map.of("name", Expressions.expression("PARTITION"))))
                         .build();
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("", "aValue");
@@ -140,16 +140,16 @@ public class RecordMapperStringTest {
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
         ValuesExtractor<String, String> unboundExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("VALUE")));
+                extractor("test", Map.of("name", Expressions.expression("VALUE")));
         assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
         ValuesExtractor<String, String> valueExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("VALUE")));
+                extractor("test", Map.of("name", Expressions.expression("VALUE")));
         ValuesExtractor<String, String> keyExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("KEY")));
+                extractor("test", Map.of("name", Expressions.expression("KEY")));
 
         RecordMapper<String, String> mapper =
                 builder().withExtractor(valueExtractor).withExtractor(keyExtractor).build();
@@ -168,9 +168,9 @@ public class RecordMapperStringTest {
     @Test
     public void shouldFilterNulls() throws ExtractionException {
         ValuesExtractor<String, String> valueExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("VALUE")));
+                extractor("test", Map.of("name", Expressions.expression("VALUE")));
         ValuesExtractor<String, String> keyExtractor =
-                extractor("test", Map.of("name", ExtractionExpression.of("KEY")));
+                extractor("test", Map.of("name", Expressions.expression("KEY")));
 
         RecordMapper<String, String> mapper =
                 builder().withExtractor(valueExtractor).withExtractor(keyExtractor).build();

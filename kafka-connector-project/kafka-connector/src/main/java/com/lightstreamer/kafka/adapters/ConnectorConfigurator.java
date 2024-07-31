@@ -120,19 +120,6 @@ public class ConnectorConfigurator {
         }
     }
 
-    private ValuesExtractor<?, ?> initFieldsExtractor(
-            SelectorSuppliers<?, ?> selectorSuppliers, Map<String, String> fieldsMapping)
-            throws ExtractionException {
-        return initFieldExtractorHelper(selectorSuppliers, fieldsMapping);
-    }
-
-    private <K, V> ValuesExtractor<K, V> initFieldExtractorHelper(
-            SelectorSuppliers<K, V> selectorSuppliers, Map<String, String> fieldsMapping)
-            throws ExtractionException {
-        // return FieldConfigs.extractorFrom(fieldsMapping, selectorSuppliers);
-        return null;
-    }
-
     private ItemTemplates<?, ?> initItemTemplates(
             SelectorSuppliers<?, ?> selected, TopicConfigurations topicsConfig)
             throws ExtractionException {

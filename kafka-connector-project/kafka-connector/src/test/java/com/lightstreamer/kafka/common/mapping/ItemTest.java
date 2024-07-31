@@ -19,10 +19,8 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -95,7 +93,7 @@ public class ItemTest {
     }
 
     @Test
-    public void shouldNotMatcDueToDifferentPrefix() {
+    public void shouldNotMathcDueToDifferentPrefix() {
         Map<String, String> sameValues = Map.of("n1", "1");
         SubscribedItem item1 = Items.subscribedFrom("source", "aPrefix", sameValues);
         SubscribedItem item2 = Items.subscribedFrom("source", "anotherPrefix", sameValues);
@@ -125,7 +123,7 @@ public class ItemTest {
         assertThat(item.values()).isEmpty();
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
+    @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
             delimiter = '|',
@@ -173,14 +171,5 @@ public class ItemTest {
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.values()).containsExactly(name1, val1, name2, value2);
-    }
-
-    @Test
-    public void shouldNotCreateDueToDuplicatedKeys() {
-        assertThrows(
-                ExpressionException.class,
-                () -> {
-                    Items.susbcribedFrom("item-<name1=field1,name1=field2>", new Object());
-                });
     }
 }

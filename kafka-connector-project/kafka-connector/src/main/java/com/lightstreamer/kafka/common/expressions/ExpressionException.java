@@ -24,4 +24,15 @@ public class ExpressionException extends RuntimeException {
     public ExpressionException(String message) {
         super(message);
     }
+
+    public static ExpressionException missingRootTokens(String expression)
+            throws ExpressionException {
+        return new ExpressionException("Missing root tokens [%s]".formatted(Constant.VALUES_STR));
+    }
+
+    public static ExpressionException unexpectedTrailingDots(String expression)
+            throws ExpressionException {
+        return new ExpressionException(
+                "Found unexpected trailing dot(s) in the expression [%s]".formatted(expression));
+    }
 }

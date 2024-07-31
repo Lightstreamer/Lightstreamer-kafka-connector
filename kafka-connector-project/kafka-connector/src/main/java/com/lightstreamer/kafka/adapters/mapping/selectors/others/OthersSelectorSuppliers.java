@@ -18,11 +18,12 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.GeneralSelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -78,12 +79,12 @@ public class OthersSelectorSuppliers {
             this.generalSelectorSupplier = new GeneralSelectorSupplier(constant);
         }
 
-        public KeySelector<Object> newKeySelector(String name, String expression)
+        public KeySelector<Object> newKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return generalSelectorSupplier.newKeySelectorSelector(name, expression);
         }
 
-        public ValueSelector<Object> newValueSelector(String name, String expression)
+        public ValueSelector<Object> newValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return generalSelectorSupplier.newValueSelectorSelector(name, expression);
         }
@@ -102,7 +103,7 @@ public class OthersSelectorSuppliers {
         }
 
         @Override
-        public KeySelector<Object> newSelector(String name, String expression)
+        public KeySelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return newKeySelector(name, expression);
         }
@@ -116,7 +117,7 @@ public class OthersSelectorSuppliers {
         }
 
         @Override
-        public ValueSelector<Object> newSelector(String name, String expression)
+        public ValueSelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return newValueSelector(name, expression);
         }

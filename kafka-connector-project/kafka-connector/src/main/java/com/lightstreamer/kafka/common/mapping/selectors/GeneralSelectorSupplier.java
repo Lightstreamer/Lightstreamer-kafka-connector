@@ -17,8 +17,13 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GeneralSelectorSupplier implements SelectorSupplier<GeneralSelector> {
@@ -58,9 +63,9 @@ public class GeneralSelectorSupplier implements SelectorSupplier<GeneralSelector
 
         private final Constant constant;
 
-        GeneralSelectorImpl(String name, Constant constant) {
-            super(name, constant.toString());
-            this.constant = constant;
+        GeneralSelectorImpl(String name, ExtractionExpression expression) {
+            super(name, expression);
+            this.constant = expression.root();
         }
 
         @Override
@@ -78,10 +83,10 @@ public class GeneralSelectorSupplier implements SelectorSupplier<GeneralSelector
         }
     }
 
-    private final Constant[] allowedConstants;
+    private final Set<Constant> allowedConstants;
 
     public GeneralSelectorSupplier(Constant... constant) {
-        this.allowedConstants = constant;
+        this.allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
     }
 
     public GeneralSelectorSupplier() {
@@ -89,27 +94,28 @@ public class GeneralSelectorSupplier implements SelectorSupplier<GeneralSelector
     }
 
     @Override
-    public GeneralSelector newSelector(String name, String expression) throws ExtractionException {
-        Constant constant = Constant.from(expression);
-        if (constant == null) {
+    public GeneralSelector newSelector(String name, ExtractionExpression expression)
+            throws ExtractionException {
+        if (!allowedConstants.contains(expression.root())) {
             throw ExtractionException.expectedRootToken(name, expectedConstantStr());
         }
-        return new GeneralSelectorImpl(name, constant);
+        if (expression.tokens().length > 1) {
+            throw ExtractionException.notAllowedAttributes(name, expression.expression());
+        }
+        return new GeneralSelectorImpl(name, expression);
     }
 
     String expectedConstantStr() {
-        return Arrays.stream(allowedConstants)
-                .map(a -> a.toString())
-                .collect(Collectors.joining("|"));
+        return allowedConstants.stream().map(Constant::toString).collect(Collectors.joining("|"));
     }
 
-    public KeySelector<Object> newKeySelectorSelector(String name, String expression)
+    public KeySelector<Object> newKeySelectorSelector(String name, ExtractionExpression expression)
             throws ExtractionException {
         return new GeneralKeySelector(newSelector(name, expression));
     }
 
-    public ValueSelector<Object> newValueSelectorSelector(String name, String expression)
-            throws ExtractionException {
+    public ValueSelector<Object> newValueSelectorSelector(
+            String name, ExtractionExpression expression) throws ExtractionException {
         return new GeneralValueSelector(newSelector(name, expression));
     }
 }

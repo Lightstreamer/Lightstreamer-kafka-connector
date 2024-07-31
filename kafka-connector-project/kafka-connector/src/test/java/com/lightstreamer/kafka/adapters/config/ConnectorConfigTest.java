@@ -34,8 +34,8 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
@@ -305,7 +305,7 @@ public class ConnectorConfigTest {
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
         standardParams.put("map.topic2.to", "template2");
-        standardParams.put("field.fieldName1", "#{bar}");
+        standardParams.put("field.fieldName1", "#{VALUE.bar}");
         return standardParams;
     }
 
@@ -673,20 +673,20 @@ public class ConnectorConfigTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
                                 "item-template.template1",
-                                "item1-#{param1=value1}",
+                                "item1-#{param1=VALUE.value1}",
                                 "item-template.template2",
-                                "item2-#{param2=value2}"));
+                                "item2-#{param2=VALUE.value2}"));
 
         var templateConfigs = cgg2.getItemTemplateConfigs();
         assertThat(templateConfigs.expressions()).hasSize(2);
 
         TemplateExpression te1 = templateConfigs.getExpression("template1");
         assertThat(te1.prefix()).isEqualTo("item1");
-        assertThat(te1.params()).containsExactly("param1", ExtractionExpression.of("value1"));
+        assertThat(te1.params()).containsExactly("param1", Expressions.expression("VALUE.value1"));
 
         TemplateExpression te2 = templateConfigs.getExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
-        assertThat(te2.params()).containsExactly("param2", ExtractionExpression.of("value2"));
+        assertThat(te2.params()).containsExactly("param2", Expressions.expression("VALUE.value2"));
     }
 
     @Test

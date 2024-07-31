@@ -17,45 +17,9 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
 public interface SelectorSupplier<S extends Selector> {
 
-    public static enum Constant {
-        KEY,
-        VALUE,
-        TIMESTAMP,
-        PARTITION,
-        OFFSET,
-        TOPIC;
-
-        private static final Map<String, Constant> NAME_CACHE;
-
-        static {
-            NAME_CACHE = Stream.of(values()).collect(toMap(Constant::toString, identity()));
-        }
-
-        public static final String ALLOWED_VALUES =
-                Arrays.stream(Constant.values())
-                        .map(a -> a.toString())
-                        .collect(Collectors.joining("|"));
-
-        static Constant from(String name) {
-            return NAME_CACHE.get(name);
-        }
-
-        static Set<Constant> all() {
-            return Arrays.stream(values()).collect(Collectors.toCollection(LinkedHashSet::new));
-        }
-    }
-
-    S newSelector(String name, String expression) throws ExtractionException;
+    S newSelector(String name, ExtractionExpression expression) throws ExtractionException;
 }

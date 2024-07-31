@@ -21,26 +21,40 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
 public class GeneralSelectorTest {
 
-    static GeneralSelector selector(String expression) throws ExtractionException {
+    static GeneralSelector selector(ExtractionExpression expression) throws ExtractionException {
         return new GeneralSelectorSupplier().newSelector("field_name", expression);
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
+    @ParameterizedTest
+    @ValueSource(strings = {"VALUE.a", "KEY.b", "OFFSET.a"})
+    void shouldNotCreateSelectorDueToNotAllowedAttributes(String expressionStr) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> selector(expression));
+        assertThat(ee.getMessage())
+                .isEqualTo(
+                        "Found the invalid expression ["
+                                + expressionStr
+                                + "] for scalar values while evaluating [field_name]");
+    }
+
+    @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
             textBlock =
@@ -55,16 +69,17 @@ public class GeneralSelectorTest {
                     """)
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
-        Value value = selector(expression).extract(record("record-key", "record-value"));
+        ExtractionExpression ee = Expressions.expression(expression);
+        Value value = selector(ee).extract(record("record-key", "record-value"));
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
     }
 
     static Stream<Arguments> args() {
         return Stream.of(
-                Arguments.of("KEY", new Constant[] {Constant.KEY}),
-                Arguments.of("KEY|VALUE", new Constant[] {Constant.KEY, Constant.VALUE}),
-                Arguments.of(
+                arguments("KEY", new Constant[] {Constant.KEY}),
+                arguments("KEY|VALUE", new Constant[] {Constant.KEY, Constant.VALUE}),
+                arguments(
                         "PARTITION|OFFSET", new Constant[] {Constant.PARTITION, Constant.OFFSET}));
     }
 
@@ -75,30 +90,17 @@ public class GeneralSelectorTest {
                 .isEqualTo(expectedString);
     }
 
-    @ParameterizedTest(name = "[{argumentsWithNames}]")
-    @EmptySource
-    @NullSource
-    @ValueSource(strings = {"NOT-EXISTING-ATTRIBUTE", "PARTITION.", "..", "@", "\\"})
-    public void shouldNotCreateSelector(String expression) {
-        ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> selector(expression));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while"
-                                + " evaluating [field_name]");
-    }
-
-    @ParameterizedTest(name = "[{argumentsWithNames}]")
-    @EmptySource
-    @NullSource
-    @ValueSource(strings = {"NOT-EXISTING-ATTRIBUTE", "PARTITION.", "..", "@", "\\"})
-    public void shouldNotCreate2(String expression) {
+    @ParameterizedTest
+    @ValueSource(strings = {"PARTITION", "OFFSET", "TIMESTAMP"})
+    public void shouldNotCreateDueToNotAllowedConstant(String expressionStr) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () ->
-                                new GeneralSelectorSupplier(Constant.KEY, Constant.VALUE)
-                                        .newSelector("field_name", expression));
+                        () -> {
+                            new GeneralSelectorSupplier(Constant.KEY, Constant.VALUE)
+                                    .newSelector("field_name", expression);
+                        });
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [KEY|VALUE] while evaluating [field_name]");
     }

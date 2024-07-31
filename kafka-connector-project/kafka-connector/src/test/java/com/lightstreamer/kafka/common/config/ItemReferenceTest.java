@@ -23,8 +23,8 @@ import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,16 +59,16 @@ public class ItemReferenceTest {
         ItemReference i1 =
                 ItemReference.template(
                         new TemplateExpression(
-                                "template-prefix", Map.of("a", new ExtractionExpression("b"))));
+                                "template-prefix", Map.of("a", Expressions.expression("VALUE"))));
         assertThat(i1.isTemplate()).isTrue();
         assertThat(i1.template().prefix()).isEqualTo("template-prefix");
-        assertThat(i1.template().params()).containsExactly("a", ExtractionExpression.of("b"));
+        assertThat(i1.template().params()).containsExactly("a", Expressions.expression("VALUE"));
         assertThrows(RuntimeException.class, () -> i1.itemName());
 
         ItemReference i2 =
                 ItemReference.template(
                         new TemplateExpression(
-                                "template-prefix", Map.of("a", new ExtractionExpression("b"))));
+                                "template-prefix", Map.of("a", Expressions.expression("VALUE"))));
         assertThat(i1.equals(i2)).isTrue();
         assertThat(i1.hashCode() == i2.hashCode()).isTrue();
     }
@@ -85,11 +85,11 @@ public class ItemReferenceTest {
         ItemReference i1 =
                 ItemReference.from(
                         "item-template.template",
-                        ItemTemplateConfigs.from(Map.of("template", "template-#{a=b}")));
+                        ItemTemplateConfigs.from(Map.of("template", "template-#{a=VALUE}")));
         assertThat(i1.isTemplate()).isTrue();
         TemplateExpression te = i1.template();
         assertThat(te.prefix()).isEqualTo("template");
-        assertThat(te.params()).containsAtLeast("a", ExtractionExpression.of("b"));
+        assertThat(te.params()).containsAtLeast("a", Expressions.expression("VALUE"));
     }
 
     @Test

@@ -23,8 +23,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,8 @@ public class TopicConfigurationsTest {
 
     @Test
     void shouldConfigOneToOneTemplate() {
-        var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=b}"));
+        var templateConfigs =
+                ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=PARTITION}"));
         var topicMappingCofnigs =
                 List.of(TopicMappingConfig.from("topic", "item-template.template1"));
         TopicConfigurations topicConfig =
@@ -57,7 +58,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te = itemReference.template();
         assertThat(te.prefix()).isEqualTo("template1");
-        assertThat(te.params()).containsExactly("a", ExtractionExpression.of("b"));
+        assertThat(te.params()).containsExactly("a", Expressions.expression("PARTITION"));
     }
 
     @Test
@@ -85,7 +86,11 @@ public class TopicConfigurationsTest {
     void shouldConfigOneToManyTemplates() {
         var templateConfigs =
                 ItemTemplateConfigs.from(
-                        Map.of("template1", "template1-#{a=b}", "template2", "template2-#{c=d}"));
+                        Map.of(
+                                "template1",
+                                "template1-#{a=VALUE}",
+                                "template2",
+                                "template2-#{c=OFFSET}"));
         var topicMappingConfigs =
                 List.of(
                         TopicMappingConfig.from(
@@ -109,12 +114,12 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference1.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", ExtractionExpression.of("b"));
+        assertThat(te1.params()).containsExactly("a", Expressions.expression("VALUE"));
 
         ItemReference itemReference2 = itemReferences.get(1);
         TemplateExpression te2 = itemReference2.template();
         assertThat(te2.prefix()).isEqualTo("template2");
-        assertThat(te2.params()).containsExactly("c", ExtractionExpression.of("d"));
+        assertThat(te2.params()).containsExactly("c", Expressions.expression("OFFSET"));
     }
 
     @Test
@@ -146,7 +151,7 @@ public class TopicConfigurationsTest {
 
     @Test
     void shouldConfigOneToManyIndenticalTemplates() {
-        var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=b}"));
+        var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=KEY}"));
         var topicMappingConfigs =
                 List.of(
                         TopicMappingConfig.from(
@@ -168,7 +173,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", ExtractionExpression.of("b"));
+        assertThat(te1.params()).containsExactly("a", Expressions.expression("KEY"));
     }
 
     @Test

@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Value;
 import com.lightstreamer.kafka.common.mapping.selectors.ValuesContainer;
@@ -48,9 +48,9 @@ public class MappedRecordTest {
                         .withExpressions(
                                 Map.of(
                                         "partition",
-                                        ExtractionExpression.of("PARTITION"),
+                                        Expressions.expression("PARTITION"),
                                         "topic",
-                                        ExtractionExpression.of("TOPIC")))
+                                        Expressions.expression("TOPIC")))
                         .build();
 
         ValuesContainer container1 =
@@ -67,9 +67,9 @@ public class MappedRecordTest {
                         .withExpressions(
                                 Map.of(
                                         "partition2",
-                                        ExtractionExpression.of("PARTITION"),
+                                        Expressions.expression("PARTITION"),
                                         "topic2",
-                                        ExtractionExpression.of("TOPIC")))
+                                        Expressions.expression("TOPIC")))
                         .build();
 
         ValuesContainer container2 =

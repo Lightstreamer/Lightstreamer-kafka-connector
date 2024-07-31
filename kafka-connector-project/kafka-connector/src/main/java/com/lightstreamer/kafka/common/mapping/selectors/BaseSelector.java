@@ -17,15 +17,16 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+
 import java.util.Objects;
 
 public abstract class BaseSelector implements Selector {
 
     private final String name;
+    private final ExtractionExpression expression;
 
-    private final String expression;
-
-    protected BaseSelector(String name, String expression) {
+    protected BaseSelector(String name, ExtractionExpression expression) {
         this.name = checkName(name);
         this.expression = checkExpression(expression);
     }
@@ -34,12 +35,12 @@ public abstract class BaseSelector implements Selector {
         return Objects.requireNonNull(name);
     }
 
-    protected String checkExpression(String expression) {
+    protected ExtractionExpression checkExpression(ExtractionExpression expression) {
         return Objects.requireNonNull(expression);
     }
 
     @Override
-    public String expression() {
+    public ExtractionExpression expression() {
         return expression;
     }
 

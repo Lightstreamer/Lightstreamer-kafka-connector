@@ -24,7 +24,6 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avroKeyJsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.jsonValue;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -131,7 +130,7 @@ public class ItemTemplatesTest {
     public void shouldOneToManyTemplates() throws ExtractionException {
         SelectorSuppliers<Object, Object> sSuppliers = TestSelectorSuppliers.object();
         ItemTemplateConfigs templateConfigs =
-                ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY}"));
+                ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY.attrib}"));
 
         TopicMappingConfig topicMapping =
                 TopicMappingConfig.from("stock", "item-template.template");
@@ -331,7 +330,7 @@ public class ItemTemplatesTest {
                 .containsExactly(Items.from("template-orders", Map.of(TEST_TOPIC, "past_orders")));
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
+    @ParameterizedTest
     @CsvFileSource(
             files = "src/test/resources/should-expand-items.csv",
             useHeadersInDisplayName = true,
@@ -529,19 +528,5 @@ public class ItemTemplatesTest {
 
         Set<SubscribedItem> routed = templates.routes(mapped, all);
         assertThat(routed).containsExactlyElementsIn(routables);
-    }
-
-    @Test
-    void shouldFailDueToInvalidTemplateException() {
-        var templateConfigs = ItemTemplateConfigs.from(Map.of("template", "template-#{name=FOO}"));
-        var topicMappingConfigs =
-                List.of(TopicMappingConfig.from("topic", "item-template.template"));
-
-        assertThrows(
-                ExtractionException.class,
-                () ->
-                        Items.from(
-                                TopicConfigurations.of(templateConfigs, topicMappingConfigs),
-                                TestSelectorSuppliers.string()));
     }
 }

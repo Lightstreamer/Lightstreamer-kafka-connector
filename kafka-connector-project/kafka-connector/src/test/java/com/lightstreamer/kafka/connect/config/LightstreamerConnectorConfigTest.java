@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
@@ -161,16 +161,16 @@ public class LightstreamerConnectorConfigTest {
         TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
         assertThat(stockExpression.params())
-                .containsExactly("index", ExtractionExpression.of("KEY"));
+                .containsExactly("index", Expressions.expression("KEY"));
 
         TemplateExpression productExpression = itemTemplate.getExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
                 .containsExactly(
                         "id",
-                        ExtractionExpression.of("KEY"),
+                        Expressions.expression("KEY"),
                         "price",
-                        ExtractionExpression.of("VALUE.price"));
+                        Expressions.expression("VALUE.price"));
     }
 
     @Test
@@ -228,41 +228,41 @@ public class LightstreamerConnectorConfigTest {
         assertThat(fieldMappings.expressions())
                 .containsExactly(
                         "timestamp",
-                        ExtractionExpression.of("VALUE.timestamp"),
+                        Expressions.expression("VALUE.timestamp"),
                         "time",
-                        ExtractionExpression.of("VALUE.time"),
+                        Expressions.expression("VALUE.time"),
                         "stock_name",
-                        ExtractionExpression.of("VALUE.name"),
+                        Expressions.expression("VALUE.name"),
                         "last_price",
-                        ExtractionExpression.of("VALUE.last_price"),
+                        Expressions.expression("VALUE.last_price"),
                         "ask",
-                        ExtractionExpression.of("VALUE.ask"),
+                        Expressions.expression("VALUE.ask"),
                         "ask_quantity",
-                        ExtractionExpression.of("VALUE.ask_quantity"),
+                        Expressions.expression("VALUE.ask_quantity"),
                         "bid",
-                        ExtractionExpression.of("VALUE.bid"),
+                        Expressions.expression("VALUE.bid"),
                         "bid_quantity",
-                        ExtractionExpression.of("VALUE.bid_quantity"),
+                        Expressions.expression("VALUE.bid_quantity"),
                         "pct_change",
-                        ExtractionExpression.of("VALUE.pct_change"),
+                        Expressions.expression("VALUE.pct_change"),
                         "min",
-                        ExtractionExpression.of("VALUE.min"),
+                        Expressions.expression("VALUE.min"),
                         "max",
-                        ExtractionExpression.of("VALUE.max"),
+                        Expressions.expression("VALUE.max"),
                         "ref_price",
-                        ExtractionExpression.of("VALUE.ref_price"),
+                        Expressions.expression("VALUE.ref_price"),
                         "open_price",
-                        ExtractionExpression.of("VALUE.open_price"),
+                        Expressions.expression("VALUE.open_price"),
                         "item_status",
-                        ExtractionExpression.of("VALUE.item_status"),
+                        Expressions.expression("VALUE.item_status"),
                         "ts",
-                        ExtractionExpression.of("TIMESTAMP"),
+                        Expressions.expression("TIMESTAMP"),
                         "topic",
-                        ExtractionExpression.of("TOPIC"),
+                        Expressions.expression("TOPIC"),
                         "offset",
-                        ExtractionExpression.of("OFFSET"),
+                        Expressions.expression("OFFSET"),
                         "partition",
-                        ExtractionExpression.of("PARTITION"));
+                        Expressions.expression("PARTITION"));
     }
 
     @ParameterizedTest

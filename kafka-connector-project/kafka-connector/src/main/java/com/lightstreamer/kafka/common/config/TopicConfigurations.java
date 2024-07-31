@@ -17,9 +17,9 @@
 
 package com.lightstreamer.kafka.common.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.utils.Either;
 import com.lightstreamer.kafka.common.utils.Split;
 
@@ -109,8 +109,7 @@ public class TopicConfigurations {
                 String templateName = entry.getKey();
                 String templateExpression = entry.getValue();
                 try {
-                    TemplateExpression te =
-                            ExpressionEvaluators.template().eval(templateExpression);
+                    TemplateExpression te = Expressions.template(templateExpression);
                     expressions.put(templateName, te);
                 } catch (ExpressionException e) {
                     String msg =

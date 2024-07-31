@@ -19,14 +19,14 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
@@ -67,33 +67,33 @@ public class ValuesExtractorTest {
         return Stream.of(
                 arguments(emptyMap(), Schema.empty(TEST_SCHEMA), emptySet()),
                 arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE")),
+                        Map.of("name", Expressions.expression("VALUE")),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
                         Set.of(Value.of("name", "aValue"))),
                 arguments(
                         Map.of(
                                 "value",
-                                ExtractionExpression.of("VALUE"),
+                                Expressions.expression("VALUE"),
                                 "key",
-                                ExtractionExpression.of("KEY")),
+                                Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value", "key")),
                         Set.of(Value.of("key", "aKey"), Value.of("value", "aValue"))),
                 arguments(
                         Map.of(
                                 "value1",
-                                ExtractionExpression.of("VALUE"),
+                                Expressions.expression("VALUE"),
                                 "key1",
-                                ExtractionExpression.of("KEY")),
+                                Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
                         Set.of(Value.of("key1", "aKey"), Value.of("value1", "aValue"))),
                 arguments(
                         Map.of(
                                 "timestamp",
-                                ExtractionExpression.of("TIMESTAMP"),
+                                Expressions.expression("TIMESTAMP"),
                                 "partition",
-                                ExtractionExpression.of("PARTITION"),
+                                Expressions.expression("PARTITION"),
                                 "topic",
-                                ExtractionExpression.of("TOPIC")),
+                                Expressions.expression("TOPIC")),
                         Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
                         Set.of(
                                 Value.of("partition", "150"),
@@ -119,116 +119,5 @@ public class ValuesExtractorTest {
         assertThat(values.extractor()).isSameInstanceAs(extractor);
         Set<Value> values2 = values.values();
         assertThat(values2).isEqualTo(expectedValues);
-    }
-
-    static Stream<Arguments> wrongStringExtractorArguments() {
-        return Stream.of(
-                arguments(
-                        Map.of("name", ExtractionExpression.of(".")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE.")),
-                        "Expected the root token [VALUE] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE..")),
-                        "Expected the root token [VALUE] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE.a")),
-                        "Expected the root token [VALUE] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("KEY.")),
-                        "Expected the root token [KEY] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("KEY..")),
-                        "Expected the root token [KEY] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("wrong")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("wrong.")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("wrong..")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"));
-    }
-
-    @ParameterizedTest
-    @MethodSource("wrongStringExtractorArguments")
-    public void shouldNotCreateStringExtractor(
-            Map<String, ExtractionExpression> input, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> extractor(input, TestSelectorSuppliers.string()));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    static Stream<Arguments> wrongArguments() {
-        return Stream.of(
-                arguments(
-                        Map.of("name", ExtractionExpression.of(". .")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of(".")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE.a. .b")),
-                        "Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE.")),
-                        "Found unexpected trailing dot(s) in the expression [VALUE.] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("VALUE..")),
-                        "Found unexpected trailing dot(s) in the expression [VALUE..] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("KEY.a. .b")),
-                        "Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("KEY.")),
-                        "Found unexpected trailing dot(s) in the expression [KEY.] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("KEY..")),
-                        "Found unexpected trailing dot(s) in the expression [KEY..] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("wrong")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"),
-                arguments(
-                        Map.of("name", ExtractionExpression.of("\"\"")),
-                        "Expected the root token [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC] while evaluating [name]"));
-    }
-
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateGenericRecordValueExtractor(
-            Map<String, ExtractionExpression> input, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> extractor(input, TestSelectorSuppliers.avro(avroConfig())));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    @ParameterizedTest
-    @MethodSource("wrongArguments")
-    public void shouldNotCreateJsonNodeExtractor(
-            Map<String, ExtractionExpression> input, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () ->
-                                extractor(
-                                        input,
-                                        TestSelectorSuppliers.json(
-                                                ConnectorConfigProvider.minimal())));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

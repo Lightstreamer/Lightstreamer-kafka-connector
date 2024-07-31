@@ -17,9 +17,11 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+
 public interface Selector {
 
     String name();
 
-    String expression();
+    ExtractionExpression expression();
 }

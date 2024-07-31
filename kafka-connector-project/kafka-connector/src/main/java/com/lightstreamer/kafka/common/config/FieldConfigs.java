@@ -17,9 +17,9 @@
 
 package com.lightstreamer.kafka.common.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
@@ -42,7 +42,7 @@ public class FieldConfigs {
             String fieldName = entry.getKey();
             String fieldExpression = entry.getValue();
             try {
-                ExtractionExpression ee = ExpressionEvaluators.field().eval(fieldExpression);
+                ExtractionExpression ee = Expressions.field(fieldExpression);
                 expressions.put(fieldName, ee);
             } catch (ExpressionException e) {
                 throw new ConfigException(

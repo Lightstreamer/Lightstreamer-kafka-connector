@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka.connect.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
 
@@ -85,7 +85,7 @@ public class ItemTemplateValidator implements Validator {
 
         try {
             // Validates <template-expression>
-            ExpressionEvaluators.template().eval(pair.value()).toString();
+            Expressions.template(pair.value()).toString();
 
             // Retruns <template-name>
             return pair.key();

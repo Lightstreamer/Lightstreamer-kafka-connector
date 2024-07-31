@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ public class ValueTest {
                 ValuesExtractor.<String, String>builder()
                         .withSuppliers(TestSelectorSuppliers.string())
                         .withSchemaName("schema")
-                        .withExpressions(Map.of("name", ExtractionExpression.of("VALUE")))
+                        .withExpressions(Map.of("name", Expressions.expression("VALUE")))
                         .build();
         ValuesContainer container =
                 ValuesContainer.of(extractor, Set.of(Value.of("name", "aValue")));

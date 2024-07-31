@@ -22,8 +22,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,12 +50,13 @@ public class ItemTemplateConfigsTest {
     @Test
     void shouldCreateItemTemplateConfigFromMapWithOneEntryOneParam() {
         ItemTemplateConfigs it =
-                ItemTemplateConfigs.from(Map.of("template-name", "template-prefix-#{param=v}"));
+                ItemTemplateConfigs.from(
+                        Map.of("template-name", "template-prefix-#{param=OFFSET}"));
         assertThat(it.expressions()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
         TemplateExpression expression = it.getExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
-        assertThat(expression.params()).containsExactly("param", ExtractionExpression.of("v"));
+        assertThat(expression.params()).containsExactly("param", Expressions.expression("OFFSET"));
     }
 
     @Test
@@ -64,7 +65,7 @@ public class ItemTemplateConfigsTest {
                 ItemTemplateConfigs.from(
                         Map.of(
                                 "template-name",
-                                "template-prefix-#{param1=v1,param2=v2,param3=v3}"));
+                                "template-prefix-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}"));
         assertThat(it.expressions()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
         TemplateExpression expression = it.getExpression("template-name");
@@ -72,11 +73,11 @@ public class ItemTemplateConfigsTest {
         assertThat(expression.params())
                 .containsExactly(
                         "param1",
-                        ExtractionExpression.of("v1"),
+                        Expressions.expression("OFFSET"),
                         "param2",
-                        ExtractionExpression.of("v2"),
+                        Expressions.expression("PARTITION"),
                         "param3",
-                        ExtractionExpression.of("v3"));
+                        Expressions.expression("TIMESTAMP"));
     }
 
     @Test
@@ -85,9 +86,9 @@ public class ItemTemplateConfigsTest {
                 ItemTemplateConfigs.from(
                         Map.of(
                                 "template-name-a",
-                                "template-prefix-a-#{param1a=v1a,param2a=v2a,param3a=v3a}",
+                                "template-prefix-a-#{param1a=VALUE,param2a=KEY,param3a=PARTITION}",
                                 "template-name-b",
-                                "template-prefix-b-#{param1b=v1b,param2b=v2b,param3b=v3b}"));
+                                "template-prefix-b-#{param1b=VALUE.b,param2b=KEY.b,param3b=KEY.c}"));
         assertThat(it.expressions()).hasSize((2));
         assertThat(it.contains("template-name-a")).isTrue();
 
@@ -96,29 +97,28 @@ public class ItemTemplateConfigsTest {
         assertThat(expression_a.params())
                 .containsExactly(
                         "param1a",
-                        ExtractionExpression.of("v1a"),
+                        Expressions.expression("VALUE"),
                         "param2a",
-                        ExtractionExpression.of("v2a"),
+                        Expressions.expression("KEY"),
                         "param3a",
-                        ExtractionExpression.of("v3a"));
+                        Expressions.expression("PARTITION"));
 
         TemplateExpression expression_b = it.getExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
                         "param1b",
-                        ExtractionExpression.of("v1b"),
+                        Expressions.expression("VALUE.b"),
                         "param2b",
-                        ExtractionExpression.of("v2b"),
+                        Expressions.expression("KEY.b"),
                         "param3b",
-                        ExtractionExpression.of("v3b"));
+                        Expressions.expression("KEY.c"));
     }
 
     @ParameterizedTest
     @EmptySource
     @ValueSource(
             strings = {
-                "-",
                 "-",
                 "\\",
                 "@",
@@ -131,7 +131,7 @@ public class ItemTemplateConfigsTest {
                 "item\\",
                 "item-",
                 "prefix-#{}",
-                "prefix-#{VALUE}"
+                "prefix-#{VALUE}",
             })
     public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
         ConfigException ce =

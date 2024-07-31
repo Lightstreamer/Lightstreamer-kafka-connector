@@ -28,10 +28,12 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -46,7 +48,6 @@ import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.ByteBuffer;
@@ -55,12 +56,12 @@ import java.util.stream.Stream;
 
 public class OthersSelectorsTest {
 
-    static ValueSelector<?> valueSelector(EvaluatorType type, String expression)
+    static ValueSelector<?> valueSelector(EvaluatorType type, ExtractionExpression expression)
             throws ExtractionException {
         return OthersSelectorSuppliers.valueSelectorSupplier(type).newSelector("name", expression);
     }
 
-    static KeySelector<?> keySelector(EvaluatorType type, String expression)
+    static KeySelector<?> keySelector(EvaluatorType type, ExtractionExpression expression)
             throws ExtractionException {
         return OthersSelectorSuppliers.keySelectorSupplier(type).newSelector("name", expression);
     }
@@ -105,7 +106,11 @@ public class OthersSelectorsTest {
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = ConsumerRecords.fromValue(deserializedData);
-        String text = valueSupplier.newSelector("name", "VALUE").extract(kafkaRecord).text();
+        String text =
+                valueSupplier
+                        .newSelector("name", Expressions.expression("VALUE"))
+                        .extract(kafkaRecord)
+                        .text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }
 
@@ -114,7 +119,11 @@ public class OthersSelectorsTest {
     public void shouldExtractNullValue() throws ExtractionException {
         ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(EvaluatorType.INTEGER);
         KafkaRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
-        String text = valueSupplier.newSelector("name", "VALUE").extract(kafkaRecord).text();
+        String text =
+                valueSupplier
+                        .newSelector("name", Expressions.expression("VALUE"))
+                        .extract(kafkaRecord)
+                        .text();
         assertThat(text).isNull();
     }
 
@@ -123,7 +132,11 @@ public class OthersSelectorsTest {
     public void shouldExtractNullKey() throws ExtractionException {
         KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(EvaluatorType.INTEGER);
         KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
-        String text = valueSupplier.newSelector("name", "KEY").extract(kafkaRecord).text();
+        String text =
+                valueSupplier
+                        .newSelector("name", Expressions.expression("KEY"))
+                        .extract(kafkaRecord)
+                        .text();
         assertThat(text).isNull();
     }
 
@@ -137,39 +150,27 @@ public class OthersSelectorsTest {
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = ConsumerRecords.fromKey(deserializedData);
-        String text = valueSupplier.newSelector("name", "KEY").extract(kafkaRecord).text();
+        String text =
+                valueSupplier
+                        .newSelector("name", Expressions.expression("KEY"))
+                        .extract(kafkaRecord)
+                        .text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        invalidKey,          Expected the root token [KEY] while evaluating [name]
-                        invalidKey.,         Expected the root token [KEY] while evaluating [name]
-                        '',                  Expected the root token [KEY] while evaluating [name]
-                    """)
-    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExtractionException ee1 =
-                assertThrows(ExtractionException.class, () -> keySelector(SHORT, expression));
-        assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        invalidValue,        Expected the root token [VALUE] while evaluating [name]
-                        invalidValue.,       Expected the root token [VALUE] while evaluating [name]
-                        '',                  Expected the root token [VALUE] while evaluating [name]
-                    """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
-        ExtractionException ee1 =
-                assertThrows(ExtractionException.class, () -> valueSelector(SHORT, expression));
-        assertThat(ee1.getMessage()).isEqualTo(expectedErrorMessage);
+    @ParameterizedTest()
+    @MethodSource("recordArgs")
+    public void shouldNotCreateSelector(EvaluatorType type) throws ExtractionException {
+        ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(type);
+        ExtractionExpression expression = Expressions.expression("VALUE.a");
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () -> {
+                            valueSupplier.newSelector("name", expression);
+                        });
+        assertThat(ee.getMessage())
+                .isEqualTo(
+                        "Found the invalid expression [VALUE.a] for scalar values while evaluating [name]");
     }
 }

@@ -17,11 +17,12 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.Value;
 
@@ -141,7 +142,7 @@ public class ConnectSelectorsSuppliers {
         ConnectKeySelectorSupplierImpl() {}
 
         @Override
-        public ConnectKeySelector newSelector(String name, String expression)
+        public ConnectKeySelector newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return new ConnectKeySelectorImpl(name, expression);
         }
@@ -150,24 +151,26 @@ public class ConnectSelectorsSuppliers {
     private static class ConnectKeySelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectKeySelector {
 
-        ConnectKeySelectorImpl(String name, String expression) throws ExtractionException {
-            super(name, expression, Constant.KEY);
+        ConnectKeySelectorImpl(String name, ExtractionExpression expression)
+                throws ExtractionException {
+            super(name, expression, Constant.KEY, false);
         }
 
         @Override
         public Value extract(KafkaRecord<Object, ?> record) {
-            KafkaRecord.KafkaSinkRecord sinkRecord = (KafkaSinkRecord) record;
-            SchemaAndValueNode node =
-                    new SchemaAndValueNode(
-                            new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
-            return super.eval(node);
+            return super.eval(asNode((KafkaSinkRecord) record));
+        }
+
+        private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+            return new SchemaAndValueNode(
+                    new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
         }
     }
 
     private static class ConnectValueSelectorSupplierImpl implements ConnectValueSelectorSupplier {
 
         @Override
-        public ConnectValueSelector newSelector(String name, String expression)
+        public ConnectValueSelector newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return new ConnectValueSelectorImpl(name, expression);
         }
@@ -176,8 +179,9 @@ public class ConnectSelectorsSuppliers {
     private static class ConnectValueSelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
             implements ConnectValueSelector {
 
-        ConnectValueSelectorImpl(String name, String expression) throws ExtractionException {
-            super(name, expression, Constant.VALUE);
+        ConnectValueSelectorImpl(String name, ExtractionExpression expression)
+                throws ExtractionException {
+            super(name, expression, Constant.VALUE, false);
         }
 
         @Override

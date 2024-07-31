@@ -20,10 +20,10 @@ package com.lightstreamer.kafka.common.mapping;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.SubscriptionExpression;
-import com.lightstreamer.kafka.common.expressions.ExpressionEvaluators.TemplateExpression;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -258,7 +258,7 @@ public class Items {
 
     public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
             throws ExpressionException {
-        SubscriptionExpression result = ExpressionEvaluators.subscription().eval(input);
+        SubscriptionExpression result = Expressions.subscription(input);
         return subscribedFrom(itemHandle, result.prefix(), result.params());
     }
 
@@ -272,10 +272,10 @@ public class Items {
     }
 
     public static <K, V> ItemTemplates<K, V> from(
-            TopicConfigurations topcisConfig, SelectorSuppliers<K, V> sSuppliers)
+            TopicConfigurations topicsConfig, SelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
-        for (TopicConfiguration topicConfig : topcisConfig.configurations()) {
+        for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
             for (ItemReference reference : topicConfig.itemReferences()) {
                 ValuesExtractor.Builder<K, V> builder =
                         ValuesExtractor.<K, V>builder().withSuppliers(sSuppliers);

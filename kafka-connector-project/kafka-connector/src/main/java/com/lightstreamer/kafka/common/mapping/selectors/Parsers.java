@@ -17,12 +17,12 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier.Constant;
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.utils.Either;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -138,30 +138,29 @@ public interface Parsers {
         }
     }
 
-    static final class ParsingContext {
-
-        private static String[] getTokens(String expression) {
-            // expression.splitWithDelimiters("\\.", 0); // Valid for Java 21
-            StringTokenizer st = new StringTokenizer(expression, ".", true);
-            String[] tokens = new String[st.countTokens()];
-            for (int i = 0; i < tokens.length; i++) {
-                tokens[i] = st.nextToken();
-            }
-            return tokens;
-        }
-
+    public static final class ParsingContext {
         private final String name;
-        private final String expression;
+        private final ExtractionExpression expression;
         private final Constant expectedRoot;
         private final String[] tokens;
+        private final boolean checkStructured;
 
         private int tokenIndex = 0;
 
-        ParsingContext(String name, String expression, Constant expectedRoot) {
+        ParsingContext(String name, ExtractionExpression expression, Constant expectedRoot) {
+            this(name, expression, expectedRoot, true);
+        }
+
+        ParsingContext(
+                String name,
+                ExtractionExpression expression,
+                Constant expectedRoot,
+                boolean checkStructured) {
             this.name = name;
             this.expression = expression;
             this.expectedRoot = expectedRoot;
-            this.tokens = getTokens(expression);
+            this.tokens = expression.tokens();
+            this.checkStructured = checkStructured;
         }
 
         String name() {
@@ -169,25 +168,26 @@ public interface Parsers {
         }
 
         String expression() {
-            return expression;
+            return expression.expression();
         }
 
         Constant expectedRoot() {
             return expectedRoot;
         }
 
+        boolean checkStructured() {
+            return checkStructured;
+        }
+
         void matchRoot() throws ExtractionException {
-            if (!(hasNext() && next().equals(expectedRoot.toString()))) {
+            if (!expectedRoot.equals(expression.root())) {
                 throw ExtractionException.expectedRootToken(name, expectedRoot.toString());
             }
+            next();
         }
 
         boolean hasNext() {
             return tokenIndex < tokens.length;
-        }
-
-        boolean hasTrailingDelimiters() {
-            return tokens.length > 0 && tokens[tokens.length - 1].equals(".");
         }
 
         String next() {
@@ -237,12 +237,7 @@ public interface Parsers {
             this.arrayEvaluatorFactory = arrayEvaluator;
         }
 
-        public LinkedNodeEvaluator<T> parse(String name, String expression, Constant expectedRoot)
-                throws ExtractionException {
-            ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
-            if (ctx.hasTrailingDelimiters()) {
-                throw ExtractionException.unexpectedTrailingDots(name, expression);
-            }
+        public LinkedNodeEvaluator<T> parse(ParsingContext ctx) throws ExtractionException {
             LinkedNodeEvaluator<T> root = parseRoot(ctx);
             return parseTokens(root, ctx);
         }
@@ -283,6 +278,9 @@ public interface Parsers {
                     linkedNode.prev = current;
                     current = linkedNode;
                 }
+            }
+            if (ctx.checkStructured() && !head.hasNext()) {
+                throw ExtractionException.missingAttribute(ctx.name, ctx.expression());
             }
             return head;
         }
