@@ -58,7 +58,7 @@ javadoc {
 }
 
 task assembleDistribution(type: Copy) {
-	description "Assembles the distribution directory of Lightsreamer Kafka Connector"
+	description "Assembles the distribution directory of Lightstreamer Kafka Connector"
 	into "$buildDir/connector"
 
 	from(jar) {
