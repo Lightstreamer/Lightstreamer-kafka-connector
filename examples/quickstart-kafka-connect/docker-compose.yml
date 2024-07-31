@@ -3,6 +3,7 @@ name: quickstart-kafka-connect
 services:
   kafka-connect:
     container_name: kafka-connect
+    container_name: kafka-connect
     image: lightstreamer-kafka-connect-lighstreamer-${version}
     configs:
       - source: connect-log4j.properties

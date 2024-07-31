@@ -146,10 +146,12 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    @Test
     void shouldGetMoreItemTemplates() {
         Map<String, String> props = basicConfig();
         props.put(
                 LightstreamerConnectorConfig.ITEM_TEMPLATES,
+                "stock-template:stock-#{index=KEY};product-template:product-#{id=KEY,price=VALUE.price}");
                 "stock-template:stock-#{index=KEY};product-template:product-#{id=KEY,price=VALUE.price}");
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);

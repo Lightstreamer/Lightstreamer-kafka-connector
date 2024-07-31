@@ -3,6 +3,7 @@ plugins {
 	id 'com.github.davidmc24.gradle.plugin.avro' version "1.9.1"
 	id 'maven-publish'
 	id 'project-report'
+	id 'project-report'
 }
 
 publishing {
@@ -64,6 +65,15 @@ task assembleDistribution(type: Copy) {
 		into "lib"
 	}
 
+	from (configurations.runtimeClasspath) {
+		into "lib"
+		exclude "ls-adapter-inprocess*"
+		exclude "ls-adapter-remote*"
+		exclude "ls-log-adapter*"
+		exclude "jsr305*"
+		exclude "javax.ws.rs-api-*"
+		exclude "connect-api-*"
+	}
 	from (configurations.runtimeClasspath) {
 		into "lib"
 		exclude "ls-adapter-inprocess*"
