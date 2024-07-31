@@ -5,32 +5,50 @@ services:
     container_name: kafka-connect
     image: lightstreamer-kafka-connect-lighstreamer-${version}
     configs:
+      - source: connect-log4j.properties
+        target: /opt/kafka/config/connect-log4j.properties
       - source: connect-standalone.properties
         target: /config/connect-standalone.properties
       - source: connector.properties
-        target: /config/connector.properties        
+        target: /config/connector.properties
     command:
-      - /opt/kafka/bin/connect-standalone.sh
+      - connect-standalone
       - /config/connect-standalone.properties
       - /config/connector.properties
     depends_on:
       - broker
+      - lightstreamer
+    ports:
+      - 8083:8083
+
+  lightstreamer:
+    container_name: lightstreamer
+    image: lightstreamer
+    depends_on:
+      - broker
     ports:
       - 8080:8080
-    # volumes:
-    #   - ./config
-    #   - ./web:/lightstreamer/pages/QuickStart
-    #   - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - 6661:6661
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./remote_adapter:/lightstreamer/adapters/kafka-connect
+      - ./conf/lightstreamer_log_conf.xml:/lightstreamer/conf/lightstreamer_log_conf.xml
 
   producer:
     container_name: producer
     depends_on:
       - broker
+      - schema-registry
     build:
       context: ../quickstart-producer
       args:
         VERSION: ${version}
-    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    volumes:
+      - ./secrets/producer:/usr/app/secrets
+    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
   broker:
     image: apache/kafka
@@ -57,7 +75,36 @@ services:
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
       KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+    volumes:
+     - ./secrets/schema-registry:/etc/schema-registry/secrets
+
 configs:
+  producer.properties:
+    content: |
+      # JSON deserializer with support for the Schema Registry
+      value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+      # Schema Registry URL
+      schema.registry.url=http://schema-registry:8081
+  connect-log4j.properties:
+    content: |
+      log4j.rootLogger=INFO, stdout
+      log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+      log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+      connect.log.pattern=[%d] %p %X{connector.context}%m (%c:%L)%n
+      log4j.appender.stdout.layout.ConversionPattern=$${connect.log.pattern}
+      log4j.logger.org.reflections=ERROR
   connect-standalone.properties:
     content: |
       # These are defaults. This file just demonstrates how to override some settings.
@@ -67,10 +114,9 @@ configs:
       # need to configure these based on the format they want their data in when loaded from or stored into Kafka
       key.converter=org.apache.kafka.connect.json.JsonConverter
       value.converter=org.apache.kafka.connect.json.JsonConverter
+      # value.converter.schema.registry.url=http://schema-registry:8081
       # Converter-specific settings can be passed in by prefixing the Converter's setting with the converter we want to apply
       # it to
-      key.converter.schemas.enable=true
-      value.converter.schemas.enable=true
 
       offset.storage.file.filename=/tmp/connect.offsets
       # Flush much faster than normal, which is useful for testing/debugging
@@ -85,19 +131,39 @@ configs:
       # Note: symlinks will be followed to discover dependencies or plugins.
       # Examples:
       # plugin.path=/usr/local/share/java,/usr/local/share/kafka/plugins,/opt/connectors,
-      plugin.path=/plugins
+      plugin.path=/usr/share/confluent-hub-components
   connector.properties:
     content: |
       name=kafka-connect-lightstreamer
       connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector
       key.converter=org.apache.kafka.connect.storage.StringConverter
-      value.converter=org.apache.kafka.connect.storage.StringConverter
+      value.converter=io.confluent.connect.json.JsonSchemaConverter
+      value.converter.schema.registry.url=http://schema-registry:8081
       topics=stocks
       max.interval=990
 
-      item.templates=-item-template.stock-template=stock-#{index=KEY}
-      topic_mappings=stocks:item-template.stock-template
-      field_mappings=field.timestamp:#{VALUE.timestamp},field.time:#{VALUE.time},field.stock_name:#{VALUE.stock_name},field.last_price:#{VALUE.last_price}
+      item.templates=stock-template:stock-#{index=KEY}
+      topic.mappings=stocks:item-template.stock-template
 
-      lightstreamer.host=localhost
+      field.mappings=timestamp:#{VALUE.timestamp},\
+      time:#{VALUE.time},\
+      stock_name:#{VALUE.name},\
+      last_price:#{VALUE.last_price},\
+      ask:#{VALUE.ask},\
+      ask_quantity:#{VALUE.ask_quantity},\
+      bid:#{VALUE.bid},\
+      bid_quantity:#{VALUE.bid_quantity},\
+      pct_change:#{VALUE.pct_change},\
+      min:#{VALUE.min},\
+      max:#{VALUE.max},\
+      ref_price:#{VALUE.ref_price},\
+      open_price:#{VALUE.open_price},\
+      item_status:#{VALUE.item_status},\
+      ts:#{TIMESTAMP},\
+      topic:#{TOPIC},\
+      offset:#{OFFSET},\
+      partition:#{PARTITION}
+
+      lightstreamer.host=lightstreamer
       lightstreamer.port=6661
+

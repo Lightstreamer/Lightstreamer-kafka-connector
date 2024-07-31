@@ -38,6 +38,7 @@ dependencies {
 
 jar {
 	exclude "com/lightstreamer/kafka/connect/**"
+	exclude "META-INF/services"
 }
 
 tasks.register("connectJar", Jar) {
@@ -56,7 +57,7 @@ javadoc {
 }
 
 task assembleDistribution(type: Copy) {
-	description "Assembles the distribution directory of Lighttreamer Kafka Connector"
+	description "Assembles the distribution directory of Lightsreamer Kafka Connector"
 	into "$buildDir/connector"
 
 	from(jar) {
@@ -79,7 +80,13 @@ task assembleDistribution(type: Copy) {
 ext {
 	connect_archiveName = "${connect_owner}-${connect_componentName}"
 	connect_componentArchiveName = "${connect_archiveName}-${version}"
-	connector_archiveName = "${connect_owner}-${connect_componentName}"
+	connector_archiveName = "${rootProject.name}-${version}"
+}
+
+processResources {
+	filesMatching("version.properties") {
+		expand([version:version])
+	}
 }
 
 task assembleConnectDistribution(type: Copy) {
@@ -117,16 +124,14 @@ task assembleConnectDistribution(type: Copy) {
 	}
 }
 
-task distribuite(type: Zip) {
-	// dependsOn build
+task distribute(type: Zip) {
 	archiveBaseName = rootProject.name
 	from (assembleDistribution) {
-		into "${rootProject.name}-${version}"
+		into connector_archiveName
 	}
 }
 
-task distribuiteConnect(type: Zip) {
-	// dependsOn build
+task distributeConnect(type: Zip) {
 	archiveBaseName = connect_archiveName
 	from (assembleConnectDistribution) {
 		into connect_componentArchiveName

@@ -19,10 +19,10 @@ package com.lightstreamer.kafka.common.utils;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.test_utils.VersionUtils;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import com.lightstreamer.kafka.test_utils.VersionUtils;
 
 public class VersionTest {
 

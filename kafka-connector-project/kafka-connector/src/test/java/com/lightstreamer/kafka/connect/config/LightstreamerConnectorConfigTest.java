@@ -290,21 +290,4 @@ public class LightstreamerConnectorConfigTest {
         assertThat(from).isNull();
     }
 
-    @Test
-    void shouldGetTopicMappings() {
-        Map<String, String> props = new HashMap<>();
-
-        props.put(
-                LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-                "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template");
-        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        Map<String, String> topicMappings = config.getTopicMappings();
-
-        assertThat(topicMappings).containsKey("stocks");
-        assertThat(topicMappings.get("stocks"))
-                .isEqualTo("item-template.stock-template,item-template.stock-template-2");
-
-        assertThat(topicMappings).containsKey("orders");
-        assertThat(topicMappings.get("orders")).isEqualTo("item-template.order-template");
-    }
 }

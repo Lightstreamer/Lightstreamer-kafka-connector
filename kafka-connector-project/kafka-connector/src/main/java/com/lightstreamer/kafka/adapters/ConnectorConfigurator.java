@@ -103,8 +103,6 @@ public class ConnectorConfigurator {
 
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
             ValuesExtractor<?, ?> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
-            // ValuesExtractor<?, ?> fieldsExtractor = initFieldsExtractor(sSuppliers,
-            // fieldsMapping);
 
             return new ConsumerLoopConfigImpl(
                     config.getAdapterName(),
