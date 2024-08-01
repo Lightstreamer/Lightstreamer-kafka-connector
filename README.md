@@ -157,7 +157,7 @@ To quickly complete the installation and verify the successful integration with 
 
   since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
-  The `QuickStart` [factory configuration](kafka-connector/src/connector/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
+  The `QuickStart` [factory configuration](kafka-connector-project/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
   - an item template:
     ```xml
@@ -419,7 +419,7 @@ Furthermore, the name is also used to group all logging messages belonging to th
 
 > [!TIP]
 > For every Data Adaper connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](kafka-connector/src/connector/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> For example, the factory [logging configuration](kafka-connector-project/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
 > ```java
 > ...
 > # QuickStart logger
