@@ -347,9 +347,9 @@ The following sections will guide you through the configuration details.
 
 ### Global Settings
 
-#### `adapter_conf['id']` - _Kafka Connector identifier_
+#### `adapter_conf['id']` - _Kafka Connector Identifier_
 
-  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
+  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector Identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
 
   The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
