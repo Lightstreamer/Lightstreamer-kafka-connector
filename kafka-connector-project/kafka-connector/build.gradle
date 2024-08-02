@@ -1,149 +1,123 @@
 plugins {
-	id 'lightstreamer-kafka-connector'
-	id 'com.github.davidmc24.gradle.plugin.avro' version "1.9.1"
-	id 'maven-publish'
-	id 'project-report'
-	id 'project-report'
+    id 'lightstreamer-kafka-connector'
+    id 'com.github.davidmc24.gradle.plugin.avro' version "1.9.1"
+    id 'maven-publish'
+    id 'project-report'
+    id 'distribution'
 }
 
 publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/lightstreamer/lightstreamer-kafka-connector")
-			credentials {
-				username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-				password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
-			}
-		}
-	}
-	publications {
-		gpr(MavenPublication) {
-			from(components.java)
-		}
-	}
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/lightstreamer/lightstreamer-kafka-connector")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            artifact jar
+        }
+    }
 }
 
 dependencies {
-	api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
+    api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
 
-	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-	implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+    implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
+    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
+    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
+    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
+    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
 
-	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
-	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
+    implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
+    implementation group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
 }
 
 jar {
-	exclude "com/lightstreamer/kafka/connect/**"
-	exclude "META-INF/services"
+    exclude "com/lightstreamer/kafka/connect/**"
+    exclude "META-INF/services"
 }
 
-tasks.register("connectJar", Jar) {
-	from sourceSets.main.output
-	exclude "com/lightstreamer/kafka/adapters/**"
-	archiveBaseName = connect_componentName
+tasks.register("kafkaConnectJar", Jar) {
+    from sourceSets.main.output
+    exclude "com/lightstreamer/kafka/adapters/**"
+    archiveBaseName = connect_componentName
 }
 
 javadoc {
-	include '**/pub/KafkaConnectorMetadataAdapter.java'
-	exclude '**/pub/*ConnectionInfo*'
-	destinationDir = file("${project.rootDir}/../docs/javadoc")
-	options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
-	options.overview = "src/doc/overview.html"
-	options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
-}
-
-task assembleDistribution(type: Copy) {
-	description "Assembles the distribution directory of Lightstreamer Kafka Connector"
-	into "$buildDir/connector"
-
-	from(jar) {
-		into "lib"
-	}
-
-	from (configurations.runtimeClasspath) {
-		into "lib"
-		exclude "ls-adapter-inprocess*"
-		exclude "ls-adapter-remote*"
-		exclude "ls-log-adapter*"
-		exclude "jsr305*"
-		exclude "javax.ws.rs-api-*"
-		exclude "connect-api-*"
-	}
-	from (configurations.runtimeClasspath) {
-		into "lib"
-		exclude "ls-adapter-inprocess*"
-		exclude "ls-adapter-remote*"
-		exclude "ls-log-adapter*"
-		exclude "jsr305*"
-		exclude "javax.ws.rs-api-*"
-		exclude "connect-api-*"
-	}
-
-	from distDir
-}
-
-ext {
-	connect_archiveName = "${connect_owner}-${connect_componentName}"
-	connect_componentArchiveName = "${connect_archiveName}-${version}"
-	connector_archiveName = "${rootProject.name}-${version}"
+    include '**/pub/KafkaConnectorMetadataAdapter.java'
+    exclude '**/pub/*ConnectionInfo*'
+    destinationDir = file("${project.rootDir}/../docs/javadoc")
+    options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
+    options.overview = "src/doc/overview.html"
+    options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
 }
 
 processResources {
-	filesMatching("version.properties") {
-		expand([version:version])
-	}
+    filesMatching("version.properties") {
+        expand([version:version])
+    }
 }
 
-task assembleConnectDistribution(type: Copy) {
-	description "Assembles the distribution directory of lightstreamer-kafka-connect"
-	into "$buildDir/connect"
+distributions {
+    adapter {
+        distributionBaseName = rootProject.name
+        contents {
+            from(jar) {
+                into "lib"
+            }
 
-	from(connectJar) {
-		into "lib"
-	}
+            from (configurations.runtimeClasspath) {
+                into "lib"
+                exclude "ls-adapter-inprocess*"
+                exclude "ls-adapter-remote*"
+                exclude "ls-log-adapter*"
+                exclude "jsr305*"
+                exclude "javax.ws.rs-api-*"
+                exclude "connect-api-*"
+            }
+        }
+    }
 
-	from (configurations.runtimeClasspath) {
-		into "lib"
-		include "ls-adapter-inprocess*"
-		include "ls-adapter-remote*"
-		include "ls-log-adapter*"
-		include "jsr305*"
-		include "javax.ws.rs-api-*"
-	}
+    connect {
+        distributionBaseName = "${connect_owner}-${connect_componentName}"
+        contents {
+            from(kafkaConnectJar) {
+                into "lib"
+            }
 
-	from ("${connect_distDir}") {
-		include "doc/**"
-		include "assets/**"
-		include "etc/**"
-	}
+            from (configurations.runtimeClasspath) {
+                into "lib"
+                include "ls-adapter-remote*"
+                include "ls-log-adapter*"
+                include "jsr305*"
+                include "javax.ws.rs-api-*"
+            }
 
-	from ("${connect_distDir}/manifest.json.tpl") {
-		expand(
-				name: connect_componentName,
-				title: brandedProjectName,
-				version: version,
-				owner: connect_owner,
-				release_date: release_date
-				)
-		rename {"manifest.json"}
-	}
-}
+            from ("${rootDir}/..") {
+                into "doc"
+                include "LICENSE"
+            }
 
-task distribute(type: Zip) {
-	archiveBaseName = rootProject.name
-	from (assembleDistribution) {
-		into connector_archiveName
-	}
-}
+            from ("connect-config") {
+                into "etc"
+                include "quickstart-lightstreamer.properties"
+            }
 
-task distributeConnect(type: Zip) {
-	archiveBaseName = connect_archiveName
-	from (assembleConnectDistribution) {
-		into connect_componentArchiveName
-	}
+            from ("src/connect/manifest.json.tpl") {
+                expand(
+                        name: connect_componentName,
+                        title: brandedProjectName,
+                        version: version,
+                        owner: connect_owner,
+                        release_date: release_date
+                        )
+                rename {"manifest.json"}
+            }
+        }
+    }
 }
