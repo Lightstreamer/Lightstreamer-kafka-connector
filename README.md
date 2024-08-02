@@ -1311,17 +1311,27 @@ Before running the Connector plugin from a Kafka Connect deployment, you first n
 
    - update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
 
-  > [!NOTE]
-  > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
-
    - update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
 
    - update the parameter `request_reply_port` with the listening TCP port
 
+> [!NOTE]
+> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
 
+Finally, check that the Lightstreamer layout looks like the following:
 
-
-Create a directory
+```sh
+LS_HOME/
+...
+├── adapters
+│   ├── kafka-connect-proxy
+│   │   ├── adapters.xml
+│   └── welcome_res
+...
+├── audit
+├── bin
+...
+```
 
 ## Docs
 
