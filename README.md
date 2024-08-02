@@ -34,6 +34,9 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
 - [Usage in Kafka Connect](#usage-in-kafka-connect)
+  - [Lightstreamer Setup](#lightstreamer-setup)
+  - [Installation](#installation-1)
+  - [Configuration](#configuration)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -106,9 +109,9 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Requirements
 
-- JDK version 17 or later.
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
-- A running Kafka broker or Kafka Cluster.
+- JDK version 17 or later
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+- A running Kafka broker or Kafka Cluster
 
 ### Deploy
 
@@ -118,7 +121,7 @@ Get the deployment package from the [latest release page](https://github.com/Lig
 $ ./gradlew adapterDistZip
 ```
 
-which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `kafka-connector-project/deploy` folder.
+which generates the `lightstreamer-kafka-connector-<version>.zip` file under the `kafka-connector-project/deploy` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Finally, check that the Lightstreamer layout looks like the following:
@@ -147,14 +150,14 @@ Before starting Kafka Connector, you need to properly configure the `LS_HOME/ada
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
-- update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
+- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
-- optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file)
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file)
 
-- configure topic and record mapping:
+- Configure topic and record mapping:
 
   since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
@@ -368,7 +371,7 @@ The factory value is set to `com.lightstreamer.kafka.adapters.pub.KafkaConnector
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
-See the section [Customize the Kafka Connector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) for more details.
+See the [Customize the Kafka Connector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) section for more details.
 
 Example:
 
@@ -1250,7 +1253,7 @@ and follow these [instructions](https://docs.github.com/en/packages/working-with
 
 For a Gradle project, edit your _build.gradle_ file as follows:
 
-1. add the dependency:
+1. Add the dependency:
 
    ```groovy
    dependencies {
@@ -1258,7 +1261,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
    }
    ```
 
-2. add the repository and specify your personal access token:
+2. Add the repository and specify your personal access token:
 
    ```grrovy
    repositories {
@@ -1280,34 +1283,15 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 Lightstreamer Kafka Connector is also available as _Connector plugin_ to be installed into _Kafka Connect_.
 
-In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the the Lightstreamer server as depicted in the following picture:
+In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
-### Installation
-
-#### Requirements
-
-In addition to the requirements already
-- JDK version 17 or later.
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
-- A running Kafka broker or Kafka Cluster.
-
-#### Deploy
-
-Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
-
-```sh
-$ ./gradlew connectDistZip
-```
-
-which generates the zip bundle under the `kafka-connector-project/kafka-connect/build/distributions` folder
-
-#### Configure Lightstreamer
+### Lightstreamer Setup
 
 Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
-1. create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`)
-2. copy the sample adapter `adapters.xml` to the `kafka-connect-proxy` directory
-3. edit the file as follows:
+1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
+2. Copy the sample adapter `adapters.xml` to the `kafka-connect-proxy` directory.
+3. Edit the file as follows:
 
    - update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
 
@@ -1316,7 +1300,7 @@ Before running the Connector plugin from a Kafka Connect deployment, you first n
    - update the parameter `request_reply_port` with the listening TCP port
 
 > [!NOTE]
-> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
+> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ package)
 
 Finally, check that the Lightstreamer layout looks like the following:
 
@@ -1332,10 +1316,27 @@ LS_HOME/
 ├── bin
 ...
 ```
+### Installation
+
+To install the Connector plugin on a local installation of Confluent Platform:
+
+1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+
+```sh
+$ ./gradlew connectDistZip
+```
+
+which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder
+
+2. Extract the zip file into the desired location 
+
+#### Configuration
+
+
 
 ## Docs
 
-The [docs](docs/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), already mentioned in the previous section.
+The [docs](docs/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), already mentioned in the [Develop the Extension](#develop-the-extension) section.
 
 ## Examples
 

@@ -289,5 +289,4 @@ public class LightstreamerConnectorConfigTest {
         RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(noValidStrategy);
         assertThat(from).isNull();
     }
-
 }

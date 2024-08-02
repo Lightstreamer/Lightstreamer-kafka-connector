@@ -46,10 +46,17 @@ public class ParsersTest {
     @MethodSource("args")
     void shouldCreateParsingContext(
             String name, ExtractionExpression expression, Constant expectedRoot) {
-        Parsers.ParsingContext p = new Parsers.ParsingContext(name, expression, expectedRoot);
-        assertThat(p.name()).isEqualTo(name);
-        assertThat(p.expression()).isEqualTo(expression.toString());
-        assertThat(p.expectedRoot()).isEqualTo(expectedRoot);
+        Parsers.ParsingContext p1 = new Parsers.ParsingContext(name, expression, expectedRoot);
+        assertThat(p1.name()).isEqualTo(name);
+        assertThat(p1.expression()).isEqualTo(expression.toString());
+        assertThat(p1.expectedRoot()).isEqualTo(expectedRoot);
+        assertThat(p1.checkStructured()).isTrue();
+
+        p1 = new Parsers.ParsingContext(name, expression, expectedRoot, false);
+        assertThat(p1.name()).isEqualTo(name);
+        assertThat(p1.expression()).isEqualTo(expression.toString());
+        assertThat(p1.expectedRoot()).isEqualTo(expectedRoot);
+        assertThat(p1.checkStructured()).isFalse();
     }
 
     @Test
