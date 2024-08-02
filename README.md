@@ -33,7 +33,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Usage in Kafka Connect](#usage)
+- [Usage in Kafka Connect](#usage-in-kafka-connect)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -1311,8 +1311,8 @@ Before running the Connector plugin from a Kafka Connect deployment, you first n
 
    - update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
 
-      > [!NOTE]
-      > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
+    > [!NOTE]
+    > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
 
    - update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
 
