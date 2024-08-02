@@ -33,6 +33,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
+- [Usage in Kafka Connect](#usage)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -111,10 +112,10 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Deploy
 
-Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/latest). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v0.1.0/lightstreamer-kafka-connector-1..0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
-$ ./gradlew distribute
+$ ./gradlew adapterDistZip
 ```
 
 which generates the `lightstreamer-kafka-connector-<version>.zip` bundle under the `kafka-connector-project/deploy` folder.
@@ -347,9 +348,9 @@ The following sections will guide you through the configuration details.
 
 ### Global Settings
 
-#### `adapter_conf['id']` - _Kafka Connector identifier_
+#### `adapter_conf['id']` - _Kafka Connector Identifier_
 
-  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
+  _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector Identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
 
   The factory value is set to `KafkaConnector` for convenience, but you are free to change it as per your requirements.
 
@@ -1274,6 +1275,53 @@ For a Gradle project, edit your _build.gradle_ file as follows:
    ```
 
 In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
+
+## Usage in Kafka Connect
+
+Lightstreamer Kafka Connector is also available as _Connector plugin_ to be installed into _Kafka Connect_.
+
+In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the the Lightstreamer server as depicted in the following picture:
+
+### Installation
+
+#### Requirements
+
+In addition to the requirements already
+- JDK version 17 or later.
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
+- A running Kafka broker or Kafka Cluster.
+
+#### Deploy
+
+Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+
+```sh
+$ ./gradlew connectDistZip
+```
+
+which generates the zip bundle under the `kafka-connector-project/kafka-connect/build/distributions` folder
+
+#### Configure Lightstreamer
+
+Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
+
+1. create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`)
+2. copy the sample adapter `adapters.xml` to the `kafka-connect-proxy` directory
+3. edit the file as follows:
+
+   - update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
+
+      > [!NOTE]
+      > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ bundle)
+
+   - update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
+
+   - update the parameter `request_reply_port` with the listening TCP port
+
+
+
+
+Create a directory
 
 ## Docs
 
