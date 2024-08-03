@@ -6,10 +6,11 @@ TMP_DIR=${SCRIPT_DIR}/tmp
 
 # Generate the deployment package
 echo "Making the deployment package"
-$_gradle clean distribuiteConnect
+$_gradle clean connectDistZip
 
 mkdir -p ${TMP_DIR}
-cp ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${version}.zip ${TMP_DIR}
+rm -fr ${TMP_DIR}/
+unzip ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${version}.zip -d ${TMP_DIR}
 
 echo "Build the Connect Docker image"
 docker build -t lightstreamer-kafka-connect-lighstreamer-${version} $SCRIPT_DIR --build-arg VERSION=${version} "$@"

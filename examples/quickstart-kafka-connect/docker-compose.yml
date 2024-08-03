@@ -3,19 +3,13 @@ name: quickstart-kafka-connect
 services:
   kafka-connect:
     container_name: kafka-connect
-    container_name: kafka-connect
     image: lightstreamer-kafka-connect-lighstreamer-${version}
-    configs:
-      - source: connect-log4j.properties
-        target: /opt/kafka/config/connect-log4j.properties
-      - source: connect-standalone.properties
-        target: /config/connect-standalone.properties
-      - source: connector.properties
-        target: /config/connector.properties
+    volumes:
+       - ../../kafka-connector-project/kafka-connector/connect-config:/config
     command:
       - connect-standalone
       - /config/connect-standalone.properties
-      - /config/connector.properties
+      - /config/quickstart-lightstreamer.properties
     depends_on:
       - broker
       - lightstreamer
@@ -32,7 +26,7 @@ services:
       - 6661:6661
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./remote_adapter:/lightstreamer/adapters/kafka-connect
+      - ./remote_adapter:/lightstreamer/adapters/kafka-connect-proxy
       - ./conf/lightstreamer_log_conf.xml:/lightstreamer/conf/lightstreamer_log_conf.xml
 
   producer:
@@ -106,65 +100,4 @@ configs:
       connect.log.pattern=[%d] %p %X{connector.context}%m (%c:%L)%n
       log4j.appender.stdout.layout.ConversionPattern=$${connect.log.pattern}
       log4j.logger.org.reflections=ERROR
-  connect-standalone.properties:
-    content: |
-      # These are defaults. This file just demonstrates how to override some settings.
-      bootstrap.servers=broker:29092
-
-      # The converters specify the format of data in Kafka and how to translate it into Connect data. Every Connect user will
-      # need to configure these based on the format they want their data in when loaded from or stored into Kafka
-      key.converter=org.apache.kafka.connect.json.JsonConverter
-      value.converter=org.apache.kafka.connect.json.JsonConverter
-      # value.converter.schema.registry.url=http://schema-registry:8081
-      # Converter-specific settings can be passed in by prefixing the Converter's setting with the converter we want to apply
-      # it to
-
-      offset.storage.file.filename=/tmp/connect.offsets
-      # Flush much faster than normal, which is useful for testing/debugging
-      offset.flush.interval.ms=10000
-
-      # Set to a list of filesystem paths separated by commas (,) to enable class loading isolation for plugins
-      # (connectors, converters, transformations). The list should consist of top level directories that include
-      # any combination of:
-      # a) directories immediately containing jars with plugins and their dependencies
-      # b) uber-jars with plugins and their dependencies
-      # c) directories immediately containing the package directory structure of classes of plugins and their dependencies
-      # Note: symlinks will be followed to discover dependencies or plugins.
-      # Examples:
-      # plugin.path=/usr/local/share/java,/usr/local/share/kafka/plugins,/opt/connectors,
-      plugin.path=/usr/share/confluent-hub-components
-  connector.properties:
-    content: |
-      name=kafka-connect-lightstreamer
-      connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector
-      key.converter=org.apache.kafka.connect.storage.StringConverter
-      value.converter=io.confluent.connect.json.JsonSchemaConverter
-      value.converter.schema.registry.url=http://schema-registry:8081
-      topics=stocks
-      max.interval=990
-
-      item.templates=stock-template:stock-#{index=KEY}
-      topic.mappings=stocks:item-template.stock-template
-
-      field.mappings=timestamp:#{VALUE.timestamp},\
-      time:#{VALUE.time},\
-      stock_name:#{VALUE.name},\
-      last_price:#{VALUE.last_price},\
-      ask:#{VALUE.ask},\
-      ask_quantity:#{VALUE.ask_quantity},\
-      bid:#{VALUE.bid},\
-      bid_quantity:#{VALUE.bid_quantity},\
-      pct_change:#{VALUE.pct_change},\
-      min:#{VALUE.min},\
-      max:#{VALUE.max},\
-      ref_price:#{VALUE.ref_price},\
-      open_price:#{VALUE.open_price},\
-      item_status:#{VALUE.item_status},\
-      ts:#{TIMESTAMP},\
-      topic:#{TOPIC},\
-      offset:#{OFFSET},\
-      partition:#{PARTITION}
-
-      lightstreamer.host=lightstreamer
-      lightstreamer.port=6661
 

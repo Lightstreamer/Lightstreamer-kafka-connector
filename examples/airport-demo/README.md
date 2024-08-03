@@ -72,6 +72,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
 
 The demo needs a Kafka cluster where a topic `Flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).
 Based on this choice, you will need to modify the [`adapters.xml`](connector/adapters.xml) files accordingly, particularly the `bootstrap server` parameter. The proposed configuration assumes a local Kafka installation that does not require authentication or the use of TLS communication:
+
 ```xml
 <data_provider name="AirpotDemo">
     <!-- ##### GENERAL PARAMETERS ##### -->
@@ -94,12 +95,12 @@ Further details on this mechanism can be found [here](https://developer.confluen
 
 To configure our `Flights` topic to be managed in a compacted manner, the following steps are necessary:
 
-1. set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
+1. Set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
    ```java
    log.cleanup.policy=compact, delete
    ```
 
-2. create the topic with the following configurations:
+2. Create the topic with the following configurations:
    ```sh
    $ ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic Flights \
               --replication-factor 1 \
@@ -147,12 +148,12 @@ where:
 
 In order to install a web client for this demo pointing to your local Lightstreamer Server, follow these steps:
 
-* deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server. If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
+* Deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server. If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
 
 >[!IMPORTANT]
 > *The client demo configuration assumes that Lightstreamer Server, Kafka Cluster, and this client are launched on the same machine. If you need to target a different Lightstreamer server, please double check the `LS_HOST` variable in [`client/web/src/js/const.js`](client/web/src/js/const.js) and change it accordingly.*
 
-* open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70)
+* Open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70).
 
 ## Setting Up on Docker Compose
 
@@ -163,14 +164,14 @@ To simplify the setup, we have also provided two different Docker Compose files 
 
 ### Prerequisites
 
-- JDK version 17 or later.
+- JDK version 17 or later
 - Docker Compose
 
 ### Run
 
 1. From the `examples/airport-demo` folder:
 
-   - for running the demo against _Apache Kafka_:
+   - For running the demo against _Apache Kafka_:
      ```sh
      $ ./start_demo.sh
      ...
@@ -182,7 +183,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
      Services started. Now you can point your browser to http://localhost:8080/AirportDemo to see real-time data.
      ```
 
-   - for running the demo against _Redpanda Self-Hosted_:
+   - For running the demo against _Redpanda Self-Hosted_:
      ```sh
      $ ./start_demo_redpanda.sh
      ...
@@ -198,7 +199,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
 3. After a few moments, the user interface starts displaying the real-time flights data.
 4. To shutdown Docker Compose and clean up all temporary resources:
 
-   - for _Apache Kafka_, execute:
+   - For _Apache Kafka_, execute:
      ```sh
      $ ./stop_demo.sh
       ✔ Container kafka-connector           Removed
@@ -208,7 +209,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
       ✔ Network airport-demo-kafka_default  Removed
      ```
 
-   - for _Redpanda Self-Hosted_, execute:
+   - For _Redpanda Self-Hosted_, execute:
      ```sh
      $ ./stop_demo_redpanda.sh
      ...
