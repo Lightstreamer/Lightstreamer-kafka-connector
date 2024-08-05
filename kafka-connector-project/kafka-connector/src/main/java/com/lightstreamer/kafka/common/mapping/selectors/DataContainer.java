@@ -23,12 +23,12 @@ public interface DataContainer {
 
     DataExtractor<?, ?> extractor();
 
-    Set<Data> values();
+    Set<Data> data();
 
-    static DataContainer of(DataExtractor<?, ?> extractor, Set<Data> values) {
-        return new DefaultValuesContainer(extractor, values);
+    static DataContainer from(DataExtractor<?, ?> extractor, Set<Data> data) {
+        return new DefaultValuesContainer(extractor, data);
     }
 }
 
-record DefaultValuesContainer(DataExtractor<?, ?> extractor, Set<Data> values)
+record DefaultValuesContainer(DataExtractor<?, ?> extractor, Set<Data> data)
         implements DataContainer {}

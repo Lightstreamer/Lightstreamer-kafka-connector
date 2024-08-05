@@ -71,7 +71,7 @@ class DataExtractorSupport {
             for (Map.Entry<String, ExtractionExpression> entry : expressions.entrySet()) {
                 dispatcher.dispatch(entry);
             }
-            return new ValuesExtractorImpl<>(this);
+            return new DataExtractorImpl<>(this);
         }
     }
 
@@ -131,7 +131,7 @@ class DataExtractorSupport {
         }
     }
 
-    private static final class ValuesExtractorImpl<K, V> implements DataExtractor<K, V> {
+    private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
 
         private final Set<KeySelector<K>> keySelectors;
         private final Set<ValueSelector<V>> valueSelectors;
@@ -139,7 +139,7 @@ class DataExtractorSupport {
 
         private final Schema schema;
 
-        ValuesExtractorImpl(DataExtractorBuilder<K, V> builder) {
+        DataExtractorImpl(DataExtractorBuilder<K, V> builder) {
             this.keySelectors = Collections.unmodifiableSet(builder.keySelectors);
             this.valueSelectors = Collections.unmodifiableSet(builder.valueSelectors);
             this.metaSelectors = Collections.unmodifiableSet(builder.metaSelectors);
@@ -152,7 +152,7 @@ class DataExtractorSupport {
         }
 
         @Override
-        public DataContainer extractValues(KafkaRecord<K, V> record) throws ValueException {
+        public DataContainer extractData(KafkaRecord<K, V> record) throws ValueException {
             return new DefaultValuesContainer(
                     this,
                     Stream.of(
@@ -172,7 +172,7 @@ class DataExtractorSupport {
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof ValuesExtractorImpl<?, ?> other
+            return obj instanceof DataExtractorImpl<?, ?> other
                     && Objects.equals(keySelectors, other.keySelectors)
                     && Objects.equals(valueSelectors, other.valueSelectors)
                     && Objects.equals(metaSelectors, other.metaSelectors)

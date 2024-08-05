@@ -78,6 +78,7 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     @Override
     public ConfigDef config() {
-        return LightstreamerConnectorConfig.makeConfig();
+        ConfigDef config2 = LightstreamerConnectorConfig.makeConfig();
+        return config2;
     }
 }

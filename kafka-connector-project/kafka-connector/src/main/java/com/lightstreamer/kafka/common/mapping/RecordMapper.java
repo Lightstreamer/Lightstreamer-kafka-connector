@@ -90,9 +90,7 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
         return new DefaultMappedRecord(
                 record.topic(),
-                extractors.stream()
-                        .map(ve -> ve.extractValues(record))
-                        .collect(Collectors.toSet()));
+                extractors.stream().map(ve -> ve.extractData(record)).collect(Collectors.toSet()));
     }
 
     @Override
@@ -105,11 +103,11 @@ class DefaultMappedRecord implements MappedRecord {
 
     private final String topic;
 
-    private final Set<DataContainer> valuesContainers;
+    private final Set<DataContainer> dataContainers;
 
-    DefaultMappedRecord(String topic, Set<DataContainer> valuesContainers) {
+    DefaultMappedRecord(String topic, Set<DataContainer> dataContainers) {
         this.topic = topic;
-        this.valuesContainers = valuesContainers;
+        this.dataContainers = dataContainers;
     }
 
     @Override
@@ -119,26 +117,26 @@ class DefaultMappedRecord implements MappedRecord {
 
     @Override
     public int mappedValuesSize() {
-        return valuesContainers.stream().mapToInt(v -> v.values().size()).sum();
+        return dataContainers.stream().mapToInt(v -> v.data().size()).sum();
     }
 
     @Override
     public Map<String, String> filter(DataExtractor<?, ?> extractor) {
         Map<String, String> eventsMap = new HashMap<>();
-        valuesContainers.stream()
+        dataContainers.stream()
                 .filter(container -> container.extractor().equals(extractor))
-                .flatMap(container -> container.values().stream())
+                .flatMap(container -> container.data().stream())
                 .forEach(value -> eventsMap.put(value.name(), value.text()));
         return eventsMap;
     }
 
     @Override
     public String toString() {
-        String values =
-                valuesContainers.stream()
-                        .flatMap(v -> v.values().stream())
+        String data =
+                dataContainers.stream()
+                        .flatMap(v -> v.data().stream())
                         .map(Data::toString)
                         .collect(Collectors.joining(","));
-        return String.format("MappedRecord [topic=[%s],values=[%s]]", topic, values);
+        return String.format("MappedRecord [topic=[%s],values=[%s]]", topic, data);
     }
 }

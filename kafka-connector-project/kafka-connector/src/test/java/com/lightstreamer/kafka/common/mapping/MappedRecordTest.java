@@ -37,7 +37,7 @@ public class MappedRecordTest {
 
     DataExtractor<String, String> extractor1;
     DataExtractor<String, String> extractor2;
-    Set<DataContainer> valuesContainers;
+    Set<DataContainer> dataContainers;
 
     @BeforeEach
     void creaValuesContainer() throws ExtractionException {
@@ -54,11 +54,11 @@ public class MappedRecordTest {
                         .build();
 
         DataContainer container1 =
-                DataContainer.of(
+                DataContainer.from(
                         extractor1,
                         Set.of(
-                                Data.of("partition", "partitionValue"),
-                                Data.of("topic", "topicValue")));
+                                Data.from("partition", "partitionValue"),
+                                Data.from("topic", "topicValue")));
 
         extractor2 =
                 DataExtractor.<String, String>builder()
@@ -73,12 +73,12 @@ public class MappedRecordTest {
                         .build();
 
         DataContainer container2 =
-                DataContainer.of(
+                DataContainer.from(
                         extractor2,
                         Set.of(
-                                Data.of("partition2", "partitionValue2"),
-                                Data.of("topic2", "topicValue2")));
-        valuesContainers = Set.of(container1, container2);
+                                Data.from("partition2", "partitionValue2"),
+                                Data.from("topic2", "topicValue2")));
+        dataContainers = Set.of(container1, container2);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class MappedRecordTest {
 
     @Test
     void shouldFilter() {
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", valuesContainers);
+        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dataContainers);
         Map<String, String> map1 = mp.filter(extractor1);
         assertThat(map1).containsExactly("partition", "partitionValue", "topic", "topicValue");
 
@@ -99,24 +99,24 @@ public class MappedRecordTest {
 
     @Test
     void shouldFilterWithNullValue() {
-        Set<DataContainer> vc =
-                Set.of(DataContainer.of(extractor1, Set.of(Data.of("partition", null))));
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", vc);
+        Set<DataContainer> dc =
+                Set.of(DataContainer.from(extractor1, Set.of(Data.from("partition", null))));
+        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dc);
         Map<String, String> map1 = mp.filter(extractor1);
         assertThat(map1).containsExactly("partition", null);
     }
 
     @Test
     void shouldHaveExpectedMappedValueSize() {
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", valuesContainers);
+        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dataContainers);
         assertThat(mp.mappedValuesSize()).isEqualTo(4);
     }
 
     @Test
     void shouldHaveExpectedMappedValueSizeWithNullValue() {
-        Set<DataContainer> vc =
-                Set.of(DataContainer.of(extractor1, Set.of(Data.of("partition", null))));
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", vc);
+        Set<DataContainer> dc =
+                Set.of(DataContainer.from(extractor1, Set.of(Data.from("partition", null))));
+        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dc);
         assertThat(mp.mappedValuesSize()).isEqualTo(1);
     }
 }

@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.io.Files;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
@@ -30,6 +31,7 @@ import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,6 +39,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -288,5 +292,12 @@ public class LightstreamerConnectorConfigTest {
     public void shouldNotRetrieveRecordErrorHandlingStrategy(String noValidStrategy) {
         RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(noValidStrategy);
         assertThat(from).isNull();
+    }
+
+    @Test
+    public void shouldToHtmml() throws IOException {
+        ConfigDef config = LightstreamerConnectorConfig.makeConfig();
+        Files.write(config.toHtml().getBytes(), new File("config.html"));
+        Files.write(config.toEnrichedRst().getBytes(), new File("config.rst"));
     }
 }

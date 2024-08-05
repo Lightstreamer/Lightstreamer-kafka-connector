@@ -19,18 +19,5 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 public interface ConstantSelector extends Selector {
 
-    // default Value extract(Constant constant, KafkaRecord<?, ?> record) throws ValueException {
-    //     Object value =
-    //             switch (constant) {
-    //                 case TIMESTAMP -> String.valueOf(record.timestamp());
-    //                 case PARTITION -> String.valueOf(record.partition());
-    //                 case OFFSET -> String.valueOf(record.offset());
-    //                 case TOPIC -> record.topic();
-    //                 case KEY -> record.key();
-    //                 case VALUE -> record.value();
-    //             };
-    //     return new SimpleValue(name(), Objects.toString(value, null));
-    // }
-
     Data extract(KafkaRecord<?, ?> record) throws ValueException;
 }

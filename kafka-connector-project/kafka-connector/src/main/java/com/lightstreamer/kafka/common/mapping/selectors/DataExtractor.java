@@ -23,7 +23,7 @@ import java.util.Map;
 
 public interface DataExtractor<K, V> {
 
-    DataContainer extractValues(KafkaRecord<K, V> record);
+    DataContainer extractData(KafkaRecord<K, V> record);
 
     Schema schema();
 

@@ -135,6 +135,6 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return Data.of(name(), node.asText(null));
+        return Data.from(name(), node.asText(null));
     }
 }

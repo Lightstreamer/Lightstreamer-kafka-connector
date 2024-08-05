@@ -23,9 +23,9 @@ public interface Data {
 
     String text();
 
-    static Data of(String name, String text) {
-        return new SimpleValue(name, text);
+    static Data from(String name, String text) {
+        return new SimpleData(name, text);
     }
 }
 
-record SimpleValue(String name, String text) implements Data {}
+record SimpleData(String name, String text) implements Data {}

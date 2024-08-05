@@ -1332,7 +1332,98 @@ which generates the zip file under the `kafka-connector-project/kafka-connector/
 
 #### Configuration
 
+##### `connector.class`
 
+To use the connector, specify the following settings:
+`connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
+
+###### lightstreamer.server.proxy_adapter.address
+
+The Lightstreamer server's Proxy Adapter address to connect to in the format `host:port`.
+
+- **Type:** string
+- **Importance:** high
+- **Defalut Value:** none
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
+  ````
+
+###### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
+
+The (optional) value in milliseconds for the time to wait while trying to establish a connection to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
+
+- **Type:** int
+- **Importance:** low
+- **Defalut Value:** 5000
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
+  ````
+
+###### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
+
+The (optional) max number of retries to establish a connection.
+
+- **Type:** int
+- **Importance:** medium
+- **Defalut Value:** 1
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
+  ````
+
+###### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
+
+The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure. Only applicable if 
+`lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
+
+- **Type:** int
+- **Importance:** low
+- **Defalut Value:** 0
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
+  ````
+
+###### lightstreamer.server.proxy_adapter.username
+
+The username to use for authenticating to the Lightstreamer'server Proxy Adapter.
+
+- **Type:** string
+- **Importance:** medum
+- **Defalut Value:** none
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.username=lightstreamer_user
+  ````
+
+###### lightstreamer.server.proxy_adapter.password
+
+The password to use for authenticating to the Lightstreamer'server Proxy Adapter.
+
+- **Type:** string
+- **Importance:** medum
+- **Defalut Value:** none
+- **Example:**
+  ```
+  lightstreamer.server.proxy_adapter.password=lightstreamer_password
+  ````
+
+###### record.extraction.error.strategy
+
+The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.
+
+- **Type:** string
+- **Importance:** medium
+- **Defalut Value:** `IGNORE_AND_CONTINUE`
+- **Valid Values:** [`IGNORE_AND_CONTINUE`, `FORWARD_TO_DLQ`, `TERMINATE_TASK`]
+- **Example:**
+  ```
+  record.extraction.error.strategy=FORWARD_TO_DLQ
+  ````
+
+###### fields.mappings
 
 ## Docs
 

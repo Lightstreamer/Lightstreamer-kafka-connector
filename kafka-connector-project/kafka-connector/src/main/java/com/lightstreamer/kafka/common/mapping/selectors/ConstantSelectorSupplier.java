@@ -46,7 +46,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                         case KEY -> record.key();
                         case VALUE -> record.value();
                     };
-            return new SimpleValue(name(), Objects.toString(data, null));
+            return new SimpleData(name(), Objects.toString(data, null));
         }
     }
 

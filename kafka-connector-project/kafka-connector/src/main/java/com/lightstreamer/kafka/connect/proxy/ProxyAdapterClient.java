@@ -44,7 +44,7 @@ public class ProxyAdapterClient {
 
     public void start(DataProvider provider) {
         logger.info(
-                "Starting connection with Lighstreamer Proxy Adapter at {}:{}",
+                "Starting connection with Lighstreamer'server Proxy Adapter at {}:{}",
                 options.hostname,
                 options.port);
         dataProviderServer = new DataProviderServer();
@@ -58,9 +58,10 @@ public class ProxyAdapterClient {
                     socket.connect(address, options.timeout);
                 } catch (SocketTimeoutException e) {
                     logger.warn("Socket timeout", e);
-                    if (retries > 0) {}
-                    logger.info("Sleeping for %d before retrying the connection");
-                    TimeUnit.MILLISECONDS.sleep(options.connectionRetryDelayMs);
+                    if (retries > 0) {
+                        logger.info("Waiting for %d ms before retrying the connection");
+                        TimeUnit.MILLISECONDS.sleep(options.connectionRetryDelayMs);
+                    }
                 }
             }
 

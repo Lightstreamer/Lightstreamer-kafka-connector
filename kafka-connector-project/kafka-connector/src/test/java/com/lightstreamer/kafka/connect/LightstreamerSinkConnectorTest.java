@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.FIELD_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.ITEM_TEMPLATES;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD;
@@ -91,7 +91,7 @@ public class LightstreamerSinkConnectorTest {
                                 LIGHTSTREAMER_PROXY_ADAPTER_USERNAME,
                                 LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD,
                                 LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
-                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT,
+                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
                                 LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
                                 TOPIC_MAPPINGS,
                                 ITEM_TEMPLATES,

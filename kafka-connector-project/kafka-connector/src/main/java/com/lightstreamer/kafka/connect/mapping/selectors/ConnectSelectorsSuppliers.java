@@ -158,7 +158,7 @@ public class ConnectSelectorsSuppliers {
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record) {
-            return super.eval(asNode((KafkaSinkRecord) record));
+            return eval(asNode((KafkaSinkRecord) record));
         }
 
         private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {

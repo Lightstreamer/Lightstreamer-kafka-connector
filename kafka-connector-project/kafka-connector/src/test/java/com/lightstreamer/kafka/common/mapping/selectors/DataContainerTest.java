@@ -27,14 +27,14 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Set;
 
-public class ValueTest {
+public class DataContainerTest {
 
     @Test
     public void shouldCreateValue() {
-        Data value = Data.of("name", "value");
+        Data data = Data.from("name", "value");
 
-        assertThat(value.text()).isEqualTo("value");
-        assertThat(value.name()).isEqualTo("name");
+        assertThat(data.text()).isEqualTo("value");
+        assertThat(data.name()).isEqualTo("name");
     }
 
     @Test
@@ -45,9 +45,10 @@ public class ValueTest {
                         .withSchemaName("schema")
                         .withExpressions(Map.of("name", Expressions.expression("VALUE")))
                         .build();
-        DataContainer container = DataContainer.of(extractor, Set.of(Data.of("name", "aValue")));
+        DataContainer container =
+                DataContainer.from(extractor, Set.of(Data.from("name", "aValue")));
 
         assertThat(container.extractor()).isSameInstanceAs(extractor);
-        assertThat(container.values()).containsExactly(Data.of("name", "aValue"));
+        assertThat(container.data()).containsExactly(Data.from("name", "aValue"));
     }
 }

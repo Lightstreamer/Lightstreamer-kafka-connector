@@ -71,9 +71,9 @@ public class ConstantSelectorTest {
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
         ExtractionExpression ee = Expressions.expression(expression);
-        Data value = selector(ee).extract(record("record-key", "record-value"));
-        assertThat(value.name()).isEqualTo("field_name");
-        assertThat(value.text()).isEqualTo(expectedValue);
+        Data data = selector(ee).extract(record("record-key", "record-value"));
+        assertThat(data.name()).isEqualTo("field_name");
+        assertThat(data.text()).isEqualTo(expectedValue);
     }
 
     static Stream<Arguments> args() {
@@ -112,9 +112,9 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
         KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
-        Data value = newKeySelector.extractKey(record("record-key", "record-value"));
-        assertThat(value.name()).isEqualTo("field_name");
-        assertThat(value.text()).isEqualTo("record-key");
+        Data data = newKeySelector.extractKey(record("record-key", "record-value"));
+        assertThat(data.name()).isEqualTo("field_name");
+        assertThat(data.text()).isEqualTo("record-key");
     }
 
     @Test
@@ -123,9 +123,9 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
         KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
-        Data value = newKeySelector.extractKey(record("record-key", "record-value"));
-        assertThat(value.name()).isEqualTo("field_name");
-        assertThat(value.text()).isEqualTo("record-value");
+        Data data = newKeySelector.extractKey(record("record-key", "record-value"));
+        assertThat(data.name()).isEqualTo("field_name");
+        assertThat(data.text()).isEqualTo("record-value");
     }
 
     @ParameterizedTest

@@ -69,30 +69,50 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS =
             "lightstreamer.server.proxy_adapter.address";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS_DOC =
+            "The Lightstreamer server's Proxy Adapter address to connect to in the format host:port";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC =
+            "The (optional) value in milliseconds for the time to wait while trying to establish a "
+                    + "connection to the Lighstreamer server's Proxy Adapter before terminating the task."
+                    + "\nSpecify 0 for infinite timeout";
 
-    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT =
-            "lightstreamer.server.proxy_adapter.socket.connection.setup.retries.count";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES =
+            "lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES_DOC =
+            "The (optional) max number of retries to establish a connection";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS_DOC =
+            "The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure."
+                    + "\nOnly applicable if 'lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries' > 0.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME =
             "lightstreamer.server.proxy_adapter.username";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME_DOC =
+            "The username to use for authenticating to the Lightstreamer'server Proxy Adapter.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD =
             "lightstreamer.server.proxy_adapter.password";
+    public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD_DOC =
+            "The password to use for authenticating to the Lightstreamer'server Proxy Adapter.";
 
     public static final String ITEM_TEMPLATES = "item.templates";
+    public static final String ITEM_TEMPLATES_DOC = "";
 
     public static final String TOPIC_MAPPINGS = "topic.mappings";
+    public static final String TOPIC_MAPPINGS_DOC = "topic.mappings";
 
     public static final String FIELD_MAPPINGS = "field.mappings";
+    public static final String FIELD_MAPPINGS_DOC = "";
 
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
             "record.extraction.error.strategy";
+    public static final String RECORD_EXTRACTION_ERROR_STRATEGY_DOC =
+            "The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.";
 
     public static ConfigDef makeConfig() {
         return new ConfigDef()
@@ -103,7 +123,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
                                 .validator(new ProxyAdapterAddressValidator())
                                 .importance(Importance.HIGH)
-                                .documentation("The Lightstreamer server's proxy adapter address")
+                                .documentation(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -111,15 +131,17 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .type(Type.INT)
                                 .defaultValue(5000)
                                 .importance(Importance.LOW)
-                                .documentation("")
+                                .documentation(
+                                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
-                                .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRIES_COUNT)
+                                .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES)
                                 .type(Type.INT)
-                                .defaultValue(0)
-                                .importance(Importance.LOW)
-                                .documentation("")
+                                .defaultValue(1)
+                                .importance(Importance.MEDIUM)
+                                .documentation(
+                                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -127,7 +149,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .type(Type.INT)
                                 .defaultValue(0)
                                 .importance(Importance.LOW)
-                                .documentation("")
+                                .documentation(
+                                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -135,7 +158,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .type(Type.STRING)
                                 .defaultValue(null)
                                 .importance(Importance.MEDIUM)
-                                .documentation("")
+                                .documentation(LIGHTSTREAMER_PROXY_ADAPTER_USERNAME_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -143,7 +166,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .type(Type.PASSWORD)
                                 .defaultValue(null)
                                 .importance(Importance.MEDIUM)
-                                .documentation("")
+                                .documentation(LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -152,6 +175,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .defaultValue(null)
                                 .validator(new ItemTemplateValidator())
                                 .importance(Importance.MEDIUM)
+                                .documentation(ITEM_TEMPLATES_DOC)
                                 .documentation("Item template expressions")
                                 .build())
                 .define(
@@ -161,7 +185,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
                                 .validator(new ListValidator())
                                 .importance(Importance.HIGH)
-                                .documentation("")
+                                .documentation(TOPIC_MAPPINGS_DOC)
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -170,6 +194,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
                                 .validator(new FieldMappingsValidator())
                                 .importance(Importance.HIGH)
+                                .documentation(FIELD_MAPPINGS_DOC)
                                 .documentation("Name of the Lightsteramer fields to be mapped")
                                 .build())
                 .define(
@@ -180,7 +205,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE.toString())
                                 .validator(RecordErrorHandlingStrategies.VALIDATOR)
                                 .recommender(RecordErrorHandlingStrategies.RECOMMENDER)
-                                .importance(Importance.LOW)
+                                .importance(Importance.MEDIUM)
+                                .documentation(RECORD_EXTRACTION_ERROR_STRATEGY_DOC)
                                 .documentation(
                                         "The error handling strategy to be used if an error occurs while extracting data from incoming deserialized records")
                                 .build());
@@ -204,6 +230,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                         .hostname(address.key())
                         .port(Integer.valueOf(address.value()))
                         .timeout(getSetupConnectionTimeoutMs())
+                        .connectionRetriesCount(getSetupConnectionMaxRetries())
+                        .connectionRetriesDelayMs(getSetupConnectionRetryDelayMs())
                         .build();
     }
 
@@ -211,13 +239,16 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return proxyAdapterClientOptions;
     }
 
-    private Pair getProxyAdapterAddress() {
-        return Split.pair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
-                .orElseThrow(() -> new RuntimeException());
-    }
-
     public int getSetupConnectionTimeoutMs() {
         return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS);
+    }
+
+    public int getSetupConnectionMaxRetries() {
+        return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES);
+    }
+
+    public int getSetupConnectionRetryDelayMs() {
+        return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS);
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
@@ -234,6 +265,11 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public RecordErrorHandlingStrategy getErrRecordErrorHandlingStrategy() {
         return RecordErrorHandlingStrategy.valueOf(getString(RECORD_EXTRACTION_ERROR_STRATEGY));
+    }
+
+    private Pair getProxyAdapterAddress() {
+        return Split.pair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
+                .orElseThrow(() -> new RuntimeException());
     }
 
     private FieldConfigs initFieldConfigs() {

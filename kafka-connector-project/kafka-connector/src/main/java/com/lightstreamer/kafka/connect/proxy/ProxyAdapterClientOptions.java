@@ -81,7 +81,7 @@ public final class ProxyAdapterClientOptions {
         this.hostname = builder.hostname;
         this.port = builder.port;
         this.timeout = builder.timeout;
-        this.connectionRetriesCount = Math.max(builder.connectionRetriesCount, 0);
+        this.connectionRetriesCount = Math.max(builder.connectionRetriesCount, 1);
         this.connectionRetryDelayMs = Math.max(builder.connectionRetryDelayMs, 0);
         this.username = builder.username;
         this.password = builder.password;

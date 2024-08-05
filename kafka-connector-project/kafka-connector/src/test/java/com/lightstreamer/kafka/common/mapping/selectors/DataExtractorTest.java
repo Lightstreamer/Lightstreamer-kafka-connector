@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ValuesExtractorTest {
+public class DataExtractorTest {
 
     static final String TEST_SCHEMA = "schema";
 
@@ -69,7 +69,7 @@ public class ValuesExtractorTest {
                 arguments(
                         Map.of("name", Expressions.expression("VALUE")),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
-                        Set.of(Data.of("name", "aValue"))),
+                        Set.of(Data.from("name", "aValue"))),
                 arguments(
                         Map.of(
                                 "value",
@@ -77,7 +77,7 @@ public class ValuesExtractorTest {
                                 "key",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value", "key")),
-                        Set.of(Data.of("key", "aKey"), Data.of("value", "aValue"))),
+                        Set.of(Data.from("key", "aKey"), Data.from("value", "aValue"))),
                 arguments(
                         Map.of(
                                 "value1",
@@ -85,7 +85,7 @@ public class ValuesExtractorTest {
                                 "key1",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
-                        Set.of(Data.of("key1", "aKey"), Data.of("value1", "aValue"))),
+                        Set.of(Data.from("key1", "aKey"), Data.from("value1", "aValue"))),
                 arguments(
                         Map.of(
                                 "timestamp",
@@ -96,9 +96,9 @@ public class ValuesExtractorTest {
                                 Expressions.expression("TOPIC")),
                         Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
                         Set.of(
-                                Data.of("partition", "150"),
-                                Data.of("topic", "record-topic"),
-                                Data.of("timestamp", "-1"))));
+                                Data.from("partition", "150"),
+                                Data.from("topic", "record-topic"),
+                                Data.from("timestamp", "-1"))));
     }
 
     @ParameterizedTest
@@ -114,10 +114,10 @@ public class ValuesExtractorTest {
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
-        DataContainer values = extractor.extractValues(kafkaRecord);
+        DataContainer values = extractor.extractData(kafkaRecord);
 
         assertThat(values.extractor()).isSameInstanceAs(extractor);
-        Set<Data> values2 = values.values();
+        Set<Data> values2 = values.data();
         assertThat(values2).isEqualTo(expectedValues);
     }
 }
