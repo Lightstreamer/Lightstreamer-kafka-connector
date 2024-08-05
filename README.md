@@ -36,7 +36,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 - [Usage in Kafka Connect](#usage-in-kafka-connect)
   - [Lightstreamer Setup](#lightstreamer-setup)
   - [Installation](#installation-1)
-  - [Configuration](#configuration)
+  - [Configuration](#configuration-1)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -1337,7 +1337,7 @@ which generates the zip file under the `kafka-connector-project/kafka-connector/
 To use the connector, specify the following settings:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
-###### lightstreamer.server.proxy_adapter.address
+##### lightstreamer.server.proxy_adapter.address
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format `host:port`.
 
@@ -1349,7 +1349,7 @@ The Lightstreamer server's Proxy Adapter address to connect to in the format `ho
   lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
   ````
 
-###### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
+##### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
 
 The (optional) value in milliseconds for the time to wait while trying to establish a connection to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
@@ -1361,7 +1361,7 @@ The (optional) value in milliseconds for the time to wait while trying to establ
   lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
   ````
 
-###### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
+##### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
 
 The (optional) max number of retries to establish a connection.
 
@@ -1373,7 +1373,7 @@ The (optional) max number of retries to establish a connection.
   lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
   ````
 
-###### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
+##### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure. Only applicable if 
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
@@ -1386,7 +1386,7 @@ The (optional) amount of time in milliseconds to wait before retrying to establi
   lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
   ````
 
-###### lightstreamer.server.proxy_adapter.username
+##### lightstreamer.server.proxy_adapter.username
 
 The username to use for authenticating to the Lightstreamer'server Proxy Adapter.
 
@@ -1398,7 +1398,7 @@ The username to use for authenticating to the Lightstreamer'server Proxy Adapter
   lightstreamer.server.proxy_adapter.username=lightstreamer_user
   ````
 
-###### lightstreamer.server.proxy_adapter.password
+##### lightstreamer.server.proxy_adapter.password
 
 The password to use for authenticating to the Lightstreamer'server Proxy Adapter.
 
@@ -1410,7 +1410,7 @@ The password to use for authenticating to the Lightstreamer'server Proxy Adapter
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ````
 
-###### record.extraction.error.strategy
+##### record.extraction.error.strategy
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.
 
@@ -1423,7 +1423,7 @@ The (optional) error handling strategy to be used if an error occurs while extra
   record.extraction.error.strategy=FORWARD_TO_DLQ
   ````
 
-###### fields.mappings
+##### fields.mappings
 
 ## Docs
 
