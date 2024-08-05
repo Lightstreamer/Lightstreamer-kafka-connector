@@ -19,12 +19,12 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
-import com.lightstreamer.kafka.common.mapping.selectors.Value;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -157,7 +157,7 @@ public class ConnectSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(KafkaRecord<Object, ?> record) {
+        public Data extractKey(KafkaRecord<Object, ?> record) {
             return super.eval(asNode((KafkaSinkRecord) record));
         }
 
@@ -185,7 +185,7 @@ public class ConnectSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(KafkaRecord<?, Object> record) {
+        public Data extractValue(KafkaRecord<?, Object> record) {
             return eval(asNode((KafkaSinkRecord) record));
         }
 

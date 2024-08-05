@@ -21,9 +21,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
@@ -42,8 +42,7 @@ public class FieldConfigsTest {
     void shoudCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        ValuesExtractor<String, String> extractor =
-                configs.extractor(TestSelectorSuppliers.string());
+        DataExtractor<String, String> extractor = configs.extractor(TestSelectorSuppliers.string());
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
@@ -76,8 +75,7 @@ public class FieldConfigsTest {
             throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        ValuesExtractor<Object, Object> extractor =
-                configs.extractor(TestSelectorSuppliers.object());
+        DataExtractor<Object, Object> extractor = configs.extractor(TestSelectorSuppliers.object());
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());

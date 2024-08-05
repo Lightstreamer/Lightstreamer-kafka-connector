@@ -23,9 +23,9 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -35,11 +35,11 @@ import java.util.Map;
 
 public class RecordMapperStringTest {
 
-    private static ValuesExtractor<String, String> extractor(
+    private static DataExtractor<String, String> extractor(
             String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
 
-        return ValuesExtractor.<String, String>builder()
+        return DataExtractor.<String, String>builder()
                 .withSuppliers(TestSelectorSuppliers.string())
                 .withSchemaName(schemaName)
                 .withExpressions(expressions)
@@ -139,16 +139,16 @@ public class RecordMapperStringTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        ValuesExtractor<String, String> unboundExtractor =
+        DataExtractor<String, String> unboundExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE")));
         assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
-        ValuesExtractor<String, String> valueExtractor =
+        DataExtractor<String, String> valueExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE")));
-        ValuesExtractor<String, String> keyExtractor =
+        DataExtractor<String, String> keyExtractor =
                 extractor("test", Map.of("name", Expressions.expression("KEY")));
 
         RecordMapper<String, String> mapper =
@@ -167,9 +167,9 @@ public class RecordMapperStringTest {
 
     @Test
     public void shouldFilterNulls() throws ExtractionException {
-        ValuesExtractor<String, String> valueExtractor =
+        DataExtractor<String, String> valueExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE")));
-        ValuesExtractor<String, String> keyExtractor =
+        DataExtractor<String, String> keyExtractor =
                 extractor("test", Map.of("name", Expressions.expression("KEY")));
 
         RecordMapper<String, String> mapper =

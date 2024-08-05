@@ -24,9 +24,9 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
@@ -38,11 +38,11 @@ import java.util.Map;
 
 public class RecordMapperJsonTest {
 
-    private static ValuesExtractor<String, JsonNode> extractor(
+    private static DataExtractor<String, JsonNode> extractor(
             String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
 
-        return ValuesExtractor.<String, JsonNode>builder()
+        return DataExtractor.<String, JsonNode>builder()
                 .withSuppliers(TestSelectorSuppliers.jsonValue(ConnectorConfigProvider.minimal()))
                 .withSchemaName(schemaName)
                 .withExpressions(expressions)
@@ -145,22 +145,22 @@ public class RecordMapperJsonTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        ValuesExtractor<String, JsonNode> unboundSelectors =
+        DataExtractor<String, JsonNode> unboundSelectors =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.any")));
         assertThat(mappedRecord.filter(unboundSelectors)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
-        ValuesExtractor<String, JsonNode> nameExtractor =
+        DataExtractor<String, JsonNode> nameExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.name")));
 
-        ValuesExtractor<String, JsonNode> childExtractor1 =
+        DataExtractor<String, JsonNode> childExtractor1 =
                 extractor(
                         "test",
                         Map.of("firstChildName", Expressions.expression("VALUE.children[0].name")));
 
-        ValuesExtractor<String, JsonNode> childExtractor2 =
+        DataExtractor<String, JsonNode> childExtractor2 =
                 extractor(
                         "test",
                         Map.of(
@@ -194,7 +194,7 @@ public class RecordMapperJsonTest {
 
     @Test
     public void shouldFilterWithNullValues() throws ExtractionException {
-        ValuesExtractor<String, JsonNode> extractor =
+        DataExtractor<String, JsonNode> extractor =
                 extractor(
                         "test",
                         Map.of(

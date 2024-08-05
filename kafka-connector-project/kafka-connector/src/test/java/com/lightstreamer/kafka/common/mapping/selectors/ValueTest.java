@@ -31,7 +31,7 @@ public class ValueTest {
 
     @Test
     public void shouldCreateValue() {
-        Value value = Value.of("name", "value");
+        Data value = Data.of("name", "value");
 
         assertThat(value.text()).isEqualTo("value");
         assertThat(value.name()).isEqualTo("name");
@@ -39,16 +39,15 @@ public class ValueTest {
 
     @Test
     public void shouldCreateValuesContainer() throws ExtractionException {
-        ValuesExtractor<String, String> extractor =
-                ValuesExtractor.<String, String>builder()
+        DataExtractor<String, String> extractor =
+                DataExtractor.<String, String>builder()
                         .withSuppliers(TestSelectorSuppliers.string())
                         .withSchemaName("schema")
                         .withExpressions(Map.of("name", Expressions.expression("VALUE")))
                         .build();
-        ValuesContainer container =
-                ValuesContainer.of(extractor, Set.of(Value.of("name", "aValue")));
+        DataContainer container = DataContainer.of(extractor, Set.of(Data.of("name", "aValue")));
 
         assertThat(container.extractor()).isSameInstanceAs(extractor);
-        assertThat(container.values()).containsExactly(Value.of("name", "aValue"));
+        assertThat(container.values()).containsExactly(Data.of("name", "aValue"));
     }
 }

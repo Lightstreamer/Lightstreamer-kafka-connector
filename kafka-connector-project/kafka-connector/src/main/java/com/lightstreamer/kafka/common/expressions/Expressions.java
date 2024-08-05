@@ -29,19 +29,28 @@ public class Expressions {
 
     public interface Expression {}
 
+    public interface ExtractionExpression extends Expression {
+
+        Constant constant();
+
+        String[] tokens();
+
+        String expression();
+    }
+
     public record TemplateExpression(String prefix, Map<String, ExtractionExpression> params)
             implements Expression {}
 
     public record SubscriptionExpression(String prefix, Map<String, String> params)
             implements Expression {}
 
-    public static class ExtractionExpression implements Expression {
+    private static class ExtractionExpressionImpl implements ExtractionExpression {
 
         private final Constant root;
         private final String completeExpression;
         private final String[] tokens;
 
-        private ExtractionExpression(Constant root, String[] tokens, String expression) {
+        private ExtractionExpressionImpl(Constant root, String[] tokens, String expression) {
             this.root = root;
             this.completeExpression = expression;
             this.tokens = tokens;
@@ -52,10 +61,12 @@ public class Expressions {
             return expression();
         }
 
-        public Constant root() {
+        @Override
+        public Constant constant() {
             return root;
         }
 
+        @Override
         public String expression() {
             return completeExpression;
         }
@@ -73,7 +84,7 @@ public class Expressions {
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof ExtractionExpression other
+            return obj instanceof ExtractionExpressionImpl other
                     && Objects.equals(completeExpression, other.completeExpression);
         }
     }
@@ -178,7 +189,7 @@ public class Expressions {
         return new SubscriptionExpression(prefix, queryParams);
     }
 
-    ExtractionExpression newFieldExpression(String fieldExpression) {
+    ExtractionExpressionImpl newFieldExpression(String fieldExpression) {
         Matcher matcher = FIELD.matcher(nonNullString(fieldExpression));
         if (!matcher.matches()) {
             throw new ExpressionException("Invalid field expression");
@@ -186,7 +197,7 @@ public class Expressions {
         return newExpression(matcher.group(1));
     }
 
-    ExtractionExpression newExpression(String expression) throws ExpressionException {
+    ExtractionExpressionImpl newExpression(String expression) throws ExpressionException {
         String[] tokens = getTokens(nonNullString(expression));
         Constant root = tokens.length > 0 ? Constant.from(tokens[0]) : null;
         if (root == null) {
@@ -195,7 +206,7 @@ public class Expressions {
         if (tokens.length > 0 && tokens[tokens.length - 1].equals(".")) {
             throw ExpressionException.unexpectedTrailingDots(expression);
         }
-        return new ExtractionExpression(root, tokens, expression);
+        return new ExtractionExpressionImpl(root, tokens, expression);
     }
 
     static String nonNullString(String str) {

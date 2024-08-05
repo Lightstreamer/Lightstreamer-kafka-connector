@@ -17,28 +17,18 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import java.util.Set;
 
-import java.util.Map;
+public interface DataContainer {
 
-public interface ValuesExtractor<K, V> {
+    DataExtractor<?, ?> extractor();
 
-    ValuesContainer extractValues(KafkaRecord<K, V> record);
+    Set<Data> values();
 
-    Schema schema();
-
-    public static <K, V> Builder<K, V> builder() {
-        return new ValuesExtractorSupport.ValuesExtractorBuilder<>();
-    }
-
-    public interface Builder<K, V> {
-
-        Builder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers);
-
-        Builder<K, V> withExpressions(Map<String, ExtractionExpression> expressions);
-
-        Builder<K, V> withSchemaName(String schema);
-
-        ValuesExtractor<K, V> build() throws ExtractionException;
+    static DataContainer of(DataExtractor<?, ?> extractor, Set<Data> values) {
+        return new DefaultValuesContainer(extractor, values);
     }
 }
+
+record DefaultValuesContainer(DataExtractor<?, ?> extractor, Set<Data> values)
+        implements DataContainer {}

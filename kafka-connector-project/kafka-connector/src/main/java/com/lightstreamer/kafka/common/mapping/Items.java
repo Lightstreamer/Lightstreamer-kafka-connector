@@ -25,10 +25,10 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,7 +65,7 @@ public class Items {
 
         boolean matches(Item item);
 
-        Stream<ValuesExtractor<K, V>> extractors();
+        Stream<DataExtractor<K, V>> extractors();
 
         Set<String> topics();
 
@@ -183,9 +183,9 @@ public class Items {
 
         private final Schema schema;
         private final String topic;
-        private final ValuesExtractor<K, V> extractor;
+        private final DataExtractor<K, V> extractor;
 
-        ItemTemplate(String topic, ValuesExtractor<K, V> extractor) {
+        ItemTemplate(String topic, DataExtractor<K, V> extractor) {
             this.topic = Objects.requireNonNull(topic);
             this.extractor = Objects.requireNonNull(extractor);
             this.schema = extractor.schema();
@@ -204,7 +204,7 @@ public class Items {
             return Optional.empty();
         }
 
-        ValuesExtractor<K, V> selectors() {
+        DataExtractor<K, V> selectors() {
             return extractor;
         }
 
@@ -242,7 +242,7 @@ public class Items {
         }
 
         @Override
-        public Stream<ValuesExtractor<K, V>> extractors() {
+        public Stream<DataExtractor<K, V>> extractors() {
             return templates.stream().map(ItemTemplate::selectors).distinct();
         }
 
@@ -277,8 +277,8 @@ public class Items {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
             for (ItemReference reference : topicConfig.itemReferences()) {
-                ValuesExtractor.Builder<K, V> builder =
-                        ValuesExtractor.<K, V>builder().withSuppliers(sSuppliers);
+                DataExtractor.Builder<K, V> builder =
+                        DataExtractor.<K, V>builder().withSuppliers(sSuppliers);
 
                 if (reference.isTemplate()) {
                     TemplateExpression evaluated = reference.template();

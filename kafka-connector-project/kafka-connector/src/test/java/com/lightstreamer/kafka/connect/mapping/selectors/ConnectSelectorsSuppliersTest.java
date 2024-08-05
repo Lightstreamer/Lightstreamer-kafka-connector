@@ -113,7 +113,7 @@ public class ConnectSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         valueSelector(expression)
-                                .extract(sinkFromValue("topic", STRUCT.schema(), STRUCT))
+                                .extractValue(sinkFromValue("topic", STRUCT.schema(), STRUCT))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -147,7 +147,8 @@ public class ConnectSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extract(sinkFromValue("topic", STRUCT.schema(), STRUCT)));
+                                        .extractValue(
+                                                sinkFromValue("topic", STRUCT.schema(), STRUCT)));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -174,7 +175,7 @@ public class ConnectSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         keySelector(expression)
-                                .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT))
+                                .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT))
                                 // .extract(sinkFromKey("topic", null, STRUCT))
                                 .text());
         if (expected.equals("NULL")) {
@@ -209,7 +210,7 @@ public class ConnectSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extract(sinkFromKey("topic", STRUCT.schema(), STRUCT)));
+                                        .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT)));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -289,8 +290,8 @@ public class ConnectSelectorsSuppliersTest {
         } else {
             expected = value.toString();
         }
-        assertThat(valueSelector("VALUE").extract(record).text()).isEqualTo(expected);
-        assertThat(keySelector("KEY").extract(record).text()).isEqualTo(expected);
+        assertThat(valueSelector("VALUE").extractValue(record).text()).isEqualTo(expected);
+        assertThat(keySelector("KEY").extractKey(record).text()).isEqualTo(expected);
     }
 
     @Test
@@ -300,25 +301,26 @@ public class ConnectSelectorsSuppliersTest {
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
         KafkaRecord<Object, Object> record = KafkaRecord.from(sinkRecord);
 
-        assertThat(valueSelector("VALUE.int8").extract(record).text()).isEqualTo("8");
-        assertThat(valueSelector("VALUE.int16").extract(record).text()).isEqualTo("16");
-        assertThat(valueSelector("VALUE.int32").extract(record).text()).isEqualTo("32");
-        assertThat(valueSelector("VALUE.int64").extract(record).text()).isEqualTo("64");
-        assertThat(valueSelector("VALUE.boolean").extract(record).text()).isEqualTo("true");
-        assertThat(valueSelector("VALUE.string").extract(record).text()).isEqualTo("abcd");
-        assertThat(valueSelector("VALUE.bytes").extract(record).text())
+        assertThat(valueSelector("VALUE.int8").extractValue(record).text()).isEqualTo("8");
+        assertThat(valueSelector("VALUE.int16").extractValue(record).text()).isEqualTo("16");
+        assertThat(valueSelector("VALUE.int32").extractValue(record).text()).isEqualTo("32");
+        assertThat(valueSelector("VALUE.int64").extractValue(record).text()).isEqualTo("64");
+        assertThat(valueSelector("VALUE.boolean").extractValue(record).text()).isEqualTo("true");
+        assertThat(valueSelector("VALUE.string").extractValue(record).text()).isEqualTo("abcd");
+        assertThat(valueSelector("VALUE.bytes").extractValue(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
-        assertThat(valueSelector("VALUE.byteBuffer").extract(record).text())
+        assertThat(valueSelector("VALUE.byteBuffer").extractValue(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
 
-        assertThat(keySelector("KEY.int8").extract(record).text()).isEqualTo("8");
-        assertThat(keySelector("KEY.int16").extract(record).text()).isEqualTo("16");
-        assertThat(keySelector("KEY.int32").extract(record).text()).isEqualTo("32");
-        assertThat(keySelector("KEY.int64").extract(record).text()).isEqualTo("64");
-        assertThat(keySelector("KEY.boolean").extract(record).text()).isEqualTo("true");
-        assertThat(keySelector("KEY.string").extract(record).text()).isEqualTo("abcd");
-        assertThat(keySelector("KEY.bytes").extract(record).text()).isEqualTo("[97, 98, 99, 100]");
-        assertThat(keySelector("KEY.byteBuffer").extract(record).text())
+        assertThat(keySelector("KEY.int8").extractKey(record).text()).isEqualTo("8");
+        assertThat(keySelector("KEY.int16").extractKey(record).text()).isEqualTo("16");
+        assertThat(keySelector("KEY.int32").extractKey(record).text()).isEqualTo("32");
+        assertThat(keySelector("KEY.int64").extractKey(record).text()).isEqualTo("64");
+        assertThat(keySelector("KEY.boolean").extractKey(record).text()).isEqualTo("true");
+        assertThat(keySelector("KEY.string").extractKey(record).text()).isEqualTo("abcd");
+        assertThat(keySelector("KEY.bytes").extractKey(record).text())
+                .isEqualTo("[97, 98, 99, 100]");
+        assertThat(keySelector("KEY.byteBuffer").extractKey(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
     }
 
@@ -330,18 +332,19 @@ public class ConnectSelectorsSuppliersTest {
         KafkaRecord<Object, Object> record =
                 KafkaRecord.from(new SinkRecord("topic", 1, schema, struct, schema, struct, 0));
 
-        assertThat(valueSelector("VALUE.nested.int8").extract(record).text()).isEqualTo("8");
-        assertThat(valueSelector("VALUE.nested['int8']").extract(record).text()).isEqualTo("8");
-        assertThat(valueSelector("VALUE.nested.byteBuffer").extract(record).text())
+        assertThat(valueSelector("VALUE.nested.int8").extractValue(record).text()).isEqualTo("8");
+        assertThat(valueSelector("VALUE.nested['int8']").extractValue(record).text())
+                .isEqualTo("8");
+        assertThat(valueSelector("VALUE.nested.byteBuffer").extractValue(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
-        assertThat(valueSelector("VALUE.nested['byteBuffer']").extract(record).text())
+        assertThat(valueSelector("VALUE.nested['byteBuffer']").extractValue(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
 
-        assertThat(keySelector("KEY.nested.int8").extract(record).text()).isEqualTo("8");
-        assertThat(keySelector("KEY.nested['int8']").extract(record).text()).isEqualTo("8");
-        assertThat(keySelector("KEY.nested.byteBuffer").extract(record).text())
+        assertThat(keySelector("KEY.nested.int8").extractKey(record).text()).isEqualTo("8");
+        assertThat(keySelector("KEY.nested['int8']").extractKey(record).text()).isEqualTo("8");
+        assertThat(keySelector("KEY.nested.byteBuffer").extractKey(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
-        assertThat(keySelector("KEY.nested['byteBuffer']").extract(record).text())
+        assertThat(keySelector("KEY.nested['byteBuffer']").extractKey(record).text())
                 .isEqualTo("[97, 98, 99, 100]");
     }
 
@@ -354,8 +357,9 @@ public class ConnectSelectorsSuppliersTest {
         KafkaRecord<Object, Object> record =
                 KafkaRecord.from(new SinkRecord("topic", 1, schema, struct, schema, struct, 0));
 
-        assertThat(valueSelector("VALUE.map['key']").extract(record).text()).isEqualTo("value");
-        assertThat(keySelector("KEY.map['key']").extract(record).text()).isEqualTo("value");
+        assertThat(valueSelector("VALUE.map['key']").extractValue(record).text())
+                .isEqualTo("value");
+        assertThat(keySelector("KEY.map['key']").extractKey(record).text()).isEqualTo("value");
     }
 
     @Test
@@ -368,13 +372,16 @@ public class ConnectSelectorsSuppliersTest {
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
         KafkaRecord<Object, Object> kafkaRecord = KafkaRecord.from(sinkRecord);
 
-        assertThat(valueSelector("VALUE.complexMap['key'].int8").extract(kafkaRecord).text())
+        assertThat(valueSelector("VALUE.complexMap['key'].int8").extractValue(kafkaRecord).text())
                 .isEqualTo("8");
-        assertThat(valueSelector("VALUE.complexMap['key']['int8']").extract(kafkaRecord).text())
+        assertThat(
+                        valueSelector("VALUE.complexMap['key']['int8']")
+                                .extractValue(kafkaRecord)
+                                .text())
                 .isEqualTo("8");
-        assertThat(keySelector("KEY.complexMap['key'].int8").extract(kafkaRecord).text())
+        assertThat(keySelector("KEY.complexMap['key'].int8").extractKey(kafkaRecord).text())
                 .isEqualTo("8");
-        assertThat(keySelector("KEY.complexMap['key']['int8']").extract(kafkaRecord).text())
+        assertThat(keySelector("KEY.complexMap['key']['int8']").extractKey(kafkaRecord).text())
                 .isEqualTo("8");
     }
 
@@ -391,9 +398,9 @@ public class ConnectSelectorsSuppliersTest {
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
         KafkaRecord<Object, Object> kafkaRecord = KafkaRecord.from(sinkRecord);
 
-        assertThat(valueSelector("VALUE.mapOfMap['key']['key']").extract(kafkaRecord).text())
+        assertThat(valueSelector("VALUE.mapOfMap['key']['key']").extractValue(kafkaRecord).text())
                 .isEqualTo("value");
-        assertThat(keySelector("KEY.mapOfMap['key']['key']").extract(kafkaRecord).text())
+        assertThat(keySelector("KEY.mapOfMap['key']['key']").extractKey(kafkaRecord).text())
                 .isEqualTo("value");
     }
 

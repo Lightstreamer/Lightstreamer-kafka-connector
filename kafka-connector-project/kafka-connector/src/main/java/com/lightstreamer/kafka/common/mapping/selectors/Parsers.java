@@ -180,7 +180,7 @@ public interface Parsers {
         }
 
         void matchRoot() throws ExtractionException {
-            if (!expectedRoot.equals(expression.root())) {
+            if (!expectedRoot.equals(expression.constant())) {
                 throw ExtractionException.expectedRootToken(name, expectedRoot.toString());
             }
             next();

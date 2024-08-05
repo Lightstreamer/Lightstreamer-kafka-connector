@@ -18,11 +18,11 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.DataContainer;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.Value;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesContainer;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public interface RecordMapper<K, V> {
 
         int mappedValuesSize();
 
-        Map<String, String> filter(ValuesExtractor<?, ?> extractor);
+        Map<String, String> filter(DataExtractor<?, ?> extractor);
     }
 
     int selectorsSize();
@@ -56,16 +56,16 @@ public interface RecordMapper<K, V> {
 
     static class Builder<K, V> {
 
-        final Set<ValuesExtractor<K, V>> allExtractors = new HashSet<>();
+        final Set<DataExtractor<K, V>> allExtractors = new HashSet<>();
 
         private Builder() {}
 
-        public Builder<K, V> withExtractor(Stream<ValuesExtractor<K, V>> extractor) {
+        public Builder<K, V> withExtractor(Stream<DataExtractor<K, V>> extractor) {
             allExtractors.addAll(extractor.toList());
             return this;
         }
 
-        public final Builder<K, V> withExtractor(ValuesExtractor<K, V> extractor) {
+        public final Builder<K, V> withExtractor(DataExtractor<K, V> extractor) {
             allExtractors.add(extractor);
             return this;
         }
@@ -80,7 +80,7 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-    private final Set<ValuesExtractor<K, V>> extractors;
+    private final Set<DataExtractor<K, V>> extractors;
 
     DefaultRecordMapper(Builder<K, V> builder) {
         this.extractors = Collections.unmodifiableSet(builder.allExtractors);
@@ -105,9 +105,9 @@ class DefaultMappedRecord implements MappedRecord {
 
     private final String topic;
 
-    private final Set<ValuesContainer> valuesContainers;
+    private final Set<DataContainer> valuesContainers;
 
-    DefaultMappedRecord(String topic, Set<ValuesContainer> valuesContainers) {
+    DefaultMappedRecord(String topic, Set<DataContainer> valuesContainers) {
         this.topic = topic;
         this.valuesContainers = valuesContainers;
     }
@@ -123,7 +123,7 @@ class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Map<String, String> filter(ValuesExtractor<?, ?> extractor) {
+    public Map<String, String> filter(DataExtractor<?, ?> extractor) {
         Map<String, String> eventsMap = new HashMap<>();
         valuesContainers.stream()
                 .filter(container -> container.extractor().equals(extractor))
@@ -137,7 +137,7 @@ class DefaultMappedRecord implements MappedRecord {
         String values =
                 valuesContainers.stream()
                         .flatMap(v -> v.values().stream())
-                        .map(Value::toString)
+                        .map(Data::toString)
                         .collect(Collectors.joining(","));
         return String.format("MappedRecord [topic=[%s],values=[%s]]", topic, values);
     }

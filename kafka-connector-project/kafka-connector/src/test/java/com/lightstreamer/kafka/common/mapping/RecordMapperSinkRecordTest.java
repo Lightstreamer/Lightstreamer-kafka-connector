@@ -23,9 +23,9 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
@@ -38,11 +38,11 @@ import java.util.Map;
 
 public class RecordMapperSinkRecordTest {
 
-    private static ValuesExtractor<Object, Object> extractor(
+    private static DataExtractor<Object, Object> extractor(
             String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
 
-        return ValuesExtractor.builder()
+        return DataExtractor.builder()
                 .withSuppliers(TestSelectorSuppliers.object())
                 .withSchemaName(schemaName)
                 .withExpressions(expressions)
@@ -145,22 +145,22 @@ public class RecordMapperSinkRecordTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        ValuesExtractor<Object, Object> unboundExtractor =
+        DataExtractor<Object, Object> unboundExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.any")));
         assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
-        ValuesExtractor<Object, Object> nameExtractor =
+        DataExtractor<Object, Object> nameExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.name")));
 
-        ValuesExtractor<Object, Object> childExtractor1 =
+        DataExtractor<Object, Object> childExtractor1 =
                 extractor(
                         "test",
                         Map.of("firstChildName", Expressions.expression("VALUE.children[0].name")));
 
-        ValuesExtractor<Object, Object> childExtractor2 =
+        DataExtractor<Object, Object> childExtractor2 =
                 extractor(
                         "test",
                         Map.of(
@@ -199,7 +199,7 @@ public class RecordMapperSinkRecordTest {
 
     @Test
     public void shouldFilterWithNullValues() throws ExtractionException {
-        ValuesExtractor<Object, Object> extractor =
+        DataExtractor<Object, Object> extractor =
                 extractor(
                         "test",
                         Map.of(

@@ -20,10 +20,10 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.DataContainer;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.Value;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesContainer;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -35,14 +35,14 @@ import java.util.Set;
 
 public class MappedRecordTest {
 
-    ValuesExtractor<String, String> extractor1;
-    ValuesExtractor<String, String> extractor2;
-    Set<ValuesContainer> valuesContainers;
+    DataExtractor<String, String> extractor1;
+    DataExtractor<String, String> extractor2;
+    Set<DataContainer> valuesContainers;
 
     @BeforeEach
     void creaValuesContainer() throws ExtractionException {
         extractor1 =
-                ValuesExtractor.<String, String>builder()
+                DataExtractor.<String, String>builder()
                         .withSuppliers(TestSelectorSuppliers.string())
                         .withSchemaName("schema1")
                         .withExpressions(
@@ -53,15 +53,15 @@ public class MappedRecordTest {
                                         Expressions.expression("TOPIC")))
                         .build();
 
-        ValuesContainer container1 =
-                ValuesContainer.of(
+        DataContainer container1 =
+                DataContainer.of(
                         extractor1,
                         Set.of(
-                                Value.of("partition", "partitionValue"),
-                                Value.of("topic", "topicValue")));
+                                Data.of("partition", "partitionValue"),
+                                Data.of("topic", "topicValue")));
 
         extractor2 =
-                ValuesExtractor.<String, String>builder()
+                DataExtractor.<String, String>builder()
                         .withSchemaName("schema1")
                         .withSuppliers(TestSelectorSuppliers.string())
                         .withExpressions(
@@ -72,12 +72,12 @@ public class MappedRecordTest {
                                         Expressions.expression("TOPIC")))
                         .build();
 
-        ValuesContainer container2 =
-                ValuesContainer.of(
+        DataContainer container2 =
+                DataContainer.of(
                         extractor2,
                         Set.of(
-                                Value.of("partition2", "partitionValue2"),
-                                Value.of("topic2", "topicValue2")));
+                                Data.of("partition2", "partitionValue2"),
+                                Data.of("topic2", "topicValue2")));
         valuesContainers = Set.of(container1, container2);
     }
 
@@ -99,8 +99,8 @@ public class MappedRecordTest {
 
     @Test
     void shouldFilterWithNullValue() {
-        Set<ValuesContainer> vc =
-                Set.of(ValuesContainer.of(extractor1, Set.of(Value.of("partition", null))));
+        Set<DataContainer> vc =
+                Set.of(DataContainer.of(extractor1, Set.of(Data.of("partition", null))));
         DefaultMappedRecord mp = new DefaultMappedRecord("topic", vc);
         Map<String, String> map1 = mp.filter(extractor1);
         assertThat(map1).containsExactly("partition", null);
@@ -114,8 +114,8 @@ public class MappedRecordTest {
 
     @Test
     void shouldHaveExpectedMappedValueSizeWithNullValue() {
-        Set<ValuesContainer> vc =
-                Set.of(ValuesContainer.of(extractor1, Set.of(Value.of("partition", null))));
+        Set<DataContainer> vc =
+                Set.of(DataContainer.of(extractor1, Set.of(Data.of("partition", null))));
         DefaultMappedRecord mp = new DefaultMappedRecord("topic", vc);
         assertThat(mp.mappedValuesSize()).isEqualTo(1);
     }

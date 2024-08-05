@@ -32,8 +32,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -84,7 +84,7 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     }
 
     @Override
-    public ValuesExtractor<String, String> fieldsExtractor() {
+    public DataExtractor<String, String> fieldsExtractor() {
         throw new UnsupportedOperationException("Unimplemented method 'fieldMappings'");
     }
 

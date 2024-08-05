@@ -27,6 +27,7 @@ import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -35,10 +36,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
-public class GeneralSelectorTest {
+public class ConstantSelectorTest {
 
-    static GeneralSelector selector(ExtractionExpression expression) throws ExtractionException {
-        return new GeneralSelectorSupplier().newSelector("field_name", expression);
+    static ConstantSelector selector(ExtractionExpression expression) throws ExtractionException {
+        return new ConstantSelectorSupplier().newSelector("field_name", expression);
     }
 
     @ParameterizedTest
@@ -70,7 +71,7 @@ public class GeneralSelectorTest {
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
         ExtractionExpression ee = Expressions.expression(expression);
-        Value value = selector(ee).extract(record("record-key", "record-value"));
+        Data value = selector(ee).extract(record("record-key", "record-value"));
         assertThat(value.name()).isEqualTo("field_name");
         assertThat(value.text()).isEqualTo(expectedValue);
     }
@@ -86,22 +87,76 @@ public class GeneralSelectorTest {
     @ParameterizedTest
     @MethodSource("args")
     public void shouldDumpExpectedConstantString(String expectedString, Constant... constant) {
-        assertThat(new GeneralSelectorSupplier(constant).expectedConstantStr())
+        assertThat(new ConstantSelectorSupplier(constant).expectedConstantStr())
                 .isEqualTo(expectedString);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"PARTITION", "OFFSET", "TIMESTAMP"})
+    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
     public void shouldNotCreateDueToNotAllowedConstant(String expressionStr) {
         ExtractionExpression expression = Expressions.expression(expressionStr);
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            new GeneralSelectorSupplier(Constant.KEY, Constant.VALUE)
+                            new ConstantSelectorSupplier(Constant.KEY, Constant.VALUE)
                                     .newSelector("field_name", expression);
                         });
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [KEY|VALUE] while evaluating [field_name]");
+    }
+
+    @Test
+    public void shouldCreateKeySelectorAndExtractData() throws ExtractionException {
+        ExtractionExpression expression = Expressions.expression("KEY");
+        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
+
+        KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
+        Data value = newKeySelector.extractKey(record("record-key", "record-value"));
+        assertThat(value.name()).isEqualTo("field_name");
+        assertThat(value.text()).isEqualTo("record-key");
+    }
+
+    @Test
+    public void shouldCreateValueSelectorAndExtractData() throws ExtractionException {
+        ExtractionExpression expression = Expressions.expression("VALUE");
+        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
+
+        KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
+        Data value = newKeySelector.extractKey(record("record-key", "record-value"));
+        assertThat(value.name()).isEqualTo("field_name");
+        assertThat(value.text()).isEqualTo("record-value");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
+    public void shouldNotCreateKeySelector(String expressionStr) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
+
+        ExtractionException ee1 =
+                assertThrows(
+                        ExtractionException.class,
+                        () -> {
+                            cs.newKeySelector("field_name", expression);
+                        });
+        assertThat(ee1.getMessage())
+                .isEqualTo("Expected the root token [KEY] while evaluating [field_name]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
+    public void shouldNotCreatValueSelector(String expressionStr) {
+        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
+
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () -> {
+                            cs.newValueSelector("field_name", expression);
+                        });
+        assertThat(ee.getMessage())
+                .isEqualTo("Expected the root token [VALUE] while evaluating [field_name]");
     }
 }

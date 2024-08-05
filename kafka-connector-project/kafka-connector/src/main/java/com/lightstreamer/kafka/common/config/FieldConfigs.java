@@ -20,9 +20,9 @@ package com.lightstreamer.kafka.common.config;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -64,10 +64,10 @@ public class FieldConfigs {
         return expressions.get(fieldName);
     }
 
-    public <K, V> ValuesExtractor<K, V> extractor(SelectorSuppliers<K, V> selectorSuppliers)
+    public <K, V> DataExtractor<K, V> extractor(SelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
 
-        return ValuesExtractor.<K, V>builder()
+        return DataExtractor.<K, V>builder()
                 .withSuppliers(selectorSuppliers)
                 .withSchemaName(SCHEMA_NAME)
                 .withExpressions(expressions)

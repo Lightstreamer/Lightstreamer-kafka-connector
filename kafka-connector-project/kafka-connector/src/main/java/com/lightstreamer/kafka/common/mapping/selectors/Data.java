@@ -17,7 +17,15 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-public interface GeneralSelector extends Selector {
+public interface Data {
 
-    Value extract(KafkaRecord<?, ?> record) throws ValueException;
+    String name();
+
+    String text();
+
+    static Data of(String name, String text) {
+        return new SimpleValue(name, text);
+    }
 }
+
+record SimpleValue(String name, String text) implements Data {}

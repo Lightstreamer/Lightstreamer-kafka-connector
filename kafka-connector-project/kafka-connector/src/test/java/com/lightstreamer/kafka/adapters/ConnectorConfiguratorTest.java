@@ -32,8 +32,8 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDese
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializer;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -94,7 +94,7 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        ValuesExtractor<?, ?> fieldExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldExtractor = loopConfig.fieldsExtractor();
         Schema schema = fieldExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
@@ -123,7 +123,7 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
 
-        ValuesExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
@@ -155,7 +155,7 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
 
-        ValuesExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");

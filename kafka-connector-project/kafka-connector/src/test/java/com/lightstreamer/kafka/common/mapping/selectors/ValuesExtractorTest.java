@@ -53,10 +53,10 @@ public class ValuesExtractorTest {
                         "value.avsc"));
     }
 
-    static <K, V> ValuesExtractor<K, V> extractor(
+    static <K, V> DataExtractor<K, V> extractor(
             Map<String, ExtractionExpression> expressions, SelectorSuppliers<K, V> suppliers)
             throws ExtractionException {
-        return ValuesExtractor.<K, V>builder()
+        return DataExtractor.<K, V>builder()
                 .withSuppliers(suppliers)
                 .withSchemaName(TEST_SCHEMA)
                 .withExpressions(expressions)
@@ -69,7 +69,7 @@ public class ValuesExtractorTest {
                 arguments(
                         Map.of("name", Expressions.expression("VALUE")),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
-                        Set.of(Value.of("name", "aValue"))),
+                        Set.of(Data.of("name", "aValue"))),
                 arguments(
                         Map.of(
                                 "value",
@@ -77,7 +77,7 @@ public class ValuesExtractorTest {
                                 "key",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value", "key")),
-                        Set.of(Value.of("key", "aKey"), Value.of("value", "aValue"))),
+                        Set.of(Data.of("key", "aKey"), Data.of("value", "aValue"))),
                 arguments(
                         Map.of(
                                 "value1",
@@ -85,7 +85,7 @@ public class ValuesExtractorTest {
                                 "key1",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
-                        Set.of(Value.of("key1", "aKey"), Value.of("value1", "aValue"))),
+                        Set.of(Data.of("key1", "aKey"), Data.of("value1", "aValue"))),
                 arguments(
                         Map.of(
                                 "timestamp",
@@ -96,9 +96,9 @@ public class ValuesExtractorTest {
                                 Expressions.expression("TOPIC")),
                         Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
                         Set.of(
-                                Value.of("partition", "150"),
-                                Value.of("topic", "record-topic"),
-                                Value.of("timestamp", "-1"))));
+                                Data.of("partition", "150"),
+                                Data.of("topic", "record-topic"),
+                                Data.of("timestamp", "-1"))));
     }
 
     @ParameterizedTest
@@ -106,18 +106,18 @@ public class ValuesExtractorTest {
     public void shouldCreateAndExtractValues(
             Map<String, ExtractionExpression> expressions,
             Schema expectedSchema,
-            Set<Value> expectedValues)
+            Set<Data> expectedValues)
             throws ExtractionException {
-        ValuesExtractor<String, String> extractor =
+        DataExtractor<String, String> extractor =
                 extractor(expressions, TestSelectorSuppliers.string());
 
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
-        ValuesContainer values = extractor.extractValues(kafkaRecord);
+        DataContainer values = extractor.extractValues(kafkaRecord);
 
         assertThat(values.extractor()).isSameInstanceAs(extractor);
-        Set<Value> values2 = values.values();
+        Set<Data> values2 = values.values();
         assertThat(values2).isEqualTo(expectedValues);
     }
 }

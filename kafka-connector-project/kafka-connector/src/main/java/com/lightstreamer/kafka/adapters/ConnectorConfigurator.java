@@ -28,11 +28,11 @@ import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ public class ConnectorConfigurator {
 
         Properties consumerProperties();
 
-        ValuesExtractor<K, V> fieldsExtractor();
+        DataExtractor<K, V> fieldsExtractor();
 
         ItemTemplates<K, V> itemTemplates();
 
@@ -65,7 +65,7 @@ public class ConnectorConfigurator {
             String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
-            ValuesExtractor<K, V> fieldsExtractor,
+            DataExtractor<K, V> fieldsExtractor,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer,
             RecordErrorHandlingStrategy recordErrorHandlingStrategy)
@@ -102,7 +102,7 @@ public class ConnectorConfigurator {
                             mkKeySelectorSupplier(config), mkValueSelectorSupplier(config));
 
             ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
-            ValuesExtractor<?, ?> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+            DataExtractor<?, ?> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
 
             return new ConsumerLoopConfigImpl(
                     config.getAdapterName(),

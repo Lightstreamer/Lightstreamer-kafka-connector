@@ -20,6 +20,8 @@ package com.lightstreamer.kafka.common.expressions;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -27,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public enum Constant {
+public enum Constant implements ExtractionExpression {
     KEY,
     VALUE,
     TIMESTAMP,
@@ -52,5 +54,26 @@ public enum Constant {
 
     static Set<Constant> all() {
         return Arrays.stream(values()).collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private final String tokens[] = new String[1];
+
+    Constant() {
+        Arrays.fill(tokens, toString());
+    }
+
+    @Override
+    public Constant constant() {
+        return this;
+    }
+
+    @Override
+    public String[] tokens() {
+        return tokens;
+    }
+
+    @Override
+    public String expression() {
+        return toString();
     }
 }

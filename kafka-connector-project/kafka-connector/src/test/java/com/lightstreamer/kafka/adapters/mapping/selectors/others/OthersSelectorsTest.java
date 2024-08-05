@@ -109,7 +109,7 @@ public class OthersSelectorsTest {
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.expression("VALUE"))
-                        .extract(kafkaRecord)
+                        .extractValue(kafkaRecord)
                         .text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }
@@ -122,7 +122,7 @@ public class OthersSelectorsTest {
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.expression("VALUE"))
-                        .extract(kafkaRecord)
+                        .extractValue(kafkaRecord)
                         .text();
         assertThat(text).isNull();
     }
@@ -135,7 +135,7 @@ public class OthersSelectorsTest {
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.expression("KEY"))
-                        .extract(kafkaRecord)
+                        .extractKey(kafkaRecord)
                         .text();
         assertThat(text).isNull();
     }
@@ -153,7 +153,7 @@ public class OthersSelectorsTest {
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.expression("KEY"))
-                        .extract(kafkaRecord)
+                        .extractKey(kafkaRecord)
                         .text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }

@@ -24,10 +24,10 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
@@ -40,7 +40,7 @@ import java.util.Map;
 
 public class RecordMapperAvroTest {
 
-    private static ValuesExtractor<String, GenericRecord> extractor(
+    private static DataExtractor<String, GenericRecord> extractor(
             String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
         SelectorSuppliers<String, GenericRecord> avroValue =
@@ -50,7 +50,7 @@ public class RecordMapperAvroTest {
                                 Map.of(
                                         ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                         "value.avsc")));
-        return ValuesExtractor.<String, GenericRecord>builder()
+        return DataExtractor.<String, GenericRecord>builder()
                 .withSuppliers(avroValue)
                 .withSchemaName(schemaName)
                 .withExpressions(expressions)
@@ -153,22 +153,22 @@ public class RecordMapperAvroTest {
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
 
         assertThat(mappedRecord.mappedValuesSize()).isEqualTo(1);
-        ValuesExtractor<String, GenericRecord> unboundExtractor =
+        DataExtractor<String, GenericRecord> unboundExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.any")));
         assertThat(mappedRecord.filter(unboundExtractor)).isEmpty();
     }
 
     @Test
     public void shouldFilter() throws ExtractionException {
-        ValuesExtractor<String, GenericRecord> nameExtractor =
+        DataExtractor<String, GenericRecord> nameExtractor =
                 extractor("test", Map.of("name", Expressions.expression("VALUE.name")));
 
-        ValuesExtractor<String, GenericRecord> childExtractor1 =
+        DataExtractor<String, GenericRecord> childExtractor1 =
                 extractor(
                         "test",
                         Map.of("firstChildName", Expressions.expression("VALUE.children[0].name")));
 
-        ValuesExtractor<String, GenericRecord> childExtractor2 =
+        DataExtractor<String, GenericRecord> childExtractor2 =
                 extractor(
                         "test",
                         Map.of(
@@ -202,7 +202,7 @@ public class RecordMapperAvroTest {
 
     @Test
     public void shouldFilterWithNullValues() throws ExtractionException {
-        ValuesExtractor<String, GenericRecord> extractor =
+        DataExtractor<String, GenericRecord> extractor =
                 extractor(
                         "test",
                         Map.of(

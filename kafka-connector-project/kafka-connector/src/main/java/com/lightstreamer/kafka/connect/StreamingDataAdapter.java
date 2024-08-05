@@ -29,9 +29,9 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
@@ -57,7 +57,7 @@ public class StreamingDataAdapter implements DataProvider {
         void update(Collection<SinkRecord> records);
     }
 
-    private final ValuesExtractor<Object, Object> fieldsExtractor;
+    private final DataExtractor<Object, Object> fieldsExtractor;
     private final ItemTemplates<Object, Object> itemTemplates;
     private final RecordErrorHandlingStrategy errorHandlingStrategy;
     private final ErrantRecordReporter reporter;

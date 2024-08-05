@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.GeneralSelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -72,21 +72,21 @@ public class OthersSelectorSuppliers {
 
     private static class BaseOthersSelectorSupplier {
         private final Deserializer<?> deseralizer;
-        private final GeneralSelectorSupplier generalSelectorSupplier;
+        private final ConstantSelectorSupplier constantSelectorSupplier;
 
         BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
             this.deseralizer = DESERIALIAZERS.get(type);
-            this.generalSelectorSupplier = new GeneralSelectorSupplier(constant);
+            this.constantSelectorSupplier = new ConstantSelectorSupplier(constant);
         }
 
         public KeySelector<Object> newKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return generalSelectorSupplier.newKeySelectorSelector(name, expression);
+            return constantSelectorSupplier.newKeySelector(name, expression);
         }
 
         public ValueSelector<Object> newValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return generalSelectorSupplier.newValueSelectorSelector(name, expression);
+            return constantSelectorSupplier.newValueSelector(name, expression);
         }
 
         @SuppressWarnings("unchecked")

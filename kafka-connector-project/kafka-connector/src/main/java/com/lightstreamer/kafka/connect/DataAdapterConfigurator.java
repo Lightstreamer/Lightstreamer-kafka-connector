@@ -22,9 +22,9 @@ import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ValuesExtractor;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
@@ -36,7 +36,7 @@ public class DataAdapterConfigurator {
 
     public interface DataAdapterConfig {
 
-        ValuesExtractor<Object, Object> fieldsExtractor();
+        DataExtractor<Object, Object> fieldsExtractor();
 
         ItemTemplates<Object, Object> itemTemplates();
 
@@ -44,7 +44,7 @@ public class DataAdapterConfigurator {
     }
 
     private static record DataAdapterConfigImpl(
-            ValuesExtractor<Object, Object> fieldsExtractor,
+            DataExtractor<Object, Object> fieldsExtractor,
             ItemTemplates<Object, Object> itemTemplates,
             RecordErrorHandlingStrategy recordErrorHandlingStrategy)
             implements DataAdapterConfig {}
@@ -67,7 +67,7 @@ public class DataAdapterConfigurator {
             FieldConfigs fieldConfigs = config.getFieldConfigs();
             logger.info("fieldsMapping: {}", fieldConfigs);
 
-            ValuesExtractor<Object, Object> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+            DataExtractor<Object, Object> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
 
             return new DataAdapterConfigImpl(
                     fieldsExtractor, templates, config.getErrRecordErrorHandlingStrategy());

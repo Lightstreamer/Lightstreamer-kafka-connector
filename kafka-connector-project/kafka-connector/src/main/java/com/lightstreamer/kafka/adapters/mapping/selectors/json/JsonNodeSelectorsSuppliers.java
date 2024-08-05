@@ -21,13 +21,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
-import com.lightstreamer.kafka.common.mapping.selectors.Value;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -113,7 +113,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(KafkaRecord<JsonNode, ?> record) {
+        public Data extractKey(KafkaRecord<JsonNode, ?> record) {
             JsonNodeNode node = new JsonNodeNode(record.key());
             return super.eval(node);
         }
@@ -148,7 +148,7 @@ public class JsonNodeSelectorsSuppliers {
         }
 
         @Override
-        public Value extract(KafkaRecord<?, JsonNode> record) {
+        public Data extractValue(KafkaRecord<?, JsonNode> record) {
             JsonNodeNode node = new JsonNodeNode(record.value());
             return super.eval(node);
         }

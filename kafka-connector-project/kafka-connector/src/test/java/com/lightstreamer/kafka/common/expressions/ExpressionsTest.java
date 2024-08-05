@@ -75,7 +75,7 @@ public class ExpressionsTest {
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
         ExtractionExpression ee = Expressions.expression(expressionStr);
         assertThat(ee.expression()).isEqualTo(expressionStr);
-        assertThat(ee.root()).isEqualTo(expectedRoot);
+        assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
     }
 
@@ -231,7 +231,7 @@ public class ExpressionsTest {
                 expressionStr.substring(
                         expressionStr.indexOf("#{") + 2, expressionStr.lastIndexOf("}"));
         assertThat(ee.expression()).isEqualTo(expectedExpression);
-        assertThat(ee.root()).isEqualTo(expectedRoot);
+        assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
     }
 

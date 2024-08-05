@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 public class ValueException extends RuntimeException {
 
-    public ValueException(String message) {
+    private ValueException(String message) {
         super(message);
     }
 

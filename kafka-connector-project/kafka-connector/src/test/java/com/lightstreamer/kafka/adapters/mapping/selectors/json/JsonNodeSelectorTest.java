@@ -91,7 +91,7 @@ public class JsonNodeSelectorTest {
             throws ExtractionException {
         ExtractionExpression expression = Expressions.expression(expressionStr);
         StringSubject subject =
-                assertThat(valueSelector(expression).extract(fromValue(RECORD)).text());
+                assertThat(valueSelector(expression).extractValue(fromValue(RECORD)).text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -122,7 +122,7 @@ public class JsonNodeSelectorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> valueSelector(expression).extract(fromValue(RECORD)).text());
+                        () -> valueSelector(expression).extractValue(fromValue(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -146,7 +146,8 @@ public class JsonNodeSelectorTest {
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expressions.expression(expressionStr);
-        StringSubject subject = assertThat(keySelector(expression).extract(fromKey(RECORD)).text());
+        StringSubject subject =
+                assertThat(keySelector(expression).extractKey(fromKey(RECORD)).text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -176,7 +177,7 @@ public class JsonNodeSelectorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extract(fromKey(RECORD)).text());
+                        () -> keySelector(expression).extractKey(fromKey(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 

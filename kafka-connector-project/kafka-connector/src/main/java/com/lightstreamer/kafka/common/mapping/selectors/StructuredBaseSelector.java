@@ -124,7 +124,7 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         this.evaluator = parser.parse(ctx);
     }
 
-    protected final Value eval(Node<T> node) {
+    protected final Data eval(Node<T> node) {
         LinkedNodeEvaluator<T> currentEvaluator = evaluator;
         while (currentEvaluator != null) {
             node = currentEvaluator.current().eval(node);
@@ -135,6 +135,6 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return Value.of(name(), node.asText(null));
+        return Data.of(name(), node.asText(null));
     }
 }

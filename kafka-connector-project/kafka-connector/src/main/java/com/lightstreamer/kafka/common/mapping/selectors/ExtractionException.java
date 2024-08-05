@@ -21,7 +21,7 @@ public class ExtractionException extends Exception {
 
     private static final long serialVersionUID = 1L;
 
-    public ExtractionException(String message) {
+    private ExtractionException(String message) {
         super(message);
     }
 
