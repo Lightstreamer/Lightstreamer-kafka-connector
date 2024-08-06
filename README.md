@@ -893,7 +893,7 @@ As anticipated in the [_Installation_](#configure) section, a Kafka record can b
 - Routed to the designated Lightstreamer items
 - Remapped to specific Lightstreamer fields
 
-#####  Record Routing (`map.<topic>.to`)
+##### Record Routing (`map.<topic>.to`)
 
 To configure the routing of Kafka event streams to Lightstreamer items, use at least one parameter `map.<topic>.to`. The general format is:
 
@@ -1327,7 +1327,7 @@ $ ./gradlew connectDistZip
 
 which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder
 
-2. Extract the zip file into the desired location 
+2. Extract the zip file into the desired location
 
 #### Configuration
 
@@ -1374,7 +1374,7 @@ The (optional) max number of retries to establish a connection.
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
-The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure. Only applicable if 
+The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
 
 - **Type:** int
@@ -1422,12 +1422,18 @@ The (optional) error handling strategy to be used if an error occurs while extra
   record.extraction.error.strategy=FORWARD_TO_DLQ
   ```
 
+##### topic.mappings
+
+- **Type:** list
+- **Importance:** high
+- **Default Value:** none
+
 ##### fields.mappings
 
 Comma-separated list of subscribable fields mappings
 
 - **Type:** list
-- **Importance:** medium
+- **Importance:** high
 - **Default Value:** none
 - **Example:**
   ```
