@@ -18,9 +18,6 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
 
 import com.lightstreamer.kafka.common.config.ConfigException;
@@ -181,9 +178,9 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                 .define(
                         new ConfigKeyBuilder()
                                 .name(TOPIC_MAPPINGS)
-                                .type(Type.LIST)
+                                .type(Type.STRING)
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
-                                .validator(new ListValidator())
+                                .validator(new TopicMappingsValidator())
                                 .importance(Importance.HIGH)
                                 .documentation(TOPIC_MAPPINGS_DOC)
                                 .build())
@@ -259,7 +256,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return fieldConfigs;
     }
 
-    public ItemTemplateConfigs getItemTemplates() {
+    public ItemTemplateConfigs getItemTemplateConfigs() {
         return itemTemplateConfigs;
     }
 
@@ -281,9 +278,9 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     private List<TopicMappingConfig> initTopicMappingConfigs() {
         return TopicMappingConfig.from(
-                getList(TOPIC_MAPPINGS).stream()
+                Split.bySemicolon(getString(TOPIC_MAPPINGS)).stream()
                         .flatMap(t -> Split.pair(t).stream())
-                        .collect(groupingBy(Pair::key, mapping(Pair::value, joining(",")))));
+                        .collect(toMap(Pair::key, Pair::value)));
     }
 
     private ItemTemplateConfigs initItemTemplateConfigs() {

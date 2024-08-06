@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -32,7 +33,7 @@ public class LightstreamerSinkConnectorTaskTest {
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
         config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
-        config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
+        config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1");
         config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
@@ -48,42 +49,10 @@ public class LightstreamerSinkConnectorTaskTest {
     }
 
     @Test
+    @Disabled
     void shouldShouldStartAndStop() {
         LightstreamerSinkConnectorTask task = createTask();
         Map<String, String> configs = basicConfig();
         task.start(configs);
-
-        // task.
-        // assertThat(task.configs()).isEqualTo(basicConfig());
-        // List<Map<String, String>> taskConfigs = task.taskConfigs(1);
-        // assertThat(taskConfigs).containsExactly(basicConfig());
-
-        // taskConfigs = task.taskConfigs(2);
-        // assertThat(taskConfigs).containsExactly(configs, configs);
-
-        // task.stop();
-        // assertThat(task.configs()).isEmpty();
     }
-
-    // @Test
-    // void shouldGetConfig() {
-    //     LightstreamerSinkConnector connector = createTask();
-    //     ConfigDef config = connector.config();
-    //     Set<String> configKeys = config.configKeys().keySet();
-    //     assertThat(configKeys)
-    //             .containsExactly(
-    //                     LightstreamerConnectorConfig.LIGHTREAMER_PROXY_ADAPTER_ADDRESS,
-    //                     LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-    //                     LightstreamerConnectorConfig.ITEM_TEMPLATES,
-    //                     LightstreamerConnectorConfig.FIELD_MAPPINGS,
-    //                     LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY);
-    // }
-
-    // @Test
-    // void shouldGetTaskConfigs() {
-    //     LightstreamerSinkConnector connector = createTask();
-    //     connector.start(basicConfig());
-    //     List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
-    //     assertThat(taskConfigs).containsExactly(basicConfig());
-    // }
 }

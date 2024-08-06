@@ -74,7 +74,7 @@ public class FieldMappingsValidatorTest {
                 // List of mixed non-empty/empty-strings
                 arguments(
                         List.of("field1"),
-                        "Invalid value for configuration \"field.mappings\": Each entry must be expressed in the form <field-name:field-expression>"),
+                        "Invalid value for configuration \"field.mappings\": Each entry must be in the form <field-name>:<field-expression>"),
                 // List of duplicate entry
                 arguments(
                         List.of("field1:#{VALUE}", "field1:#{KEY}"),

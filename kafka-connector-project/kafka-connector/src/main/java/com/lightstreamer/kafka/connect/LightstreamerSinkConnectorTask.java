@@ -36,9 +36,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
     private static Logger logger = LoggerFactory.getLogger(LightstreamerSinkConnectorTask.class);
 
-    private Map<String, String> props;
     private StreamingDataAdapter adapter;
-
     private ProxyAdapterClient proxyAdapterClient;
 
     public LightstreamerSinkConnectorTask() {}
@@ -51,7 +49,6 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
     @Override
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnectorTask");
-        this.props = props;
         LightstreamerConnectorConfig cfg = new LightstreamerConnectorConfig(props);
         DataAdapterConfig config = DataAdapterConfigurator.configure(cfg);
 

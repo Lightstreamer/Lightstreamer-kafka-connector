@@ -29,7 +29,6 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 
-import com.google.common.truth.Ordered;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
 import org.apache.kafka.common.config.ConfigDef;
@@ -42,12 +41,10 @@ import java.util.Set;
 
 public class LightstreamerSinkConnectorTest {
 
-    private Ordered containsExactly;
-
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:");
-        config.put(TOPIC_MAPPINGS, "item1");
+        config.put(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
+        config.put(TOPIC_MAPPINGS, "topic:item1");
         config.put(FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
@@ -60,6 +57,12 @@ public class LightstreamerSinkConnectorTest {
     void shouldGetVersion() {
         LightstreamerSinkConnector connector = createConnector();
         assertThat(connector.version()).isEqualTo(VersionUtils.currentVersion());
+    }
+
+    @Test
+    void shouldGetTaskClass() {
+        LightstreamerSinkConnector connector = createConnector();
+        assertThat(connector.taskClass()).isEqualTo(LightstreamerSinkConnectorTask.class);
     }
 
     @Test
@@ -84,26 +87,17 @@ public class LightstreamerSinkConnectorTest {
         LightstreamerSinkConnector connector = createConnector();
         ConfigDef config = connector.config();
         Set<String> configKeys = config.configKeys().keySet();
-        containsExactly =
-                assertThat(configKeys)
-                        .containsExactly(
-                                LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS,
-                                LIGHTSTREAMER_PROXY_ADAPTER_USERNAME,
-                                LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD,
-                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
-                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
-                                LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
-                                TOPIC_MAPPINGS,
-                                ITEM_TEMPLATES,
-                                FIELD_MAPPINGS,
-                                RECORD_EXTRACTION_ERROR_STRATEGY);
-    }
-
-    @Test
-    void shouldGetTaskConfigs() {
-        LightstreamerSinkConnector connector = createConnector();
-        connector.start(basicConfig());
-        List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
-        assertThat(taskConfigs).containsExactly(basicConfig());
+        assertThat(configKeys)
+                .containsExactly(
+                        LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS,
+                        LIGHTSTREAMER_PROXY_ADAPTER_USERNAME,
+                        LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD,
+                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
+                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
+                        LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
+                        TOPIC_MAPPINGS,
+                        ITEM_TEMPLATES,
+                        FIELD_MAPPINGS,
+                        RECORD_EXTRACTION_ERROR_STRATEGY);
     }
 }

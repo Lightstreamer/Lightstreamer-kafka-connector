@@ -55,7 +55,7 @@ public class DataAdapterConfigurator {
 
     static DataAdapterConfig configure(LightstreamerConnectorConfig config) {
         TopicConfigurations topicsConfig =
-                TopicConfigurations.of(config.getItemTemplates(), config.getTopicMappings());
+                TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
         SelectorSuppliers<Object, Object> sSuppliers =
                 SelectorSuppliers.of(
                         ConnectSelectorsSuppliers.keySelectorSupplier(),

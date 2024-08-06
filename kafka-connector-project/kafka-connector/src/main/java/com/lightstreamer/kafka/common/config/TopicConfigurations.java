@@ -23,11 +23,8 @@ import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression
 import com.lightstreamer.kafka.common.utils.Either;
 import com.lightstreamer.kafka.common.utils.Split;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +38,16 @@ public class TopicConfigurations {
         private final String topic;
         private final Set<String> mappings;
 
-        private TopicMappingConfig(String topic, Set<String> mappings) {
-            check(mappings);
+        private TopicMappingConfig(String topic, LinkedHashSet<String> mappings) {
+            this.topic = checkAndTrimTopic(topic);
+            this.mappings = checkAndTrimMappings(mappings);
+        }
+
+        String checkAndTrimTopic(String topic) {
             if (topic == null || topic.isBlank()) {
-                throw new ConfigException("Topic must be non-empt string");
+                throw new ConfigException("Topic must be a non-empty string");
             }
-            this.topic = topic;
-            this.mappings = Collections.unmodifiableSet(mappings);
+            return topic;
         }
 
         public String topic() {
@@ -58,21 +58,20 @@ public class TopicConfigurations {
             return mappings;
         }
 
-        private void check(Set<String> mappings) {
+        private Set<String> checkAndTrimMappings(LinkedHashSet<String> mappings) {
+            LinkedHashSet<String> trimmed = new LinkedHashSet<>();
             for (String mapping : mappings) {
-                if (mapping == null || mapping.isBlank()) {
+                if (mapping.isBlank()) {
                     throw new ConfigException("Topic mappings must be non-empty strings");
                 }
+                trimmed.add(mapping.trim());
             }
+            return Collections.unmodifiableSet(trimmed);
         }
 
         public static TopicMappingConfig fromDelimitedMappings(
                 String topic, String delimitedMappings) {
             return from(topic, Split.byComma(delimitedMappings));
-        }
-
-        public static TopicMappingConfig from(String topic, String... mapping) {
-            return from(topic, Arrays.asList(mapping));
         }
 
         public static List<TopicMappingConfig> from(Map<String, String> configs) {
@@ -81,7 +80,7 @@ public class TopicConfigurations {
                     .toList();
         }
 
-        private static TopicMappingConfig from(String topic, Collection<String> mapping) {
+        private static TopicMappingConfig from(String topic, List<String> mapping) {
             return new TopicMappingConfig(topic, new LinkedHashSet<>(mapping));
         }
     }
@@ -211,7 +210,7 @@ public class TopicConfigurations {
 
     private TopicConfigurations(
             ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
-        Set<TopicConfiguration> configs = new HashSet<>();
+        Set<TopicConfiguration> configs = new LinkedHashSet<>();
         for (TopicMappingConfig topicMapping : topicMappingConfigs) {
             List<ItemReference> refs =
                     topicMapping.mappings().stream()
@@ -219,7 +218,8 @@ public class TopicConfigurations {
                             .toList();
             configs.add(new TopicConfiguration(topicMapping.topic(), refs));
         }
-        this.topicConfigurations = Collections.unmodifiableSet(configs);
+        // this.topicConfigurations = Collections.unmodifiableSet(configs);
+        this.topicConfigurations = configs;
     }
 
     public Set<TopicConfiguration> configurations() {

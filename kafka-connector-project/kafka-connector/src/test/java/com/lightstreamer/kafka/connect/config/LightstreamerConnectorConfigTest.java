@@ -50,7 +50,7 @@ public class LightstreamerConnectorConfigTest {
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
         config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
-        config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1");
+        config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1");
         config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
@@ -81,24 +81,25 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"topic.mappings\": Must be a non-empty list");
+                        "Invalid value for configuration \"topic.mappings\": Must be a non-empty semicolon-separated list");
 
         // List of empty topic.mappings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, ",");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"topic.mappings\": Must be a list of non-empty strings");
+                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form <topic-name>:<item-mappings>");
 
         // List of mixed non-empty/empty-strings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1,");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"topic.mappings\": Must be a list of non-empty strings");
+                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form <topic-name>:<item-mappings>");
 
         // Put valid topic mappings and go on checking
-        props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1,item-template.template1");
+        props.put(
+                LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1,item-template.template1");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
@@ -116,7 +117,7 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"field.mappings\": Field expression must be expressed in the form #{...}");
+                        "Invalid value for configuration \"field.mappings\": Field expression must be in the form #{...}");
 
         // Put valid field mappings and go on checking
         props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
@@ -157,7 +158,7 @@ public class LightstreamerConnectorConfigTest {
                 "stock-template:stock-#{index=KEY};product-template:product-#{id=KEY,price=VALUE.price}");
 
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        ItemTemplateConfigs itemTemplate = config.getItemTemplates();
+        ItemTemplateConfigs itemTemplate = config.getItemTemplateConfigs();
 
         Map<String, TemplateExpression> expressions = itemTemplate.expressions();
         assertThat(expressions).hasSize(2);
@@ -179,13 +180,14 @@ public class LightstreamerConnectorConfigTest {
 
     @Test
     void shouldGetTopicMappings() {
-        // stocks -> [item-template.stock-template, item-template-stock-template-2]
-        // orders -> [item-template.order-template, oreder-item]
+        // stocks -> [item-template.stock-template, stocks-item, item-template.stock-template-2]
+        // orders -> [item-template.order-template, order-item]
         Map<String, String> props = basicConfig();
         props.put(
                 LightstreamerConnectorConfig.TOPIC_MAPPINGS,
-                "stocks:item-template.stock-template,stocks:item-template.stock-template-2,orders:item-template.order-template,orders:order-item");
+                "stocks:stocks-item,item-template.stock-template,item-template.stock-template-2;orders:item-template.order-template, order-item");
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+
         List<TopicMappingConfig> topicMappings = config.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
 
@@ -197,7 +199,10 @@ public class LightstreamerConnectorConfigTest {
         TopicMappingConfig stockTopicMappingConfig = topicMappings.get(1);
         assertThat(stockTopicMappingConfig.topic()).isEqualTo("stocks");
         assertThat(stockTopicMappingConfig.mappings())
-                .containsExactly("item-template.stock-template", "item-template.stock-template-2");
+                .containsExactly(
+                        "item-template.stock-template",
+                        "stocks-item",
+                        "item-template.stock-template-2");
     }
 
     @Test

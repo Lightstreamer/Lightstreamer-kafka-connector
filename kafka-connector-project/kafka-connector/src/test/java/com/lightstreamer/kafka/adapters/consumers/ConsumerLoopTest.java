@@ -124,7 +124,9 @@ public class ConsumerLoopTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
-                        List.of(TopicMappingConfig.from("aTopic", "anItemTemplate")));
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings(
+                                        "aTopic", "anItemTemplate")));
         ConsumerLoopConfig<String, String> c = new TestLoopConfig(topicsConfig);
 
         TestConsumerLoopTest consumerLoopTest = new TestConsumerLoopTest(c);

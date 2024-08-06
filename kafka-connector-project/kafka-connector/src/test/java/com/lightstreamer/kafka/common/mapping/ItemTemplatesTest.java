@@ -78,7 +78,9 @@ public class ItemTemplatesTest {
             // Add a new item template with name "template-<i>"
             templates.put("template-" + i, template[i]);
             // Add a new TopicMapping referencing the template
-            topicMappings.add(TopicMappingConfig.from(TEST_TOPIC, "item-template.template-" + i));
+            topicMappings.add(
+                    TopicMappingConfig.fromDelimitedMappings(
+                            TEST_TOPIC, "item-template.template-" + i));
         }
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.from(templates), topicMappings);
@@ -90,7 +92,7 @@ public class ItemTemplatesTest {
         List<TopicMappingConfig> topicMappings = new ArrayList<>();
         for (int i = 0; i < items.length; i++) {
             // Add a new TopicMapping referencing the item name
-            topicMappings.add(TopicMappingConfig.from(TEST_TOPIC, items[i]));
+            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC, items[i]));
         }
 
         // No templates required in this case
@@ -133,7 +135,7 @@ public class ItemTemplatesTest {
                 ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY.attrib}"));
 
         TopicMappingConfig topicMapping =
-                TopicMappingConfig.from("stock", "item-template.template");
+                TopicMappingConfig.fromDelimitedMappings("stock", "item-template.template");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(topicMapping));
         ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
@@ -150,7 +152,7 @@ public class ItemTemplatesTest {
 
         // One topic mapping two items.
         TopicMappingConfig tm =
-                TopicMappingConfig.from(TEST_TOPIC, "simple-item-1", "simple-item-2");
+                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC, "simple-item-1,simple-item-2");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
@@ -187,8 +189,8 @@ public class ItemTemplatesTest {
 
         // One topic mapping two item templates.
         TopicMappingConfig tm =
-                TopicMappingConfig.from(
-                        TEST_TOPIC, "item-template.family", "item-template.relatives");
+                TopicMappingConfig.fromDelimitedMappings(
+                        TEST_TOPIC, "item-template.family,item-template.relatives");
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of(
@@ -242,8 +244,10 @@ public class ItemTemplatesTest {
         String item = "orders";
 
         // Two topics mapping the item.
-        TopicMappingConfig orderMapping = TopicMappingConfig.from("new_orders", item);
-        TopicMappingConfig pastOrderMapping = TopicMappingConfig.from("past_orders", item);
+        TopicMappingConfig orderMapping =
+                TopicMappingConfig.fromDelimitedMappings("new_orders", item);
+        TopicMappingConfig pastOrderMapping =
+                TopicMappingConfig.fromDelimitedMappings("past_orders", item);
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(), List.of(orderMapping, pastOrderMapping));
@@ -291,9 +295,11 @@ public class ItemTemplatesTest {
 
         // Two topics mapping the template.
         TopicMappingConfig orderMapping =
-                TopicMappingConfig.from("new_orders", "item-template.template-order");
+                TopicMappingConfig.fromDelimitedMappings(
+                        "new_orders", "item-template.template-order");
         TopicMappingConfig pastOrderMapping =
-                TopicMappingConfig.from("past_orders", "item-template.template-order");
+                TopicMappingConfig.fromDelimitedMappings(
+                        "past_orders", "item-template.template-order");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(orderMapping, pastOrderMapping));
 

@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression
 import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,9 @@ public class TopicConfigurationsTest {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=PARTITION}"));
         var topicMappingCofnigs =
-                List.of(TopicMappingConfig.from("topic", "item-template.template1"));
+                List.of(
+                        TopicMappingConfig.fromDelimitedMappings(
+                                "topic", "item-template.template1"));
         TopicConfigurations topicConfig =
                 TopicConfigurations.of(templateConfigs, topicMappingCofnigs);
 
@@ -66,7 +69,7 @@ public class TopicConfigurationsTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
-                        List.of(TopicMappingConfig.from("topic", "simple-item")));
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "simple-item")));
 
         Set<TopicConfiguration> configurations = topicsConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -91,10 +94,10 @@ public class TopicConfigurationsTest {
                                 "template1-#{a=VALUE}",
                                 "template2",
                                 "template2-#{c=OFFSET}"));
-        var topicMappingConfigs =
+        List<TopicMappingConfig> topicMappingConfigs =
                 List.of(
-                        TopicMappingConfig.from(
-                                "topic", "item-template.template1", "item-template.template2"));
+                        TopicMappingConfig.fromDelimitedMappings(
+                                "topic", "item-template.template1,item-template.template2"));
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, topicMappingConfigs);
 
@@ -127,7 +130,7 @@ public class TopicConfigurationsTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
-                        List.of(TopicMappingConfig.from("topic", "item1", "item2")));
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item1,item2")));
 
         Set<TopicConfiguration> configurations = topicsConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -154,8 +157,8 @@ public class TopicConfigurationsTest {
         var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=KEY}"));
         var topicMappingConfigs =
                 List.of(
-                        TopicMappingConfig.from(
-                                "topic", "item-template.template1", "item-template.template1"));
+                        TopicMappingConfig.fromDelimitedMappings(
+                                "topic", "item-template.template1,item-template.template1"));
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, topicMappingConfigs);
 
@@ -179,7 +182,7 @@ public class TopicConfigurationsTest {
     @Test
     void shouldConfigOneToManyIndenticalItems() {
         var topicMappingConfigs =
-                List.of(TopicMappingConfig.from("topic", "item1", "item1", "item2"));
+                List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item1,item1,item2"));
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), topicMappingConfigs);
 
@@ -205,13 +208,12 @@ public class TopicConfigurationsTest {
     void shouldConfigManyToOneTemplate() {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template-#{name=VALUE}"));
-        var topicMappingConfigs =
-                TopicMappingConfig.from(
-                        Map.of(
-                                "topic",
-                                "item-template.template1",
-                                "topic2",
-                                "item-template.template1"));
+
+        Map<String, String> mappings = new LinkedHashMap<>(); // Ensures order for later lookup
+        mappings.put("topic", "item-template.template1");
+        mappings.put("topic2", "item-template.template1");
+
+        var topicMappingConfigs = TopicMappingConfig.from(mappings);
 
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, topicMappingConfigs);
@@ -233,10 +235,13 @@ public class TopicConfigurationsTest {
 
     @Test
     void shouldConfigManyToOneItem() {
+        Map<String, String> mappings = new LinkedHashMap<>(); // Ensures order for later lookup
+        mappings.put("topic", "item");
+        mappings.put("topic2", "item");
+
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
-                        ItemTemplateConfigs.empty(),
-                        TopicMappingConfig.from(Map.of("topic", "item", "topic2", "item")));
+                        ItemTemplateConfigs.empty(), TopicMappingConfig.from(mappings));
 
         Set<TopicConfiguration> configurations = topicsConfig.configurations();
         assertThat(configurations).hasSize(2);

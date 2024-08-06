@@ -20,66 +20,42 @@ package com.lightstreamer.kafka.common.config;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class TopicMappingConfigTest {
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    void shouldNotCreateTopicMappingDueToinvalidMapping(String mapping) {
-        assertThrows(
-                ConfigException.class,
-                () -> TopicMappingConfig.fromDelimitedMappings("topic", mapping));
-        assertThrows(ConfigException.class, () -> TopicMappingConfig.from("topic", mapping));
+    static Stream<Arguments> mappingFromDelimitedString() {
+        return Stream.of(
+                arguments("topic", "item", Set.of("item")),
+                arguments("topic", "item ", Set.of("item")),
+                arguments("topic", "item1,item2", Set.of("item1", "item2")),
+                arguments("topic", " item1 ,  item2  ", Set.of("item1", "item2")),
+                arguments("topic", "sameItem,sameItem", Set.of("sameItem")));
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
-    void shouldNotCreateTopicMappingDueToinvalidTopic(String topic) {
-        assertThrows(
-                ConfigException.class,
-                () -> TopicMappingConfig.fromDelimitedMappings(topic, "item"));
-        assertThrows(ConfigException.class, () -> TopicMappingConfig.from(topic, "item"));
-    }
-
-    @Test
-    void shouldCreateTopicMappingFromDelimitedString() {
-        TopicMappingConfig tm = TopicMappingConfig.fromDelimitedMappings("topic", "item");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("item");
-
-        tm = TopicMappingConfig.fromDelimitedMappings("topic", "item1,item2");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("item1", "item2");
-
-        tm = TopicMappingConfig.fromDelimitedMappings("topic", "sameItem,sameItem");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("sameItem");
-    }
-
-    @Test
-    void shouldCreateTopicMappingFromVaraArgs() {
-        TopicMappingConfig tm = TopicMappingConfig.from("topic", "item");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("item");
-
-        tm = TopicMappingConfig.from("topic", "item1", "item2");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("item1", "item2");
-
-        tm = TopicMappingConfig.from("topic", "sameItem", "sameItem");
-        assertThat(tm.topic()).isEqualTo("topic");
-        assertThat(tm.mappings()).containsExactly("sameItem");
+    @MethodSource("mappingFromDelimitedString")
+    void shouldCreateTopicMappingFromDelimitedString(
+            String topic, String delimitedItems, Set<String> expectedItems) {
+        TopicMappingConfig tm = TopicMappingConfig.fromDelimitedMappings(topic, delimitedItems);
+        assertThat(tm.topic()).isEqualTo(topic);
+        assertThat(tm.mappings()).isEqualTo(expectedItems);
     }
 
     /** Ensures insertion order */
@@ -136,10 +112,48 @@ public class TopicMappingConfigTest {
         assertThat(from).isEmpty();
     }
 
-    @Test
-    void shouldNotCreateFromInvalidMap() {
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldNotCreateFromMapDueToInvalidTopic(String topic) {
         Map<String, String> map = new HashMap<>();
-        map.put(null, null);
-        assertThrows(ConfigException.class, () -> TopicMappingConfig.from(map));
+        map.put(topic, null);
+        ConfigException ce =
+                assertThrows(ConfigException.class, () -> TopicMappingConfig.from(map));
+        assertThat(ce.getMessage()).isEqualTo("Topic must be a non-empty string");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldNotCreateFromStringDueToinvalidTopic(String topic) {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> TopicMappingConfig.fromDelimitedMappings(topic, "item"));
+        assertThat(ce.getMessage()).isEqualTo("Topic must be a non-empty string");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(
+            strings = {
+                "item,", // Invalid trailing ','
+                ",", // Generates two empty strings
+            })
+    void shouldNotCreateFromMapDueToInvalidMapping(String mapping) {
+        Map<String, String> map = new HashMap<>();
+        map.put("topic", mapping);
+        ConfigException ce =
+                assertThrows(ConfigException.class, () -> TopicMappingConfig.from(map));
+        assertThat(ce.getMessage()).isEqualTo("Topic mappings must be non-empty strings");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldNotCreateFromStringDueToInvalidMapping(String mapping) {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> TopicMappingConfig.fromDelimitedMappings("topic", mapping));
+        assertThat(ce.getMessage()).isEqualTo("Topic mappings must be non-empty strings");
     }
 }

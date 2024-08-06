@@ -35,8 +35,8 @@ public class FieldMappingsValidator extends ListValidator {
                                 () ->
                                         new ConfigException(
                                                 String.format(
-                                                        "Invalid value for configuration \"%s\": Each entry must be expressed in the form %s",
-                                                        name, "<field-name:field-expression>")));
+                                                        "Invalid value for configuration \"%s\": Each entry must be in the form %s",
+                                                        name, "<field-name>:<field-expression>")));
         try {
             // Validates <field-expression>
             Expressions.field(pair.value());
@@ -44,7 +44,7 @@ public class FieldMappingsValidator extends ListValidator {
         } catch (ExpressionException ee) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Field expression must be expressed in the form %s",
+                            "Invalid value for configuration \"%s\": Field expression must be in the form %s",
                             name, "#{...}"));
         }
     }

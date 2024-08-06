@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka.connect.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
 
@@ -29,12 +27,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ItemTemplateValidator implements Validator {
+public class TopicMappingsValidator implements Validator {
 
     @Override
     public void ensureValid(String name, Object value) {
         if (value == null) {
-            return;
+            throw new ConfigException(
+                    String.format(
+                            "Invalid value for configuration \"%s\": Must be non-null", name));
         }
 
         if (!(value instanceof String)) {
@@ -50,10 +50,10 @@ public class ItemTemplateValidator implements Validator {
                             "Invalid value for configuration \"%s\": Must be a non-empty semicolon-separated list",
                             name));
         }
-        List<String> templates = Split.bySemicolon(strValue);
+        List<String> topicMappings = Split.bySemicolon(strValue);
         Set<String> keys = new HashSet<>();
-        for (String template : templates) {
-            String key = validateTemplate(name, template);
+        for (String template : topicMappings) {
+            String key = validateTopicMapping(name, template);
             if (keys.contains(key)) {
                 throw new ConfigException(
                         String.format(
@@ -64,36 +64,36 @@ public class ItemTemplateValidator implements Validator {
         }
     }
 
-    private String validateTemplate(String name, String template) {
-        if (template.isBlank()) {
+    private String validateTopicMapping(String name, String topicMapping) {
+        if (topicMapping.isBlank()) {
             throw new ConfigException(
                     String.format(
                             "Invalid value for configuration \"%s\": Must be a semicolon-separated list of non-empty strings",
                             name));
         }
 
-        // Gets the <template-name>:<template-expression> pair
+        // Gets the <topic-name>:<item-mapping> pair
         Pair pair =
-                Split.pair(template)
+                Split.pair(topicMapping)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(
                                                 String.format(
                                                         "Invalid value for configuration \"%s\": Each entry must be in the form %s",
-                                                        name,
-                                                        "<template-name>:<template-expression>")));
+                                                        name, "<topic-name>:<item-mappings>")));
 
-        try {
-            // Validates <template-expression>
-            Expressions.template(pair.value()).toString();
-
-            // Returns <template-name>
-            return pair.key();
-        } catch (ExpressionException ee) {
+        // Validates <item-mapping>
+        List<String> emptyEntryes =
+                Split.byComma(pair.value()).stream().filter(String::isBlank).toList();
+        if (!emptyEntryes.isEmpty()) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Template expression must be in the form %s",
-                            name, "<template-prefix-#{par1=val1,...parN=valN}"));
+                            "Invalid value for configuration \"%s\": Topic mapping must be in the form %s",
+                            name,
+                            "<(item-template.template1|item1),...,(item-template.templateN|itemN)>"));
         }
+
+        // Returns <template-name>
+        return pair.key();
     }
 }

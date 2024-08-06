@@ -38,8 +38,6 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     private Map<String, String> props;
 
-    private LightstreamerConnectorConfig config;
-
     @Override
     public String version() {
         return Version.getVersion();
@@ -53,7 +51,6 @@ public class LightstreamerSinkConnector extends SinkConnector {
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnector");
         this.props = props;
-        this.config = new LightstreamerConnectorConfig(props);
     }
 
     @Override
@@ -78,7 +75,6 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     @Override
     public ConfigDef config() {
-        ConfigDef config2 = LightstreamerConnectorConfig.makeConfig();
-        return config2;
+        return LightstreamerConnectorConfig.makeConfig();
     }
 }
