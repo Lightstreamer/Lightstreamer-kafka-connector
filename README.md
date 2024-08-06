@@ -1333,78 +1333,89 @@ which generates the zip file under the `kafka-connector-project/kafka-connector/
 
 ##### `connector.class`
 
-To use the connector, specify the following settings:
+To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
 ##### lightstreamer.server.proxy_adapter.address
 
-The Lightstreamer server's Proxy Adapter address to connect to in the format `host:port`.
+The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
 
 - **Type:** string
+- **Default:** none
 - **Importance:** high
-- **Default Value:** none
-- **Example:**
-  ```
-  lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
-  ```
+
+Example:
+
+```
+lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
+```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
 
-The (optional) value in milliseconds for the time to wait while trying to establish a connection to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
+The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
-- **Type:** int
+- **Type:** long
+- **Default:** 5000 (5 seconds)
 - **Importance:** low
-- **Default Value:** 5000 (5 seconds)
-- **Example:**
-  ```
-  lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
-  ```
+
+Example:
+
+```
+lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
+```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
 
-The (optional) max number of retries to establish a connection.
+The (optional) max number of retries to establish a connection to the Lighstreamer server's Proxy Adapter.
 
 - **Type:** int
+- **Default:** 1
 - **Importance:** medium
-- **Default Value:** 1
-- **Example:**
-  ```
-  lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
-  ```
+
+Example:
+
+```
+lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
+```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
-The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure. Only applicable if
+The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lighstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
 
-- **Type:** int
+- **Type:** long
+- **Default:** 0 (0 seconds)
 - **Importance:** low
-- **Default Value:** 0
-- **Example:**
-  ```
-  lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
-  ```
+
+Example:
+
+```
+lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
+```
 
 ##### lightstreamer.server.proxy_adapter.username
 
 The username to use for authenticating to the Lightstreamer'server Proxy Adapter.
 
 - **Type:** string
-- **Importance:** medum
-- **Default Value:** none
-- **Example:**
-  ```
-  lightstreamer.server.proxy_adapter.username=lightstreamer_user
-  ```
+- **Importance:** medium
+- **Default:** none
+
+Example:
+
+```
+lightstreamer.server.proxy_adapter.username=lightstreamer_user
+```
 
 ##### lightstreamer.server.proxy_adapter.password
 
 The password to use for authenticating to the Lightstreamer'server Proxy Adapter.
 
 - **Type:** string
-- **Importance:** medum
-- **Default Value:** none
-- **Example:**
+- **Default:** none
+- **Importance:** medium
+
+Example:
   ```
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
@@ -1414,19 +1425,52 @@ The password to use for authenticating to the Lightstreamer'server Proxy Adapter
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.
 
 - **Type:** string
-- **Importance:** medium
-- **Default Value:** `IGNORE_AND_CONTINUE`
+- **Default:** `IGNORE_AND_CONTINUE`
 - **Valid Values:** [`IGNORE_AND_CONTINUE`, `FORWARD_TO_DLQ`, `TERMINATE_TASK`]
-- **Example:**
-  ```
-  record.extraction.error.strategy=FORWARD_TO_DLQ
-  ```
+- **Importance:** medium
+
+Example:
+
+```
+record.extraction.error.strategy=FORWARD_TO_DLQ
+```
 
 ##### topic.mappings
 
-- **Type:** list
+Semicolon-separated list of mappings between the source topic and the Lightstreamer items.
+The list must describe a set of mappings in the form `[topicName:mappingList];[topicName:mappingList];...` where:
+
+- `topicName` is one of the topic specifed through the Kafka Connecet [`topics`](https://kafka.apache.org/documentation.html#sinkconnectorconfigs_topics) configuration
+- `mappingList` is comma-separated list of item names or item templates in the form
+
+For example, the following configuration:
+
+```
+topic.mappings=sample-topic:sample-item1,sample-item2,sample-item3
+```
+
+defines a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
+
+- **Type:** string
+- **Default:** none
 - **Importance:** high
-- **Default Value:** none
+
+> [!IMPORTANT]
+> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
+
+Example:
+
+```
+topic.mappings=sample-topic:item-template.template1,item1,item2;other-topic:item-template.order-template,order-item
+```
+
+##### item.templates
+
+Semicolon-separated list of mappings between the source topic and the Lightstreamer items.
+
+- **Type:** string
+- **Importance:** medium
+- **Default:** null
 
 ##### fields.mappings
 
@@ -1434,7 +1478,7 @@ Comma-separated list of subscribable fields mappings
 
 - **Type:** list
 - **Importance:** high
-- **Default Value:** none
+- **Default:** none
 - **Example:**
   ```
   record.extraction.error.strategy=FORWARD_TO_DLQ
