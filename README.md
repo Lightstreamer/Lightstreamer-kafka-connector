@@ -789,8 +789,8 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 
 In particular, Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
 
-- local schema files
-- the _Confluent Schema Registry_
+- Local schema files
+- The _Confluent Schema Registry_
 
 Kafka Connector allows independent deserialization of keys and values, which means that:
 
@@ -1343,11 +1343,11 @@ The Lightstreamer server's Proxy Adapter address to connect to in the format `ho
 
 - **Type:** string
 - **Importance:** high
-- **Defalut Value:** none
+- **Default Value:** none
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
-  ````
+  ```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
 
@@ -1355,11 +1355,11 @@ The (optional) value in milliseconds for the time to wait while trying to establ
 
 - **Type:** int
 - **Importance:** low
-- **Defalut Value:** 5000
+- **Default Value:** 5000 (5 seconds)
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
-  ````
+  ```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
 
@@ -1367,11 +1367,11 @@ The (optional) max number of retries to establish a connection.
 
 - **Type:** int
 - **Importance:** medium
-- **Defalut Value:** 1
+- **Default Value:** 1
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
-  ````
+  ```
 
 ##### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
@@ -1380,11 +1380,11 @@ The (optional) amount of time in milliseconds to wait before retrying to establi
 
 - **Type:** int
 - **Importance:** low
-- **Defalut Value:** 0
+- **Default Value:** 0
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
-  ````
+  ```
 
 ##### lightstreamer.server.proxy_adapter.username
 
@@ -1392,11 +1392,11 @@ The username to use for authenticating to the Lightstreamer'server Proxy Adapter
 
 - **Type:** string
 - **Importance:** medum
-- **Defalut Value:** none
+- **Default Value:** none
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.username=lightstreamer_user
-  ````
+  ```
 
 ##### lightstreamer.server.proxy_adapter.password
 
@@ -1404,11 +1404,11 @@ The password to use for authenticating to the Lightstreamer'server Proxy Adapter
 
 - **Type:** string
 - **Importance:** medum
-- **Defalut Value:** none
+- **Default Value:** none
 - **Example:**
   ```
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
-  ````
+  ```
 
 ##### record.extraction.error.strategy
 
@@ -1416,12 +1416,12 @@ The (optional) error handling strategy to be used if an error occurs while extra
 
 - **Type:** string
 - **Importance:** medium
-- **Defalut Value:** `IGNORE_AND_CONTINUE`
+- **Default Value:** `IGNORE_AND_CONTINUE`
 - **Valid Values:** [`IGNORE_AND_CONTINUE`, `FORWARD_TO_DLQ`, `TERMINATE_TASK`]
 - **Example:**
   ```
   record.extraction.error.strategy=FORWARD_TO_DLQ
-  ````
+  ```
 
 ##### fields.mappings
 
