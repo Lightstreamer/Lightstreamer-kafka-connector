@@ -1455,14 +1455,13 @@ defines a _One To Many_ mapping between the topic `sample-topic` and the Lightst
 - **Default:** none
 - **Importance:** high
 
-> [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
-
 Example:
 
 ```
 topic.mappings=sample-topic:item-template.template1,item1,item2;other-topic:item-template.order-template,order-item
 ```
+> [!IMPORTANT]
+> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
 
 ##### item.templates
 
