@@ -51,7 +51,7 @@ public class LightstreamerConnectorConfigTest {
         Map<String, String> config = new HashMap<>();
         config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1");
-        config.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
+        config.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
         return config;
     }
 
@@ -103,24 +103,24 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Missing required configuration \"field.mappings\" which has no default value.");
+                        "Missing required configuration \"record.mapping\" which has no default value.");
 
-        // Empty field.mappings
-        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "");
+        // Empty record.mapping
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"field.mappings\": Must be a non-empty list");
+                        "Invalid value for configuration \"record.mapping\": Must be a non-empty list");
 
         // Invalid field mappings
-        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:value1");
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:value1");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"field.mappings\": Field expression must be in the form #{...}");
+                        "Invalid value for configuration \"record.mapping\": Expression must be in the form #{...}");
 
         // Put valid field mappings and go on checking
-        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, "field1:#{VALUE}");
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
         assertDoesNotThrow(() -> new LightstreamerConnectorConfig(props));
     }
 
@@ -229,7 +229,7 @@ public class LightstreamerConnectorConfigTest {
                     partition:#{PARTITION}
                 """;
         Map<String, String> props = basicConfig();
-        props.put(LightstreamerConnectorConfig.FIELD_MAPPINGS, fieldMappingConfig);
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, fieldMappingConfig);
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
 
         FieldConfigs fieldMappings = config.getFieldConfigs();

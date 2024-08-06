@@ -25,7 +25,7 @@ public final class ProxyAdapterClientOptions {
         private int timeout;
         private int port;
         private int connectionRetriesCount;
-        private int connectionRetryDelayMs;
+        private long connectionRetryDelayMs;
         private String username;
         private String password;
 
@@ -49,7 +49,7 @@ public final class ProxyAdapterClientOptions {
             return this;
         }
 
-        public Builder connectionRetriesDelayMs(int connectionRetryDelayMs) {
+        public Builder connectionRetriesDelayMs(long connectionRetryDelayMs) {
             this.connectionRetryDelayMs = connectionRetryDelayMs;
             return this;
         }
@@ -73,7 +73,7 @@ public final class ProxyAdapterClientOptions {
     public final int timeout;
     public final int port;
     public final int connectionRetriesCount;
-    public final int connectionRetryDelayMs;
+    public final long connectionRetryDelayMs;
     public final String username;
     public final String password;
 

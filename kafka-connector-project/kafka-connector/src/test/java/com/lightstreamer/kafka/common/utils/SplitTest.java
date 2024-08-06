@@ -92,13 +92,13 @@ public class SplitTest {
     @ParameterizedTest
     @ValueSource(strings = {"a:b", "  a:b  ", "a:  b ", "  a:b", " a  : b  "})
     void shouldReturnPair(String splittable) {
-        assertThat(Split.pair(splittable)).hasValue(new Pair("a", "b"));
+        assertThat(Split.asPair(splittable)).hasValue(new Pair("a", "b"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"a", "a:", "  :b  ", ":  b ", ":", " : "})
     void shouldReturnEmptyPair(String splittable) {
-        assertThat(Split.pair(splittable)).isEmpty();
+        assertThat(Split.asPair(splittable)).isEmpty();
     }
 }

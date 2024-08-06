@@ -40,14 +40,14 @@ public class FieldConfigs {
     private FieldConfigs(Map<String, String> fieldsMapping) {
         for (Map.Entry<String, String> entry : fieldsMapping.entrySet()) {
             String fieldName = entry.getKey();
-            String fieldExpression = entry.getValue();
+            String wrappedExpression = entry.getValue();
             try {
-                ExtractionExpression ee = Expressions.field(fieldExpression);
+                ExtractionExpression ee = Expressions.wrapped(wrappedExpression);
                 expressions.put(fieldName, ee);
             } catch (ExpressionException e) {
                 throw new ConfigException(
                         "Found the invalid expression [%s] while evaluating [%s]: <%s>"
-                                .formatted(fieldExpression, fieldName, e.getMessage()));
+                                .formatted(wrappedExpression, fieldName, e.getMessage()));
             }
         }
     }

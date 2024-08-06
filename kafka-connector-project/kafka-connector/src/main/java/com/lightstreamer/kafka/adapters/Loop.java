@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 
 public interface Loop {
@@ -26,8 +25,6 @@ public interface Loop {
     Item subscribe(String item, Object itemHandle) throws SubscriptionException;
 
     Item unsubscribe(String topic) throws SubscriptionException;
-
-    void subscribeInfoItem(InfoItem itemHandle);
 
     void unsubscribeInfoItem();
 }

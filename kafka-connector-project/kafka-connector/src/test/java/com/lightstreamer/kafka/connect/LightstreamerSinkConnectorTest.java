@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.FIELD_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.ITEM_TEMPLATES;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES;
@@ -27,6 +26,7 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPING;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 
 import com.lightstreamer.kafka.test_utils.VersionUtils;
@@ -45,7 +45,7 @@ public class LightstreamerSinkConnectorTest {
         Map<String, String> config = new HashMap<>();
         config.put(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(TOPIC_MAPPINGS, "topic:item1");
-        config.put(FIELD_MAPPINGS, "field1:#{VALUE}");
+        config.put(RECORD_MAPPING, "field1:#{VALUE}");
         return config;
     }
 
@@ -97,7 +97,7 @@ public class LightstreamerSinkConnectorTest {
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
                         TOPIC_MAPPINGS,
                         ITEM_TEMPLATES,
-                        FIELD_MAPPINGS,
+                        RECORD_MAPPING,
                         RECORD_EXTRACTION_ERROR_STRATEGY);
     }
 }

@@ -440,7 +440,7 @@ public class ConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [#{}] while evaluating [field1]: <Invalid field expression>");
+                        "Found the invalid expression [#{}] while evaluating [field1]: <Invalid expression>");
 
         params.put("field.field1", "#{VALUE}");
         assertDoesNotThrow(() -> new ConnectorConfig(params));

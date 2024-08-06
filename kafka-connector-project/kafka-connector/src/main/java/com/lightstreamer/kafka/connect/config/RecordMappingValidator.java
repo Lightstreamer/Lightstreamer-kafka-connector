@@ -24,27 +24,27 @@ import com.lightstreamer.kafka.common.utils.Split.Pair;
 
 import org.apache.kafka.common.config.ConfigException;
 
-public class FieldMappingsValidator extends ListValidator {
+public class RecordMappingValidator extends ListValidator {
 
     @Override
     public String validateStringElement(String name, String element) {
         // Gets the <field-name>:<field-expression> pair
         Pair pair =
-                Split.pair(element)
+                Split.asPair(element)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(
                                                 String.format(
                                                         "Invalid value for configuration \"%s\": Each entry must be in the form %s",
-                                                        name, "<field-name>:<field-expression>")));
+                                                        name, "<field-name>:<expression>")));
         try {
             // Validates <field-expression>
-            Expressions.field(pair.value());
+            Expressions.wrapped(pair.value());
             return pair.key();
         } catch (ExpressionException ee) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Field expression must be in the form %s",
+                            "Invalid value for configuration \"%s\": Expression must be in the form %s",
                             name, "#{...}"));
         }
     }

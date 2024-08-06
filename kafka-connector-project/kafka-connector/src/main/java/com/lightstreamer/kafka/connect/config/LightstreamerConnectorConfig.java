@@ -67,19 +67,19 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS =
             "lightstreamer.server.proxy_adapter.address";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS_DOC =
-            "The Lightstreamer server's Proxy Adapter address to connect to in the format host:port";
+            "The Lightstreamer server's Proxy Adapter address to connect to in the format host:port.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC =
             "The (optional) value in milliseconds for the time to wait while trying to establish a "
                     + "connection to the Lighstreamer server's Proxy Adapter before terminating the task."
-                    + "\nSpecify 0 for infinite timeout";
+                    + "\nSpecify 0 for infinite timeout.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES_DOC =
-            "The (optional) max number of retries to establish a connection";
+            "The (optional) max number of retries to establish a connection the Lighstreamer server's Proxy Adapter.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms";
@@ -103,8 +103,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String TOPIC_MAPPINGS = "topic.mappings";
     public static final String TOPIC_MAPPINGS_DOC = "topic.mappings";
 
-    public static final String FIELD_MAPPINGS = "field.mappings";
-    public static final String FIELD_MAPPINGS_DOC = "";
+    public static final String RECORD_MAPPING = "record.mapping";
+    public static final String RECORD_MAPPINGS_DOC = "";
 
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
             "record.extraction.error.strategy";
@@ -143,7 +143,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                 .define(
                         new ConfigKeyBuilder()
                                 .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS)
-                                .type(Type.INT)
+                                .type(Type.LONG)
                                 .defaultValue(0)
                                 .importance(Importance.LOW)
                                 .documentation(
@@ -186,12 +186,12 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
-                                .name(FIELD_MAPPINGS)
+                                .name(RECORD_MAPPING)
                                 .type(Type.LIST)
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
-                                .validator(new FieldMappingsValidator())
+                                .validator(new RecordMappingValidator())
                                 .importance(Importance.HIGH)
-                                .documentation(FIELD_MAPPINGS_DOC)
+                                .documentation(RECORD_MAPPINGS_DOC)
                                 .documentation("Name of the Lightsteramer fields to be mapped")
                                 .build())
                 .define(
@@ -244,8 +244,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES);
     }
 
-    public int getSetupConnectionRetryDelayMs() {
-        return getInt(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS);
+    public long getSetupConnectionRetryDelayMs() {
+        return getLong(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS);
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
@@ -265,21 +265,21 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     private Pair getProxyAdapterAddress() {
-        return Split.pair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
+        return Split.asPair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
                 .orElseThrow(() -> new RuntimeException());
     }
 
     private FieldConfigs initFieldConfigs() {
         return FieldConfigs.from(
-                getList(FIELD_MAPPINGS).stream()
-                        .flatMap(t -> Split.pair(t).stream())
+                getList(RECORD_MAPPING).stream()
+                        .flatMap(t -> Split.asPair(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
     private List<TopicMappingConfig> initTopicMappingConfigs() {
         return TopicMappingConfig.from(
                 Split.bySemicolon(getString(TOPIC_MAPPINGS)).stream()
-                        .flatMap(t -> Split.pair(t).stream())
+                        .flatMap(t -> Split.asPair(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
@@ -287,7 +287,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         try {
             return ItemTemplateConfigs.from(
                     Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
-                            .flatMap(s -> Split.pair(s).stream())
+                            .flatMap(s -> Split.asPair(s).stream())
                             .collect(toMap(Pair::key, Pair::value)));
         } catch (ConfigException ce) {
             throw new org.apache.kafka.common.config.ConfigException("");

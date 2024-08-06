@@ -105,8 +105,8 @@ public class Expressions {
         return EXPRESSIONS.newTemplateExpression(templateExpression);
     }
 
-    public static ExtractionExpression field(String fieldExpression) {
-        return EXPRESSIONS.newFieldExpression(fieldExpression);
+    public static ExtractionExpression wrapped(String wrappedExpression) {
+        return EXPRESSIONS.fromWrapped(wrappedExpression);
     }
 
     public static SubscriptionExpression subscription(String subscriptionExpression) {
@@ -189,10 +189,10 @@ public class Expressions {
         return new SubscriptionExpression(prefix, queryParams);
     }
 
-    ExtractionExpressionImpl newFieldExpression(String fieldExpression) {
-        Matcher matcher = FIELD.matcher(nonNullString(fieldExpression));
+    ExtractionExpressionImpl fromWrapped(String wrappedExpression) {
+        Matcher matcher = FIELD.matcher(nonNullString(wrappedExpression));
         if (!matcher.matches()) {
-            throw new ExpressionException("Invalid field expression");
+            throw new ExpressionException("Invalid expression");
         }
         return newExpression(matcher.group(1));
     }

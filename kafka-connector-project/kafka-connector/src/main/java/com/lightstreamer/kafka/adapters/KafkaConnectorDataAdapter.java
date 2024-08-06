@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerLoop;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
@@ -88,25 +87,13 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        if (itemName.equals(connectorConfig.getText(ConnectorConfig.ITEM_INFO_NAME))) {
-            log.atInfo().log("Subscribing to the special INFO item");
-            loop.subscribeInfoItem(
-                    new InfoItem(
-                            itemHandle, connectorConfig.getText(ConnectorConfig.ITEM_INFO_FIELD)));
-        } else {
-            log.info("Trying subscription to item [{}]", itemName);
-            loop.subscribe(itemName, itemHandle);
-        }
+        log.info("Trying subscription to item [{}]", itemName);
+        loop.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        if (itemName.equals(connectorConfig.getText(ConnectorConfig.ITEM_INFO_NAME))) {
-            log.atInfo().log("Unsubscribing from the special the item [{}]", itemName);
-            loop.unsubscribeInfoItem();
-            return;
-        }
         log.info("Unsubscribing from item [{}]", itemName);
         loop.unsubscribe(itemName);
     }

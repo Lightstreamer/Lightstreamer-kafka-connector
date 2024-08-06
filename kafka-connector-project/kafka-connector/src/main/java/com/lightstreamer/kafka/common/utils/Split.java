@@ -34,7 +34,7 @@ public class Split {
     private static final Pattern COLON_WITH_WHITESPACE = splitPattern(':');
     private static final Pattern SEMICOLON_WITH_WHITESPACE = splitPattern(';');
 
-    public static Optional<Pair> pair(String splittable) {
+    public static Optional<Pair> asPair(String splittable) {
         List<String> tokens = byColon(splittable);
         if (tokens.size() == 2) {
             String key = tokens.get(0);

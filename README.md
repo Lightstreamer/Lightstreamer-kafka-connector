@@ -1354,7 +1354,7 @@ lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
 
 The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
-- **Type:** long
+- **Type:** int
 - **Default:** 5000 (5 seconds)
 - **Importance:** low
 
@@ -1463,25 +1463,25 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;other-topic:item
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
 
+##### record.mappings
+
+The list of mapping between a Kafa record and subscribable Ligtstreamer fields. The list must describe
+
+- **Type:** list
+- **Default:** none
+- **Importance:** high
+
+
 ##### item.templates
 
-Semicolon-separated list of mappings between the source topic and the Lightstreamer items.
+Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_.
 
 - **Type:** string
 - **Importance:** medium
 - **Default:** null
 
-##### fields.mappings
 
-Comma-separated list of subscribable fields mappings
 
-- **Type:** list
-- **Importance:** high
-- **Default:** none
-- **Example:**
-  ```
-  record.extraction.error.strategy=FORWARD_TO_DLQ
-  ```
 
 ## Docs
 

@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.FIELD_MAPPINGS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPING;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,51 +34,55 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class FieldMappingsValidatorTest {
+public class RecordMappingsValidatorTest {
 
-    FieldMappingsValidator validator;
+    RecordMappingValidator validator;
 
     @BeforeEach
     public void beforeEach() {
-        validator = new FieldMappingsValidator();
+        validator = new RecordMappingValidator();
     }
 
     static Stream<Arguments> wrongValues() {
         return Stream.of(
-                // Null field.mappings
+                // Null record.mapping
                 arguments(
                         null,
-                        "Invalid value for configuration \"field.mappings\": Must be non-null"),
+                        "Invalid value for configuration \"record.mapping\": Must be non-null"),
                 // Non List
                 arguments(
                         new Object(),
-                        "Invalid value for configuration \"field.mappings\": Must be a list"),
+                        "Invalid value for configuration \"record.mapping\": Must be a list"),
                 arguments(
                         List.of(1, 2, 3),
-                        "Invalid value for configuration \"field.mappings\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
 
-                // Empty field.mappings
+                // Empty record.mapping
                 arguments(
                         Collections.emptyList(),
-                        "Invalid value for configuration \"field.mappings\": Must be a non-empty list"),
-                // List of empty field.mappings
+                        "Invalid value for configuration \"record.mapping\": Must be a non-empty list"),
+                // List of empty record.mapping
                 arguments(
                         List.of(""),
-                        "Invalid value for configuration \"field.mappings\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
                 arguments(
                         List.of("", ""),
-                        "Invalid value for configuration \"field.mappings\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
                 arguments(
                         List.of(" ", ""),
-                        "Invalid value for configuration \"field.mappings\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
                 // List of mixed non-empty/empty-strings
                 arguments(
                         List.of("field1"),
-                        "Invalid value for configuration \"field.mappings\": Each entry must be in the form <field-name>:<field-expression>"),
+                        "Invalid value for configuration \"record.mapping\": Each entry must be in the form <field-name>:<expression>"),
+                // Invalid expression
+                arguments(
+                        List.of("field:VALUE"),
+                        "Invalid value for configuration \"record.mapping\": Expression must be in the form #{...}"),
                 // List of duplicate entry
                 arguments(
                         List.of("field1:#{VALUE}", "field1:#{KEY}"),
-                        "Invalid value for configuration \"field.mappings\": Duplicate key \"field1\""));
+                        "Invalid value for configuration \"record.mapping\": Duplicate key \"field1\""));
     }
 
     @ParameterizedTest
@@ -86,7 +90,7 @@ public class FieldMappingsValidatorTest {
     public void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> validator.ensureValid(FIELD_MAPPINGS, value));
+                        ConfigException.class, () -> validator.ensureValid(RECORD_MAPPING, value));
         assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -100,6 +104,6 @@ public class FieldMappingsValidatorTest {
     @ParameterizedTest
     @MethodSource("values")
     public void shouldValidate(Object value) {
-        assertDoesNotThrow(() -> validator.ensureValid(FIELD_MAPPINGS, value));
+        assertDoesNotThrow(() -> validator.ensureValid(RECORD_MAPPING, value));
     }
 }

@@ -239,10 +239,10 @@ public class ConnectorConfiguratorTest {
         return Stream.of(
                 arguments(
                         "NOT_WITHIN_BRACKET_NOTATION",
-                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: <Invalid field expression>"),
+                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: <Invalid expression>"),
                 arguments(
                         "VALUE",
-                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: <Invalid field expression>"),
+                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: <Invalid expression>"),
                 arguments(
                         "#{UNRECOGNIZED}",
                         "Found the invalid expression [#{UNRECOGNIZED}] while evaluating [fieldName1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]>"));

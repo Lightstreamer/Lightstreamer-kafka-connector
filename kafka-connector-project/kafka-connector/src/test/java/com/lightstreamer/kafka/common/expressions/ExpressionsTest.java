@@ -225,7 +225,7 @@ public class ExpressionsTest {
     @MethodSource("fieldArgs")
     void shouldCreateFieldExpression(
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Expressions.field(expressionStr);
+        ExtractionExpression ee = Expressions.wrapped(expressionStr);
         // Remove '#{' and '}'
         String expectedExpression =
                 expressionStr.substring(
@@ -239,7 +239,7 @@ public class ExpressionsTest {
     @ValueSource(strings = {"#{NOT-EXISTING-CONSTANT}", "#{..}", "#{@}", "#{\\}"})
     void shouldNotCreateFieldExpression(String expressionStr) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expressions.field(expressionStr));
+                assertThrows(ExpressionException.class, () -> Expressions.wrapped(expressionStr));
         assertThat(ee.getMessage())
                 .isEqualTo("Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]");
     }
@@ -251,8 +251,8 @@ public class ExpressionsTest {
             textBlock =
                     """
                         EXPRESSION               $ EXPECTED_ERROR_MESSAGE
-                                                 $ Invalid field expression
-                        ''                       $ Invalid field expression
+                                                 $ Invalid expression
+                        ''                       $ Invalid expression
                         #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                         #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                         #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
@@ -261,7 +261,7 @@ public class ExpressionsTest {
     void shouldNotCreateFieldExpressionDueToInvalidExpression(
             String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expressions.field(expressionStr));
+                assertThrows(ExpressionException.class, () -> Expressions.wrapped(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

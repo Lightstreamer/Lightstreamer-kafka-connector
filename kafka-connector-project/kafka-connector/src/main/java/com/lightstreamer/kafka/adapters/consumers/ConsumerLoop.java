@@ -21,7 +21,6 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.InfoItem;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -69,7 +68,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     private volatile ConsumerWrapper consumer;
     private AtomicBoolean infoLock = new AtomicBoolean(false);
 
-    private volatile InfoItem infoItem;
     private final ExecutorService pool;
 
     public ConsumerLoop(
@@ -128,27 +126,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     }
 
     @Override
-    public void subscribeInfoItem(InfoItem itemHandle) {
-        this.infoItem = itemHandle;
-    }
-
-    @Override
     public void unsubscribeInfoItem() {
         while (!infoLock.compareAndSet(false, true)) {
             this.infoItemhande = null;
-        }
-    }
-
-    private void notifyMessage(String message) {
-        infoLock.set(true);
-        try {
-            if (infoItem == null) {
-                return;
-            }
-            log.atDebug().log("Notifying message to the info item");
-            eventListener.smartUpdate(infoItem.itemHandle(), infoItem.mkEvent(message), false);
-        } finally {
-            infoLock.set(false);
         }
     }
 
@@ -237,7 +217,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 // Can't subscribe at all. Foruce unsubscription and exit the loop.
                 if (topics.isEmpty()) {
                     log.atWarn().log("Not found requested topics");
-                    notifyMessage("Requested topics are not availebl on Kafka");
                     metadataListener.forceUnsubscriptionAll();
                     return false;
                 }
@@ -252,7 +231,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             .log(
                                     "Actually subscribing to the following existing topics [{}]",
                                     loggableTopics);
-                    notifyMessage("Subscribing only to the topic: " + loggableTopics);
                 }
                 consumer.subscribe(topics, relabancerListener);
                 return true;
@@ -275,7 +253,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 } catch (ValueException ve) {
                     log.atWarn().log("Error while extracting record: {}", ve.getMessage());
                     log.atWarn().log("Applying the {} strategy", errorStrategy);
-                    notifyMessage(ve.getMessage());
 
                     switch (errorStrategy) {
                         case IGNORE_AND_CONTINUE -> {

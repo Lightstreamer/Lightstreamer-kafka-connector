@@ -85,16 +85,16 @@ public class FieldConfigsTest {
     @EmptySource
     @NullAndEmptySource
     @ValueSource(strings = {"#{}", ".", "\\", " "})
-    void shoudFailCreationDueToInvalidWrapperExpression(String fieldExpression) {
+    void shoudFailCreationDueToInvalidWrapperExpression(String expression) {
         Map<String, String> fieldMappings = new HashMap<>();
-        fieldMappings.put("field1", fieldExpression);
+        fieldMappings.put("field1", expression);
         ConfigException ee =
                 assertThrows(ConfigException.class, () -> FieldConfigs.from(fieldMappings));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression ["
-                                + fieldExpression
-                                + "] while evaluating [field1]: <Invalid field expression>");
+                                + expression
+                                + "] while evaluating [field1]: <Invalid expression>");
     }
 
     @ParameterizedTest
