@@ -890,8 +890,8 @@ Example:
 Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
 As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract information that can be:
-- routed to the designated Lightstreamer items
-- remapped to specific Lightstreamer fields
+- Routed to the designated Lightstreamer items
+- Remapped to specific Lightstreamer fields
 
 #####  Record Routing (`map.<topic>.to`)
 
@@ -939,13 +939,13 @@ This configuration enables the implementation of various mapping scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
-#####  Record Mapping (`field.<fieldName>`)
+##### Record Mapping (`field.<fieldName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
 ![record-mapping](pictures/record-fields-mapping.png)
 
-To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
+To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
 
 ```xml
 <param name="field.fieldName1">extraction_expression1</param>
@@ -959,8 +959,8 @@ The configuration specifies that the field `fieldNameX` will contain the value e
 
 To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
-- expressions must be enclosed within `#{...}`
-- expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
+- Expressions must be enclosed within `#{...}`
+- Expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
   - `#{KEY}`: the key
   - `#{VALUE}`: the value
@@ -969,7 +969,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
   - `#{PARTITION}`: the partition
   - `#{OFFSET}`: the offset
 
-- the _dot notation_ is used to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
+- Expressions use the _dot notation_ to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -978,14 +978,14 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
  > [!IMPORTANT]
  > Currently, it is required that the top-level element of either a record key or record value is:
- > - an [Object](https://www.json.org/json-en.html), in the case of JSON format
- > - a [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
+ > - An [Object](https://www.json.org/json-en.html), in the case of JSON format
+ > - A [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  >
  > Such a constraint may be removed in a future version of Kafka Connector.
 
 - the _square notation_ is used to access:
 
-  - indexed attributes:
+  - Indexed attributes:
 
     ```js
     KEY.attribute1Name[i].attribute2Name...
@@ -993,7 +993,7 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
     ```
     where `i` is a 0-indexed value.
 
-  - key-based attributes:
+  - Key-based attributes:
 
     ```js
     KEY.attribute1Name['keyName'].attribute2Name...
@@ -1002,16 +1002,16 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
     where `keyName` is a string value.
 
  > [!TIP]
- > For JSON format, accessing a child attribute by dot notation or square bracket notation is equivalent:
+ > For JSON format, accessing a child attribute using either dot notation or square bracket notation is equivalent:
  >
  > ```js
  > VALUE.myProperty.myChild.childProperty
- > ```
- > ```js
  > VALUE.myProperty['myChild'].childProperty
  > ```
 
-- expressions must evaluate to a _scalar_ value, otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
+- Expressions must evaluate to a _scalar_ value
+
+   otherwise an error will be thrown during the extraction process. The error will be handled as per the [configured strategy](#recordextractionerrorstrategy).
 
 The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector/src/connector/dist/adapters.xml#L353) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
@@ -1423,6 +1423,16 @@ The (optional) error handling strategy to be used if an error occurs while extra
   ```
 
 ##### fields.mappings
+
+Comma-separated list of subscribable fields mappings
+
+- **Type:** list
+- **Importance:** medium
+- **Default Value:** none
+- **Example:**
+  ```
+  record.extraction.error.strategy=FORWARD_TO_DLQ
+  ```
 
 ## Docs
 
