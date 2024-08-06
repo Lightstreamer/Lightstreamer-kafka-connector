@@ -942,7 +942,7 @@ To forward real-time updates to the Lightstreamer clients, a Kafka record must b
 
 ![record-mapping](pictures/record-fields-mapping.png)
 
-To configure the mapping, you define the set of all subscribeable fields through parameters with the prefix `field.`:
+To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
 
 ```xml
 <param name="field.fieldName1">extraction_expression1</param>
