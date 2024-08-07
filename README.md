@@ -794,8 +794,8 @@ In particular, Kafka Connector supports message validation for _Avro_ and _JSON_
 
 Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
-- Message validation against the Confluent Schema Registry can be enabled separately for the Kafka key and Kafka value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
-- Message validation against local schema files must be specified separately for the Kafka key and the Kafka value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
+- Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
+- Message validation against local schema files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
 
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
@@ -846,7 +846,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the Kafka key and the Kafka value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
 Examples:
 
@@ -857,7 +857,7 @@ Examples:
 
 ##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the Kafka key and the Kafka value. Can be one of the following:
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1437,19 +1437,14 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 
 ##### topic.mappings
 
-Semicolon-separated list of mappings between the source topic and the Lightstreamer items.
-The list must describe a set of mappings in the form `[topicName:mappingList];[topicName:mappingList];...` where:
+> [!IMPORTANT]
+> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
+
+Semicolon-separated list of mappings between source topics and Lightstreamer items.
+The list should describe a set of mappings in the form `[topicName:mappingList];[topicName:mappingList];...` where:
 
 - `topicName` is one of the topic specifed through the Kafka Connecet [`topics`](https://kafka.apache.org/documentation.html#sinkconnectorconfigs_topics) configuration
-- `mappingList` is comma-separated list of item names or item templates in the form
-
-For example, the following configuration:
-
-```
-topic.mappings=sample-topic:sample-item1,sample-item2,sample-item3
-```
-
-defines a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
+- `mappingList` is comma-separated list of item names or item templates
 
 - **Type:** string
 - **Default:** none
@@ -1458,18 +1453,53 @@ defines a _One To Many_ mapping between the topic `sample-topic` and the Lightst
 Example:
 
 ```
-topic.mappings=sample-topic:item-template.template1,item1,item2;other-topic:item-template.order-template,order-item
+topic.mappings=sample-topic:sample-item1,sample-item2,sample-item3
 ```
-> [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
+
+The above configuration specifes a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`.
+
+Example:
+
+```
+topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:order-item
+```
+
+The above configuration specifes:
+
+- A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
+- _Filtered routing_ through the reference to the item template `template1`
+- A _One To One _ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
+
 
 ##### record.mappings
 
-The list of mapping between a Kafa record and subscribable Ligtstreamer fields. The list must describe
+> [!IMPORTANT]
+> This configuration implements the same concepts already presented in the [Record Routing](#record-mapping-fieldfieldname) section.
+
+The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
+
+ `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
+ 
+where the Lightstreamer field `fieldNameX` whill hold the data extracted from a deserialized Kafka record using the 
+_Data Extraction Language_ `extractionExpressionN`. 
 
 - **Type:** list
 - **Default:** none
 - **Importance:** high
+
+Example:
+
+```
+record.mappings=index:#{KEY.}, \
+                stock_name:#{VALUE.name}, \\
+                last_price:#{VALUE.last_price}
+```
+
+The configuration above specifies the mapping between:
+
+1. The record key to the Lightstreamer field `index`
+2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
+3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 
 ##### item.templates
