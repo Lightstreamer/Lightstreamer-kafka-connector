@@ -948,14 +948,14 @@ To forward real-time updates to the Lightstreamer clients, a Kafka record must b
 To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
 
 ```xml
-<param name="field.fieldName1">extraction_expression1</param>
-<param name="field.fieldName2">extraction_expression2<param>
+<param name="field.fieldName1">extractionExpression1</param>
+<param name="field.fieldName2">extractionExpression2<param>
 ...
-<param name="field.fieldNameN">extraction_expressionN<param>
+<param name="field.fieldNameN">extractionExpressionN<param>
 ...
 ```
 
-The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extraction_expressionX`. This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
+The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`. This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
 To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
 
@@ -1037,7 +1037,7 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 ##### Filtered Record Routing (`item-template.<template-name>`)
 
 Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_,
-which specify the rule needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
+which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
 The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 ![filtered-routing](pictures/filtered-routing.png)
@@ -1048,7 +1048,7 @@ To configure an item template, use the parameter `item-template.<template-name>`
 <param name="item-template.<template-name>"><item-prefix>-<expressions></param>
 ```
 
-and then configure the routing by referencing the template through the parameter `map.<topic>.to`:
+Then, map one (or more) topic to the template by referecing it in the parameter `map.<topic>.to`:
 
 ```xml
 <param name="map.<topic>.to">item-template.<template-name></param>
@@ -1066,10 +1066,10 @@ The item template is made of:
 - `<expressions>`: a sequence of _extraction expressions_, which define filtering rules specified as:
 
   ```js
-  #{paramName1=<extraction_expression_1>,paramName2=<extraction_expression_2>,...}
+  #{paramName1=<extractionExpression1>,paramName2=<extractionExpression2>,...}
   ```
 
-  where `paramNameX` is a _bind parameter_ to be specified by the clients and whose actual value will be extracted from the deserialized Kafka record by evaluating the `<extraction_expression_X>` expression (written using the _Data Extraction Language_).
+  where `paramNameX` is a _bind parameter_ to be specified by the clients and whose actual value will be extracted from the deserialized Kafka record by evaluating the `<extractionExpressionX>` expression (written using the _Data Extraction Language_).
 
 To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
@@ -1092,12 +1092,12 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 Consider the following configuration:
 
 ```xml
-<param name=item-template.by-name>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
-<param name=item-template.by-age>user-#{years=VALUE.age}</param>
+<param name="item-template.by-name">user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
+<param name="item-template.by-age">user-#{years=VALUE.age}</param>
 <param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
-which specifies how to route records published from the topic `user` to item templates defined to extract some personal data.
+which specifies how to route records published from the topic `user` to the item templates defined to extract some personal data.
 
 Let's suppose we have three different Lightstreamer clients:
 
@@ -1465,7 +1465,7 @@ Example:
 topic.mappings=sample-topic:sample-item1,sample-item2,sample-item3
 ```
 
-The above configuration specifes a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`.
+The configuration above specifes a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`.
 
 Example:
 
@@ -1473,7 +1473,7 @@ Example:
 topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:order-item
 ```
 
-The above configuration specifes:
+The configuration above specifes:
 
 - A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
@@ -1521,7 +1521,24 @@ The configuration above specifies the mapping between:
 
 Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
 
-`[templteName1]:[templateExpression1];[templateName1]:[templateExpression2];...;[templateNamen]:[templateExpressionN]`
+`[templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]`
+
+where:
+
+- `templateNameX` is the name of the template
+- `templateX` is the general format of the Lightstreamer items
+
+A template is specified in the form:
+
+```
+[item-prefix]-#{paramName1=<extractionExpression1>,paramName2=<extractionExpression2>,...}
+```
+
+To map a topic to an item template, reference it using the `item-template` prefix in the `topic.mappings` configuration:
+
+```
+topic.mappings=some-topic:item-template.templateName1,item-template.templateName2,...
+```
 
 - **Type:** string
 - **Default:** null
@@ -1529,6 +1546,16 @@ Semicolon-separated list of _item templates_, which specify the rules to enable 
 - **Importance:** high
 
 Example:
+
+```
+item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
+               by-age:user-#{years=VALUE.age}
+
+topic.mappings=user:item-template.by-name,item-template.by-age
+```
+
+The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define how to extract some personal data by leverging _Data Extraction Langauge_ expressions.
+
 
 ## Docs
 
