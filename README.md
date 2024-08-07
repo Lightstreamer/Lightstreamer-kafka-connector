@@ -1441,13 +1441,20 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
 
 Semicolon-separated list of mappings between source topics and Lightstreamer items.
-The list should describe a set of mappings in the form `[topicName:mappingList];[topicName:mappingList];...` where:
+The list should describe a set of mappings in the form:
 
-- `topicName` is one of the topic specifed through the Kafka Connecet [`topics`](https://kafka.apache.org/documentation.html#sinkconnectorconfigs_topics) configuration
-- `mappingList` is comma-separated list of item names or item templates
+`[topicName1]:[mappingList1];[topicName2]:[mappingList2];...[topicNameN]:[mappingListN]`
+
+where:
+
+- `topicNameX` is one of the topic specifed through the Kafka Connecet [`topics`](https://kafka.apache.org/documentation.html#sinkconnectorconfigs_topics) configuration
+- `mappingListX` is comma-separated list of item names or item templates
 
 - **Type:** string
 - **Default:** none
+- **Valid Values:**<br>
+   [topicName1]:[mappingList1];<br>
+   [topicName2]:[mappingList2];...
 - **Importance:** high
 
 Example:
@@ -1467,14 +1474,14 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:orde
 The above configuration specifes:
 
 - A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
-- _Filtered routing_ through the reference to the item template `template1`
+- [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One To One _ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
 
 ##### record.mappings
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-mapping-fieldfieldname) section.
+> This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
 
 The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
 
@@ -1485,6 +1492,9 @@ _Data Extraction Language_ `extractionExpressionN`.
 
 - **Type:** list
 - **Default:** none
+- **Valid Values:**<br>
+   [fieldName1]:[extractionExpression1],<br>
+   [fieldName2]:[extractionExpressionN],...
 - **Importance:** high
 
 Example:
