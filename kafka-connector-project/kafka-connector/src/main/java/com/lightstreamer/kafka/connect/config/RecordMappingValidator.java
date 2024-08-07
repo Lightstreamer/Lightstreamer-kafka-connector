@@ -36,7 +36,8 @@ public class RecordMappingValidator extends ListValidator {
                                         new ConfigException(
                                                 String.format(
                                                         "Invalid value for configuration \"%s\": Each entry must be in the form %s",
-                                                        name, "<field-name>:<expression>")));
+                                                        name,
+                                                        "[fieldName]:[extractionExpression]")));
         try {
             // Validates <field-expression>
             Expressions.wrapped(pair.value());
@@ -44,8 +45,13 @@ public class RecordMappingValidator extends ListValidator {
         } catch (ExpressionException ee) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Expression must be in the form %s",
+                            "Invalid value for configuration \"%s\": Extraction expression must be in the form %s",
                             name, "#{...}"));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpression2],...";
     }
 }

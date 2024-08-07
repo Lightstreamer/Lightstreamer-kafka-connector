@@ -51,11 +51,11 @@ public class ProxyAdapterClient {
         dataProviderServer.setAdapter(provider);
         socket = new Socket();
         try {
-            int retries = options.connectionRetriesCount;
+            int retries = options.connectionMaxRetries;
             while (retries-- >= 0) {
                 try {
                     SocketAddress address = new InetSocketAddress(options.hostname, options.port);
-                    socket.connect(address, options.timeout);
+                    socket.connect(address, options.connectionTimeout);
                 } catch (SocketTimeoutException e) {
                     logger.warn("Socket timeout", e);
                     if (retries > 0) {

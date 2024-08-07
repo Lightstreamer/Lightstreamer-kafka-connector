@@ -80,8 +80,7 @@ public class ItemTemplateValidator implements Validator {
                                         new ConfigException(
                                                 String.format(
                                                         "Invalid value for configuration \"%s\": Each entry must be in the form %s",
-                                                        name,
-                                                        "<template-name>:<template-expression>")));
+                                                        name, "[templateName]:[template]")));
 
         try {
             // Validates <template-expression>
@@ -92,8 +91,12 @@ public class ItemTemplateValidator implements Validator {
         } catch (ExpressionException ee) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Template expression must be in the form %s",
-                            name, "<template-prefix-#{par1=val1,...parN=valN}"));
+                            "Invalid value for configuration \"%s\": Template must be in the form %s",
+                            name, "[item-prefix-#{par1=val1,...parN=valN}]"));
         }
+    }
+
+    public String toString() {
+        return "[templateName1]:[template1];[templateName2]:[template2];...";
     }
 }

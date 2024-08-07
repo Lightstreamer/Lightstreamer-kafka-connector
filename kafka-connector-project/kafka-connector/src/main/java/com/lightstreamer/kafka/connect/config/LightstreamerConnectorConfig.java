@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Range;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
 import java.util.Arrays;
@@ -98,13 +99,42 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
             "The password to use for authenticating to the Lightstreamer'server Proxy Adapter.";
 
     public static final String ITEM_TEMPLATES = "item.templates";
-    public static final String ITEM_TEMPLATES_DOC = "";
+    public static final String ITEM_TEMPLATES_DOC =
+            """
+             Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
+
+             [templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]
+
+             where the [templateX] configures the item template [templaeName] defining the general format of the items the Lightstremer clients must subscribe to to receive udpdates.
+
+             A template is specified in the form:
+
+             item-prefix-#{paramName1=extractionExpression1,paramName2=extractionExpression2,...}
+
+             To map a topic to an item template, reference it using the item-template prefix in the topic.mappings configuration:
+
+             topic.mappings=some-topic:item-template.templateName1,item-template.templateName2,...
+             """;
 
     public static final String TOPIC_MAPPINGS = "topic.mappings";
-    public static final String TOPIC_MAPPINGS_DOC = "topic.mappings";
+    public static final String TOPIC_MAPPINGS_DOC =
+            "Semicolon-separated list of mappings between source topics and Lightstreamer items. The list should describe a set of "
+                    + "mappings in the form:"
+                    + "\n\n"
+                    + "[topicName1]:[mappingList1];[topicName2]:[mappingList2];...[topicNameN]:[mappingListN]"
+                    + "\n\n"
+                    + "where every specified topic ([topicNameX]) is mapped to the item names or item templates specified as "
+                    + " comma-separated list ([mappingListX]).";
 
     public static final String RECORD_MAPPING = "record.mapping";
-    public static final String RECORD_MAPPINGS_DOC = "";
+    public static final String RECORD_MAPPINGS_DOC =
+            "The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of "
+                    + "subscribable fields in the following form:"
+                    + "\n\n"
+                    + "[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]"
+                    + "\n\n"
+                    + "where the Lightstreamer field [fieldNameX] whill hold the data extracted from a deserialized Kafka record using the "
+                    + "Data Extraction Language [extractionExpressionX].";
 
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
             "record.extraction.error.strategy";
@@ -127,6 +157,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS)
                                 .type(Type.INT)
                                 .defaultValue(5000)
+                                .validator(Range.atLeast(0))
                                 .importance(Importance.LOW)
                                 .documentation(
                                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC)
@@ -136,6 +167,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES)
                                 .type(Type.INT)
                                 .defaultValue(1)
+                                .validator(Range.atLeast(0))
                                 .importance(Importance.MEDIUM)
                                 .documentation(
                                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES_DOC)
@@ -144,7 +176,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                         new ConfigKeyBuilder()
                                 .name(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS)
                                 .type(Type.LONG)
-                                .defaultValue(0)
+                                .defaultValue(5000)
+                                .validator(Range.atLeast(0))
                                 .importance(Importance.LOW)
                                 .documentation(
                                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS_DOC)
@@ -173,7 +206,6 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .validator(new ItemTemplateValidator())
                                 .importance(Importance.MEDIUM)
                                 .documentation(ITEM_TEMPLATES_DOC)
-                                .documentation("Item template expressions")
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -192,7 +224,6 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .validator(new RecordMappingValidator())
                                 .importance(Importance.HIGH)
                                 .documentation(RECORD_MAPPINGS_DOC)
-                                .documentation("Name of the Lightsteramer fields to be mapped")
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
@@ -226,9 +257,9 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                 new ProxyAdapterClientOptions.Builder()
                         .hostname(address.key())
                         .port(Integer.valueOf(address.value()))
-                        .timeout(getSetupConnectionTimeoutMs())
-                        .connectionRetriesCount(getSetupConnectionMaxRetries())
-                        .connectionRetriesDelayMs(getSetupConnectionRetryDelayMs())
+                        .connectionTimeout(getSetupConnectionTimeoutMs())
+                        .connectionMaxRetries(getSetupConnectionMaxRetries())
+                        .connectionRetryDelayMs(getSetupConnectionRetryDelayMs())
                         .build();
     }
 

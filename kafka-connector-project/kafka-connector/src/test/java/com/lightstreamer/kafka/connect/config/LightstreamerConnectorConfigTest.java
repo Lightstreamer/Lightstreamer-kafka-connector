@@ -88,14 +88,14 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form <topic-name>:<item-mappings>");
+                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form [topicName]:[mappingList]");
 
         // List of mixed non-empty/empty-strings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1,");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form <topic-name>:<item-mappings>");
+                        "Invalid value for configuration \"topic.mappings\": Each entry must be in the form [topicName]:[mappingList]");
 
         // Put valid topic mappings and go on checking
         props.put(
@@ -117,11 +117,59 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"record.mapping\": Expression must be in the form #{...}");
+                        "Invalid value for configuration \"record.mapping\": Extraction expression must be in the form #{...}");
 
         // Put valid field mappings and go on checking
         props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
         assertDoesNotThrow(() -> new LightstreamerConnectorConfig(props));
+    }
+
+    @Test
+    void shouldNotValidateNegativeConnectionSetupTimeout() {
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
+                "-1");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new LightstreamerConnectorConfig(updateConfigs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms: Value must be at least 0");
+    }
+
+    @Test
+    void shouldNotValidateNegativeConnectionSetupMaxRetries() {
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
+                "-1");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new LightstreamerConnectorConfig(updateConfigs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries: Value must be at least 0");
+    }
+
+    @Test
+    void shouldNotValidateNegativeConnectionSetupRetryDelay() {
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
+                "-1");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new LightstreamerConnectorConfig(updateConfigs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms: Value must be at least 0");
     }
 
     @Test
@@ -132,7 +180,9 @@ public class LightstreamerConnectorConfigTest {
 
         assertThat(proxyAdapterClientOptions.hostname).isEqualTo("host");
         assertThat(proxyAdapterClientOptions.port).isEqualTo(6661);
-        assertThat(proxyAdapterClientOptions.timeout).isEqualTo(5000);
+        assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(5000);
+        assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(1);
+        assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(5000);
 
         Map<String, String> updateConfigs = new HashMap<>(basicConfig());
         updateConfigs.put(
@@ -141,13 +191,24 @@ public class LightstreamerConnectorConfigTest {
                 LightstreamerConnectorConfig
                         .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
                 "10000");
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
+                "5");
+        updateConfigs.put(
+                LightstreamerConnectorConfig
+                        .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
+                "15000");
+
         config = new LightstreamerConnectorConfig(updateConfigs);
 
         proxyAdapterClientOptions = config.getProxyAdapterClientOptions();
 
         assertThat(proxyAdapterClientOptions.hostname).isEqualTo("hostname");
         assertThat(proxyAdapterClientOptions.port).isEqualTo(6662);
-        assertThat(proxyAdapterClientOptions.timeout).isEqualTo(10000);
+        assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(10000);
+        assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(5);
+        assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(15000);
     }
 
     @Test
@@ -303,6 +364,7 @@ public class LightstreamerConnectorConfigTest {
     public void shouldToHtmml() throws IOException {
         ConfigDef config = LightstreamerConnectorConfig.makeConfig();
         Files.write(config.toHtml().getBytes(), new File("config.html"));
-        Files.write(config.toEnrichedRst().getBytes(), new File("config.rst"));
+        Files.write(config.toEnrichedRst().getBytes(), new File("config_enriched.rst"));
+        Files.write(config.toRst().getBytes(), new File("config.rst"));
     }
 }

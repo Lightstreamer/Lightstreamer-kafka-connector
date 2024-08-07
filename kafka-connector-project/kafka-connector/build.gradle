@@ -37,6 +37,10 @@ dependencies {
 	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
 }
 
+ext {
+	connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
+}
+
 jar {
 	exclude "com/lightstreamer/kafka/connect/**"
 	exclude "META-INF/services"
@@ -103,7 +107,7 @@ distributions {
 				include "LICENSE"
 			}
 
-			from ("connect-config") {
+			from (connectConfigDir) {
 				into "etc"
 				include "quickstart-lightstreamer.properties"
 			}

@@ -25,11 +25,11 @@ import org.apache.kafka.common.config.ConfigException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RecordErrorHandlingStrategies {
 
     public static Validator VALIDATOR = new RecordErrorHandlingStrategyValidator();
-
     public static Recommender RECOMMENDER = new RecordErrorHandlingStrategyRecommender();
 
     private RecordErrorHandlingStrategies() {}
@@ -65,6 +65,15 @@ public class RecordErrorHandlingStrategies {
                                 "Invalid value for configuration \"%s\": Must be a valid strategy",
                                 name));
             }
+        }
+
+        @Override
+        public String toString() {
+            return "["
+                    + RecordErrorHandlingStrategy.recommended().stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(", "))
+                    + "]";
         }
     }
 

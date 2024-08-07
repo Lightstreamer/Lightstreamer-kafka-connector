@@ -24,7 +24,7 @@ public final class ProxyAdapterClientOptions {
         private String hostname;
         private int timeout;
         private int port;
-        private int connectionRetriesCount;
+        private int connectionMaxRetries;
         private long connectionRetryDelayMs;
         private String username;
         private String password;
@@ -39,17 +39,17 @@ public final class ProxyAdapterClientOptions {
             return this;
         }
 
-        public Builder timeout(int timeout) {
+        public Builder connectionTimeout(int timeout) {
             this.timeout = timeout;
             return this;
         }
 
-        public Builder connectionRetriesCount(int connectionRetriesCount) {
-            this.connectionRetriesCount = connectionRetriesCount;
+        public Builder connectionMaxRetries(int connectionMaxRetries) {
+            this.connectionMaxRetries = connectionMaxRetries;
             return this;
         }
 
-        public Builder connectionRetriesDelayMs(long connectionRetryDelayMs) {
+        public Builder connectionRetryDelayMs(long connectionRetryDelayMs) {
             this.connectionRetryDelayMs = connectionRetryDelayMs;
             return this;
         }
@@ -70,9 +70,9 @@ public final class ProxyAdapterClientOptions {
     }
 
     public final String hostname;
-    public final int timeout;
+    public final int connectionTimeout;
     public final int port;
-    public final int connectionRetriesCount;
+    public final int connectionMaxRetries;
     public final long connectionRetryDelayMs;
     public final String username;
     public final String password;
@@ -80,9 +80,9 @@ public final class ProxyAdapterClientOptions {
     private ProxyAdapterClientOptions(Builder builder) {
         this.hostname = builder.hostname;
         this.port = builder.port;
-        this.timeout = builder.timeout;
-        this.connectionRetriesCount = Math.max(builder.connectionRetriesCount, 1);
-        this.connectionRetryDelayMs = Math.max(builder.connectionRetryDelayMs, 0);
+        this.connectionTimeout = builder.timeout;
+        this.connectionMaxRetries = builder.connectionMaxRetries;
+        this.connectionRetryDelayMs = builder.connectionRetryDelayMs;
         this.username = builder.username;
         this.password = builder.password;
     }

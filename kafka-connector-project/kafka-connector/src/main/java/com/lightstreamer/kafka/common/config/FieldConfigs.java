@@ -42,8 +42,7 @@ public class FieldConfigs {
             String fieldName = entry.getKey();
             String wrappedExpression = entry.getValue();
             try {
-                ExtractionExpression ee = Expressions.wrapped(wrappedExpression);
-                expressions.put(fieldName, ee);
+                expressions.put(fieldName, Expressions.wrapped(wrappedExpression));
             } catch (ExpressionException e) {
                 throw new ConfigException(
                         "Found the invalid expression [%s] while evaluating [%s]: <%s>"

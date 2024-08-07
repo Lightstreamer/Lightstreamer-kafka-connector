@@ -74,11 +74,11 @@ public class RecordMappingsValidatorTest {
                 // List of mixed non-empty/empty-strings
                 arguments(
                         List.of("field1"),
-                        "Invalid value for configuration \"record.mapping\": Each entry must be in the form <field-name>:<expression>"),
+                        "Invalid value for configuration \"record.mapping\": Each entry must be in the form [fieldName]:[extractionExpression]"),
                 // Invalid expression
                 arguments(
                         List.of("field:VALUE"),
-                        "Invalid value for configuration \"record.mapping\": Expression must be in the form #{...}"),
+                        "Invalid value for configuration \"record.mapping\": Extraction expression must be in the form #{...}"),
                 // List of duplicate entry
                 arguments(
                         List.of("field1:#{VALUE}", "field1:#{KEY}"),

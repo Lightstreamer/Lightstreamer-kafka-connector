@@ -80,7 +80,7 @@ public class TopicMappingsValidator implements Validator {
                                         new ConfigException(
                                                 String.format(
                                                         "Invalid value for configuration \"%s\": Each entry must be in the form %s",
-                                                        name, "<topic-name>:<item-mappings>")));
+                                                        name, "[topicName]:[mappingList]")));
 
         // Validates <item-mapping>
         List<String> emptyEntryes =
@@ -88,12 +88,16 @@ public class TopicMappingsValidator implements Validator {
         if (!emptyEntryes.isEmpty()) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Topic mapping must be in the form %s",
+                            "Invalid value for configuration \"%s\": Mapping list must be in the form %s",
                             name,
-                            "<(item-template.template1|item1),...,(item-template.templateN|itemN)>"));
+                            "[item-template.template1|item1],...,[item-template.templateN|itemN]"));
         }
 
         // Returns <template-name>
         return pair.key();
+    }
+
+    public String toString() {
+        return "[topicName1]:[mappingList1],[topicName2]:[mappingList2],...";
     }
 }

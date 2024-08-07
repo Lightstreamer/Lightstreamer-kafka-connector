@@ -63,13 +63,13 @@ public class TopicMappingValidatorTest {
                     '  '                                @ Invalid value for configuration "topic.mappings": Must be a non-empty semicolon-separated list
                     ;                                   @ Invalid value for configuration "topic.mappings": Must be a semicolon-separated list of non-empty strings
                     topic-name:item;                    @ Invalid value for configuration "topic.mappings": Must be a semicolon-separated list of non-empty strings
-                    :                                   @ Invalid value for configuration "topic.mappings": Each entry must be in the form <topic-name>:<item-mappings>
-                    topic-name                          @ Invalid value for configuration "topic.mappings": Each entry must be in the form <topic-name>:<item-mappings>
-                    topic-name:                         @ Invalid value for configuration "topic.mappings": Each entry must be in the form <topic-name>:<item-mappings>
+                    :                                   @ Invalid value for configuration "topic.mappings": Each entry must be in the form [topicName]:[mappingList]
+                    topic-name                          @ Invalid value for configuration "topic.mappings": Each entry must be in the form [topicName]:[mappingList]
+                    topic-name:                         @ Invalid value for configuration "topic.mappings": Each entry must be in the form [topicName]:[mappingList]
                     topic-name:item1;topic-name:item2   @ Invalid value for configuration "topic.mappings": Duplicate key "topic-name"
-                    topic-name:item1,                   @ Invalid value for configuration "topic.mappings": Topic mapping must be in the form <(item-template.template1|item1),...,(item-template.templateN|itemN)>
-                    topic-name:,                        @ Invalid value for configuration "topic.mappings": Topic mapping must be in the form <(item-template.template1|item1),...,(item-template.templateN|itemN)>
-                    topic-name:item1,;topic-name2:item2 @ Invalid value for configuration "topic.mappings": Topic mapping must be in the form <(item-template.template1|item1),...,(item-template.templateN|itemN)>
+                    topic-name:item1,                   @ Invalid value for configuration "topic.mappings": Mapping list must be in the form [item-template.template1|item1],...,[item-template.templateN|itemN]
+                    topic-name:,                        @ Invalid value for configuration "topic.mappings": Mapping list must be in the form [item-template.template1|item1],...,[item-template.templateN|itemN]
+                    topic-name:item1,;topic-name2:item2 @ Invalid value for configuration "topic.mappings": Mapping list must be in the form [item-template.template1|item1],...,[item-template.templateN|itemN]
                 """)
     public void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =

@@ -281,14 +281,14 @@
 
         <!-- Mandatory if evaluator type is AVRO and the Confluent Schema Registry is disabled. The path of the local schema 
              file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for 
-             message validation respectively of the Kafka key and the Kafka value. -->
+             message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the Kafka key and 
-             the Kafka value. Can be one of the following:
+        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the key and 
+             value. Can be one of the following:
              - true
              - false
 

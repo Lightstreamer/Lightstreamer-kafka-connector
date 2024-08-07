@@ -50,8 +50,13 @@ public class ProxyAdapterAddressValidator implements Validator {
         if (!HOST.matcher(strValue).matches()) {
             throw new ConfigException(
                     String.format(
-                            "Invalid value for configuration \"%s\": Must be a valid address in the format <host>:<port>",
+                            "Invalid value for configuration \"%s\": Must be a valid address in the form host:port",
                             name));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "a string in the form host:port";
     }
 }
