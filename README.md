@@ -37,6 +37,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
   - [Lightstreamer Setup](#lightstreamer-setup)
   - [Installation](#installation-1)
   - [Configuration](#configuration-1)
+  - [Run](#run-1)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -1289,16 +1290,22 @@ In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter
 Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
-2. Copy the sample adapter `adapters.xml` to the `kafka-connect-proxy` directory.
+2. Copy the sample [`adapters.xml`](./kafka-connector-project/config/kafka-connect-proxy/adapters.xml) file to the `kafka-connect-proxy` directory.
 3. Edit the file as follows:
 
    - Update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
-
    - Update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
-
    - Update the parameter `request_reply_port` with the listening TCP port
-
-   - If authentication is required, 
+   - If authentication is required:
+     - Set the `auth` parameter to `Y`
+       ```xml
+       <param name="auth">Y</param>
+       ```
+     - Add the following parameters with the chosen credential settings:
+       ```xml
+       <param name="auth.credentials.1.user">USERNAME</param>
+       <param name="auth.credentials.1.password">PASSWORD</param>
+       ```
 
 > [!NOTE]
 > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ package)
@@ -1545,6 +1552,17 @@ topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
 The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
+
+### Run
+
+1. Launch Lighstreamer Server.
+   From the LS_HOME/bin/unix-like directory, run the following:
+
+   ```sh
+   $ ./start_background.sh
+   ```
+
+2. 
 
 
 ## Docs
