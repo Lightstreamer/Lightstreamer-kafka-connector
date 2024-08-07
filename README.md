@@ -1059,7 +1059,7 @@ and then configure the routing by referencing the template through the parameter
 > ```
 
 The item template is made of:
-- `<prefix>`: the prefix of the item name
+- `<item-prefix>`: the prefix of the item name
 - `<expressions>`: a sequence of _extraction expressions_, which define filtering rules specified as:
 
   ```js
