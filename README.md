@@ -1477,7 +1477,7 @@ The above configuration specifes:
 
 - A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
-- A _One To One _ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
+- A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
 
 ##### record.mappings
@@ -1503,7 +1503,7 @@ Example:
 
 ```
 record.mappings=index:#{KEY.}, \
-                stock_name:#{VALUE.name}, \\
+                stock_name:#{VALUE.name}, \
                 last_price:#{VALUE.last_price}
 ```
 
