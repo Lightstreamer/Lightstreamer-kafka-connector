@@ -1356,6 +1356,7 @@ The (optional) amount of time in milliseconds the connctor will wait for the soc
 
 - **Type:** int
 - **Default:** 5000 (5 seconds)
+- **Valid Values:** [0,...]
 - **Importance:** low
 
 Example:
@@ -1370,6 +1371,7 @@ The (optional) max number of retries to establish a connection to the Lighstream
 
 - **Type:** int
 - **Default:** 1
+- **Valid Values:** [0,...]
 - **Importance:** medium
 
 Example:
@@ -1384,7 +1386,8 @@ The (optional) amount of time in milliseconds to wait before retrying to establi
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
 
 - **Type:** long
-- **Default:** 0 (0 seconds)
+- **Default:** 5000 (5 seconds)
+- **Valid Values:** [0,...]
 - **Importance:** low
 
 Example:
@@ -1440,8 +1443,7 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
 
-Semicolon-separated list of mappings between source topics and Lightstreamer items.
-The list should describe a set of mappings in the form:
+Semicolon-separated list of mappings between source topics and Lightstreamer items. The list should describe a set of mappings in the form:
 
 `[topicName1]:[mappingList1];[topicName2]:[mappingList2];...[topicNameN]:[mappingListN]`
 
@@ -1488,13 +1490,13 @@ The list of mapping between Kafa records and Ligtstreamer fields. The list shoul
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
  
 where the Lightstreamer field `fieldNameX` whill hold the data extracted from a deserialized Kafka record using the 
-_Data Extraction Language_ `extractionExpressionN`. 
+_Data Extraction Language_ `extractionExpressionX`. 
 
 - **Type:** list
 - **Default:** none
 - **Valid Values:**<br>
    [fieldName1]:[extractionExpression1],<br>
-   [fieldName2]:[extractionExpressionN],...
+   [fieldName2]:[extractionExpression2],...
 - **Importance:** high
 
 Example:
@@ -1514,14 +1516,19 @@ The configuration above specifies the mapping between:
 
 ##### item.templates
 
-Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_.
+> [!IMPORTANT]
+> This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate-name) section.
+
+Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
+
+`[templteName1]:[templateExpression1];[templateName1]:[templateExpression2];...;[templateNamen]:[templateExpressionN]`
 
 - **Type:** string
-- **Importance:** medium
 - **Default:** null
+- **Valid Values:** null
+- **Importance:** high
 
-
-
+Example:
 
 ## Docs
 
