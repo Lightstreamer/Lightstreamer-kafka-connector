@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyAdapterClient {
@@ -52,15 +51,22 @@ public class ProxyAdapterClient {
         socket = new Socket();
         try {
             int retries = options.connectionMaxRetries;
-            while (retries-- >= 0) {
+            while (retries >= 0) {
                 try {
                     SocketAddress address = new InetSocketAddress(options.hostname, options.port);
                     socket.connect(address, options.connectionTimeout);
-                } catch (SocketTimeoutException e) {
-                    logger.warn("Socket timeout", e);
+                    break;
+                } catch (IOException e) {
+                    logger.warn("Connection error", e);
                     if (retries > 0) {
-                        logger.info("Waiting for %d ms before retrying the connection");
+                        logger.info(
+                                "Waiting for {} ms before retrying the connection",
+                                options.connectionRetryDelayMs);
+                        logger.info("{} retries left", retries);
+                        retries--;
                         TimeUnit.MILLISECONDS.sleep(options.connectionRetryDelayMs);
+                    } else {
+                        throw e;
                     }
                 }
             }

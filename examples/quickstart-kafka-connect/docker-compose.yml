@@ -5,7 +5,7 @@ services:
     container_name: kafka-connect
     image: lightstreamer-kafka-connect-lighstreamer-${version}
     volumes:
-       - ../../kafka-connector-project/kafka-connector/connect-config:/config
+       - ../../kafka-connector-project/config/kafka-connect-config:/config
     command:
       - connect-standalone
       - /config/connect-standalone.properties
@@ -26,8 +26,8 @@ services:
       - 6661:6661
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./remote_adapter:/lightstreamer/adapters/kafka-connect-proxy
-      - ./conf/lightstreamer_log_conf.xml:/lightstreamer/conf/lightstreamer_log_conf.xml
+      - ../../kafka-connector-project/config/kafka-connect-proxy:/lightstreamer/adapters/kafka-connect-proxy
+      #- ./conf/lightstreamer_log_conf.xml:/lightstreamer/conf/lightstreamer_log_conf.xml
 
   producer:
     container_name: producer
