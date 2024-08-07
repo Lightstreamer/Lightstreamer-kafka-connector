@@ -1292,11 +1292,13 @@ Before running the Connector plugin from a Kafka Connect deployment, you first n
 2. Copy the sample adapter `adapters.xml` to the `kafka-connect-proxy` directory.
 3. Edit the file as follows:
 
-   - update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
+   - Update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
 
-   - update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
+   - Update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
 
-   - update the parameter `request_reply_port` with the listening TCP port
+   - Update the parameter `request_reply_port` with the listening TCP port
+
+   - If authentication is required, 
 
 > [!NOTE]
 > As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ package)
@@ -1393,7 +1395,7 @@ The (optional) amount of time in milliseconds to wait before retrying to establi
 Example:
 
 ```
-lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=500
+lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 ```
 
 ##### lightstreamer.server.proxy_adapter.username
