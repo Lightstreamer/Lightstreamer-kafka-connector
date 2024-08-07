@@ -1089,8 +1089,8 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 Consider the following configuration:
 
 ```xml
-<param name=item-template.by-name>user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
-<param name=item-template.by-age>user-#{years=VALUE.age}</param>
+<param name="item-template.by-name">user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
+<param name="item-template.by-age">user-#{years=VALUE.age}</param>
 <param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
