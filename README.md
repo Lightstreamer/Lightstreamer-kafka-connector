@@ -1062,7 +1062,7 @@ Then, map one (or more) topic to the template by referecing it in the parameter 
 > ```
 
 The item template is made of:
-- `<prefix>`: the prefix of the item name
+- `<item-prefix>`: the prefix of the item name
 - `<expressions>`: a sequence of _extraction expressions_, which define filtering rules specified as:
 
   ```js
@@ -1447,25 +1447,14 @@ Semicolon-separated list of mappings between source topics and Lightstreamer ite
 
 `[topicName1]:[mappingList1];[topicName2]:[mappingList2];...[topicNameN]:[mappingListN]`
 
-where:
-
-- `topicNameX` is one of the topic specifed through the Kafka Connecet [`topics`](https://kafka.apache.org/documentation.html#sinkconnectorconfigs_topics) configuration
-- `mappingListX` is comma-separated list of item names or item templates
+where every specified topic (`[topicNameX]`) is mapped to the item names or item templates specified as comma-separated list (`[mappingListX]`).
 
 - **Type:** string
 - **Default:** none
 - **Valid Values:**<br>
-   [topicName1]:[mappingList1];<br>
-   [topicName2]:[mappingList2];...
+  [topicName1]:[mappingList1];<br>
+  [topicName2]:[mappingList2];...
 - **Importance:** high
-
-Example:
-
-```
-topic.mappings=sample-topic:sample-item1,sample-item2,sample-item3
-```
-
-The configuration above specifes a _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`.
 
 Example:
 
@@ -1475,7 +1464,7 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:orde
 
 The configuration above specifes:
 
-- A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `samle-item1`, `sample-item2`, and `sample-item3`
+- A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
@@ -1489,8 +1478,8 @@ The list of mapping between Kafa records and Ligtstreamer fields. The list shoul
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
  
-where the Lightstreamer field `fieldNameX` whill hold the data extracted from a deserialized Kafka record using the 
-_Data Extraction Language_ `extractionExpressionX`. 
+where the Lightstreamer field `[fieldNameX]` whill hold the data extracted from a deserialized Kafka record using the 
+_Data Extraction Language_ `[extractionExpressionX]`. 
 
 - **Type:** list
 - **Default:** none
@@ -1507,7 +1496,7 @@ record.mappings=index:#{KEY.}, \
                 last_price:#{VALUE.last_price}
 ```
 
-The configuration above specifies the mapping between:
+The configuration above specifies the following mappings:
 
 1. The record key to the Lightstreamer field `index`
 2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
@@ -1523,15 +1512,12 @@ Semicolon-separated list of _item templates_, which specify the rules to enable 
 
 `[templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]`
 
-where:
-
-- `templateNameX` is the name of the template
-- `templateX` is the general format of the Lightstreamer items
+where the `[templateX]` configures the item template `[templaeName]` defining the general format of the items the Lightstremer clients must subscribe to to receive udpdates.
 
 A template is specified in the form:
 
 ```
-[item-prefix]-#{paramName1=<extractionExpression1>,paramName2=<extractionExpression2>,...}
+item-prefix-#{paramName1=extractionExpression1,paramName2=extractionExpression2,...}
 ```
 
 To map a topic to an item template, reference it using the `item-template` prefix in the `topic.mappings` configuration:
@@ -1542,7 +1528,9 @@ topic.mappings=some-topic:item-template.templateName1,item-template.templateName
 
 - **Type:** string
 - **Default:** null
-- **Valid Values:** null
+- **Valid Values:**<br>
+  [templateName1]:[template1];<br>
+  [templateName2]:[template2];...
 - **Importance:** high
 
 Example:
@@ -1554,7 +1542,7 @@ item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
-The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define how to extract some personal data by leverging _Data Extraction Langauge_ expressions.
+The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
 
 
 ## Docs
