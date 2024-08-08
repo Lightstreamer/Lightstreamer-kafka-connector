@@ -39,7 +39,6 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Installation](#installation-1-1)
     - [Running](#running)
   - [Configuration Reference](#configuration-reference)
-  
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -419,7 +418,7 @@ Since Kafka Connector manages the physical connection to Kafka by wrapping an in
 
 #### General Parameters
 
-#### `data_provider['name']` - _Kafka Connection Name_
+##### `data_provider['name']` - _Kafka Connection Name_
 
 _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Connection Name_, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
@@ -445,13 +444,13 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-#### `adapter_class`
+##### `adapter_class`
 
 _Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
 
 Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorAdapter`.
 
-#### `enable`
+##### `enable`
 
 _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
