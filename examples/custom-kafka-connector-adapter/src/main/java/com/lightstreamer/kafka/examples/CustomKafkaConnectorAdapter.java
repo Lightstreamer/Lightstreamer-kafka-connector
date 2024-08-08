@@ -1,4 +1,4 @@
-package com.lightstreamer.kafka_connector.examples;
+package com.lightstreamer.kafka.examples;
 
 import java.io.File;
 import java.util.Map;
@@ -6,7 +6,7 @@ import java.util.Map;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.NotificationException;
-import com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter;
+import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 public class CustomKafkaConnectorAdapter extends KafkaConnectorMetadataAdapter {
 

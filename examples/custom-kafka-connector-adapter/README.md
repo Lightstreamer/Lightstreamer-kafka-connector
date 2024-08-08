@@ -20,7 +20,7 @@ Build the project with the command:
 $ ./gradlew build
 ```
 
-which generated the file `build/libs/custom-kafka-connector-adapter.jar`.
+which generates the `build/libs/custom-kafka-connector-adapter.jar` file.
 
 ## Configure
 
@@ -30,7 +30,7 @@ Update the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xm
 ...
 <metadata_provider>
     ...
-    <adapter_class>com.lightstreamer.kafka_connector.examples.CustomKafkaConnectorAdapter</adapter_class>
+    <adapter_class>com.lightstreamer.kafka.examples.CustomKafkaConnectorAdapter</adapter_class>
     ...
 </metadata_provider>
 ...
@@ -38,7 +38,7 @@ Update the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xm
 
 ## Deploy
 
-Copy the generated jar file - along with all dependencies - under the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
+Copy the generated jar file - along with all dependencies (if any) - under the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
 ## Start
 
