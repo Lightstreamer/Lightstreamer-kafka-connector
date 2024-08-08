@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Do not remove this line. File tag: adapters_conf-APV-7.4.0. -->
 
 <!--
-    This is a generic template for the configuration file of an Adapter Set
-    pluggable into Lightstreamer Server.
-    It can be considered a reference example of Proxy Adapters deploy.
+    This is a sample configuration file of a Proxy Adapter to enable the
+    communication with a remote instance of the Lightstreamer Kafka Connector deployed
+    as sink connector plugin to Kafka Connect.
+
     Note that element and attribute names are handled in a case sensitive way.
 
     A very simple variable-expansion feature is available; see
     <enable_expansion_for_adapters_config> in the Server's main configuration file.
 -->
 
-<!-- Mandatory. Define an Adapter Set and its unique ID. -->
+<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
 
     <!-- Mandatory. The Metadata Adapter is the Java Proxy Adapter. -->

@@ -53,7 +53,7 @@ public class DataAdapterConfigurator {
 
     private DataAdapterConfigurator() {}
 
-    static DataAdapterConfig configure(LightstreamerConnectorConfig config) {
+    static DataAdapterConfig configure(LightstreamerConnectorConfig config) throws ConfigException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
         SelectorSuppliers<Object, Object> sSuppliers =

@@ -18,8 +18,12 @@
 package com.lightstreamer.kafka.connect.proxy;
 
 import com.lightstreamer.adapters.remote.DataProvider;
+import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.DataProviderServer;
+import com.lightstreamer.adapters.remote.MetadataProviderException;
+import com.lightstreamer.adapters.remote.RemotingException;
 
+import org.apache.kafka.connect.errors.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,47 +45,55 @@ public class ProxyAdapterClient {
         this.options = options;
     }
 
-    public void start(DataProvider provider) {
+    public void start(DataProvider provider) throws RemotingException {
         logger.info(
                 "Starting connection with Lighstreamer'server Proxy Adapter at {}:{}",
                 options.hostname,
                 options.port);
         dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(provider);
+        if (options.username != null && options.password != null) {
+            dataProviderServer.setRemoteUser(options.password);
+            dataProviderServer.setRemotePassword(options.password);
+        }
+
         socket = new Socket();
-        try {
-            int retries = options.connectionMaxRetries;
-            while (retries >= 0) {
-                try {
-                    SocketAddress address = new InetSocketAddress(options.hostname, options.port);
-                    socket.connect(address, options.connectionTimeout);
-                    break;
-                } catch (IOException e) {
-                    logger.warn("Connection error", e);
-                    if (retries > 0) {
-                        logger.info(
-                                "Waiting for {} ms before retrying the connection",
-                                options.connectionRetryDelayMs);
-                        logger.info("{} retries left", retries);
-                        retries--;
+        int retries = options.connectionMaxRetries;
+        while (retries >= 0) {
+            try {
+                SocketAddress address = new InetSocketAddress(options.hostname, options.port);
+                socket.connect(address, options.connectionTimeout);
+                dataProviderServer.setReplyStream(socket.getOutputStream());
+                dataProviderServer.setRequestStream(socket.getInputStream());
+
+                logger.info("Connected to Lightstreame Proxy Aadapter");
+                break;
+
+            } catch (IOException io) {
+                logger.error(
+                        "Error while opening the connection with Lightstreamer Proxy Adapter", io);
+                if (retries > 0) {
+                    logger.info(
+                            "Waiting for {} ms before retrying the connection",
+                            options.connectionRetryDelayMs);
+                    logger.info("{} retries left", retries);
+                    retries--;
+                    try {
                         TimeUnit.MILLISECONDS.sleep(options.connectionRetryDelayMs);
-                    } else {
-                        throw e;
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new ConnectException(ie);
                     }
+                } else {
+                    throw new ConnectException(io);
                 }
             }
+        }
 
-            dataProviderServer.setReplyStream(socket.getOutputStream());
-            dataProviderServer.setRequestStream(socket.getInputStream());
-            if (options.username != null && options.password != null) {
-                dataProviderServer.setRemoteUser(options.password);
-                dataProviderServer.setRemotePassword(options.password);
-            }
+        try {
             dataProviderServer.start();
-            logger.info("Connected to Lightstreame Proxy Aadapter");
-        } catch (Exception e) {
-            logger.error("Error while opening the connection with Lightstreamer Proxy Adapter", e);
-            throw new RuntimeException(e);
+        } catch (MetadataProviderException | DataProviderException e) {
+            // Actually no longer thrown
         }
     }
 

@@ -92,7 +92,7 @@ public class StreamingDataAdapter implements DataProvider {
     ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
         if (context != null) {
             try {
-                // may be null if DLQ not enabled
+                // may be null if DLQ is not enabled
                 ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
                 if (errantRecordReporter != null) {
                     logger.info("Errant record reporter not configured.");

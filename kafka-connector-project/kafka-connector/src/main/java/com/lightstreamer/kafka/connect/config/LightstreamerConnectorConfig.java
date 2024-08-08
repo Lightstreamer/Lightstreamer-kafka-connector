@@ -91,12 +91,14 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME =
             "lightstreamer.server.proxy_adapter.username";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME_DOC =
-            "The username to use for authenticating to the Lightstreamer'server Proxy Adapter.";
+            "The username to use for authenticating to the Lightstreamer server's Proxy Adapter. "
+                    + "This setting requires authentication to be enabled in the configuration of the Proxy Adapter.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD =
             "lightstreamer.server.proxy_adapter.password";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD_DOC =
-            "The password to use for authenticating to the Lightstreamer'server Proxy Adapter.";
+            "The password to use for authenticating to the Lightstreamer server's Proxy Adapter. "
+                    + "This setting requires authentication to be enabled in the configuration of the Proxy Adapter.";
 
     public static final String ITEM_TEMPLATES = "item.templates";
     public static final String ITEM_TEMPLATES_DOC =

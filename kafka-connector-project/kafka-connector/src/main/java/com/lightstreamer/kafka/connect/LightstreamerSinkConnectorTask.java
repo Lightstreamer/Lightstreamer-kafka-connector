@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.connect;
 
+import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.kafka.common.utils.Version;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
@@ -24,6 +25,7 @@ import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
@@ -54,7 +56,11 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
         adapter = new StreamingDataAdapter(config, context);
         proxyAdapterClient = new ProxyAdapterClient(cfg.getProxyAdapterClientOptions());
-        proxyAdapterClient.start(adapter);
+        try {
+            proxyAdapterClient.start(adapter);
+        } catch (RemotingException e) {
+            throw new ConnectException(e);
+        }
     }
 
     @Override
