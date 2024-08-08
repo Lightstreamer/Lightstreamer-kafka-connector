@@ -141,7 +141,15 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
             "record.extraction.error.strategy";
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY_DOC =
-            "The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.";
+            """
+            The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
+
+            - TERMINATE_TASK: terminate the task immediately
+            - IGNORE_AND_CONTINUE: ignore the error and continue to process the next record
+            - FORWARD_TO_DLQ: forward the record to the dead letter queue
+
+            In particular, the FORWARD_TO_DLQ value requires a dead letter queue to be configured; otherwise it will fallback to TERMINATE_TASK.
+            """;
 
     public static ConfigDef makeConfig() {
         return new ConfigDef()
@@ -237,8 +245,6 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .recommender(RecordErrorHandlingStrategies.RECOMMENDER)
                                 .importance(Importance.MEDIUM)
                                 .documentation(RECORD_EXTRACTION_ERROR_STRATEGY_DOC)
-                                .documentation(
-                                        "The error handling strategy to be used if an error occurs while extracting data from incoming deserialized records")
                                 .build());
     }
 
