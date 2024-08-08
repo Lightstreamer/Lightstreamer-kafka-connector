@@ -1577,9 +1577,9 @@ The configuration above specifies how to route records published from the topic 
 
 ### Running
 
-1. Follow the instruction the [Start](#start) section to perform the following actions:
+1. Follow the instructions the [Start](#start) section to perform the following actions:
 
-   a. Launching the Lightstreamer Server instance already configured as shown in the [Lightstreamer Setup](#lightstreamer-setup) section
+   a. Launching the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section
 
    b. Attaching a Lighstreamer consumer
 
@@ -1595,7 +1595,7 @@ The configuration above specifies how to route records published from the topic 
 
 3. Check consumed events.
 
-   You shouls see real-time updated as shown in the point 4 of the [Lightstreamer Setup](#lightstreamer-setup) section
+   You shouls see real-time updated as shown in the point 4 of the [Start](#start) section.
 
 
 ## Docs
