@@ -37,7 +37,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
   - [Lightstreamer Setup](#lightstreamer-setup)
   - [Installation](#installation-1)
   - [Configuration](#configuration-1)
-  - [Run](#run-1)
+  - [Running](#running)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -282,7 +282,7 @@ where you have to replace `username` and `password` with the credentials generat
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-3. Publish Events.
+3. ##### Publish Events.
 
    The [`examples/quickstart-producer`](examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -1281,7 +1281,7 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 ## Usage in Kafka Connect
 
-Lightstreamer Kafka Connector is also available as _Connector plugin_ to be installed into _Kafka Connect_.
+Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
 
 In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
@@ -1294,21 +1294,27 @@ Before running the Connector plugin from a Kafka Connect deployment, you first n
 3. Edit the file as follows:
 
    - Update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
+
    - Update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
-   - Update the parameter `request_reply_port` with the listening TCP port
+
+   - Update the parameter `request_reply_port` with the listening TCP port:
+     ```xml
+     <param name="request_reply_port">6661</param>
+     ```
+
    - If authentication is required:
      - Set the `auth` parameter to `Y`
        ```xml
        <param name="auth">Y</param>
        ```
-     - Add the following parameters with the chosen credential settings:
+     - Add the following parameters with the selected credential settings:
        ```xml
        <param name="auth.credentials.1.user">USERNAME</param>
        <param name="auth.credentials.1.password">PASSWORD</param>
        ```
 
 > [!NOTE]
-> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory adapters.xml file included in the _Kafka Connector_ package)
+> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file included in the _Kafka Connector_ package)
 
 Finally, check that the Lightstreamer layout looks like the following:
 
@@ -1326,7 +1332,7 @@ LS_HOME/
 ```
 ### Installation
 
-To install the Connector plugin on a local installation of Confluent Platform:
+To install the Sink Connector plugin on a local installation of Confluent Platform:
 
 1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1336,7 +1342,11 @@ $ ./gradlew connectDistZip
 
 which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder
 
-2. Extract the zip file into the desired location
+2. Extract the zip file into the desired location.
+
+3. Edit a configuration properties file by following the instructions of the next section.
+
+> [!TIP] The zip file contains a pre-configured [`etc/quickstart-lightstreamer.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer.properties) file you can start from.
 
 #### Configuration
 
@@ -1407,7 +1417,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 
 ##### lightstreamer.server.proxy_adapter.username
 
-The username to use for authenticating to the Lightstreamer'server Proxy Adapter.
+The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
 - **Type:** string
 - **Importance:** medium
@@ -1421,7 +1431,7 @@ lightstreamer.server.proxy_adapter.username=lightstreamer_user
 
 ##### lightstreamer.server.proxy_adapter.password
 
-The password to use for authenticating to the Lightstreamer'server Proxy Adapter.
+The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
 - **Type:** string
 - **Default:** none
@@ -1434,10 +1444,15 @@ Example:
 
 ##### record.extraction.error.strategy
 
-The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records.
+The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
+
+- `TERMINATE_TASK`: terminate the task immediately
+- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
+- `FORWARD_TO_DLQ`: forward the record to the configured [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/).
+
 
 - **Type:** string
-- **Default:** `IGNORE_AND_CONTINUE`
+- **Default:** `TERMINATE_TASK`
 - **Valid Values:** [`IGNORE_AND_CONTINUE`, `FORWARD_TO_DLQ`, `TERMINATE_TASK`]
 - **Importance:** medium
 
@@ -1553,17 +1568,27 @@ topic.mappings=user:item-template.by-name,item-template.by-age
 
 The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
 
-### Run
+### Running
 
-1. Launch Lighstreamer Server.
-   From the LS_HOME/bin/unix-like directory, run the following:
+1. Launch Lighstreamer Server
+
+   From the `LS_HOME/bin/unix-like` directory, run the following:
 
    ```sh
    $ ./start_background.sh
    ```
 
-2. 
+2. Start Kafka Connect
 
+   From the local Confluent Platform installation directory, execute the command:
+
+   ```sh
+   $ bin/connect-standalone.sh config/connect-standalone.properties config/qdrant-kafka.properties
+   ```
+
+3. Publish Events
+
+   Follow [these instructions](#publish-events) to publish simulated market events.
 
 ## Docs
 
