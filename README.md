@@ -156,6 +156,7 @@ To quickly complete the installation and verify the successful integration with 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
+
 - Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file)
 
 - Configure topic and record mapping:
@@ -179,8 +180,8 @@ To quickly complete the installation and verify the successful integration with 
 
   This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
 
-  - `stock-[index=1]`: an item with the parameter `index` bound to a record key equal to `1`
-  - `stock-[index=2]`: an item with the parameter `index` bound to a record key equal to `2`
+  - `stock-[index=1]`: an item with the `index` parameter bound to a record key equal to `1`
+  - `stock-[index=2]`: an item with the `index` parameter bound to a record key equal to `2`
   - ...
 
   Kafka Connector will then route the event to all matched items.
@@ -253,7 +254,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ ./start_background.sh
    ```
 
-2. Attach a Lightstreamer Consumer.
+2. Attach a Lightstreamer consumer.
 
    The [`kafka-connector-utils`](kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -282,7 +283,7 @@ where you have to replace `username` and `password` with the credentials generat
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-3. ##### Publish Events.
+3. Publish the events.
 
    The [`examples/quickstart-producer`](examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -338,7 +339,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-4. Check Consumed Events.
+4. Check the consumed events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
@@ -896,7 +897,7 @@ As anticipated in the [_Installation_](#configure) section, a Kafka record can b
 
 ##### Record Routing (`map.<topic>.to`)
 
-To configure the routing of Kafka event streams to Lightstreamer items, use at least one parameter `map.<topic>.to`. The general format is:
+To configure the routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
 
 ```xml
 <param name="map.<topic-name>.to">item1,item2,itemN,...</param>
@@ -1043,13 +1044,13 @@ The item template leverages the _Data Extraction Language_ to extract data from 
 
 ![filtered-routing](pictures/filtered-routing.png)
 
-To configure an item template, use the parameter `item-template.<template-name>`:
+To configure an item template, use the `item-template.<template-name>` parameter:
 
 ```xml
 <param name="item-template.<template-name>"><item-prefix>-<expressions></param>
 ```
 
-Then, map one (or more) topic to the template by referecing it in the parameter `map.<topic>.to`:
+Then, map one (or more) topic to the template by referecing it in the `map.<topic>.to` parameter:
 
 ```xml
 <param name="map.<topic>.to">item-template.<template-name></param>
@@ -1102,11 +1103,10 @@ which specifies how to route records published from the topic `user` to the item
 
 Let's suppose we have three different Lightstreamer clients:
 
-1. _Client A_ subscribes to:
-   - the parameterized item _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`
-   - the parameterized item _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user
-2. _Client B_ subscribes to:
-   - the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`
+1. _Client A_ subscribes to the following parameterized items:
+   - _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`
+   - _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user
+2. _Client B_ subscribes to the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`.
 3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]` for receiving real-time updates relative to any 37 year-old user.
 
 Now, let's see how filtered routing works for the following incoming Kafka records published to the topic `user`:
@@ -1290,24 +1290,31 @@ In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter
 Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
+
 2. Copy the sample [`adapters.xml`](./kafka-connector-project/config/kafka-connect-proxy/adapters.xml) file to the `kafka-connect-proxy` directory.
+
 3. Edit the file as follows:
 
-   - Update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier)
+   - Update the `id` attribute of the `adapters_conf` root tag. This settings has the same role of the already documented [Kafka Connector Identifier](#adapter_confid---kafka-connector-identifier).
 
-   - Update the name attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name)
+   - Update the `name` attribute of the data_provider tag. This settings has the same role of the already documented [Kafka Connection Name](#data_providername---kafka-connection-name).
 
-   - Update the parameter `request_reply_port` with the listening TCP port:
+   - Update the `request_reply_port` parameter with the listening TCP port:
+
      ```xml
      <param name="request_reply_port">6661</param>
      ```
 
    - If authentication is required:
-     - Set the `auth` parameter to `Y`
+
+     - Set the `auth` parameter to `Y`:
+
        ```xml
        <param name="auth">Y</param>
        ```
+
      - Add the following parameters with the selected credential settings:
+
        ```xml
        <param name="auth.credentials.1.user">USERNAME</param>
        <param name="auth.credentials.1.password">PASSWORD</param>
@@ -1570,15 +1577,15 @@ The configuration above specifies how to route records published from the topic 
 
 ### Running
 
-1. Launch Lighstreamer Server
+1. Follow the instruction the [Start](#start) section to perform the following actions:
 
-   From the `LS_HOME/bin/unix-like` directory, run the following:
+   a. Launching the Lightstreamer Server instance already configured as shown in the [Lightstreamer Setup](#lightstreamer-setup) section
 
-   ```sh
-   $ ./start_background.sh
-   ```
+   b. Attaching a Lighstreamer consumer
 
-2. Start Kafka Connect
+   c. Publising stock market events
+
+2. Start Kafka Connect.
 
    From the local Confluent Platform installation directory, execute the command:
 
@@ -1586,9 +1593,10 @@ The configuration above specifies how to route records published from the topic 
    $ bin/connect-standalone.sh config/connect-standalone.properties config/qdrant-kafka.properties
    ```
 
-3. Publish Events
+3. Check consumed events.
 
-   Follow [these instructions](#publish-events) to publish simulated market events.
+   You shouls see real-time updated as shown in the point 4 of the [Lightstreamer Setup](#lightstreamer-setup) section
+
 
 ## Docs
 
