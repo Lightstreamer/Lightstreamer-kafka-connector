@@ -33,11 +33,13 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Usage in Kafka Connect](#usage-in-kafka-connect)
-  - [Lightstreamer Setup](#lightstreamer-setup)
-  - [Installation](#installation-1)
-  - [Configuration](#configuration-1)
-  - [Running](#running)
+- [Lightstreamer Sink Connector](#lightstreamer-sink-connector)
+  - [Usage](#usage)
+    - [Lightstreamer Setup](#lightstreamer-setup)
+    - [Installation](#installation-1-1)
+    - [Running](#running)
+  - [Configuration Reference](#configuration-reference)
+  
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -157,22 +159,22 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file)
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
-- Configure topic and record mapping:
+- Configure topic and record mapping.
 
-  since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
+  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
   The `QuickStart` [factory configuration](kafka-connector-project/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
-  - an item template:
+  - An item template:
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
     which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
-  - a topic mapping:
+  - A topic mapping:
     ```xml
     <param name="map.stocks.to">item-template.stock</param>
     ```
@@ -417,7 +419,7 @@ Since Kafka Connector manages the physical connection to Kafka by wrapping an in
 
 #### General Parameters
 
-##### `data_provider['name']` - _Kafka Connection Name_
+#### `data_provider['name']` - _Kafka Connection Name_
 
 _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Connection Name_, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
@@ -443,13 +445,13 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-##### `adapter_class`
+#### `adapter_class`
 
 _Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
 
 Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorAdapter`.
 
-##### `enable`
+#### `enable`
 
 _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
@@ -1279,13 +1281,15 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
 
-## Usage in Kafka Connect
+## Lightstreamer Sink Connector
 
 Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
 
 In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
-### Lightstreamer Setup
+### Usage
+
+#### Lightstreamer Setup
 
 Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
@@ -1337,9 +1341,9 @@ LS_HOME/
 ├── bin
 ...
 ```
-### Installation
+#### Installation
 
-To install the Sink Connector plugin on a local installation of Confluent Platform:
+To install the Lightstreamer Sink Connector plugin on a local installation of Confluent Platform:
 
 1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1347,22 +1351,49 @@ To install the Sink Connector plugin on a local installation of Confluent Platfo
 $ ./gradlew connectDistZip
 ```
 
-which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder
+which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
 
-2. Extract the zip file into the desired location.
+1. Extract the zip file into the desired location.
 
-3. Edit a configuration properties file by following the instructions of the next section.
+2. Edit the worker configuration properties.
 
-> [!TIP] The zip file contains a pre-configured [`etc/quickstart-lightstreamer.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer.properties) file you can start from.
+3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
 
-#### Configuration
+   You may want to use the [`etc/quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties.properties) file as starting pint. The file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
 
-##### `connector.class`
+
+#### Running
+
+1. Follow the first 3 steps od the [Start](#start) section to perform the following actions:
+
+   a. Launching the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section
+
+   b. Attaching a Lighstreamer consumer
+
+   c. Publising stock market events
+
+2. Start Kafka Connect.
+
+   From the local Confluent Platform installation directory, execute the command:
+
+   ```sh
+   $ bin/connect-standalone.sh config/connect-standalone.properties config/qdrant-kafka.properties
+   ```
+
+3. Check consumed events.
+
+   You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
+
+### Configuration Reference
+
+The Lightstreamer Sink Connector configuration properties are described below.
+
+#### `connector.class`
 
 To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
-##### lightstreamer.server.proxy_adapter.address
+#### lightstreamer.server.proxy_adapter.address
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
 
@@ -1376,7 +1407,7 @@ Example:
 lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
 ```
 
-##### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
+#### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
 
 The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
@@ -1391,7 +1422,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
 ```
 
-##### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
+#### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
 
 The (optional) max number of retries to establish a connection to the Lighstreamer server's Proxy Adapter.
 
@@ -1406,7 +1437,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ```
 
-##### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
+#### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lighstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
@@ -1422,7 +1453,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 ```
 
-##### lightstreamer.server.proxy_adapter.username
+#### lightstreamer.server.proxy_adapter.username
 
 The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1436,7 +1467,7 @@ Example:
 lightstreamer.server.proxy_adapter.username=lightstreamer_user
 ```
 
-##### lightstreamer.server.proxy_adapter.password
+#### lightstreamer.server.proxy_adapter.password
 
 The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1449,7 +1480,7 @@ Example:
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
 
-##### record.extraction.error.strategy
+#### record.extraction.error.strategy
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
@@ -1469,7 +1500,7 @@ Example:
 record.extraction.error.strategy=FORWARD_TO_DLQ
 ```
 
-##### topic.mappings
+#### topic.mappings
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
@@ -1500,7 +1531,7 @@ The configuration above specifes:
 - A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
 
-##### record.mappings
+#### record.mappings
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
@@ -1534,7 +1565,7 @@ The configuration above specifies the following mappings:
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 
-##### item.templates
+#### item.templates
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate-name) section.
@@ -1574,29 +1605,6 @@ topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
 The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
-
-### Running
-
-1. Follow the instructions the [Start](#start) section to perform the following actions:
-
-   a. Launching the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section
-
-   b. Attaching a Lighstreamer consumer
-
-   c. Publising stock market events
-
-2. Start Kafka Connect.
-
-   From the local Confluent Platform installation directory, execute the command:
-
-   ```sh
-   $ bin/connect-standalone.sh config/connect-standalone.properties config/qdrant-kafka.properties
-   ```
-
-3. Check consumed events.
-
-   You shouls see real-time updated as shown in the point 4 of the [Start](#start) section.
-
 
 ## Docs
 
