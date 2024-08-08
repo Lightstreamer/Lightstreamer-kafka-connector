@@ -1290,7 +1290,7 @@ In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter
 
 #### Lightstreamer Setup
 
-Before running the Connector plugin from a Kafka Connect deployment, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
+Before running the Connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
 
@@ -1340,48 +1340,6 @@ LS_HOME/
 ├── bin
 ...
 ```
-#### Installation
-
-To install the Lightstreamer Sink Connector plugin on a local installation of Confluent Platform:
-
-1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
-
-```sh
-$ ./gradlew connectDistZip
-```
-
-which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
-
-1. Extract the zip file into the desired location.
-
-2. Edit the worker configuration properties.
-
-3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
-
-   You may want to use the [`etc/quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties.properties) file as starting pint. The file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
-
-
-#### Running
-
-1. Follow the first 3 steps od the [Start](#start) section to perform the following actions:
-
-   a. Launching the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section
-
-   b. Attaching a Lighstreamer consumer
-
-   c. Publising stock market events
-
-2. Start Kafka Connect.
-
-   From the local Confluent Platform installation directory, execute the command:
-
-   ```sh
-   $ bin/connect-standalone.sh config/connect-standalone.properties config/qdrant-kafka.properties
-   ```
-
-3. Check consumed events.
-
-   You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
 
 ### Configuration Reference
 
@@ -1485,7 +1443,9 @@ The (optional) error handling strategy to be used if an error occurs while extra
 
 - `TERMINATE_TASK`: terminate the task immediately
 - `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORWARD_TO_DLQ`: forward the record to the configured [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/).
+- `FORWARD_TO_DLQ`: forward the record to the dead letter queue
+
+In particular, the `FORWARD_TO_DLQ` value requires a [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/) to be configured; otherwise it will fallback to `TERMINATE_TASK`.
 
 
 - **Type:** string
@@ -1528,7 +1488,6 @@ The configuration above specifes:
 - A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
-
 
 #### record.mappings
 
@@ -1611,4 +1570,4 @@ The [docs](docs/) folder contains the complete [Kafka Connector API Specificatio
 
 ## Examples
 
-The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may take a look at the [_Airport Demo_](examples/airport-demo/), which provides more insights into various usage and configuration options of Kafka Connector.
+The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you explorethe [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
