@@ -1343,7 +1343,7 @@ LS_HOME/
 ```
 #### Running
 
-To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform:
+To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform and run it [standalone mode](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
 1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1355,7 +1355,7 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
 
 2. Extract the zip file into the desired location. For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
 
-3. Edit the worker configuration properties, ensuring you specify the previous path to the `plugin.path` properties, for example:
+3. Edit the worker configuration properties, ensuring you include the previous path in the `plugin.path` properties, for example:
    
    ```
    plugins.path=/usr/local/share/kafka/plugins

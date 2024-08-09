@@ -32,8 +32,8 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
    ```sh
    $ docker image ls kafka-connector-<version>
 
-   REPOSITORY                            TAG               IMAGE ID       CREATED          SIZE
-   lightstreamer-kafka-connector-0.1.0   latest            f77fc60f7892   13 minutes ago   602MB
+   REPOSITORY                              TAG               IMAGE ID       CREATED          SIZE
+   lightstreamer-kafka-connector-<version> latest            f77fc60f7892   13 minutes ago   602MB
    ```
 
 4. Launch the container with:

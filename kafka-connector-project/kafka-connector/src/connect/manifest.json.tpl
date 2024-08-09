@@ -2,7 +2,7 @@
   "name": "${name}",
   "version": "${version}",
   "title": "${title}",
-  "description": "Lightstreamer Kafka Connector is a sink connector used to move data from Kafka into Lightstreamer.",
+  "description": "The Kafka Connect Lightstreamer Sink connector is used to move data from Kafka into Lightstreamer.",
   "owner": {
     "username": "${owner}",
     "type": "organization",

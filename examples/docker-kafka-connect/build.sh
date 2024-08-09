@@ -12,8 +12,5 @@ mkdir -p ${TMP_DIR}
 rm -fr ${TMP_DIR}/
 unzip ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${version}.zip -d ${TMP_DIR}
 
-echo "Build the Connect Docker image"
+echo "Build the Kafka Connect Lightstreamer Sink Connector Docker image"
 docker build -t lightstreamer-kafka-connect-lighstreamer-${version} $SCRIPT_DIR --build-arg VERSION=${version} "$@"
-
-echo "Launch the image with:"
-echo "docker run --name lightstreamer-kafka-connect-lighstreamer -d lightstreamer-kafka-connect-lighstreamer-${version}"
