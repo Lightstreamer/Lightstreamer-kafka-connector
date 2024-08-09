@@ -1286,6 +1286,8 @@ Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be
 
 In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
+![KafkaConnectArchitecture](pictures/kafka-connect.png)
+
 ### Usage
 
 #### Lightstreamer Setup
@@ -1324,7 +1326,7 @@ Before running the Connector, you first need to deploy a Proxy Adapter into the 
        ```
 
 > [!NOTE]
-> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file included in the _Kafka Connector_ package)
+> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file included in the _Kafka Connector_ distribution package).
 
 Finally, check that the Lightstreamer layout looks like the following:
 
@@ -1570,4 +1572,4 @@ The [docs](docs/) folder contains the complete [Kafka Connector API Specificatio
 
 ## Examples
 
-The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you explorethe [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
+The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
