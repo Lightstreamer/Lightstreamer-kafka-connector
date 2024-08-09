@@ -1284,7 +1284,7 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
 
-In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
+In this scenario, an instance of the connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
 ![KafkaConnectArchitecture](pictures/kafka-connect.png)
 
@@ -1356,7 +1356,7 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
 
 2. Extract the zip file into the desired location. For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
 
-3. Edit the worker configuration properties, ensuring you include the previous path in the `plugin.path` properties, for example:
+3. Edit the worker configuration properties file, ensuring you include the previous path in the `plugin.path` properties, for example:
    
    ```
    plugins.path=/usr/local/share/kafka/plugins
@@ -1390,6 +1390,8 @@ To verify that an events stream actually flows from Kafka to a Lighstreamer cons
    # Schema Registry URL
    schema.registry.url=http://<schema-registry-address>:<schema-registry-port>
    ```
+
+   This configuration enables the producer to use the leverages the Schema Registry, which is required by Kafka Connect when a connector wants to deserialize JSON messages (unless an embedded schema is provided).
 
 2. Publish events as specified in the step 3 of the [Start](#start) section.
 
