@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-    This is a sample configuration file of a Proxy Adapter to enable the
-    communication with a remote instance of the Lightstreamer Kafka Connector deployed
-    as sink connector plugin to Kafka Connect.
+    This is a sample configuration file of a Proxy Adapter to enable the communication 
+    with a remote instance of the Kafka Connect Lightstreamer Sink Connector plugin.
 
     Note that element and attribute names are handled in a case sensitive way.
 
