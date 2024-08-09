@@ -10,11 +10,16 @@ As with the original Quickstart application, this app is structured as a Docker 
 
 1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). 
 
-2. _kafka-connect-lightstreamer-sink_: Kafka Connect Lightstreamer Sink Connector, based on the [Kafka Connect Lightstreamer Sink Connector Docker image example](../docker-kafka-connect/).
+2. _kafka-connect-lightstreamer-sink_: Kafka Connect with the Lightstreamer Sink connector plugin, based on the [Kafka Connect Lightstreamer Sink Connector Docker image example](../docker-kafka-connect/).
+
+    The service starts a Kafka Connect worker in standalone mode.
+    Kafka Connect's [worker configuration](../../kafka-connector-project/config/kafka-connect-config/connect-standalone-docker.properties) and [connector configuration](../../kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-docker.properties) mounted on `/config`.
 
 3. _schema-registry_: Schema Registry, based on the [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry).
 
-4. _lightstreamer_: Lightstreamer Server, which also includes a web client mounted on `/lightstreamer/pages/QuickStart`.
+4. _lightstreamer_: Lightstreamer Server, which also includes the following:
+    - A web client mounted on `/lightstreamer/pages/QuickStart`.
+    - A [Proxy adapter configuration](../../kafka-connector-project/config/kafka-connect-proxy/adapters.xml) mounted on `/lightstreamer/adapters/kafka-connect-proxy`.
 
 5. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) producer sample client.
 

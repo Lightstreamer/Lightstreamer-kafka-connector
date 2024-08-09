@@ -37,6 +37,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
   - [Usage](#usage)
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
+    - [Running in Docker](#running-in-docker)
   - [Configuration Reference](#configuration-reference)
 - [Docs](#docs)
 - [Examples](#examples)
@@ -1397,9 +1398,16 @@ To verify that an events stream actually flows from Kafka to a Lighstreamer cons
    ```sh
    $ java -jar examples/quckstart-producer/deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
    ```
+
 3. Check the consumed events.
 
    You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
+
+#### Running in Docker
+
+If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder. 
+
+In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
 ### Configuration Reference
 
