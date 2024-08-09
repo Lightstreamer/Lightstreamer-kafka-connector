@@ -67,7 +67,7 @@ To efficiently showcase the functionalities of Lightstreamer Kafka Connector, we
 
 ![Quickstart Diagram](pictures/quickstart-diagram.png)
 
-The diagram above illustrates how in this setup, a stream of simulated market events is channeled from Kafka to the web client via Lightstreamer Kafka Connector.
+The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via Lightstreamer Kafka Connector.
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
@@ -1365,7 +1365,7 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
 
 3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
    
-   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. The file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. This file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
 
 4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
 
@@ -1375,7 +1375,7 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
    $ bin/connect-standalone.sh connect-standalone-local.properties quickstart-lightstreamer-local.properties
    ```
 
-To verify that an events stream actually flows from Kafka to a Lighstreamer consumer levaring the same example already shwon in the [Start](#start) section:
+To verify that an events stream actually flows from Kafka to a Lighstreamer consumer leveraging the same example already shwon in the [Start](#start) section:
 
 1. Attach a Lighstreamer consumer as specified in the step 2 of the [Start](#start) section.
 

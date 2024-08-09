@@ -32,7 +32,7 @@ services:
     container_name: producer
     depends_on:
       - broker
-      #- schema-registry
+      - schema-registry
     build:
       context: ../quickstart-producer
       args:
@@ -69,20 +69,20 @@ services:
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
       KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
 
-  # schema-registry:
-  #   image: confluentinc/cp-schema-registry:7.5.0
-  #   hostname: schema-registry
-  #   container_name: schema-registry
-  #   depends_on:
-  #     - broker
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry
-  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
-  #     SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
-  #   volumes:
-  #    - ./secrets/schema-registry:/etc/schema-registry/secrets
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+    volumes:
+     - ./secrets/schema-registry:/etc/schema-registry/secrets
 
 configs:
   producer.properties:
@@ -99,4 +99,3 @@ configs:
       connect.log.pattern=[%d] %p %X{connector.context}%m (%c:%L)%n
       log4j.appender.stdout.layout.ConversionPattern=$${connect.log.pattern}
       log4j.logger.org.reflections=ERROR
-
