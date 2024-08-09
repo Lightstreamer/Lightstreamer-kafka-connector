@@ -33,10 +33,9 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Lightstreamer Sink Connector](#lightstreamer-sink-connector)
+- [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
     - [Lightstreamer Setup](#lightstreamer-setup)
-    - [Installation](#installation-1-1)
     - [Running](#running)
   - [Configuration Reference](#configuration-reference)
 - [Docs](#docs)
@@ -1280,7 +1279,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
 
-## Lightstreamer Sink Connector
+## Kafka Connect Lightstreamer Sink Connector
 
 Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
 
@@ -1292,7 +1291,7 @@ In this scenario, an instance of the Connector plugin acts as a [_Remote Adapter
 
 #### Lightstreamer Setup
 
-Before running the Connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
+Before running the connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
 
@@ -1342,10 +1341,69 @@ LS_HOME/
 ├── bin
 ...
 ```
+#### Running
+
+To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform:
+
+1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+
+   ```sh
+   $ ./gradlew connectDistZip
+   ```
+
+   which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
+
+2. Extract the zip file into the desired location. For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
+
+3. Edit the worker configuration properties, ensuring you specify the previous path to the `plugin.path` properties, for example:
+   
+   ```
+   plugins.path=/usr/local/share/kafka/plugins
+   ```
+
+   You may want to use the provided [connect-standalone-local.properties](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as a starting point.
+
+3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
+   
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. The file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+
+4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
+
+5. Start the Connect worker with:
+
+   ```sh
+   $ bin/connect-standalone.sh connect-standalone-local.properties quickstart-lightstreamer-local.properties
+   ```
+
+To verify that an events stream actually flows from Kafka to a Lighstreamer consumer levaring the same example already shwon in the [Start](#start) section:
+
+1. Attach a Lighstreamer consumer as specified in the step 2 of the [Start](#start) section.
+
+2. Make sure that a Schema Registy service is reachable from your local machine.
+
+3. Edit a `producer.properties` file as follows:
+
+   ```
+   # JSON deserializer with support for the Schema Registry
+   value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+   # Schema Registry URL
+   schema.registry.url=http://<schema-registry-address>:<schema-registry-port>
+   ```
+
+2. Publish events as specified in the step 3 of the [Start](#start) section.
+
+   This time, run the publisher passing as further argument the `producer.properties` file:
+
+   ```sh
+   $ java -jar examples/quckstart-producer/deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
+   ```
+3. Check the consumed events.
+
+   You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
 
 ### Configuration Reference
 
-The Lightstreamer Sink Connector configuration properties are described below.
+The Kafka Connect Lightstreamer Sink Connector configuration properties are described below.
 
 #### `connector.class`
 
