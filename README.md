@@ -1391,7 +1391,7 @@ To verify that an events stream actually flows from Kafka to a Lighstreamer cons
    schema.registry.url=http://<schema-registry-address>:<schema-registry-port>
    ```
 
-   This configuration enables the producer to use the leverages the Schema Registry, which is required by Kafka Connect when a connector wants to deserialize JSON messages (unless an embedded schema is provided).
+   This configuration enables the producer to leverage the Schema Registry, which is required by Kafka Connect when a connector wants to deserialize JSON messages (unless an embedded schema is provided).
 
 2. Publish events as specified in the step 3 of the [Start](#start) section.
 
