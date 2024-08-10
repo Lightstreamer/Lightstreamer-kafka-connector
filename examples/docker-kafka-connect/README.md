@@ -4,14 +4,14 @@ This folder contains the resources required to build a minimal Docker image of K
 
 The image is based on the official [Official Confluent Docker Base Image for Kafka Connect](https://hub.docker.com/r/confluentinc/cp-kafka-connect-base). Check out the [`Dockerfile`](./Dockerfile) for more details.
 
-# Building
+## Building
 
-## Requirements:
+### Requirements:
 
 - Java 17
 - Docker
 
-## Instructions
+### Instructions
 
 1. Run the following:
 
