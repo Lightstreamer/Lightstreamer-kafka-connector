@@ -3,7 +3,7 @@ name: quickstart-kafka-connect
 services:
   kafka-connect-lightstreamer-sink:
     container_name: kafka-connect
-    image: lightstreamer-kafka-connect-lighstreamer-${version}
+    image: kafka-connect-lighstreamer-${version}
     volumes:
        - ../../kafka-connector-project/config/kafka-connect-config:/config
     command:

@@ -13,4 +13,4 @@ rm -fr ${TMP_DIR}/
 unzip ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${version}.zip -d ${TMP_DIR}
 
 echo "Build the Kafka Connect Lightstreamer Sink Connector Docker image"
-docker build -t lightstreamer-kafka-connect-lighstreamer-${version} $SCRIPT_DIR --build-arg VERSION=${version} "$@"
+docker build -t kafka-connect-lighstreamer-${version} $SCRIPT_DIR --build-arg VERSION=${version} "$@"
