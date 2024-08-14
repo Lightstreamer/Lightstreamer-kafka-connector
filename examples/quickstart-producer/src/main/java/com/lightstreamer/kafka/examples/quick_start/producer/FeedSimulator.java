@@ -14,7 +14,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.examples.quick_start.producer;
+package com.lightstreamer.kafka.examples.quick_start.producer;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;

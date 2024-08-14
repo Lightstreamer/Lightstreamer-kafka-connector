@@ -21,7 +21,7 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': "com.lightstreamer.kafka_connector.examples.quick_start.producer.Producer"
+        attributes 'Main-Class': "com.lightstreamer.kafka.examples.quick_start.producer.Producer"
     }
     archiveAppendix = 'all'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka_connector.examples.quick_start.producer;
+package com.lightstreamer.kafka.examples.quick_start.producer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,14 +30,11 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 
-import com.lightstreamer.kafka_connector.examples.quick_start.producer.FeedSimulator.ExternalFeedListener;
-import com.lightstreamer.kafka_connector.examples.quick_start.producer.FeedSimulator.Stock;
-
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
-public class Producer implements Runnable, ExternalFeedListener {
+public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
 
     @Option(
             names = "--bootstrap-servers",
@@ -54,7 +51,7 @@ public class Producer implements Runnable, ExternalFeedListener {
             required = false)
     private String configFile;
 
-    private KafkaProducer<Integer, Stock> producer;
+    private KafkaProducer<Integer, FeedSimulator.Stock> producer;
 
     public void run() {
         // Create producer configs
@@ -90,9 +87,9 @@ public class Producer implements Runnable, ExternalFeedListener {
     }
 
     @Override
-    public void onEvent(int stockIndex, Stock stock) {
+    public void onEvent(int stockIndex, FeedSimulator.Stock stock) {
         try {
-            ProducerRecord<Integer, Stock> record =
+            ProducerRecord<Integer, FeedSimulator.Stock> record =
                     new ProducerRecord<>(this.topic, stockIndex, stock);
             producer.send(
                     record,
