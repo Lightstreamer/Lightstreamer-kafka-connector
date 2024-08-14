@@ -8,9 +8,9 @@ The Demo simulates a basic departures board consisting of ten rows, each represe
 The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), is fetched and injected into the Lightstreamer server via [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
 
 The demo project consists of:
-- a web client designed to visualize the airport departure board from a browser
-- a random flight information generator that acts as a message producer for Kafka
-- files to configure Kafka Connector according to the needs of the demo
+- A web client designed to visualize the airport departure board from a browser.
+- A random flight information generator that acts as a message producer for Kafka.
+- Files to configure Kafka Connector according to the needs of the demo.
 
 ## The Web Client
 
@@ -38,12 +38,14 @@ Upon consuming an incoming message, Kafka Connector will then route the record i
 ## The Producer
 
 The source code of the producer is basically contained in the `producer` package, which generates random information for the flights and acts as the producer versus the Kafka cluster. In particular, the following classes are defined:
-- `DemoPublisher.java`: implementing the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed simply of a number representing the row in the table to which the information refers
-- `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message
+
+- `DemoPublisher.java`: class that implements the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed simply of a number representing the row in the table to which the information refers.
+- `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message.
 
 ## Connector Configurations
 
 In the [`connector`](connector/) folder, we found the configuration files needed to configure Kafka Connector:
+
 - `adapters.xml`: in this file, parameters are essentially configured for the connector to consume messages from Kafka, and the mapping between Kafka cluster topics and Lightstreamer items that the client will subscribe to is defined. In the specific case of this demo, message serialization occurs via JSON objects, and therefore, the mapping of fields from the received JSON object to the Lightstreamer item fields to be sent to clients is also defined. In particular, the section defining the field mapping is this one:
   ```xml
     <data_provider name="AirpotDemo">
@@ -140,15 +142,17 @@ $ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar loca
 ```
 
 where:
-- `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply
-- `Flights` is the topic name used to produce the messages with simulated flights info
-- `1000` is the interval in milliseconds between the generation of one simulated event and the next
+- `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply.
+- `Flights` is the topic name used to produce the messages with simulated flights info.
+- `1000` is the interval in milliseconds between the generation of one simulated event and the next.
 
 ### Web Client
 
 In order to install a web client for this demo pointing to your local Lightstreamer Server, follow these steps:
 
-* Deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server. If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
+* Deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server.
+
+  If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
 
 >[!IMPORTANT]
 > *The client demo configuration assumes that Lightstreamer Server, Kafka Cluster, and this client are launched on the same machine. If you need to target a different Lightstreamer server, please double check the `LS_HOST` variable in [`client/web/src/js/const.js`](client/web/src/js/const.js) and change it accordingly.*
