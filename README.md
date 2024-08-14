@@ -265,7 +265,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ ./gradlew kafka-connector-utils:build
    ```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` under the `kafka-connector-utils/build/libs` folder.
+   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-utils/build/libs` folder.
 
    Then, launch it with:
 
@@ -292,15 +292,15 @@ where you have to replace `username` and `password` with the credentials generat
 
    ```sh
    $ cd examples/quickstart-producer
-   $ ./gradlew distribute
+   $ ./gradlew build
    ```
 
-   which generates the `quickstart-producer-all` under the `deploy` folder.
+   which generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
 
    Then, launch it with:
 
    ```sh
-   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
    ![producer_video](pictures/producer.gif)

@@ -5,13 +5,13 @@ This folder contains the Gradle project of the Kafka native producer used for th
 To build the producer:
 
  ```sh
-./gradlew distribute 
+./gradlew build
 ```
 
-which generates the `quickstart-producer-all` under the `deploy` folder.
+which generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
 
 To run it:
 
 ```sh
-java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
 ```
