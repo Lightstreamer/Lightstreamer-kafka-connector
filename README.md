@@ -448,7 +448,7 @@ Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
 _Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
 
-Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorAdapter`.
+Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter`.
 
 ##### `enable`
 

@@ -44,11 +44,13 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -142,17 +144,26 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private final RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean enableFinalCommit = true;
 
+        private volatile int itemCounter = 0;
+        private volatile boolean isSnapshot = true;
+        private Properties p;
+
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
-            String bootStrapServers =
-                    config.consumerProperties()
-                            .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+            String suffix =
+                    new SecureRandom()
+                            .ints(20, 48, 122)
+                            .filter(Character::isLetterOrDigit)
+                            .mapToObj(Character::toString)
+                            .collect(Collectors.joining());
+            p = new Properties();
+            p.putAll(config.consumerProperties());
+            // p.setProperty("group.id", "my-group" + suffix);
+
+            String bootStrapServers = p.getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
             log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
-            consumer =
-                    new KafkaConsumer<>(
-                            config.consumerProperties(),
-                            config.keyDeserializer(),
-                            config.valueDeserializer());
+
+            consumer = new KafkaConsumer<>(p, config.keyDeserializer(), config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
             this.relabancerListener = new RebalancerListener(consumer);
@@ -204,7 +215,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atDebug().log("Checking existing topics on Kafka");
 
             // Check the actual available topics on Kafka.
-            try (Admin admin = AdminClient.create(config.consumerProperties())) {
+            try (Admin admin = AdminClient.create(p)) {
                 ListTopicsOptions options = new ListTopicsOptions();
                 options.timeoutMs(30000);
                 ListTopicsResult listTopics = admin.listTopics(options);
@@ -293,8 +304,25 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             for (SubscribedItem sub : routables) {
                 log.atDebug().log("Filtering updates");
                 Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+
+                // if (itemCounter < 10) {
+                //     log.atInfo().log("Sending snapshot");
+                //     HashMap<String, String> snapshot = new HashMap<>();
+                //     Set<String> keys = updates.keySet();
+                //     for(String key: keys) {
+                //         snapshot.put(key, "SNAPSHOT");
+                //     }
+                //     eventListener.smartUpdate(sub.itemHandle(), snapshot, true);
+                // } else if (itemCounter == 10) {
+                //     log.atInfo().log("Ending snapshot");
+                //     eventListener.smartEndOfSnapshot(sub.itemHandle());
+                //     log.atDebug().log("Sending updates: {}", updates);
+                //     eventListener.smartUpdate(sub.itemHandle(), updates, false);
+                // } else {
                 log.atDebug().log("Sending updates: {}", updates);
                 eventListener.smartUpdate(sub.itemHandle(), updates, false);
+                // }
+                itemCounter++;
             }
 
             relabancerListener.updateOffsets(record);

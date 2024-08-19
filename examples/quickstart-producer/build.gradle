@@ -13,10 +13,10 @@ dependencies {
     implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
 
     implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.7.0-ccs'
+    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.7.0'
+    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.7.0'
+    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
 }
 
 jar {

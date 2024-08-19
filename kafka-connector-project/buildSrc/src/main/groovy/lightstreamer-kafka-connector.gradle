@@ -52,10 +52,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform('org.junit:junit-bom:5.10.0'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-    testImplementation "com.google.truth:truth:1.2.0"
-    testImplementation "com.google.truth.extensions:truth-java8-extension:1.2.0"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation "com.google.truth:truth:1.4.4"
 }
 
 java {

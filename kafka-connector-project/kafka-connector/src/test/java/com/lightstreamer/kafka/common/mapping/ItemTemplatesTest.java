@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.avroKeyJsonValue;

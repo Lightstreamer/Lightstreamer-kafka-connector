@@ -19,7 +19,7 @@ publishing {
 	}
 	publications {
 		gpr(MavenPublication) {
-			from(components.java)
+			from components.java
 		}
 	}
 }
@@ -28,13 +28,13 @@ dependencies {
 	api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
 
 	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-	implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+	implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.7.0-ccs'
+	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.7.0'
+	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.7.0'
+	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
-	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.5.3-ccs'
+	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
 }
 
 ext {
@@ -44,6 +44,7 @@ ext {
 jar {
 	exclude "com/lightstreamer/kafka/connect/**"
 	exclude "META-INF/services"
+	archiveBaseName = "lightstreamer-kafka-connector"
 }
 
 tasks.register("kafkaConnectJar", Jar) {

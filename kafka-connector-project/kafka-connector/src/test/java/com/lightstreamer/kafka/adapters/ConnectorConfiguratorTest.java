@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
 
