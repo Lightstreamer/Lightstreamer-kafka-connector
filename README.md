@@ -117,7 +117,7 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Deploy
 
-Get the deployment package from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v0.1.0/lightstreamer-kafka-connector-1..0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+Get the deployment package from the [release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connector-1.0.0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
 $ ./gradlew adapterDistZip
@@ -270,7 +270,7 @@ where you have to replace `username` and `password` with the credentials generat
    Then, launch it with:
 
    ```sh
-   $ java -jar build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -1346,7 +1346,7 @@ LS_HOME/
 
 To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
-1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [latest release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connect-lightstreamer-1.0.0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
    ```sh
    $ ./gradlew connectDistZip
@@ -1398,7 +1398,7 @@ To verify that an events stream actually flows from Kafka to a Lighstreamer cons
    This time, run the publisher passing as further argument the `producer.properties` file:
 
    ```sh
-   $ java -jar examples/quckstart-producer/deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
+   $ java -jar examples/quickstart-producer/build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
    ```
 
 3. Check the consumed events.
