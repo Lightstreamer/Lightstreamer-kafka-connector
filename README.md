@@ -123,7 +123,7 @@ Get the deployment package from the [latest release page](https://github.com/Lig
 $ ./gradlew adapterDistZip
 ```
 
-which generates the `lightstreamer-kafka-connector-<version>.zip` file under the `kafka-connector-project/deploy` folder.
+which generates the `lightstreamer-kafka-connector-<version>.zip` file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
 
 Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
 Finally, check that the Lightstreamer layout looks like the following:
