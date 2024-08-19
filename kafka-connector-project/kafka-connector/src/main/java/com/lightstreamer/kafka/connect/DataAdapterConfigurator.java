@@ -62,7 +62,7 @@ public class DataAdapterConfigurator {
                         ConnectSelectorsSuppliers.valueSelectorSupplier());
         try {
             ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
-            // logger.info("Constructed item templates: {}", itemTemplates);
+            logger.info("Constructed item templates: {}", templates);
 
             FieldConfigs fieldConfigs = config.getFieldConfigs();
             logger.info("fieldsMapping: {}", fieldConfigs);

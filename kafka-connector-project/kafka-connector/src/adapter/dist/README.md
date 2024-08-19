@@ -6,8 +6,8 @@ _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter 
 
 ### Requirements
 
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions).
-- A running Kafka broker or Kafka Cluster.
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+- A running Kafka broker or Kafka Cluster
 
 ### Deploy
 

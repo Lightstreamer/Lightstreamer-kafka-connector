@@ -73,6 +73,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
 
     @Override
     public void stop() {
+        logger.info("Stopping LightstreamerSinkConnectorTask");
         proxyAdapterClient.stop();
     }
 }

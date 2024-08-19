@@ -73,7 +73,7 @@ public class StreamingDataAdapter implements DataProvider {
 
     private static DownstreamUpdater FAKE_UPDATER =
             records -> {
-                logger.info("Skipping record");
+                logger.debug("Skipping record");
             };
 
     StreamingDataAdapter(DataAdapterConfig config, SinkTaskContext context) {
@@ -92,7 +92,7 @@ public class StreamingDataAdapter implements DataProvider {
     ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
         if (context != null) {
             try {
-                // may be null if DLQ is not enabled
+                // May be null if DLQ is not enabled
                 ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
                 if (errantRecordReporter != null) {
                     logger.info("Errant record reporter not configured.");
@@ -196,23 +196,20 @@ public class StreamingDataAdapter implements DataProvider {
     }
 
     private void updateRecord(SinkRecord sinkRecord) throws ValueException {
-        // logger.debug("Mapping incoming Kafka record");
-        logger.info("Mapping incoming Kafka record");
-        // logger.trace("Kafka record: {}", sinkRecord.toString());
-        logger.info("Kafka record: {}", sinkRecord.toString());
+        logger.debug("Mapping incoming Kafka record");
+        logger.trace("Kafka record: {}", sinkRecord.toString());
         MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
+        logger.debug("Mapped Kafka record");
 
         Set<SubscribedItem> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
 
         logger.info("Routing record to {} items", routable.size());
 
         for (SubscribedItem sub : routable) {
-            // logger.debug("Filtering updates");
-            logger.info("Filtering updates");
+            logger.debug("Filtering updates");
             Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
             if (listener != null) {
-                // logger.debug("Sending updates: {}", updates);
-                logger.info("Sending updates: {}", updates);
+                logger.debug("Sending updates: {}", updates);
                 listener.update(sub.itemHandle().toString(), updates, false);
             }
         }
