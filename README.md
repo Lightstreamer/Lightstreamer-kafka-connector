@@ -265,12 +265,12 @@ where you have to replace `username` and `password` with the credentials generat
    $ ./gradlew kafka-connector-utils:build
    ```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-utils/build/libs` folder.
+   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-project/kafka-connector-utils/build/libs` folder.
 
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   $ java -jar build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -319,7 +319,7 @@ where you have to replace `username` and `password` with the credentials generat
    where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    ```sh
-   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
    #### Publishing with Redpanda Cloud
@@ -337,7 +337,7 @@ where you have to replace `username` and `password` with the credentials generat
    where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
 
    ```sh
-   $ java -jar deploy/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
 4. Check the consumed events.
