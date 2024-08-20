@@ -33,7 +33,7 @@ LS_HOME/
 
 ### Configure
 
-1. Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
+1. Update the [`bootstrap.servers`](https://github.com/Lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#bootstrapservers) parameter with the connection string of Kafka:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
@@ -78,4 +78,4 @@ In addition, the local [javadoc](javadoc/) folder contains the complete [Kafka C
 
 ## Examples
 
-The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Kafka Connector. In particular, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
+The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Kafka Connector. In particular, you may explore the [_Airport Demo_](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/airport-demo) for depper insights into various usage and configuration options of Kafka Connector.
