@@ -257,7 +257,7 @@ where you have to replace `username` and `password` with the credentials generat
    From the `LS_HOME/bin/unix-like` directory, run the following:
 
    ```sh
-   $ ./start_background.sh
+   $ ./background_start.sh
    ```
 
 2. Attach a Lightstreamer consumer.
@@ -275,7 +275,7 @@ where you have to replace `username` and `password` with the credentials generat
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
