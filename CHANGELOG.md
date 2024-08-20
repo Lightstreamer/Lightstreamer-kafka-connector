@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] (2024-MM-DD)
+## [1.0.0] (2024-08-20)
 
 - First official public release
 

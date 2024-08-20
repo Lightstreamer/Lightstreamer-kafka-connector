@@ -33,7 +33,7 @@ LS_HOME/
 
 ### Configure
 
-1. Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
+1. Update the [`bootstrap.servers`](https://github.com/Lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#bootstrapservers) parameter with the connection string of Kafka:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
@@ -41,7 +41,7 @@ LS_HOME/
 
 2. Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
-3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) GitHub repository for all possible configuration options.
+3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the Kafka Connector GitHub [repository](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) for all possible configuration options.
 
 ### Start
 
@@ -78,4 +78,4 @@ In addition, the local [javadoc](javadoc/) folder contains the complete [Kafka C
 
 ## Examples
 
-The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Kafka Connector. In particular, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
+The GitHub repository hosts several [examples](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples) showing you how to use Kafka Connector. In particular, you may explore the [_Airport Demo_](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/airport-demo) for depper insights into various usage and configuration options of Kafka Connector.
