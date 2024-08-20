@@ -41,7 +41,7 @@ LS_HOME/
 
 2. Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
 
-3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) GitHub repository for all possible configuration options.
+3. See the [Configuration](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/?tab=readme-ov-file#configuration) section of the Kafka Connector GitHub [repository](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/) for all possible configuration options.
 
 ### Start
 
