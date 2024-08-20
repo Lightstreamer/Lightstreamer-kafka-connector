@@ -14,7 +14,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 1. Copy into the [`resources`](resources/) folder any customizable Kafka Connector resource, such as:
    - `adapters.xml`
    - `log4j.properties` (or any other referenced log configuration file)
-   - Loocal schema, key store, and trust store files referenced in `adapters.xml`
+   - Local schema, key store, and trust store files referenced in `adapters.xml`
 
 2. Run the following:
 
@@ -30,7 +30,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 3. Check that the image has been created:
 
    ```sh
-   $ docker image ls kafka-connector-<version>
+   $ docker image ls lightstreamer-kafka-connector-<version>
 
    REPOSITORY                              TAG               IMAGE ID       CREATED          SIZE
    lightstreamer-kafka-connector-<version> latest            f77fc60f7892   13 minutes ago   602MB
