@@ -1,5 +1,5 @@
 plugins {
-	id 'java'
+    id 'java'
 }
 
 repositories {
@@ -10,30 +10,25 @@ repositories {
 }
 
 dependencies {
-	implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
+    implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
 
-	implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-	implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.5.3-ccs'
-	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.5.3'
-	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.5.3'
+    implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
+    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.7.0-ccs'
+    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.7.0'
+    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.7.0'
+    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
 }
 
-tasks.register('uberJar', Jar) {
-	manifest {
-		attributes 'Main-Class': "com.lightstreamer.kafka_connector.examples.quick_start.producer.Producer"
-	}
-	archiveAppendix = 'all'
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	from sourceSets.main.output
-	from {
-		sourceSets.main.runtimeClasspath.collect {
-			it.isDirectory() ? it : zipTree(it)
-		}
-	}
-}
-
-task distribute(type: Copy) {
-	from uberJar
-	into "$rootDir/$deployDirName"
+jar {
+    manifest {
+        attributes 'Main-Class': "com.lightstreamer.kafka.examples.quick_start.producer.Producer"
+    }
+    archiveAppendix = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from sourceSets.main.output
+    from {
+        sourceSets.main.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
 }

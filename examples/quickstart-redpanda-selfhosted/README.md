@@ -76,8 +76,8 @@ console:
 
 To explore the topic:
 
-- open your browser and navigate to [http://localhost:8088](http://localhost:8088)
-- go to `Topics` > `stocks`
+- Open your browser and navigate to [http://localhost:8088](http://localhost:8088).
+- Go to `Topics` > `stocks`.
 
 and see the messages produced along with other details about the topic.
 

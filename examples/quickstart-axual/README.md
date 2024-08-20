@@ -2,20 +2,20 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target cluster. You may follow the [_Getting started_](https://docs.axual.io/axual/2024.1/getting_started/index.html) on the Axual site to perform the following operations:
 
-- add a new topic `stocks` with:
+- Add a new topic `stocks` with:
   -  string key type
   -  JSON value type
   -  _delete_ retention policy
   -  1 partition
   -  1 day of retention time
-- add a new application with:
+- Add a new application with:
   - ID: `stocks-application`
   - Name: `stocks-application`
   - Short name: `stocks_app`
   - Application type: _Java_
   - Visibility: _Private_
-- generate a new authentication credentials and take note of them
-- authorize the application to consume and produce data from/to the `stocks` topic
+- Generate a new authentication credentials and take note of them.
+- Authorize the application to consume and produce data from/to the `stocks` topic.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 

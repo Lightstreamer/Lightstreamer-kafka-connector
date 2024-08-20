@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.lightstreamer.kafka_connector.adapters.pub"}];updateSearchResults();
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.lightstreamer.kafka.adapters.pub"}];updateSearchResults();

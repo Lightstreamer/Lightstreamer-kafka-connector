@@ -229,7 +229,7 @@ public class DemoPublisher {
                     board_position.put(key, avl_pos.remove(0));
                 } else {
                     int pos = counter.incrementAndGet();
-                    board_position.put(key, new Integer(pos));
+                    board_position.put(key, Integer.valueOf(pos));
                 }
             }
         }

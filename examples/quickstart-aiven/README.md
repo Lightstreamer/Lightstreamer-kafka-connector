@@ -2,19 +2,19 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started) on the Aiven site to perform the following operations:
 
-- create a new _Apache Kafka_ service
-- enable the SASL authentication mechanism
-- download the CA certificate to create the trust store file with:
+- Create a new _Apache Kafka_ service.
+- Enable the SASL authentication mechanism.
+- Download the CA certificate to create the trust store file with:.
   ```sh
   $ keytool -import -file ca.pem -alias CA -keystore secrets/client.truststore.jks
   ```
-- create the topic `stocks`
+- Create the topic `stocks`.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
-- removal of the `broker` service, because replaced by the remote cluster
+- Removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint, credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -24,13 +24,13 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - truststore_password=${truststore_password}
     ...
     ```
-  - mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
+  - Mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
     ```yaml
     volumes:
       ...
       - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
     ```
-  - adaption of [`adapters.xml`](./adapters.xml) to include:
+  - Adaption of [`adapters.xml`](./adapters.xml) to include:
     - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>

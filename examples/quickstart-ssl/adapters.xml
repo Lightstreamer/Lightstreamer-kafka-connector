@@ -9,7 +9,7 @@
     <data_provider name="QuickStart">
         <!-- ##### GENERAL PARAMETERS ##### -->
 
-        <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+        <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
         <param name="bootstrap.servers">broker:29094</param>
         <param name="group.id">quick-start-group</param>

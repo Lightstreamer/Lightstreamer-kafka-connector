@@ -1,0 +1,101 @@
+---
+name: quickstart-kafka-connect
+services:
+  kafka-connect-lightstreamer-sink:
+    container_name: kafka-connect-lightstreamer-sink
+    image: kafka-connect-lightstreamer-${version}
+    volumes:
+       - ../../kafka-connector-project/config/kafka-connect-config:/config
+    command:
+      - connect-standalone
+      - /config/connect-standalone-docker.properties
+      - /config/quickstart-lightstreamer-docker.properties
+    depends_on:
+      - broker
+      - lightstreamer
+    ports:
+      - 8083:8083
+
+  lightstreamer:
+    container_name: lightstreamer
+    image: lightstreamer
+    depends_on:
+      - broker
+    ports:
+      - 8080:8080
+      - 6661:6661
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ../../kafka-connector-project/config/kafka-connect-proxy:/lightstreamer/adapters/kafka-connect-proxy
+
+  producer:
+    container_name: producer
+    depends_on:
+      - broker
+      - schema-registry
+    build:
+      context: ../quickstart-producer
+      args:
+        VERSION: ${version}
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    volumes:
+      - ./secrets/producer:/usr/app/secrets
+    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
+
+  broker:
+    image: apache/kafka
+    hostname: broker
+    container_name: broker
+    ports:
+      - "9092:9092"
+      - "8082:8082"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+    volumes:
+     - ./secrets/schema-registry:/etc/schema-registry/secrets
+
+configs:
+  producer.properties:
+    content: |
+      # JSON deserializer with support for the Schema Registry
+      value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+      # Schema Registry URL
+      schema.registry.url=http://schema-registry:8081
+  connect-log4j.properties:
+    content: |
+      log4j.rootLogger=INFO, stdout
+      log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+      log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+      connect.log.pattern=[%d] %p %X{connector.context}%m (%c:%L)%n
+      log4j.appender.stdout.layout.ConversionPattern=$${connect.log.pattern}
+      log4j.logger.org.reflections=ERROR

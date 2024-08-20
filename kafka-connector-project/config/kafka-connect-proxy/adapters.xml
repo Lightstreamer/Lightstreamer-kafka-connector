@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    This is a sample configuration file of a Proxy Adapter to enable the communication 
+    with a remote instance of the Kafka Connect Lightstreamer Sink Connector plugin.
+
+    Note that element and attribute names are handled in a case sensitive way.
+
+    A very simple variable-expansion feature is available; see
+    <enable_expansion_for_adapters_config> in the Server's main configuration file.
+-->
+
+<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
+<adapters_conf id="KafkaConnector">
+
+    <!-- Mandatory. The Metadata Adapter is the Java Proxy Adapter. -->
+    <metadata_provider>
+
+        <!-- Mandatory. Java class name of the Proxy Metadata Adapter.
+             In this case, "PROXY_FOR_REMOTE_ADAPTER" is a special keyword that
+             identifies the Proxy Metadata Adapter, which is embedded
+             in Lightstreamer Server and available out of the box.
+             The Proxy Metadata Adapter communicates with its remote counterpart
+             through standard TCP sockets. It listens on a configurable port
+             and waits for its counterpart to connect. -->
+        <adapter_class>com.lightstreamer.adapters.metadata.LiteralBasedProvider</adapter_class>
+
+    </metadata_provider>
+
+
+    <!-- Mandatory and cumulative. The Data Adapter is the Java Proxy Adapter.
+         The "name" attribute is optional and the default name is "DEFAULT";
+         if multiple Data Adapters are defined in the same Adapter Set,
+         then using the "name" attribute is needed to distinguish them. -->
+    <data_provider name="QuickStart">
+
+        <!-- Mandatory. Java class name of the Robust Proxy Data Adapter.
+             In this case, "ROBUST_PROXY_FOR_REMOTE_ADAPTER" is a special keyword that
+             identifies the Robust Proxy Data Adapter, which is embedded
+             in Lightstreamer Server and available out of the box.
+             The Robust Proxy Data Adapter communicates with its remote counterpart
+             through standard TCP sockets. It listens on a configurable port
+             (or, optionally, two ports) and waits for its counterpart to connect.
+             Moreover, this Data Adapter manages the case in which the remote
+             counterpart is missing, by accepting subscriptions and sending empty
+             snapshots to the clients, when requested (note that the clients
+             should be able to manage null field values for items subscribed to
+             in MERGE mode).
+             This Data Adapter also manages failures of the remote counterpart,
+             by waiting for connection from a new Remote Server, then trying
+             to recover the data flow by resubmitting all the pending subscription
+             requests. However, if the remote counterpart needs to retrieve and
+             restore the state of the previously connected instance, this will be
+             its own burden; for how to identify the involved Server instance,
+             see "remote_params_prefix" below. -->
+        <adapter_class>ROBUST_PROXY_FOR_REMOTE_ADAPTER</adapter_class>
+
+        <!-- Mandatory for Proxy Adapters. Determines the ClassLoader to be used
+             to load the Adapter related classes (see the base template).
+             In case a Proxy Adapter is configured, it is advisable to use the
+             special "log-enabled" option, to let the Proxy Adapter share the
+             logging support and configuration with the Server.
+             If set to "dedicated", logging support must be explicitly provided,
+             by adding the slf4j library, together with a suitable log
+             implementation and configuration. If an "install_dir" element
+             is defined, it will be used also to this purpose.
+             With this special configuration, the "common" option is forbidden. -->
+        <classloader>log-enabled</classloader>
+
+        <!-- List of initialization parameters specific to the Proxy Data Adapter. -->
+
+        <!-- Mandatory.
+             The request/reply port to listen on. The connection on this port will
+             carry the requests/replies channels.
+             However, in case the configuration of "notify_port" has to be
+             leveraged, the connection will only carry the pure-replies subpart
+             of the replies channel. -->
+        <param name="request_reply_port">6661</param>
+
+        <!-- Optional.
+             If Y, enforces Remote Adapter authentication on the connection
+             based on a user/password credential check.
+             In case of two-ports configuration, the same check is performed
+             on both connections.
+             Note that the user names will be used in log messages at INFO level
+             or above, whereas the passwords won't.
+             The configuration of the accepted credentials is shown below.
+             Note that the various credential pairs should be distinguished
+             from one another by adding a free dot-suffix to the base
+             auth.credentials part.
+             If N, the credential configuration parameters below are ignored.
+             Default: N. -->
+        <!--
+        <param name="auth">Y</param>
+        -->
+
+        <!--
+        <param name="auth.credentials.1.user">user1</param>
+        -->
+        <!--
+        <param name="auth.credentials.1.password">pwd1</param>
+        -->
+        <!--
+        <param name="auth.credentials.2.user">user2</param>
+        -->
+        <!--
+        <param name="auth.credentials.2.password">pwd2</param>
+        -->
+    </data_provider>
+
+</adapters_conf>

@@ -67,12 +67,12 @@ configs:
       <?xml version="1.0"?>
       <adapters_conf id="KafkaConnector">
           <metadata_provider>
-              <adapter_class>com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
+              <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
               <param name="logging.configuration.path">log4j.properties</param>
           </metadata_provider>
 
           <data_provider name="AirpotDemo">
-              <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+              <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
               <param name="bootstrap.servers">broker:29092</param>
 

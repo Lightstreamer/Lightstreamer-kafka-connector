@@ -8,9 +8,9 @@ The Demo simulates a basic departures board consisting of ten rows, each represe
 The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), is fetched and injected into the Lightstreamer server via [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
 
 The demo project consists of:
-- a web client designed to visualize the airport departure board from a browser
-- a random flight information generator that acts as a message producer for Kafka
-- files to configure Kafka Connector according to the needs of the demo
+- A web client designed to visualize the airport departure board from a browser.
+- A random flight information generator that acts as a message producer for Kafka.
+- Files to configure Kafka Connector according to the needs of the demo.
 
 ## The Web Client
 
@@ -38,12 +38,14 @@ Upon consuming an incoming message, Kafka Connector will then route the record i
 ## The Producer
 
 The source code of the producer is basically contained in the `producer` package, which generates random information for the flights and acts as the producer versus the Kafka cluster. In particular, the following classes are defined:
-- `DemoPublisher.java`: implementing the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed simply of a number representing the row in the table to which the information refers
-- `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message
+
+- `DemoPublisher.java`: class that implements the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed simply of a number representing the row in the table to which the information refers.
+- `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message.
 
 ## Connector Configurations
 
 In the [`connector`](connector/) folder, we found the configuration files needed to configure Kafka Connector:
+
 - `adapters.xml`: in this file, parameters are essentially configured for the connector to consume messages from Kafka, and the mapping between Kafka cluster topics and Lightstreamer items that the client will subscribe to is defined. In the specific case of this demo, message serialization occurs via JSON objects, and therefore, the mapping of fields from the received JSON object to the Lightstreamer item fields to be sent to clients is also defined. In particular, the section defining the field mapping is this one:
   ```xml
     <data_provider name="AirpotDemo">
@@ -72,11 +74,12 @@ In the [`connector`](connector/) folder, we found the configuration files needed
 
 The demo needs a Kafka cluster where a topic `Flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).
 Based on this choice, you will need to modify the [`adapters.xml`](connector/adapters.xml) files accordingly, particularly the `bootstrap server` parameter. The proposed configuration assumes a local Kafka installation that does not require authentication or the use of TLS communication:
+
 ```xml
 <data_provider name="AirpotDemo">
     <!-- ##### GENERAL PARAMETERS ##### -->
 
-    <adapter_class>com.lightstreamer.kafka_connector.adapters.KafkaConnectorDataAdapter</adapter_class>
+    <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
     <!-- The Kafka cluster address -->
     <param name="bootstrap.servers">localhost:9092</param>
@@ -94,12 +97,12 @@ Further details on this mechanism can be found [here](https://developer.confluen
 
 To configure our `Flights` topic to be managed in a compacted manner, the following steps are necessary:
 
-1. set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
+1. Set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
    ```java
    log.cleanup.policy=compact, delete
    ```
 
-2. create the topic with the following configurations:
+2. Create the topic with the following configurations:
    ```sh
    $ ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic Flights \
               --replication-factor 1 \
@@ -139,20 +142,22 @@ $ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar loca
 ```
 
 where:
-- `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply
-- `Flights` is the topic name used to produce the messages with simulated flights info
-- `1000` is the interval in milliseconds between the generation of one simulated event and the next
+- `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply.
+- `Flights` is the topic name used to produce the messages with simulated flights info.
+- `1000` is the interval in milliseconds between the generation of one simulated event and the next.
 
 ### Web Client
 
 In order to install a web client for this demo pointing to your local Lightstreamer Server, follow these steps:
 
-* deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server. If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
+* Deploy this demo on the Lightstreamer Server (used as Web server) or in any external Web Server.
+
+  If you choose the former, create the folders `<LS_HOME>/pages/demos/airport70` (you can customize the last two digits based on your favorite movie in the series) and copy here the contents of the `client/web/src` folder of this project
 
 >[!IMPORTANT]
 > *The client demo configuration assumes that Lightstreamer Server, Kafka Cluster, and this client are launched on the same machine. If you need to target a different Lightstreamer server, please double check the `LS_HOST` variable in [`client/web/src/js/const.js`](client/web/src/js/const.js) and change it accordingly.*
 
-* open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70)
+* Open your browser and point it to [http://localhost:8080/airport70](http://localhost:8080/airport70).
 
 ## Setting Up on Docker Compose
 
@@ -163,14 +168,14 @@ To simplify the setup, we have also provided two different Docker Compose files 
 
 ### Prerequisites
 
-- JDK version 17 or later.
+- JDK version 17 or later
 - Docker Compose
 
 ### Run
 
 1. From the `examples/airport-demo` folder:
 
-   - for running the demo against _Apache Kafka_:
+   - For running the demo against _Apache Kafka_:
      ```sh
      $ ./start_demo.sh
      ...
@@ -182,7 +187,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
      Services started. Now you can point your browser to http://localhost:8080/AirportDemo to see real-time data.
      ```
 
-   - for running the demo against _Redpanda Self-Hosted_:
+   - For running the demo against _Redpanda Self-Hosted_:
      ```sh
      $ ./start_demo_redpanda.sh
      ...
@@ -198,7 +203,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
 3. After a few moments, the user interface starts displaying the real-time flights data.
 4. To shutdown Docker Compose and clean up all temporary resources:
 
-   - for _Apache Kafka_, execute:
+   - For _Apache Kafka_, execute:
      ```sh
      $ ./stop_demo.sh
       ✔ Container kafka-connector           Removed
@@ -208,7 +213,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
       ✔ Network airport-demo-kafka_default  Removed
      ```
 
-   - for _Redpanda Self-Hosted_, execute:
+   - For _Redpanda Self-Hosted_, execute:
      ```sh
      $ ./stop_demo_redpanda.sh
      ...
