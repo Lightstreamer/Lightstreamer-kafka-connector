@@ -117,15 +117,20 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Deploy
 
-Get the deployment package from the [release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connector-1.0.0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+Download the deployment archive `lightstreamer-kafka-connector-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connector-1.0.0.zip) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
 ```sh
 $ ./gradlew adapterDistZip
 ```
 
-which generates the `lightstreamer-kafka-connector-<version>.zip` file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
+which generates the archive file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
 
-Then, unzip it into the `adapters` folder of the Lightstreamer Server installation.
+Then, unpack it into the `adapters` folder of the Lightstreamer Server installation:
+
+```sh
+$ unzip lightstreamer-kafka-connector-<version>.zip -d LS_HOME/adapters
+```
+
 Finally, check that the Lightstreamer layout looks like the following:
 
 ```sh
@@ -1245,11 +1250,12 @@ For a Maven project, add the dependency to your _pom.xml_ file:
 
 ```xml
 <dependency>
-    <groupId>com.lightstreamer.kafka-connector</groupId>
+    <groupId>com.lightstreamer.kafka</groupId>
     <artifactId>kafka-connector</artifactId>
-    <version>0.1.0</version>
+    <version>VERSION</version>
 </dependency>
 ```
+
 and follow these [instructions](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-apache-maven-registry#authenticating-to-github-packages) to configure the repository and authentication.
 
 For a Gradle project, edit your _build.gradle_ file as follows:
@@ -1258,7 +1264,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
    ```groovy
    dependencies {
-       implementation group: 'com.lightstreamer.kafka', name: 'kafka-connector', 'version': '0.2.0'
+       implementation group: 'com.lightstreamer.kafka', name: 'kafka-connector', 'version': '<version>'
    }
    ```
 
@@ -1346,7 +1352,7 @@ LS_HOME/
 
 To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
-1. Get the connector zip file `lightstreamer-kafka-connect-lightstreamer-1.0.0.zip` from the [release page](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connect-lightstreamer-1.0.0.zip). Alternatively, check out this repository and run the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
+1. Download the connector zip file `lightstreamer-kafka-connect-lightstreamer-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/download/v1.0.0/lightstreamer-kafka-connect-lightstreamer-1.0.0.zip) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
    ```sh
    $ ./gradlew connectDistZip
@@ -1354,7 +1360,9 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
 
    which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
 
-2. Extract the zip file into the desired location. For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
+2. Extract the zip file into the desired location.
+   
+   For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
 
 3. Edit the worker configuration properties file, ensuring you include the previous path in the `plugin.path` properties, for example:
    
