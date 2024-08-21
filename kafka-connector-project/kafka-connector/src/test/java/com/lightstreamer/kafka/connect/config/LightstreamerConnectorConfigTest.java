@@ -183,6 +183,8 @@ public class LightstreamerConnectorConfigTest {
         assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(5000);
         assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(1);
         assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(5000);
+        assertThat(proxyAdapterClientOptions.username).isNull();
+        assertThat(proxyAdapterClientOptions.password).isNull();
 
         Map<String, String> updateConfigs = new HashMap<>(basicConfig());
         updateConfigs.put(
@@ -199,6 +201,10 @@ public class LightstreamerConnectorConfigTest {
                 LightstreamerConnectorConfig
                         .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
                 "15000");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME, "user");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD, "password");
 
         config = new LightstreamerConnectorConfig(updateConfigs);
 
@@ -209,6 +215,8 @@ public class LightstreamerConnectorConfigTest {
         assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(10000);
         assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(5);
         assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(15000);
+        assertThat(proxyAdapterClientOptions.username).isEqualTo("user");
+        assertThat(proxyAdapterClientOptions.password).isEqualTo("password");
     }
 
     @Test
