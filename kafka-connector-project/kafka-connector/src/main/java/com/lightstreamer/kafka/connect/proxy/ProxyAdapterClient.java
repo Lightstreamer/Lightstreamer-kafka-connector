@@ -47,7 +47,7 @@ public class ProxyAdapterClient {
 
     public void start(DataProvider provider) throws RemotingException {
         logger.info(
-                "Starting connection with Lighstreamer'server Proxy Adapter at {}:{}",
+                "Starting connection with Lightstreamer'server Proxy Adapter at {}:{}",
                 options.hostname,
                 options.port);
         dataProviderServer = new DataProviderServer();

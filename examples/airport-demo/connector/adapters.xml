@@ -52,7 +52,7 @@
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
-        <!-- The "Flights" item template, which defines the format of the items the Lighstreamer Clients 
+        <!-- The "Flights" item template, which defines the format of the items the Lightstreamer Clients 
              must subscribe to to receive real-time updates. -->
         <param name="item-template.flights">flights-#{key=KEY}</param>
 

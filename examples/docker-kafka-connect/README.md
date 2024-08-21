@@ -27,10 +27,10 @@ The image is based on the official [Official Confluent Docker Base Image for Kaf
 3. Check that the image has been created:
 
    ```sh
-   $ docker image ls kafka-connect-lighstreamer-<version>
+   $ docker image ls kafka-connect-lightstreamer-<version>
 
    REPOSITORY                         TAG       IMAGE ID       CREATED          SIZE
-   kafka-connect-lighstreamer-1.0.0   latest    417d099deaa8   18 seconds ago   1.75GB
+   kafka-connect-lightstreamer-1.0.0   latest    417d099deaa8   18 seconds ago   1.75GB
    ```
 
 ## Running in Docker Compose

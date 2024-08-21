@@ -68,7 +68,7 @@ public class LightstreamerConnectorConfigTest {
         // Put valid address and go on checking
         props.put(
                 LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS,
-                "lighstreamer_host:6661");
+                "lightstreamer_host:6661");
 
         // No topic.mappings
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
