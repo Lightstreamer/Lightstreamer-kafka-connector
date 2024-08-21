@@ -14,6 +14,7 @@
   
   were being ignored.
 
+- The [com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfigTest](./kafka-connector-project/kafka-connector/src/test/java/com/lightstreamer/kafka/connect/config/LightstreamerConnectorConfigTest.java) class contained a test producing unwanted output files.
 
 ## [1.0.0] (2024-08-20)
 
