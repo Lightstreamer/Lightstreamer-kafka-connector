@@ -33,6 +33,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Range;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.types.Password;
 
 import java.util.Arrays;
 import java.util.List;
@@ -261,6 +262,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         fieldConfigs = initFieldConfigs();
 
         Pair address = getProxyAdapterAddress();
+
         proxyAdapterClientOptions =
                 new ProxyAdapterClientOptions.Builder()
                         .hostname(address.key())
@@ -268,6 +270,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                         .connectionTimeout(getSetupConnectionTimeoutMs())
                         .connectionMaxRetries(getSetupConnectionMaxRetries())
                         .connectionRetryDelayMs(getSetupConnectionRetryDelayMs())
+                        .username(getUsername())
+                        .password(getPassword())
                         .build();
     }
 
@@ -285,6 +289,15 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public long getSetupConnectionRetryDelayMs() {
         return getLong(LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS);
+    }
+
+    public String getUsername() {
+        return getString(LIGHTSTREAMER_PROXY_ADAPTER_USERNAME);
+    }
+
+    public String getPassword() {
+        Password password = getPassword(LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD);
+        return password != null ? password.value() : null;
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
