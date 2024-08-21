@@ -1288,11 +1288,13 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 ## Kafka Connect Lightstreamer Sink Connector
 
-Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
+Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into [_Kafka Connect_](https://docs.confluent.io/platform/current/connect/index.html).
 
 In this scenario, an instance of the connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
 ![KafkaConnectArchitecture](pictures/kafka-connect.png)
+
+The connector has been developed for Kafka Connect framework version 3.7.
 
 ### Usage
 
@@ -1304,7 +1306,6 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
 
 - JDK version 17 or later
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
-
 
 ##### Steps
 
@@ -1358,7 +1359,7 @@ LS_HOME/
 ```
 #### Running
 
-To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
+To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform (version 7.6 or later) and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
 1. Download the connector zip file `lightstreamer-kafka-connect-lightstreamer-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1426,6 +1427,25 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder. 
 
 In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+
+### Supported Converters
+
+Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
+
+- _AvroConverter_ `io.confluent.connect.avro.AvroConverter`
+- _ProtobufConverter_ `io.confluent.connect.protobuf.ProtobufConverter`
+- _JsonSchemaConverter_ `io.confluent.connect.json.JsonSchemaConverter`
+- _JsonConverter_ `org.apache.kafka.connect.json.JsonConverter`
+- _StringConverter_ `org.apache.kafka.connect.storage.StringConverter`
+- _ByteArrayConverter_ `org.apache.kafka.connect.converters.ByteArrayConverter`
+
+It also supports the built-in primitive converters:
+
+- `org.apache.kafka.connect.converters.DoubleConverter`
+- `org.apache.kafka.connect.converters.FloatConverter`
+- `org.apache.kafka.connect.converters.IntegerConverter`
+- `org.apache.kafka.connect.converters.LongConverter`
+- `org.apache.kafka.connect.converters.ShortConverter`
 
 ### Configuration Reference
 
