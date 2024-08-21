@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.1] (UNRELEASED)
+
+**Improvements**
+
+- Added the [Project Report Plugin](https://docs.gradle.org/current/userguide/project_report_plugin.html) to the [project](./kafka-connector-project/buildSrc/src/main/groovy/lightstreamer-kafka-connector.gradle#L5) to generate reports contaning information about the build.
+
+**Bug Fixes**
+
+- The following configuration parameters for the Sink Connector
+  - `lightstreamer.server.proxy_adapter.username` 
+  - `lightstreamer.server.proxy_adapter.password`
+  
+  were being ignored.
+
+
 ## [1.0.0] (2024-08-20)
 
 - First official public release
