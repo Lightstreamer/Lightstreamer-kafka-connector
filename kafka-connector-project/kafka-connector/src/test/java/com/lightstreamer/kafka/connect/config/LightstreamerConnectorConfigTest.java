@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -369,7 +370,8 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldToHtmml() throws IOException {
+    @Disabled
+    public void shouldProduceFormattedConfiguration() throws IOException {
         ConfigDef config = LightstreamerConnectorConfig.makeConfig();
         Files.write(config.toHtml().getBytes(), new File("config.html"));
         Files.write(config.toEnrichedRst().getBytes(), new File("config_enriched.rst"));
