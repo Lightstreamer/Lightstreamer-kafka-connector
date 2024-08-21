@@ -1298,7 +1298,15 @@ In this scenario, an instance of the connector plugin acts as a [_Remote Adapter
 
 #### Lightstreamer Setup
 
-Before running the connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance:
+Before running the connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance.
+
+##### Requirements
+
+- JDK version 17 or later
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+
+
+##### Steps
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
 
@@ -1332,7 +1340,7 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
        ```
 
 > [!NOTE]
-> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lighstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file included in the _Kafka Connector_ distribution package).
+> As the `id` attribute must be unique across all the Adapter Sets deployed in the same Lightstreamer instance, make sure there is no conflict with any previously installed adapters (for example, the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file included in the _Kafka Connector_ distribution package).
 
 Finally, check that the Lightstreamer layout looks like the following:
 
@@ -1350,7 +1358,7 @@ LS_HOME/
 ```
 #### Running
 
-To manually install Kafka Connect Lighstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
+To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
 1. Download the connector zip file `lightstreamer-kafka-connect-lightstreamer-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1374,7 +1382,7 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
 
 3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
    
-   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. This file provides the set of pre-configured settings to feed Lighstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
 
 4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
 
@@ -1384,9 +1392,9 @@ To manually install Kafka Connect Lighstreamer Sink Connector to a local Conflue
    $ bin/connect-standalone.sh connect-standalone-local.properties quickstart-lightstreamer-local.properties
    ```
 
-To verify that an events stream actually flows from Kafka to a Lighstreamer consumer leveraging the same example already shwon in the [Start](#start) section:
+To verify that an events stream actually flows from Kafka to a Lightstreamer consumer leveraging the same example already shwon in the [Start](#start) section:
 
-1. Attach a Lighstreamer consumer as specified in the step 2 of the [Start](#start) section.
+1. Attach a Lightstreamer consumer as specified in the step 2 of the [Start](#start) section.
 
 2. Make sure that a Schema Registy service is reachable from your local machine.
 
@@ -1439,12 +1447,12 @@ The Lightstreamer server's Proxy Adapter address to connect to in the format **`
 Example:
 
 ```
-lightstreamer.server.proxy_adapter.address=lighstreamer.com:6661
+lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 ```
 
 #### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
 
-The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lighstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
+The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
 - **Type:** int
 - **Default:** 5000 (5 seconds)
@@ -1459,7 +1467,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
 
 #### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
 
-The (optional) max number of retries to establish a connection to the Lighstreamer server's Proxy Adapter.
+The (optional) max number of retries to establish a connection to the Lightstreamer server's Proxy Adapter.
 
 - **Type:** int
 - **Default:** 1
@@ -1474,7 +1482,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 
 #### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
 
-The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lighstreamer server's Proxy Adapter in case of failure. Only applicable if
+The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
 
 - **Type:** long
