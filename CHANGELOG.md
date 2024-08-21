@@ -8,7 +8,7 @@
 
 **Bug Fixes**
 
-- The following configuration parameters for the Sink Connector
+- The following configuration parameters for the Sink Connector:
   - `lightstreamer.server.proxy_adapter.username` 
   - `lightstreamer.server.proxy_adapter.password`
   
