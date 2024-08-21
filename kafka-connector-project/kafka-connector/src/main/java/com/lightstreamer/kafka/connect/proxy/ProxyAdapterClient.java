@@ -53,7 +53,8 @@ public class ProxyAdapterClient {
         dataProviderServer = new DataProviderServer();
         dataProviderServer.setAdapter(provider);
         if (options.username != null && options.password != null) {
-            dataProviderServer.setRemoteUser(options.password);
+            logger.info("Setting credentials");
+            dataProviderServer.setRemoteUser(options.username);
             dataProviderServer.setRemotePassword(options.password);
         }
 
@@ -66,7 +67,7 @@ public class ProxyAdapterClient {
                 dataProviderServer.setReplyStream(socket.getOutputStream());
                 dataProviderServer.setRequestStream(socket.getInputStream());
 
-                logger.info("Connected to Lightstreame Proxy Aadapter");
+                logger.info("Connected to Lightstreamer Proxy Aadapter");
                 break;
 
             } catch (IOException io) {
