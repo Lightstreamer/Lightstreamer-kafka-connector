@@ -897,13 +897,13 @@ Example:
 
 Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-As anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract information that can be:
-- Routed to the designated Lightstreamer items
-- Remapped to specific Lightstreamer fields
+Furthermore, as anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract data that can be used for:
+- Mapping to specific Lightstreamer fields
+- Filtered routing to the designated Lightstreamer items
 
 ##### Record Routing (`map.<topic>.to`)
 
-To configure the routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
+To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
 
 ```xml
 <param name="map.<topic-name>.to">item1,item2,itemN,...</param>
