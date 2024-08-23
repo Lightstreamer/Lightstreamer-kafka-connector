@@ -1101,7 +1101,7 @@ Consider the following configuration:
 
 ```xml
 <param name="item-template.by-name">user-#{firstName=VALUE.name,lastName=VALUE.surname}</param>
-<param name="item-template.by-age">user-#{years=VALUE.age}</param>
+<param name="item-template.by-age">user-#{age=VALUE.age}</param>
 <param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
@@ -1643,7 +1643,7 @@ Example:
 
 ```
 item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
-               by-age:user-#{years=VALUE.age}
+               by-age:user-#{age=VALUE.age}
 
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
