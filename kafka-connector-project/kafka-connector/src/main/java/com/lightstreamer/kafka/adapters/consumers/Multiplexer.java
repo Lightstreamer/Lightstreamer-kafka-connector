@@ -3,9 +3,6 @@ package com.lightstreamer.kafka.adapters.consumers;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Multiplexer {
@@ -14,74 +11,51 @@ public class Multiplexer {
 
     /*
      * The Map associates each sequence to the queue of tasks to be run.
-     * The queue is implemented through the "next" member of each task.
+     * The queue is implemented through the "next" element of each task.
      * 
      * Associated invariant:
      * - As long as a sequence is present in the Map, its queue is being processed by a dequeuing activity.
-     *   When the dequeuing activity consumes the queue, it removes the sequence from the Map.
-     *   Hence, at most one dequeuing activity can be active at any time.
-     * - The element currently associated in the Map corresponds to the last task of the queue;
-     *   more precisely, this holds only if its "next" member is null;
-     *   otherwise, we are in a transient state MOD in which the queue is currently being modified.
+     *   When the dequeueing activity consumes the queue, it removes the sequence from the Map.  
+     *   Hence, at most one dequeueing activity can be active at any time.
+     * - The element currently mapped corresponds to the last task of the queue if its "next" element is null;
+     *   otherwise, it is a transient state MOD in which the queue is currently being modified.
      * 
      * Associated constraints:
-     * - Only the task that can add its sequence to the Map can also schedule a dequeuing activity.
+     * - Only the task that can add its sequence to the Map can also schedule a dequeueing activity.
      *   If the sequence is already present in the Map, other tasks can only add themselves to the queue.
-     *   The dequeuing activity can take care of added tasks either immediately or by rescheduling;
+     *   The dequeueing activity can take care of added tasks either immediately or by rescheduling;
      *   the latter is done by delegating the new scheduling to the next task left in the queue. 
-     *   If the end of the queue is reached, the dequeuing activity should remove the sequence from the Map.
+     *   If the end of the queue is reached, the dequeueing activity should remove the sequence from the Map. 
      * 
      * - Only one task at a time can add itself to an existing queue.
      *   In fact, the addition is a two-step process:
-     *   - first, the task sets itself as the next of the task associated in the Map, thus bringing state MOD;
-     *   - then, the task sets itself as the associated element in the Map, thus terminating state MOD.
+     *   first, the task sets itself as the next of the task associated in the Map, thus bringing state MOD;
+     *   then, the task sets itself as the associated element in the Map, thus terminating state MOD.
      *   During state MOD, other tasks willing to add themselves must wait.
-     *   On the other hand, the first step is enough for the dequeuing activity to process the task;
+     *   On the other hand, the first step is enough for the dequeueing activity to process the task;
      *   hence the task may even be mapped after it has already been processed.
      *
-     * - Moreover, during sequence removal by the dequeuing activity, new task additions have to wait. 
+     * - Moreover, during sequence removal by the dequeueing activity, new task additions cannot be run. 
      *   In fact, sequence removal is also a two-step process:
-     *   - first, the last task of the queue is set as the next of itself;
-     *   - then, the sequence is removed from the Map.
+     *   first, the last task of the queue is set as the next of itself;
+     *   then, the sequence is removed from the Map.
      *   The first step either brings state MOD, or occurs while already in state MOD.
      *   In the latter case, the last task is still to be associated in the Map;
-     *   anyway, after association, the state MOD persists, thus new additions are still blocked;
-     *   on the other hand, the second step (the removal) may occur before the new association;
-     *   in this case, the new association would be just redundant and should be prevented;
+     *   anyway, after association, the state MOD persists, thus new additions are still prevented;
+     *   on the other hand, the second step (the removal) may occur before the reassociation;
+     *   in this case, the reassociation is just redundant and should be prevented;
      *   hence, an adding task must always check this possibility when trying to associate itself.
      *   Obviously, the second step terminates state MOD and enables new additions;
-     *   but now, the first pending task addition will also readd the sequence to the Map.
+     *   but now, pending task additions will also readd the sequence.
      */
     private final ConcurrentMap<String, LinkableTask> queues;
 
-    private final MyCountDownLatch emptinessChecker;
-
     private static final int CPU_BOUND_BATCH = 1000; // experimental
 
-    public Multiplexer(ExecutorService executor, boolean batchSupport) {
+    public Multiplexer(ExecutorService executor) {
         this.executor = executor;
 
-        if (batchSupport) {
-            emptinessChecker = new MyCountDownLatch();
-        } else {
-            emptinessChecker = null;
-        }
-
         queues = new ConcurrentHashMap<>();
-    }
-
-    public boolean supportsBatching() {
-        return emptinessChecker != null;
-    }
-
-    private void runTask(Runnable task) {
-        try {
-            task.run();
-        } finally {
-            if (emptinessChecker != null) {
-                emptinessChecker.decrement();
-            }
-        }
     }
 
     private class LinkableTask implements Runnable {
@@ -110,8 +84,8 @@ public class Multiplexer {
                     if (last.next.compareAndSet(null, this)) {
                         // [A]
                         // there was no next and now state MOD is established;
-                        // I can safely associate myself in the Map as the new last:
-                        // other requests must get back to the Map and wait there;
+                        // I can safely notify myself as the new last:
+                        // other requests must get back to the map and wait there;
                         // the only contention is with my own getNext in [B],
                         // which may have already removed the element
 
@@ -135,7 +109,7 @@ public class Multiplexer {
             LinkableTask last = this;
 
             try {
-                runTask(deferredTask);
+                deferredTask.run();
 
                 // Check if there are other waiting tasks for this sequence;
                 // assuming CPU-bound tasks, we can execute them immediately,
@@ -143,7 +117,7 @@ public class Multiplexer {
                 for (int i = 0; i < CPU_BOUND_BATCH; i++) {
                     last = last.getNext();
                     if (last != null) {
-                        runTask(last.deferredTask);
+                        last.deferredTask.run();
                     } else {
                         // the task queue has been completed and the sequence already removed
                         // (a new queue may be concurrently being initiated)
@@ -170,18 +144,16 @@ public class Multiplexer {
             if (next.compareAndSet(null, this)) {
                 // [B]
                 // there was no next and further additions are now blocked;
-                // I can safely remove the sequence from the Map as completed:
-                // other requests must get back to the Map and wait there (state MOD);
+                // I can safely remove the queue as completed:
+                // other requests must get back to the map and wait there (state MOD);
                 // the only contention is with my own attach in [A],
-                // which may haven't set the element yet in the Map;
+                // which may haven't set the element yet in the map;
                 // in this case, that mapping will no longer be needed
 
                 queues.remove(sequence);
                 return null;
             } else {
-                // there is a next in the queue, so we can immediately process it,
-                // even if it were still going to be associated in the Map as the last task,
-                // as that is only of interest for addition operations
+                // there was a next and it is now immutable
                 return next.get();
             }
         }
@@ -199,16 +171,9 @@ public class Multiplexer {
     }
 
     public void execute(String sequence, Runnable task) {
-        if (emptinessChecker != null) {
-            emptinessChecker.increment();
-        }
         if (sequence == null) {
             // No requirement to sequentialize tasks that have no key set
-            if (emptinessChecker != null) {
-                executor.execute(() -> runTask(task));
-            } else {
-                executor.execute(task);
-            }
+            executor.execute(task);
 
         } else {
             // Create the task and attach it to the task queue for the sequence;
@@ -218,74 +183,13 @@ public class Multiplexer {
         }
     }
 
-    private class MyCountDownLatch {
-        // couldn't find this functionality in the JDK
-
-        private final AtomicLong count = new AtomicLong(0);
-
-        private final Semaphore semaphore = new Semaphore(0);
-
-        private final AtomicBoolean waiting = new AtomicBoolean(false);
-
-        private void increment() {
-            count.incrementAndGet();
-        }
-
-        private void decrement() {
-            long val = count.decrementAndGet();
-            if (val == 0) {
-                if (waiting.compareAndSet(true, false)) {
-                    semaphore.release();
-                }
-            }
-        }
-
-        private void waitEmpty() {
-            if (! waiting.compareAndSet(false, true)) {
-                throw new IllegalStateException();
-            }
-            if (count.get() == 0) {
-                if (waiting.compareAndSet(true, false)) {
-                    assert (semaphore.availablePermits() == 0);
-                    return;
-                } else {
-                    // race condition: semaphore being released
-                }
-            }
-            try {
-                semaphore.acquire();
-                // assert (count.get() == 0); unless other producers are still running
-                assert (semaphore.availablePermits() == 0);
-                assert (waiting.get() == false);
-            } catch (InterruptedException e) {
-                if (waiting.compareAndSet(true, false)) {
-                    assert (semaphore.availablePermits() == 0);
-                    throw new IllegalStateException();
-                } else {
-                    // race condition
-                    while (semaphore.drainPermits() == 0);
-                }
-            }
-        }
-    }
-
-    public void waitBatch() {
-        if (emptinessChecker == null) {
-            throw new UnsupportedOperationException();
-        }
-        synchronized (emptinessChecker) {
-            emptinessChecker.waitEmpty();
-        }
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     // Local test
 
     public static class Test {
         private static int threads = 50;
         private static int sequences = 10;
-        private static int run = 10000;
-        private static int checkpoint = 10000;
+        private static int run = 1000;
         private static int work = 100;
         private static int pause = 100;
 
@@ -300,8 +204,8 @@ public class Multiplexer {
         }
 
         public static void main(String[] args) {
-            Multiplexer multi1 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
-            Multiplexer multi2 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
+            Multiplexer multi1 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4));
+            Multiplexer multi2 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4));
 
             startMulti(multi1, "Test1");
             startMulti(multi2, "Test2");
@@ -314,38 +218,19 @@ public class Multiplexer {
                 sequenceData[n] = new SequenceData(name + ".seq" + (n + 1));
             }
 
-            if (multi.supportsBatching()) {
-                while (true) {
-                    for (int i = 0; i < checkpoint * sequences / run; i++) {
-                        submitLoop(multi, sequenceData, false);
+            for (int i = 0; i < threads; i++) {
+                new Thread() {
+                    @Override
+                    public void run() {
+                        submitLoop(multi, sequenceData);
                     }
-                    multi.waitBatch();
-                    long tot = 0;
-                    for (int i = 0; i < sequences; i++) {
-                        tot += sequenceData[i].count;
-                    }
-                    System.out.println("Batch on " + name + " completed on count: " + (tot / sequences));
-                    try {
-                        Thread.sleep(pause);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
-                }
-            } else {
-                for (int i = 0; i < threads; i++) {
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            submitLoop(multi, sequenceData, true);
-                        }
-                    }.start();
-                }
+                }.start();
             }
         }
 
-        private static void submitLoop(Multiplexer multi, SequenceData[] sequenceData, boolean loop) {
+        private static void submitLoop(Multiplexer multi, SequenceData[] sequenceData) {
             java.util.Random rnd = new java.util.Random();
-            while (true)  {
+            while (true) {
                 for (int i = 0; i < run; i++) {
                     SequenceData currSequence = sequenceData[rnd.nextInt(sequences)];
                     multi.execute(currSequence.name, () -> {
@@ -358,7 +243,7 @@ public class Multiplexer {
                             }
                             currSequence.data += tot;
                             currSequence.count++;
-                            if (currSequence.count % checkpoint == 0) {
+                            if (currSequence.count % 100000 == 0) {
                                 System.out.println(currSequence.name + " currently at " + currSequence.count + " with " + currSequence.data);
                             }
                             assert (currSequence.active); // this is what we are testing (enable asserts on launch)
@@ -367,9 +252,6 @@ public class Multiplexer {
                             System.out.println("Error on " + currSequence.name + ": " + e.toString());
                         }
                     });
-                }
-                if (! loop) {
-                    break;
                 }
                 try {
                     Thread.sleep(pause);

@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -144,6 +145,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private final Multiplexer multiplexer;
 
+        private final Multiplexer multiplexer;
+
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
             String bootStrapServers =
@@ -167,6 +170,15 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 boolean asyncProcessing = true; // TODO config.isAsyncProcessing();
                 boolean batchSupport = ! asyncProcessing;
                 multiplexer = new Multiplexer(executor, batchSupport);
+            }
+
+            Integer consumerThreads = null; // TODO config.getConsumerThreads();
+            if (consumerThreads == null) {
+                // no async processing at all
+                multiplexer = null;
+            } else {
+                ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
+                multiplexer = new Multiplexer(executor);
             }
 
             this.offsetManager = new OffsetManager(consumer);
@@ -273,7 +285,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
-        private void process(ConsumerRecord<K, V> record) {
+        protected void process(ConsumerRecord<K, V> record) {
+            log.atDebug().log("Mapping incoming Kafka record");
+            log.atTrace().log("Kafka record: {}", record.toString());
             try {
                 MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
@@ -310,6 +324,24 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 }
             }
         }
+
+        protected void consume(ConsumerRecord<K, V> record) {
+            log.atDebug().log("Mapping incoming Kafka record");
+            log.atTrace().log("Kafka record: {}", record.toString());
+
+            if (multiplexer == null) {
+                process(record);
+            } else {
+                String sequenceKey = Objects.toString(record.key(), null);
+                multiplexer.execute(sequenceKey, () -> {
+                    try {
+                        process(record);
+                    } catch (RuntimeException | Error e) {
+                        // TODO
+                    }
+                });
+            }
+        }        
 
         void close() {
             shutdown();
