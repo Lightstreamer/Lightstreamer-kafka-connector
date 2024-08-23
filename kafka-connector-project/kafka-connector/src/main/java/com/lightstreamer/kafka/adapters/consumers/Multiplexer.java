@@ -11,42 +11,43 @@ public class Multiplexer {
 
     /*
      * The Map associates each sequence to the queue of tasks to be run.
-     * The queue is implemented through the "next" element of each task.
+     * The queue is implemented through the "next" member of each task.
      * 
      * Associated invariant:
      * - As long as a sequence is present in the Map, its queue is being processed by a dequeuing activity.
-     *   When the dequeueing activity consumes the queue, it removes the sequence from the Map.  
-     *   Hence, at most one dequeueing activity can be active at any time.
-     * - The element currently mapped corresponds to the last task of the queue if its "next" element is null;
-     *   otherwise, it is a transient state MOD in which the queue is currently being modified.
+     *   When the dequeuing activity consumes the queue, it removes the sequence from the Map.
+     *   Hence, at most one dequeuing activity can be active at any time.
+     * - The element currently associated in the Map corresponds to the last task of the queue;
+     *   more precisely, this holds only if its "next" member is null;
+     *   otherwise, we are in a transient state MOD in which the queue is currently being modified.
      * 
      * Associated constraints:
-     * - Only the task that can add its sequence to the Map can also schedule a dequeueing activity.
+     * - Only the task that can add its sequence to the Map can also schedule a dequeuing activity.
      *   If the sequence is already present in the Map, other tasks can only add themselves to the queue.
-     *   The dequeueing activity can take care of added tasks either immediately or by rescheduling;
+     *   The dequeuing activity can take care of added tasks either immediately or by rescheduling;
      *   the latter is done by delegating the new scheduling to the next task left in the queue. 
-     *   If the end of the queue is reached, the dequeueing activity should remove the sequence from the Map. 
+     *   If the end of the queue is reached, the dequeuing activity should remove the sequence from the Map.
      * 
      * - Only one task at a time can add itself to an existing queue.
      *   In fact, the addition is a two-step process:
-     *   first, the task sets itself as the next of the task associated in the Map, thus bringing state MOD;
-     *   then, the task sets itself as the associated element in the Map, thus terminating state MOD.
+     *   - first, the task sets itself as the next of the task associated in the Map, thus bringing state MOD;
+     *   - then, the task sets itself as the associated element in the Map, thus terminating state MOD.
      *   During state MOD, other tasks willing to add themselves must wait.
-     *   On the other hand, the first step is enough for the dequeueing activity to process the task;
+     *   On the other hand, the first step is enough for the dequeuing activity to process the task;
      *   hence the task may even be mapped after it has already been processed.
      *
-     * - Moreover, during sequence removal by the dequeueing activity, new task additions cannot be run. 
+     * - Moreover, during sequence removal by the dequeuing activity, new task additions have to wait. 
      *   In fact, sequence removal is also a two-step process:
-     *   first, the last task of the queue is set as the next of itself;
-     *   then, the sequence is removed from the Map.
+     *   - first, the last task of the queue is set as the next of itself;
+     *   - then, the sequence is removed from the Map.
      *   The first step either brings state MOD, or occurs while already in state MOD.
      *   In the latter case, the last task is still to be associated in the Map;
-     *   anyway, after association, the state MOD persists, thus new additions are still prevented;
-     *   on the other hand, the second step (the removal) may occur before the reassociation;
-     *   in this case, the reassociation is just redundant and should be prevented;
+     *   anyway, after association, the state MOD persists, thus new additions are still blocked;
+     *   on the other hand, the second step (the removal) may occur before the new association;
+     *   in this case, the new association would be just redundant and should be prevented;
      *   hence, an adding task must always check this possibility when trying to associate itself.
      *   Obviously, the second step terminates state MOD and enables new additions;
-     *   but now, pending task additions will also readd the sequence.
+     *   but now, the first pending task addition will also readd the sequence to the Map.
      */
     private final ConcurrentMap<String, LinkableTask> queues;
 
@@ -84,8 +85,8 @@ public class Multiplexer {
                     if (last.next.compareAndSet(null, this)) {
                         // [A]
                         // there was no next and now state MOD is established;
-                        // I can safely notify myself as the new last:
-                        // other requests must get back to the map and wait there;
+                        // I can safely associate myself in the Map as the new last:
+                        // other requests must get back to the Map and wait there;
                         // the only contention is with my own getNext in [B],
                         // which may have already removed the element
 
@@ -144,16 +145,18 @@ public class Multiplexer {
             if (next.compareAndSet(null, this)) {
                 // [B]
                 // there was no next and further additions are now blocked;
-                // I can safely remove the queue as completed:
-                // other requests must get back to the map and wait there (state MOD);
+                // I can safely remove the sequence from the Map as completed:
+                // other requests must get back to the Map and wait there (state MOD);
                 // the only contention is with my own attach in [A],
-                // which may haven't set the element yet in the map;
+                // which may haven't set the element yet in the Map;
                 // in this case, that mapping will no longer be needed
 
                 queues.remove(sequence);
                 return null;
             } else {
-                // there was a next and it is now immutable
+                // there is a next in the queue, so we can immediately process it,
+                // even if it were still going to be associated in the Map as the last task,
+                // as that is only of interest for addition operations
                 return next.get();
             }
         }
