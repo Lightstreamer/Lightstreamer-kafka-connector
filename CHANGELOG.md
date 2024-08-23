@@ -1,11 +1,5 @@
 # Changelog
 
-## [1.0.2] (UNRELEASED)
-
-**Improvements**
-
-- Improved [README.md](README.md) by restructring the [Topic Mapping](README.md#topic-mapping) section.
-
 ## [1.0.1] (2024-08-23)
 
 **Improvements**
