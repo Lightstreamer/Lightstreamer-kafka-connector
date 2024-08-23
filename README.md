@@ -24,6 +24,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Broker Authentication Parameters](#broker-authentication-parameters)
     - [Record Evaluation](#record-evaluation)
     - [Topic Mapping](#topic-mapping)
+      - [Data Extraction Language](#data-extraction-language)
       - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
       - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
       - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
@@ -897,7 +898,7 @@ Example:
 
 Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following:
+The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following purposes:
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
