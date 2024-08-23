@@ -29,8 +29,8 @@ The image is based on the official [Official Confluent Docker Base Image for Kaf
    ```sh
    $ docker image ls kafka-connect-lightstreamer-<version>
 
-   REPOSITORY                         TAG       IMAGE ID       CREATED          SIZE
-   kafka-connect-lightstreamer-1.0.0   latest    417d099deaa8   18 seconds ago   1.75GB
+   REPOSITORY                              TAG       IMAGE ID       CREATED          SIZE
+   kafka-connect-lightstreamer-<version>   latest    417d099deaa8   18 seconds ago   1.75GB
    ```
 
 ## Running in Docker Compose

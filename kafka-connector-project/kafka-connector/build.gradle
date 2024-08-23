@@ -126,3 +126,5 @@ distributions {
 		}
 	}
 }
+
+build.dependsOn javadoc
