@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.1] (UNRELEASED)
+## [1.0.1] (2024-08-23)
 
 **Improvements**
 
@@ -21,6 +21,8 @@
 - The [examples/docker-kafka-connect/README.md](./examples/docker-kafka-connect/README.md) file contained a wrong reference to the Docker image name.
 
 - The [gradle.properties](./kafka-connector-project/gradle.properties) file contained an unsed property.
+
+- The [README.md](README.md) contained broken links.
 
 ## [1.0.0] (2024-08-20)
 
