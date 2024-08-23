@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.1] (UNRELEASED)
+## [1.0.1] (2024-08-23)
 
 **Improvements**
 
