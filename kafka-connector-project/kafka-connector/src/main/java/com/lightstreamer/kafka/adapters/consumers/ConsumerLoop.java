@@ -49,6 +49,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -142,6 +143,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private final RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean enableFinalCommit = true;
 
+        private final Multiplexer multiplexer;
+
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
             String bootStrapServers =
@@ -155,6 +158,15 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             config.keyDeserializer(),
                             config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
+
+            Integer consumerThreads = null; // TODO config.getConsumerThreads();
+            if (consumerThreads == null) {
+                // no async processing at all
+                multiplexer = null;
+            } else {
+                ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
+                multiplexer = new Multiplexer(executor);
+            }
 
             this.relabancerListener = new RebalancerListener(consumer);
             this.hook = setShutdownHook();
@@ -277,9 +289,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
         }
 
-        protected void consume(ConsumerRecord<K, V> record) {
-            log.atDebug().log("Mapping incoming Kafka record");
-            log.atTrace().log("Kafka record: {}", record.toString());
+        private void process(ConsumerRecord<K, V> record) {
             MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
             // Logging the mapped record is expensive, log lazly it only at trace level.
@@ -297,6 +307,24 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                 log.atDebug().log("Sending updates: {}", updates);
                 eventListener.smartUpdate(sub.itemHandle(), updates, false);
+            }
+        }
+
+        protected void consume(ConsumerRecord<K, V> record) {
+            log.atDebug().log("Mapping incoming Kafka record");
+            log.atTrace().log("Kafka record: {}", record.toString());
+
+            if (multiplexer == null) {
+                process(record);
+            } else {
+                String sequenceKey = Objects.toString(record.key(), null);
+                multiplexer.execute(sequenceKey, () -> {
+                    try {
+                        process(record);
+                    } catch (RuntimeException | Error e) {
+                        // TODO
+                    }
+                });
             }
 
             relabancerListener.updateOffsets(record);
