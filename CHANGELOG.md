@@ -22,6 +22,8 @@
 
 - The [gradle.properties](./kafka-connector-project/gradle.properties) file contained an unsed property.
 
+- The [README.md](README.md) contained broken links.
+
 ## [1.0.0] (2024-08-20)
 
 - First official public release
