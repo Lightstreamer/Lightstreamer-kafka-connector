@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -183,6 +184,8 @@ public class LightstreamerConnectorConfigTest {
         assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(5000);
         assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(1);
         assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(5000);
+        assertThat(proxyAdapterClientOptions.username).isNull();
+        assertThat(proxyAdapterClientOptions.password).isNull();
 
         Map<String, String> updateConfigs = new HashMap<>(basicConfig());
         updateConfigs.put(
@@ -199,6 +202,10 @@ public class LightstreamerConnectorConfigTest {
                 LightstreamerConnectorConfig
                         .LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
                 "15000");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME, "user");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD, "password");
 
         config = new LightstreamerConnectorConfig(updateConfigs);
 
@@ -209,6 +216,8 @@ public class LightstreamerConnectorConfigTest {
         assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(10000);
         assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(5);
         assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(15000);
+        assertThat(proxyAdapterClientOptions.username).isEqualTo("user");
+        assertThat(proxyAdapterClientOptions.password).isEqualTo("password");
     }
 
     @Test
@@ -361,7 +370,8 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldToHtmml() throws IOException {
+    @Disabled
+    public void shouldProduceFormattedConfiguration() throws IOException {
         ConfigDef config = LightstreamerConnectorConfig.makeConfig();
         Files.write(config.toHtml().getBytes(), new File("config.html"));
         Files.write(config.toEnrichedRst().getBytes(), new File("config_enriched.rst"));

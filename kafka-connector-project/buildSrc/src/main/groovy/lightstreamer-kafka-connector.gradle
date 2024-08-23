@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.diffplug.spotless'
+    id 'project-report'
 }
 
 group = 'com.lightstreamer.kafka'
