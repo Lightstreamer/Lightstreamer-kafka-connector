@@ -6,6 +6,10 @@
 
 - Improved [README.md](README.md) by restructring the [Topic Mapping](README.md#topic-mapping) section.
 
+**Bug Fixes**
+
+- Fixed reference to the `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter` class in several resource files.  ([#4](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/4))
+
 ## [1.0.1] (2024-08-23)
 
 **Improvements**
