@@ -172,15 +172,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 multiplexer = new Multiplexer(executor, batchSupport);
             }
 
-            Integer consumerThreads = null; // TODO config.getConsumerThreads();
-            if (consumerThreads == null) {
-                // no async processing at all
-                multiplexer = null;
-            } else {
-                ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
-                multiplexer = new Multiplexer(executor);
-            }
-
             this.offsetManager = new OffsetManager(consumer);
             this.hook = setShutdownHook();
             log.atDebug().log("Set shutdown kook");
@@ -266,6 +257,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
                     log.atDebug().log("Received records");
                     records.forEach(this::consume);
+                    if (multiplexer != null && multiplexer.supportsBatching()) {
+                        multiplexer.waitBatch();
+                        // NOTE: this may be inefficient if, for instance, a single task
+                        // should keep the executor engaged while all other threads are idle,
+                        // but this is not expected when all tasks are short and cpu-bound
+                    }
                     if (multiplexer != null && multiplexer.supportsBatching()) {
                         multiplexer.waitBatch();
                         // NOTE: this may be inefficient if, for instance, a single task

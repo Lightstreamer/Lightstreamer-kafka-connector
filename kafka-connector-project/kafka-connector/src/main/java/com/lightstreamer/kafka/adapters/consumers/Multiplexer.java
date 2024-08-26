@@ -3,6 +3,9 @@ package com.lightstreamer.kafka.adapters.consumers;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Multiplexer {
@@ -50,12 +53,34 @@ public class Multiplexer {
      */
     private final ConcurrentMap<String, LinkableTask> queues;
 
+    private final MyCountDownLatch emptinessChecker;
+
     private static final int CPU_BOUND_BATCH = 1000; // experimental
 
-    public Multiplexer(ExecutorService executor) {
+    public Multiplexer(ExecutorService executor, boolean batchSupport) {
         this.executor = executor;
 
+        if (batchSupport) {
+            emptinessChecker = new MyCountDownLatch();
+        } else {
+            emptinessChecker = null;
+        }
+
         queues = new ConcurrentHashMap<>();
+    }
+
+    public boolean supportsBatching() {
+        return emptinessChecker != null;
+    }
+
+    private void runTask(Runnable task) {
+        try {
+            task.run();
+        } finally {
+            if (emptinessChecker != null) {
+                emptinessChecker.decrement();
+            }
+        }
     }
 
     private class LinkableTask implements Runnable {
@@ -109,7 +134,7 @@ public class Multiplexer {
             LinkableTask last = this;
 
             try {
-                deferredTask.run();
+                runTask(deferredTask);
 
                 // Check if there are other waiting tasks for this sequence;
                 // assuming CPU-bound tasks, we can execute them immediately,
@@ -117,7 +142,7 @@ public class Multiplexer {
                 for (int i = 0; i < CPU_BOUND_BATCH; i++) {
                     last = last.getNext();
                     if (last != null) {
-                        last.deferredTask.run();
+                        runTask(last.deferredTask);
                     } else {
                         // the task queue has been completed and the sequence already removed
                         // (a new queue may be concurrently being initiated)
@@ -171,9 +196,16 @@ public class Multiplexer {
     }
 
     public void execute(String sequence, Runnable task) {
+        if (emptinessChecker != null) {
+            emptinessChecker.increment();
+        }
         if (sequence == null) {
             // No requirement to sequentialize tasks that have no key set
-            executor.execute(task);
+            if (emptinessChecker != null) {
+                executor.execute(() -> runTask(task));
+            } else {
+                executor.execute(task);
+            }
 
         } else {
             // Create the task and attach it to the task queue for the sequence;
@@ -183,13 +215,74 @@ public class Multiplexer {
         }
     }
 
+    private class MyCountDownLatch {
+        // couldn't find this functionality in the JDK
+
+        private final AtomicLong count = new AtomicLong(0);
+
+        private final Semaphore semaphore = new Semaphore(0);
+
+        private final AtomicBoolean waiting = new AtomicBoolean(false);
+
+        private void increment() {
+            count.incrementAndGet();
+        }
+
+        private void decrement() {
+            long val = count.decrementAndGet();
+            if (val == 0) {
+                if (waiting.compareAndSet(true, false)) {
+                    semaphore.release();
+                }
+            }
+        }
+
+        private void waitEmpty() {
+            if (! waiting.compareAndSet(false, true)) {
+                throw new IllegalStateException();
+            }
+            if (count.get() == 0) {
+                if (waiting.compareAndSet(true, false)) {
+                    assert (semaphore.availablePermits() == 0);
+                    return;
+                } else {
+                    // race condition: semaphore being released
+                }
+            }
+            try {
+                semaphore.acquire();
+                // assert (count.get() == 0); unless other producers are still running
+                assert (semaphore.availablePermits() == 0);
+                assert (waiting.get() == false);
+            } catch (InterruptedException e) {
+                if (waiting.compareAndSet(true, false)) {
+                    assert (semaphore.availablePermits() == 0);
+                    throw new IllegalStateException();
+                } else {
+                    // race condition
+                    while (semaphore.drainPermits() == 0);
+                }
+            }
+        }
+    }
+
+    public void waitBatch() {
+        if (emptinessChecker == null) {
+            throw new UnsupportedOperationException();
+        }
+        synchronized (emptinessChecker) {
+            emptinessChecker.waitEmpty();
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Local test
 
     public static class Test {
         private static int threads = 50;
         private static int sequences = 10;
-        private static int run = 1000;
+        private static int run = 10000;
+        private static int checkpoint = 10000;
         private static int work = 100;
         private static int pause = 100;
 
@@ -204,8 +297,8 @@ public class Multiplexer {
         }
 
         public static void main(String[] args) {
-            Multiplexer multi1 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4));
-            Multiplexer multi2 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4));
+            Multiplexer multi1 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
+            Multiplexer multi2 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
 
             startMulti(multi1, "Test1");
             startMulti(multi2, "Test2");
@@ -218,19 +311,38 @@ public class Multiplexer {
                 sequenceData[n] = new SequenceData(name + ".seq" + (n + 1));
             }
 
-            for (int i = 0; i < threads; i++) {
-                new Thread() {
-                    @Override
-                    public void run() {
-                        submitLoop(multi, sequenceData);
+            if (multi.supportsBatching()) {
+                while (true) {
+                    for (int i = 0; i < checkpoint * sequences / run; i++) {
+                        submitLoop(multi, sequenceData, false);
                     }
-                }.start();
+                    multi.waitBatch();
+                    long tot = 0;
+                    for (int i = 0; i < sequences; i++) {
+                        tot += sequenceData[i].count;
+                    }
+                    System.out.println("Batch on " + name + " completed on count: " + (tot / sequences));
+                    try {
+                        Thread.sleep(pause);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+            } else {
+                for (int i = 0; i < threads; i++) {
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            submitLoop(multi, sequenceData, true);
+                        }
+                    }.start();
+                }
             }
         }
 
-        private static void submitLoop(Multiplexer multi, SequenceData[] sequenceData) {
+        private static void submitLoop(Multiplexer multi, SequenceData[] sequenceData, boolean loop) {
             java.util.Random rnd = new java.util.Random();
-            while (true) {
+            while (true)  {
                 for (int i = 0; i < run; i++) {
                     SequenceData currSequence = sequenceData[rnd.nextInt(sequences)];
                     multi.execute(currSequence.name, () -> {
@@ -243,7 +355,7 @@ public class Multiplexer {
                             }
                             currSequence.data += tot;
                             currSequence.count++;
-                            if (currSequence.count % 100000 == 0) {
+                            if (currSequence.count % checkpoint == 0) {
                                 System.out.println(currSequence.name + " currently at " + currSequence.count + " with " + currSequence.data);
                             }
                             assert (currSequence.active); // this is what we are testing (enable asserts on launch)
@@ -252,6 +364,9 @@ public class Multiplexer {
                             System.out.println("Error on " + currSequence.name + ": " + e.toString());
                         }
                     });
+                }
+                if (! loop) {
+                    break;
                 }
                 try {
                     Thread.sleep(pause);
