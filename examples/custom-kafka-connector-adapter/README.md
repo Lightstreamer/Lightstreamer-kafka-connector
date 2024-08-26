@@ -6,7 +6,7 @@ To customize, build, and deploy an adapter implementation, follow the steps:
 
 ## Develop
 
-Edit the [CustomKafkaConnectorAdapter.java](src/main/java/com/lightstreamer/kafka_connector/examples/CustomKafkaConnectorAdapter.java) file by implementing the required hook methods or provide your completely new custom class that must extend [com.lightstreamer.kafka_connector.adapters.pub.KafkaConnectorMetadataAdapter](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html).
+Edit the [CustomKafkaConnectorAdapter.java](src/main/java/com/lightstreamer/kafka_connector/examples/CustomKafkaConnectorAdapter.java) file by implementing the required hook methods or provide your completely new custom class that must extend [com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka_connector/adapters/pub/KafkaConnectorMetadataAdapter.html).
 
 > [!IMPORTANT]
 > Add all required dependencies to the [build.gradle](build.gradle) file in the `dependencies` section.
