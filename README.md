@@ -24,6 +24,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Broker Authentication Parameters](#broker-authentication-parameters)
     - [Record Evaluation](#record-evaluation)
     - [Topic Mapping](#topic-mapping)
+      - [Data Extraction Language](#data-extraction-language)
       - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
       - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
       - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
@@ -897,75 +898,13 @@ Example:
 
 Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-Furthermore, as anticipated in the [_Installation_](#configure) section, a Kafka record can be analyzed in all its aspects to extract data that can be used for:
-- Mapping to specific Lightstreamer fields
-- Filtered routing to the designated Lightstreamer items
+The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following purposes:
+- Mapping records to Lightstreamer fields
+- Filtering routing to the designated Lightstreamer items
 
-##### Record Routing (`map.<topic>.to`)
+##### Data Extraction Language
 
-To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
-
-```xml
-<param name="map.<topic-name>.to">item1,item2,itemN,...</param>
-```
-
-which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
-
-This configuration enables the implementation of various mapping scenarios, as shown by the following examples:
-
-- _One To One_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item</param>
-  ```
-
-  ![one-to-one](pictures/one-to-one.png)
-
-  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
-
-- _One To Many_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
-  ```
-
-  ![one-to-many](pictures/one-to-many.png)
-
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
-
-  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the [example](examples/custom-kafka-connector-adapter/)), in which every subscription must be validated against the user identity.
-
-- _Many to One_
-
-  ```xml
-  <param name="map.sample-topic1.to">sample-item</param>
-  <param name="map.sample-topic2.to">sample-item</param>
-  <param name="map.sample-topic3.to">sample-item</param>
-  ```
-
-  ![many-to-one](pictures/many-to-one.png)
-
-  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
-
-##### Record Mapping (`field.<fieldName>`)
-
-To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
-
-![record-mapping](pictures/record-fields-mapping.png)
-
-To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
-
-```xml
-<param name="field.fieldName1">extractionExpression1</param>
-<param name="field.fieldName2">extractionExpression2<param>
-...
-<param name="field.fieldNameN">extractionExpressionN<param>
-...
-```
-
-The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`. This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
-
-To write an extraction expression, Kafka Connector provides the _Data Extraction Language_. This language has a pretty minimal syntax, with the following basic rules:
+To write an extraction expression, the _Data Extraction Language_ provides a pretty minimal syntax with the following basic rules:
 
 - Expressions must be enclosed within `#{...}`
 - Expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
@@ -1021,7 +960,73 @@ To write an extraction expression, Kafka Connector provides the _Data Extraction
 
   In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L352) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the same name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+##### Record Routing (`map.<topic>.to`)
+
+To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
+
+```xml
+<param name="map.<topic-name>.to">item1,item2,itemN,...</param>
+```
+
+which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
+
+The settings described in the Record Evaluation section apply to all the topics mentioned in the mappings, which implies that the events consumed from this 
+
+This configuration enables the implementation of various routing scenarios, as shown by the following examples:
+
+- _One To One_
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item</param>
+  ```
+
+  ![one-to-one](pictures/one-to-one.png)
+
+  This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
+
+- _One To Many_
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
+  ```
+
+  ![one-to-many](pictures/one-to-many.png)
+
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
+
+  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the [example](examples/custom-kafka-connector-adapter/)), in which every subscription must be validated against the user identity.
+
+- _Many to One_
+
+  ```xml
+  <param name="map.sample-topic1.to">sample-item</param>
+  <param name="map.sample-topic2.to">sample-item</param>
+  <param name="map.sample-topic3.to">sample-item</param>
+  ```
+
+  ![many-to-one](pictures/many-to-one.png)
+
+  With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
+
+##### Record Mapping (`field.<fieldName>`)
+
+To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
+
+![record-mapping](pictures/record-fields-mapping.png)
+
+To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
+
+```xml
+<param name="field.fieldName1">extractionExpression1</param>
+<param name="field.fieldName2">extractionExpression2<param>
+...
+<param name="field.fieldNameN">extractionExpressionN<param>
+...
+```
+
+The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
+
+The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L352) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1046,7 +1051,7 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 
 Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
-The item template leverages the _Data Extraction Language_ to extract data from Kafka records and match them against the _parameterized_ subscribed items.
+The item template leverages the [_Data Extraction Language_](#data-extraction-language) to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
 ![filtered-routing](pictures/filtered-routing.png)
 
