@@ -165,7 +165,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 multiplexer = null;
             } else {
                 ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
-                multiplexer = new Multiplexer(executor);
+                boolean asyncProcessing = true; // TODO config.isAsyncProcessing();
+                boolean batchSupport = ! asyncProcessing;
+                multiplexer = new Multiplexer(executor, batchSupport);
             }
 
             this.relabancerListener = new RebalancerListener(consumer);
@@ -261,6 +263,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
                     log.atDebug().log("Received records");
                     records.forEach(this::consume);
+                    if (multiplexer != null && multiplexer.supportsBatching()) {
+                        multiplexer.waitBatch();
+                        // NOTE: this may be inefficient if, for instance, a single task
+                        // should keep the executor engaged while all other threads are idle,
+                        // but this is not expected when all tasks are short and cpu-bound
+                    }
                     consumer.commitAsync();
                     log.atInfo().log("Consumed {} records", records.count());
                 } catch (ValueException ve) {
