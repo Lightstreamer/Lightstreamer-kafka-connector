@@ -970,8 +970,6 @@ To configure a simple routing of Kafka event streams to Lightstreamer items, use
 
 which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
 
-The settings described in the Record Evaluation section apply to all the topics mentioned in the mappings, which implies that the events consumed from this 
-
 This configuration enables the implementation of various routing scenarios, as shown by the following examples:
 
 - _One To One_
