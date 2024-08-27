@@ -2,6 +2,14 @@
 
 ## [1.0.3] (UNRELEASED)
 
+**Improvements**
+
+- Improved the offsets management and logging in the [ConsumerLoop](kafka-connector-project/kafka-connector/src/main/java/com/lightstreamer/kafka/adapters/consumers/ConsumerLoop.java) class.
+
+**Bug Fixes**
+
+- The [README.md](README.md) contained incomplete statements.
+
 
 ## [1.0.2] (2024-08-26)
 
@@ -12,6 +20,7 @@
 **Bug Fixes**
 
 - Fixed reference to the `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter` class in several resource files. ([#4](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/4))
+
 
 ## [1.0.1] (2024-08-23)
 
@@ -37,9 +46,11 @@
 
 - The [README.md](README.md) contained broken links.
 
+
 ## [1.0.0] (2024-08-20)
 
 - First official public release
+
 
 ## [0.1.0] (2024-03-17)
 
