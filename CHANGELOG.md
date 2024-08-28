@@ -6,6 +6,8 @@
 
 - Improved the offsets management and logging in the [ConsumerLoop](kafka-connector-project/kafka-connector/src/main/java/com/lightstreamer/kafka/adapters/consumers/ConsumerLoop.java) class.
 
+- Modified the[ `quickstart-producer'](examples/quickstart-producer/) sample client project to being published to _GitHub Packages_.
+
 **Bug Fixes**
 
 - The [README.md](README.md) contained incomplete statements.
