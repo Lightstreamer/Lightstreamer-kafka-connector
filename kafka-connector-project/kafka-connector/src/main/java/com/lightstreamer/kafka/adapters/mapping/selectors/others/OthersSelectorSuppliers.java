@@ -44,32 +44,6 @@ import java.util.EnumMap;
 
 public class OthersSelectorSuppliers {
 
-    private static EnumMap<EvaluatorType, Deserializer<?>> DESERIALIAZERS =
-            new EnumMap<>(EvaluatorType.class);
-
-    static {
-        DESERIALIAZERS.put(EvaluatorType.STRING, new StringDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.BYTE_BUFFER, new ByteBufferDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.BYTES, new BytesDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.DOUBLE, new DoubleDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.FLOAT, new FloatDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.LONG, new LongDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.SHORT, new ShortDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
-    }
-
-    public static ValueSelectorSupplier<?> valueSelectorSupplier(EvaluatorType type) {
-        return new OthersValueSelectorSupplier(type);
-    }
-
-    public static KeySelectorSupplier<?> keySelectorSupplier(EvaluatorType type) {
-        return new OthersKeySelectorSupplier(type);
-    }
-
     private static class BaseOthersSelectorSupplier {
         private final Deserializer<?> deseralizer;
         private final ConstantSelectorSupplier constantSelectorSupplier;
@@ -122,4 +96,32 @@ public class OthersSelectorSuppliers {
             return newValueSelector(name, expression);
         }
     }
+
+    private static EnumMap<EvaluatorType, Deserializer<?>> DESERIALIAZERS =
+            new EnumMap<>(EvaluatorType.class);
+
+    static {
+        DESERIALIAZERS.put(EvaluatorType.STRING, new StringDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.BYTE_BUFFER, new ByteBufferDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.BYTES, new BytesDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.DOUBLE, new DoubleDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.FLOAT, new FloatDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.LONG, new LongDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.SHORT, new ShortDeserializer());
+        DESERIALIAZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
+    }
+
+    public static ValueSelectorSupplier<?> valueSelectorSupplier(EvaluatorType type) {
+        return new OthersValueSelectorSupplier(type);
+    }
+
+    public static KeySelectorSupplier<?> keySelectorSupplier(EvaluatorType type) {
+        return new OthersKeySelectorSupplier(type);
+    }
+
+    private OthersSelectorSuppliers() {}
 }
