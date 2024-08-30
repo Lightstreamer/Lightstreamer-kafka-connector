@@ -46,13 +46,7 @@ public class GenericRecordSelectorsSuppliers {
 
     private static class AvroNode implements Node<AvroNode> {
 
-        private static final Object NULL_DATA =
-                new Object() {
-                    @Override
-                    public String toString() {
-                        return "NULL_DATA";
-                    }
-                };
+        private static final Object NULL_DATA = new Object();
 
         static AvroNode fromContainer(GenericContainer container) {
             return new AvroNode(container);
@@ -267,4 +261,6 @@ public class GenericRecordSelectorsSuppliers {
             ConnectorConfig config) {
         return new GenericRecordValueSelectorSupplier(config);
     }
+
+    private GenericRecordSelectorsSuppliers() {}
 }
