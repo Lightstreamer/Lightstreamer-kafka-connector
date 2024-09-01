@@ -1461,6 +1461,10 @@ The Kafka Connect Lightstreamer Sink Connector configuration properties are desc
 To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
+#### `tasks.mask`
+
+Due to the one-to-one relationship between a Proxy Adapter instance (deployed into the Lightstreamer server) and a Remote Adapter instance (this connector), configuring more than one task in the `tasks.mask `configuration parameter is pointless.
+
 #### lightstreamer.server.proxy_adapter.address
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
