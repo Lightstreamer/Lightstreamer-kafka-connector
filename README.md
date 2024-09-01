@@ -1465,7 +1465,7 @@ To use the connector, specify the following setting:
 
 Due to the one-to-one relationship between a Proxy Adapter instance (deployed into the Lightstreamer server) and a Remote Adapter instance (this connector), configuring more than one task in the `tasks.mask `configuration parameter is pointless.
 
-#### lightstreamer.server.proxy_adapter.address
+#### `lightstreamer.server.proxy_adapter.address`
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
 
@@ -1479,7 +1479,7 @@ Example:
 lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
 
 The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
@@ -1494,7 +1494,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`
 
 The (optional) max number of retries to establish a connection to the Lightstreamer server's Proxy Adapter.
 
@@ -1509,7 +1509,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
@@ -1525,7 +1525,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 ```
 
-#### lightstreamer.server.proxy_adapter.username
+#### `lightstreamer.server.proxy_adapter.username`
 
 The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1539,7 +1539,7 @@ Example:
 lightstreamer.server.proxy_adapter.username=lightstreamer_user
 ```
 
-#### lightstreamer.server.proxy_adapter.password
+#### `lightstreamer.server.proxy_adapter.password`
 
 The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1552,7 +1552,7 @@ Example:
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
 
-#### record.extraction.error.strategy
+#### `record.extraction.error.strategy`
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
@@ -1574,7 +1574,7 @@ Example:
 record.extraction.error.strategy=FORWARD_TO_DLQ
 ```
 
-#### topic.mappings
+#### `topic.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
@@ -1604,7 +1604,7 @@ The configuration above specifes:
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
-#### record.mappings
+#### `record.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
@@ -1638,7 +1638,7 @@ The configuration above specifies the following mappings:
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 
-#### item.templates
+#### `item.templates`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate-name) section.
