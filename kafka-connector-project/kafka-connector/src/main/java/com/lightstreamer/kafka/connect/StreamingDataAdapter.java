@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.adapters.remote.DataProvider;
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
@@ -35,6 +34,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -43,40 +44,78 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class StreamingDataAdapter implements DataProvider {
+public final class StreamingDataAdapter implements RecordSender {
 
-    private static Logger logger = LoggerFactory.getLogger(StreamingDataAdapter.class);
+    /** An interface used internally to forward records to a downstream destination. */
+    interface DownstreamUpdater {
 
-    private interface DownstreamUpdater {
-
+        /**
+         * Forwards the records to the downstream destination.
+         *
+         * <p>The method is invoked by the StreamingDataAdapter for each collection of SinkRecord
+         * provided by Kafka Connect.
+         *
+         * @param records the collection of records to forward
+         */
         void update(Collection<SinkRecord> records);
     }
 
-    private final DataExtractor<Object, Object> fieldsExtractor;
-    private final ItemTemplates<Object, Object> itemTemplates;
-    private final RecordErrorHandlingStrategy errorHandlingStrategy;
-    private final ErrantRecordReporter reporter;
+    private static Logger logger = LoggerFactory.getLogger(StreamingDataAdapter.class);
 
-    protected final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
-            new ConcurrentHashMap<>();
-    private volatile ItemEventListener listener;
-    private final AtomicInteger itemsCounter = new AtomicInteger(0);
-
-    private final RecordMapper<Object, Object> recordMapper;
-
-    private volatile DownstreamUpdater updater = FAKE_UPDATER;
-
-    private static DownstreamUpdater FAKE_UPDATER =
+    static final DownstreamUpdater NOP_UPDATER =
             records -> {
                 logger.debug("Skipping record");
             };
 
-    StreamingDataAdapter(DataAdapterConfig config, SinkTaskContext context) {
+    // The DataExtractor instance for extracting data from a SinkRecord to be mapped to Lighstreamer
+    // fields.
+    private final DataExtractor<Object, Object> fieldsExtractor;
+
+    // The ItemTemplate instance for enabling the Filtered Routing.
+    private final ItemTemplates<Object, Object> itemTemplates;
+
+    // The RecordErrorHandlingStrategy instance for managing records that cannot be processed
+    // successfully.
+    private final RecordErrorHandlingStrategy errorHandlingStrategy;
+
+    // The ErrantRecordReporter instance for forwarding unprocessable records to the DQL.
+    private final ErrantRecordReporter reporter;
+
+    // Map of all the subscribed items.
+    private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
+            new ConcurrentHashMap<>();
+
+    // The ItemEventListerner instance injected by the Remote Provider Server.
+    private volatile ItemEventListener listener;
+
+    // The lock used to synchronize the replacement of the DownstreamUpdater instance.
+    private final ReentrantLock updaterLock = new ReentrantLock();
+
+    // The counter of all subscribed items.
+    private final AtomicInteger itemsCounter = new AtomicInteger(0);
+
+    // The RecordMapper instance configured to map the SinkRecord to a flat
+    private final RecordMapper<Object, Object> recordMapper;
+
+    // The current DownstreamUpdater for managing incoming records.
+    private volatile DownstreamUpdater updater = NOP_UPDATER;
+
+    // The offsets map.
+    private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+
+    // The initializaton parameters received from Proxy Adapter.
+    private Map<String, String> initParameters = Collections.emptyMap();
+
+    StreamingDataAdapter(
+            DataAdapterConfig config, SinkTaskContext context, DownstreamUpdater nopUpdater) {
         this.itemTemplates = config.itemTemplates();
         this.fieldsExtractor = config.fieldsExtractor();
         this.recordMapper =
@@ -87,57 +126,46 @@ public class StreamingDataAdapter implements DataProvider {
 
         this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
         this.reporter = errantRecordReporter(context);
+        this.updater = nopUpdater;
     }
 
-    ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
-        if (context != null) {
-            try {
-                // May be null if DLQ is not enabled
-                ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
-                if (errantRecordReporter != null) {
-                    logger.info("Errant record reporter not configured.");
-                }
-                return errantRecordReporter;
-            } catch (NoClassDefFoundError | NoSuchMethodError e) {
-                logger.warn(
-                        "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
-                return null;
-            }
-        }
-        logger.info("Running tests, no context available");
-        return null;
+    StreamingDataAdapter(DataAdapterConfig config, SinkTaskContext context) {
+        this(config, context, NOP_UPDATER);
     }
 
     @Override
     public void init(Map<String, String> parameters, String configFile)
             throws DataProviderException {
         logger.info("Init parameter from Remote Proxy Adapter: {}", parameters);
+        this.initParameters = Collections.unmodifiableMap(parameters);
     }
 
     @Override
     public void setListener(ItemEventListener eventListener) {
+        // The listener is set before any subscribe is called and never changes.
         this.listener = eventListener;
         logger.info("ItemEventListener set");
     }
 
-    public void streamEvents(Collection<SinkRecord> records) {
+    @Override
+    public void sendRecords(Collection<SinkRecord> records) {
         updater.update(records);
     }
 
     @Override
     public void subscribe(String item) throws SubscriptionException, FailureException {
         logger.info("Trying subscription to item [{}]", item);
-        SubscribedItem newItem = Items.subscribedFrom(item);
         try {
+            SubscribedItem newItem = Items.subscribedFrom(item);
             if (!itemTemplates.matches(newItem)) {
                 logger.warn("Item [{}] does not match any defined item templates", newItem);
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
-            logger.info("Subscribed to item [{}]", newItem);
+            logger.info("Subscribed to item [{}]", item);
             subscribedItems.put(item, newItem);
             if (itemsCounter.addAndGet(1) == 1) {
-                updater = this::update;
+                setDownstreamUpdater(this::update);
             }
         } catch (ExpressionException e) {
             logger.error("", e);
@@ -153,13 +181,84 @@ public class StreamingDataAdapter implements DataProvider {
                     "Unsubscribing from unexpected item [%s]".formatted(item));
         }
         if (itemsCounter.decrementAndGet() == 0) {
-            updater = FAKE_UPDATER;
+            setDownstreamUpdater(NOP_UPDATER);
         }
     }
 
     @Override
     public boolean isSnapshotAvailable(String itemName) throws SubscriptionException {
         return false;
+    }
+
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> preCommit(
+            Map<TopicPartition, OffsetAndMetadata> offsets) {
+        logger.info("PreCommit phase, current offset: {}", currentOffsets);
+        return currentOffsets;
+    }
+
+    ErrantRecordReporter errantRecordReporter(SinkTaskContext context) {
+        try {
+            // May be null if DLQ is not enabled.
+            ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
+            if (errantRecordReporter != null) {
+                logger.info("Errant record reporter not configured.");
+            }
+            return errantRecordReporter;
+        } catch (NoClassDefFoundError | NoSuchMethodError e) {
+            logger.warn(
+                    "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
+            return null;
+        }
+    }
+
+    // Only for testing purposes.
+    ErrantRecordReporter getErrantRercordReporter() {
+        return reporter;
+    }
+
+    // Only for testing purposes.
+    Item getSubscribedItem(String item) {
+        return subscribedItems.get(item);
+    }
+
+    // Only for testing purposes.
+    int getCurrentItemsCount() {
+        return itemsCounter.get();
+    }
+
+    // Only for testing purposes.
+    DownstreamUpdater getUpdater() {
+        return updater;
+    }
+
+    // Only for testing purposes.
+    ItemEventListener getItemEventListener() {
+        return listener;
+    }
+
+    // Only for testing purposes.
+    Map<TopicPartition, OffsetAndMetadata> getCurrentOffsets() {
+        return currentOffsets;
+    }
+
+    Map<String, String> getInitParameters() {
+        return initParameters;
+    }
+
+    void saveOffsets(SinkRecord record) {
+        currentOffsets.put(
+                new TopicPartition(record.originalTopic(), record.originalKafkaPartition()),
+                new OffsetAndMetadata(record.originalKafkaOffset() + 1, null));
+    }
+
+    private void setDownstreamUpdater(DownstreamUpdater updater) {
+        updaterLock.lock();
+        try {
+            this.updater = updater;
+        } finally {
+            updaterLock.unlock();
+        }
     }
 
     private void update(Collection<SinkRecord> records) {
@@ -172,46 +271,48 @@ public class StreamingDataAdapter implements DataProvider {
         }
     }
 
-    private void handleValueException(SinkRecord sinkRecord, ValueException ve) {
+    private void handleValueException(SinkRecord record, ValueException ve) {
         logger.warn("Error while extracting record: {}", ve.getMessage());
         logger.warn("Applying the {} strategy", errorHandlingStrategy);
         switch (errorHandlingStrategy) {
             case IGNORE_AND_CONTINUE -> {
                 logger.warn("Ignoring the error and continuing");
+                saveOffsets(record);
             }
             case FORWARD_TO_DLQ -> {
                 if (this.reporter != null) {
                     logger.warn("Forwarding the error to DLQ");
-                    reporter.report(sinkRecord, ve);
+                    reporter.report(record, ve);
+                    saveOffsets(record);
                 } else {
                     logger.warn("Since no DQL has been configured, terminating task");
-                    throw new ConnectException(ve);
+                    throw new ConnectException("No DQL, terminating task", ve);
                 }
             }
             case TERMINATE_TASK -> {
                 logger.error("Terminating task");
-                throw new ConnectException(ve);
+                throw new ConnectException("Terminating task", ve);
             }
         }
     }
 
-    private void updateRecord(SinkRecord sinkRecord) throws ValueException {
+    private void updateRecord(SinkRecord record) throws ValueException {
         logger.debug("Mapping incoming Kafka record");
-        logger.trace("Kafka record: {}", sinkRecord.toString());
-        MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(sinkRecord));
+        logger.trace("Kafka record: {}", record.toString());
+        MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
         logger.debug("Mapped Kafka record");
 
         Set<SubscribedItem> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
 
-        logger.info("Routing record to {} items", routable.size());
+        logger.debug("Filtering updates");
+        Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
 
+        logger.info("Routing record to {} items", routable.size());
         for (SubscribedItem sub : routable) {
-            logger.debug("Filtering updates");
-            Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
-            if (listener != null) {
-                logger.debug("Sending updates: {}", updates);
-                listener.update(sub.itemHandle().toString(), updates, false);
-            }
+            logger.debug("Sending updates: {}", updates);
+            listener.update(sub.itemHandle().toString(), updates, false);
         }
+
+        saveOffsets(record);
     }
 }

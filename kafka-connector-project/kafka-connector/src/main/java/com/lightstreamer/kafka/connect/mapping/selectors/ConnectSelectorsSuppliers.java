@@ -25,6 +25,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -44,6 +45,9 @@ public class ConnectSelectorsSuppliers {
 
         SchemaAndValueNode(SchemaAndValue data) {
             this.data = data;
+            if (data.schema() == null) {
+                throw ValueException.nonSchemaAssociated();
+            }
         }
 
         @Override

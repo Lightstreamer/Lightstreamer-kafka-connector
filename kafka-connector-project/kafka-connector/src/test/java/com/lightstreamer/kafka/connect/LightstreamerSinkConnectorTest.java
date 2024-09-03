@@ -33,6 +33,8 @@ import com.lightstreamer.kafka.test_utils.VersionUtils;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.List;
@@ -65,18 +67,19 @@ public class LightstreamerSinkConnectorTest {
         assertThat(connector.taskClass()).isEqualTo(LightstreamerSinkConnectorTask.class);
     }
 
-    @Test
-    void shouldShouldStartAndStop() {
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @ValueSource(ints = {1, 2, 3})
+    void shouldShouldStartAndStop(int maxTasks) {
         LightstreamerSinkConnector connector = createConnector();
         Map<String, String> configs = basicConfig();
         connector.start(configs);
 
         assertThat(connector.configs()).isEqualTo(basicConfig());
-        List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
+        List<Map<String, String>> taskConfigs = connector.taskConfigs(maxTasks);
+        // The connector always returns a single configuration, regardless of the configured
+        // maxTasks.
+        assertThat(taskConfigs).hasSize(1);
         assertThat(taskConfigs).containsExactly(basicConfig());
-
-        taskConfigs = connector.taskConfigs(2);
-        assertThat(taskConfigs).containsExactly(configs, configs);
 
         connector.stop();
         assertThat(connector.configs()).isEmpty();

@@ -39,6 +39,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
     - [Running in Docker](#running-in-docker)
+  - [Supported Converters](#supported-converters)
   - [Configuration Reference](#configuration-reference)
 - [Docs](#docs)
 - [Examples](#examples)
@@ -75,7 +76,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](examples/quickstart-confluent-cloud/), [`Redpanda Serverless`](examples/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](examples/quickstart-redpanda-selfhosted), [`Aiven`](examples/quickstart-aiven), and more.
 2. _kafka-connector_: Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
-3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) producer sample client
+3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) sample client
 
 ### Run
 
@@ -970,8 +971,6 @@ To configure a simple routing of Kafka event streams to Lightstreamer items, use
 
 which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
 
-The settings described in the Record Evaluation section apply to all the topics mentioned in the mappings, which implies that the events consumed from this 
-
 This configuration enables the implementation of various routing scenarios, as shown by the following examples:
 
 - _One To One_
@@ -1293,11 +1292,13 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 ## Kafka Connect Lightstreamer Sink Connector
 
-Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into _Kafka Connect_.
+Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into [_Kafka Connect_](https://docs.confluent.io/platform/current/connect/index.html).
 
 In this scenario, an instance of the connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
 ![KafkaConnectArchitecture](pictures/kafka-connect.png)
+
+The connector has been developed for Kafka Connect framework version 3.7.
 
 ### Usage
 
@@ -1309,7 +1310,6 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
 
 - JDK version 17 or later
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
-
 
 ##### Steps
 
@@ -1363,7 +1363,7 @@ LS_HOME/
 ```
 #### Running
 
-To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
+To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform (version 7.6 or later) and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
 1. Download the connector zip file `lightstreamer-kafka-connect-lightstreamer-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1432,6 +1432,25 @@ If you want to build a local Docker image based on Kafka Connect with the connec
 
 In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
+### Supported Converters
+
+Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
+
+- _AvroConverter_ `io.confluent.connect.avro.AvroConverter`
+- _ProtobufConverter_ `io.confluent.connect.protobuf.ProtobufConverter`
+- _JsonSchemaConverter_ `io.confluent.connect.json.JsonSchemaConverter`
+- _JsonConverter_ `org.apache.kafka.connect.json.JsonConverter`
+- _StringConverter_ `org.apache.kafka.connect.storage.StringConverter`
+- _ByteArrayConverter_ `org.apache.kafka.connect.converters.ByteArrayConverter`
+
+It also supports the built-in primitive converters:
+
+- `org.apache.kafka.connect.converters.DoubleConverter`
+- `org.apache.kafka.connect.converters.FloatConverter`
+- `org.apache.kafka.connect.converters.IntegerConverter`
+- `org.apache.kafka.connect.converters.LongConverter`
+- `org.apache.kafka.connect.converters.ShortConverter`
+
 ### Configuration Reference
 
 The Kafka Connect Lightstreamer Sink Connector configuration properties are described below.
@@ -1441,7 +1460,11 @@ The Kafka Connect Lightstreamer Sink Connector configuration properties are desc
 To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
-#### lightstreamer.server.proxy_adapter.address
+##### `tasks.max`
+
+Due to the one-to-one relationship between a Proxy Adapter instance (deployed into the Lightstreamer server) and a Remote Adapter instance (a task), configuring more than one task in the `tasks.max` configuration parameter is pointless.
+
+#### `lightstreamer.server.proxy_adapter.address`
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
 
@@ -1455,7 +1478,7 @@ Example:
 lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
 
 The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
@@ -1470,7 +1493,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`
 
 The (optional) max number of retries to establish a connection to the Lightstreamer server's Proxy Adapter.
 
@@ -1485,7 +1508,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ```
 
-#### lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms
+#### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
@@ -1501,7 +1524,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 ```
 
-#### lightstreamer.server.proxy_adapter.username
+#### `lightstreamer.server.proxy_adapter.username`
 
 The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1515,7 +1538,7 @@ Example:
 lightstreamer.server.proxy_adapter.username=lightstreamer_user
 ```
 
-#### lightstreamer.server.proxy_adapter.password
+#### `lightstreamer.server.proxy_adapter.password`
 
 The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1528,7 +1551,7 @@ Example:
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
 
-#### record.extraction.error.strategy
+#### `record.extraction.error.strategy`
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
@@ -1550,7 +1573,7 @@ Example:
 record.extraction.error.strategy=FORWARD_TO_DLQ
 ```
 
-#### topic.mappings
+#### `topic.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
@@ -1580,7 +1603,7 @@ The configuration above specifes:
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
-#### record.mappings
+#### `record.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
@@ -1614,7 +1637,7 @@ The configuration above specifies the following mappings:
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 
-#### item.templates
+#### `item.templates`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate-name) section.

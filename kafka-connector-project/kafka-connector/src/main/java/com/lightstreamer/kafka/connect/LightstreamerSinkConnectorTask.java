@@ -17,31 +17,53 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.kafka.common.utils.Version;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class LightstreamerSinkConnectorTask extends SinkTask {
 
     private static Logger logger = LoggerFactory.getLogger(LightstreamerSinkConnectorTask.class);
 
-    private StreamingDataAdapter adapter;
+    private final Function<ProxyAdapterClientOptions, ProxyAdapterConnection> connectionFactory;
+    private final BiFunction<DataAdapterConfig, SinkTaskContext, RecordSender> recordSenderFactory;
+    private final RemoteDataProviderServer dataProviderServer;
+    private RecordSender recordSender;
     private ProxyAdapterClient proxyAdapterClient;
 
-    public LightstreamerSinkConnectorTask() {}
+    public LightstreamerSinkConnectorTask() {
+        this(
+                ProxyAdapterConnection::newConnection,
+                (config, context) -> new StreamingDataAdapter(config, context),
+                RemoteDataProviderServer.newDataProviderServer());
+    }
+
+    LightstreamerSinkConnectorTask(
+            Function<ProxyAdapterClientOptions, ProxyAdapterConnection>
+                    proxyAdapterConnectionFactory,
+            BiFunction<DataAdapterConfig, SinkTaskContext, RecordSender> recordSenderFactory,
+            RemoteDataProviderServer dataProviderServer) {
+        this.connectionFactory = proxyAdapterConnectionFactory;
+        this.recordSenderFactory = recordSenderFactory;
+        this.dataProviderServer = dataProviderServer;
+    }
 
     @Override
     public String version() {
@@ -54,26 +76,37 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         LightstreamerConnectorConfig cfg = new LightstreamerConnectorConfig(props);
         DataAdapterConfig config = DataAdapterConfigurator.configure(cfg);
 
-        adapter = new StreamingDataAdapter(config, context);
-        proxyAdapterClient = new ProxyAdapterClient(cfg.getProxyAdapterClientOptions());
-        try {
-            proxyAdapterClient.start(adapter);
-        } catch (RemotingException e) {
-            throw new ConnectException(e);
-        }
+        this.recordSender = recordSenderFactory.apply(config, context);
+        this.proxyAdapterClient =
+                new ProxyAdapterClient(
+                        cfg.getProxyAdapterClientOptions(),
+                        Thread.currentThread(),
+                        connectionFactory,
+                        dataProviderServer);
+        this.proxyAdapterClient.start(recordSender);
     }
 
     @Override
     public void put(Collection<SinkRecord> sinkRecords) {
-        adapter.streamEvents(sinkRecords);
+        this.recordSender.sendRecords(sinkRecords);
     }
 
     @Override
-    public void flush(Map<TopicPartition, OffsetAndMetadata> offsets) {}
+    public Map<TopicPartition, OffsetAndMetadata> preCommit(
+            Map<TopicPartition, OffsetAndMetadata> offsets) {
+        return this.recordSender.preCommit(offsets);
+    }
 
     @Override
     public void stop() {
         logger.info("Stopping LightstreamerSinkConnectorTask");
         proxyAdapterClient.stop();
+        proxyAdapterClient
+                .closingException()
+                .ifPresent(
+                        e -> {
+                            logger.info(
+                                    "Task closed due to the exception {}", e.getClass().getName());
+                        });
     }
 }

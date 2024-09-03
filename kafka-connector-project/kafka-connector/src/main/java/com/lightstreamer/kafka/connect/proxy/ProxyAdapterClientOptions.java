@@ -29,14 +29,9 @@ public final class ProxyAdapterClientOptions {
         private String username;
         private String password;
 
-        public Builder hostname(String hostname) {
+        public Builder(String hostname, int port) {
             this.hostname = hostname;
-            return this;
-        }
-
-        public Builder port(int port) {
             this.port = port;
-            return this;
         }
 
         public Builder connectionTimeout(int timeout) {
