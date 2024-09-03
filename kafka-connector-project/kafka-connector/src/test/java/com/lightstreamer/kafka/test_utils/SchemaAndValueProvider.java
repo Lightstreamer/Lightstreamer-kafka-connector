@@ -86,8 +86,4 @@ public class SchemaAndValueProvider {
         value.validate();
         return value;
     }
-
-    public static void main(String[] args) {
-        System.out.println(STRUCT);
-    }
 }
