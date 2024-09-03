@@ -265,12 +265,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 Set<SubscribedItem> routables =
                         config.itemTemplates().routes(mappedRecord, subscribedItems.values());
 
+                log.atDebug().log("Filtering updates");
+                Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+
                 log.atInfo().log("Routing record to {} items", routables.size());
-
                 for (SubscribedItem sub : routables) {
-                    log.atDebug().log("Filtering updates");
-                    Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
-
                     log.atDebug().log("Sending updates: {}", updates);
                     eventListener.smartUpdate(sub.itemHandle(), updates, false);
                 }
