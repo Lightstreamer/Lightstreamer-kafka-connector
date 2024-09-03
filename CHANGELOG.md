@@ -20,7 +20,7 @@ Modified the [README.md](README.md) file has follows:
 
 - Improved the offsets management and logging in the [ConsumerLoop](kafka-connector-project/kafka-connector/src/main/java/com/lightstreamer/kafka/adapters/consumers/ConsumerLoop.java) class.
 
-- Modified the [`quickstart-producer'](examples/quickstart-producer/) sample client project to make it publishable to _GitHub Packages_.
+- Modified the [`quickstart-producer`](examples/quickstart-producer/) sample client project to make it publishable to _GitHub Packages_.
 
 - Deeply refactored the classes and interfaces of the `com.lightstreamer.kafka.connect` package to enhance loose coupling and facilitate testability.
 
