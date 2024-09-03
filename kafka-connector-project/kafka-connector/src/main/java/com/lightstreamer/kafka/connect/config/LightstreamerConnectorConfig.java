@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.connect.config;
 
+import static java.lang.Integer.parseInt;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
@@ -264,9 +265,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         Pair address = getProxyAdapterAddress();
 
         proxyAdapterClientOptions =
-                new ProxyAdapterClientOptions.Builder()
-                        .hostname(address.key())
-                        .port(Integer.valueOf(address.value()))
+                new ProxyAdapterClientOptions.Builder(address.key(), parseInt(address.value()))
                         .connectionTimeout(getSetupConnectionTimeoutMs())
                         .connectionMaxRetries(getSetupConnectionMaxRetries())
                         .connectionRetryDelayMs(getSetupConnectionRetryDelayMs())
