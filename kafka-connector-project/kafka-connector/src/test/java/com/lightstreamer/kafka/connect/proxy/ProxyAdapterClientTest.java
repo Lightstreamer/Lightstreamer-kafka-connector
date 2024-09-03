@@ -21,13 +21,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import com.lightstreamer.adapters.remote.DataProvider;
-import com.lightstreamer.adapters.remote.DataProviderException;
-import com.lightstreamer.adapters.remote.FailureException;
-import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.RemotingException;
-import com.lightstreamer.adapters.remote.SubscriptionException;
 import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
+import com.lightstreamer.kafka.connect.Fakes.FakeRecordSender;
 import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderServer;
 import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
 
@@ -38,7 +34,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -48,27 +43,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ProxyAdapterClientTest {
-
-    static class FakeDataProvider implements DataProvider {
-
-        @Override
-        public void init(Map<String, String> parameters, String configFile)
-                throws DataProviderException {}
-
-        @Override
-        public void setListener(ItemEventListener eventListener) {}
-
-        @Override
-        public void subscribe(String itemName) throws SubscriptionException, FailureException {}
-
-        @Override
-        public void unsubscribe(String itemName) throws SubscriptionException, FailureException {}
-
-        @Override
-        public boolean isSnapshotAvailable(String itemName) throws SubscriptionException {
-            return false;
-        }
-    }
 
     @Test
     void shouldStartWithCredentials() throws RemotingException, IOException {
@@ -95,14 +69,14 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
-        client.start(provider);
+        FakeRecordSender sender = new FakeRecordSender();
+        client.start(sender);
 
         assertThat(proxyConnection.openInvoked).isTrue();
         assertThat(proxyConnection.retries).isEqualTo(0);
         assertThat(dataProviderServer.username).isEqualTo("username");
         assertThat(dataProviderServer.password).isEqualTo("password");
-        assertThat(dataProviderServer.provider).isSameInstanceAs(provider);
+        assertThat(dataProviderServer.provider).isSameInstanceAs(sender);
         assertThat(dataProviderServer.startInvoked).isTrue();
         assertThat(dataProviderServer.ioStreams).isSameInstanceAs(proxyConnection.io);
         assertThat(client.closingException()).isEmpty();
@@ -137,7 +111,7 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
+        FakeRecordSender provider = new FakeRecordSender();
         client.start(provider);
 
         assertThat(proxyConnection.openInvoked).isTrue();
@@ -170,7 +144,7 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
+        FakeRecordSender provider = new FakeRecordSender();
         client.start(provider);
 
         assertThat(proxyConnection.openInvoked).isFalse();
@@ -210,7 +184,7 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
+        FakeRecordSender provider = new FakeRecordSender();
         assertThrows(ConnectException.class, () -> client.start(provider));
 
         assertThat(proxyConnection.openInvoked).isFalse();
@@ -253,7 +227,7 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
+        FakeRecordSender provider = new FakeRecordSender();
         client.start(provider);
 
         assertThat(proxyConnection.openInvoked).isTrue();
@@ -282,7 +256,7 @@ public class ProxyAdapterClientTest {
                         proxyConnectionFactory,
                         dataProviderServer);
 
-        FakeDataProvider provider = new FakeDataProvider();
+        FakeRecordSender provider = new FakeRecordSender();
         client.start(provider);
 
         assertThat(proxyConnection.closedInvoked).isFalse();
@@ -324,7 +298,7 @@ public class ProxyAdapterClientTest {
                                     proxyConnectionFactory,
                                     dataProviderServer);
 
-                    client.start(new FakeDataProvider());
+                    client.start(new FakeRecordSender());
 
                     try {
                         TimeUnit.MILLISECONDS.sleep(1000);

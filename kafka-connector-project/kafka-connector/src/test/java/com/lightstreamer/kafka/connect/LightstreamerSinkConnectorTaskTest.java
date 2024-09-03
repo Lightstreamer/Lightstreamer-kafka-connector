@@ -19,14 +19,20 @@ package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
+import com.lightstreamer.kafka.connect.Fakes.FakeRecordSender;
+import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderServer;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
-import org.junit.jupiter.api.Disabled;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class LightstreamerSinkConnectorTaskTest {
 
@@ -49,10 +55,24 @@ public class LightstreamerSinkConnectorTaskTest {
     }
 
     @Test
-    @Disabled
-    void shouldShouldStartAndStop() {
-        LightstreamerSinkConnectorTask task = createTask();
+    void shouldStartAndPutRecords() {
+        FakeProxyConnection connection = new FakeProxyConnection();
+        FakeRecordSender sender = new FakeRecordSender();
+        LightstreamerSinkConnectorTask task =
+                new LightstreamerSinkConnectorTask(
+                        opts -> connection,
+                        (config, context) -> sender,
+                        new FakeRemoteDataProviderServer());
         Map<String, String> configs = basicConfig();
         task.start(configs);
+
+        assertThat(connection.openInvoked).isTrue();
+        assertThat(connection.closedInvoked).isFalse();
+
+        SinkRecord sinkRecord = new SinkRecord("topic", 1, null, null, Schema.INT8_SCHEMA, 1, 1);
+        Set<SinkRecord> sinkRecords = Collections.singleton(sinkRecord);
+        task.put(sinkRecords);
+
+        assertThat(sender.records).isSameInstanceAs(sinkRecords);
     }
 }

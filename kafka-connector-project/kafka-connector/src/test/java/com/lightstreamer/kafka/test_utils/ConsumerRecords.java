@@ -123,7 +123,7 @@ public class ConsumerRecords {
                         TimestampType.NO_TIMESTAMP_TYPE));
     }
 
-    public static KafkaRecord<Object, Object> sink(
+    private static KafkaRecord<Object, Object> sink(
             String topic, Schema keySchema, Object key, Schema valueSchema, Object value) {
         return KafkaRecord.from(
                 new SinkRecord(

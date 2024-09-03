@@ -17,10 +17,33 @@
 
 package com.lightstreamer.kafka.connect;
 
+import com.lightstreamer.adapters.remote.DataProvider;
+import com.lightstreamer.adapters.remote.DataProviderException;
+import com.lightstreamer.adapters.remote.DiffAlgorithm;
+import com.lightstreamer.adapters.remote.ExceptionHandler;
+import com.lightstreamer.adapters.remote.FailureException;
+import com.lightstreamer.adapters.remote.IndexedItemEvent;
+import com.lightstreamer.adapters.remote.ItemEvent;
+import com.lightstreamer.adapters.remote.ItemEventListener;
+import com.lightstreamer.adapters.remote.RemotingException;
+import com.lightstreamer.adapters.remote.SubscriptionException;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
+import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer.IOStreams;
+
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.sink.ErrantRecordReporter;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTaskContext;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -28,25 +51,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.sink.ErrantRecordReporter;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTaskContext;
-
-import com.lightstreamer.adapters.remote.DataProvider;
-import com.lightstreamer.adapters.remote.DataProviderException;
-import com.lightstreamer.adapters.remote.ExceptionHandler;
-import com.lightstreamer.adapters.remote.FailureException;
-import com.lightstreamer.adapters.remote.ItemEventListener;
-import com.lightstreamer.adapters.remote.RemotingException;
-import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.connect.EventsStreamer;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer.IOStreams;
-
+/** Provides fake implementations of several interfaces to support the unit tests. */
 public class Fakes {
 
     public static class FakeProxyConnection implements ProxyAdapterConnection {
@@ -186,7 +191,7 @@ public class Fakes {
         }
     }
 
-    public static class FakeEventsStreamer implements EventsStreamer {
+    public static class FakeRecordSender implements RecordSender {
 
         public Collection<SinkRecord> records;
 
@@ -209,22 +214,40 @@ public class Fakes {
         }
 
         @Override
-        public void streamEvents(Collection<SinkRecord> records) {
+        public void sendRecords(Collection<SinkRecord> records) {
             this.records = records;
+        }
+
+        @Override
+        public Map<TopicPartition, OffsetAndMetadata> preCommit(
+                Map<TopicPartition, OffsetAndMetadata> offsets) {
+            throw new UnsupportedOperationException("Unimplemented method 'preCommit'");
         }
     }
 
     public static class FakeSinkContext implements SinkTaskContext {
 
-        private boolean withReporter;
+        public static class FakeErrantRecordReporter implements ErrantRecordReporter {
 
-        public FakeSinkContext(){
+            public SinkRecord record;
+            public Throwable caughtError;
+
+            @Override
+            public Future<Void> report(SinkRecord record, Throwable error) {
+                this.record = record;
+                this.caughtError = error;
+                return CompletableFuture.failedFuture(error);
+            }
+        }
+
+        private FakeErrantRecordReporter errantRecordReporter;
+
+        public FakeSinkContext() {
             this(false);
         }
 
         public FakeSinkContext(boolean withReporter) {
-            this.withReporter = withReporter;
-
+            this.errantRecordReporter = withReporter ? new FakeErrantRecordReporter() : null;
         }
 
         @Override
@@ -269,19 +292,56 @@ public class Fakes {
 
         @Override
         public ErrantRecordReporter errantRecordReporter() {
-            if (withReporter) {
-                return new ErrantRecordReporter() {
+            return errantRecordReporter;
+        }
+    }
 
-                    @Override
-                    public Future<Void> report(SinkRecord record, Throwable error) {
-                        // TODO Auto-generated method stub
-                        throw new UnsupportedOperationException("Unimplemented method 'report'");
-                    }
-                    
-                };
-            }
-            return null;
+    /**
+     * Implements a fake {@code ItemEventListener} to track all the notifyed events, which can be
+     * later investigated in the unit tests.
+     */
+    public static class FakeItemEventListener implements ItemEventListener {
+
+        // Stores all item events sent through the update method.
+        public List<Map<String, ?>> events = new ArrayList<>();
+
+        @Override
+        public void update(String itemName, ItemEvent itemEvent, boolean isSnapshot) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
         }
 
+        @Override
+        public void update(String itemName, Map<String, ?> itemEvent, boolean isSnapshot) {
+            // Store the events.
+            events.add(itemEvent);
+        }
+
+        @Override
+        public void update(String itemName, IndexedItemEvent itemEvent, boolean isSnapshot) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void endOfSnapshot(String itemName) {
+            throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
+        }
+
+        @Override
+        public void clearSnapshot(String itemName) {
+            throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
+        }
+
+        @Override
+        public void declareFieldDiffOrder(
+                String itemName, Map<String, DiffAlgorithm[]> algorithmsMap) {
+            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
+        }
+
+        @Override
+        public void failure(Exception exception) {
+            throw new UnsupportedOperationException("Unimplemented method 'failure'");
+        }
     }
+
+    private Fakes() {}
 }
