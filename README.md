@@ -39,7 +39,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
     - [Running in Docker](#running-in-docker)
-  - [Supported Convertes](#supported-converters)
+  - [Supported Converters](#supported-converters)
   - [Configuration Reference](#configuration-reference)
 - [Docs](#docs)
 - [Examples](#examples)
