@@ -30,10 +30,6 @@ public class SchemaAndValueProvider {
 
     public static Struct STRUCT = new SchemaAndValueProvider().newNode();
 
-    {
-        // STRUCT.validate();
-    }
-
     private Struct newNode() {
         Schema grandSonsSchema = SchemaBuilder.struct().field("name", Schema.STRING_SCHEMA).build();
 
@@ -87,6 +83,11 @@ public class SchemaAndValueProvider {
                         .put("signature", new byte[] {97, 98, 99, 100})
                         .put("children", joeChildren);
 
+        value.validate();
         return value;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(STRUCT);
     }
 }
