@@ -25,7 +25,6 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
     - [Record Evaluation](#record-evaluation)
     - [Topic Mapping](#topic-mapping)
       - [Data Extraction Language](#data-extraction-language)
-      - [Data Extraction Language](#data-extraction-language)
       - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
       - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
       - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
