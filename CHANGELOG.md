@@ -2,6 +2,17 @@
 
 ## [1.0.3] (UNRELEASED)
 
+
+**Improvements**
+
+- Improved the offsets management and logging in the [ConsumerLoop](kafka-connector-project/kafka-connector/src/main/java/com/lightstreamer/kafka/adapters/consumers/ConsumerLoop.java) class.
+
+- Modified the [`quickstart-producer`](examples/quickstart-producer/) sample client project to make it publishable to _GitHub Packages_.
+
+- Deeply refactored the classes and interfaces of the `com.lightstreamer.kafka.connect` package to enhance loose coupling and facilitate testability.
+
+- Improved the unit tests relative to the Sink connector.
+
 **Documentation**
 
 Modified the [README.md](README.md) file has follows:
@@ -15,16 +26,6 @@ Modified the [README.md](README.md) file has follows:
 - Added the [tasks.max](README.md#tasksmax) section, clarifying the impact of the `tasks.max` property on the Sink connector configuration.
 
 - Removed incomplete statements.
-
-**Improvements**
-
-- Improved the offsets management and logging in the [ConsumerLoop](kafka-connector-project/kafka-connector/src/main/java/com/lightstreamer/kafka/adapters/consumers/ConsumerLoop.java) class.
-
-- Modified the [`quickstart-producer`](examples/quickstart-producer/) sample client project to make it publishable to _GitHub Packages_.
-
-- Deeply refactored the classes and interfaces of the `com.lightstreamer.kafka.connect` package to enhance loose coupling and facilitate testability.
-
-- Improved the unit tests relative to the Sink connector.
 
 **Bug Fixes**
 
