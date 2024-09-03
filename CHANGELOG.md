@@ -1,6 +1,7 @@
 # Changelog
 
-## [1.0.3] (2024-09-03)
+## [1.0.3] (UNRELEASED)
+
 
 **Improvements**
 
