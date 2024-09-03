@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.connect.proxy;
 
-import com.lightstreamer.adapters.remote.DataProvider;
 import com.lightstreamer.adapters.remote.ExceptionHandler;
 import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.kafka.connect.RecordSender;
@@ -176,9 +175,9 @@ public final class ProxyAdapterClient implements ExceptionHandler {
         return Optional.ofNullable(closingException.get());
     }
 
-    private void configureProviderServer(DataProvider provider, IOStreams ioStreams) {
+    private void configureProviderServer(RecordSender sender, IOStreams ioStreams) {
         dataProviderServer.setIOStreams(ioStreams);
-        dataProviderServer.setAdapter(provider);
+        dataProviderServer.setAdapter(sender);
         dataProviderServer.setExceptionHandler(this);
         if (options.username != null && options.password != null) {
             dataProviderServer.setCredentials(options.username, options.password);
