@@ -1,5 +1,5 @@
 # Use the offical Gradle Docker image as builder
-FROM gradle AS builder
+FROM gradle:jdk17 AS builder
 
 # Set the working directory
 WORKDIR /app

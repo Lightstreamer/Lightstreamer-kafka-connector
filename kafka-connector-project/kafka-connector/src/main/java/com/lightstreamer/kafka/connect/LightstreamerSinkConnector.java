@@ -26,7 +26,6 @@ import org.apache.kafka.connect.sink.SinkConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,11 +59,7 @@ public class LightstreamerSinkConnector extends SinkConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
-        ArrayList<Map<String, String>> configs = new ArrayList<>();
-        for (int i = 0; i < maxTasks; i++) {
-            configs.add(props);
-        }
-        return configs;
+        return Collections.singletonList(props);
     }
 
     @Override

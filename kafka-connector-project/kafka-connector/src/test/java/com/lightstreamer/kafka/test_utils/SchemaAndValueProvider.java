@@ -83,6 +83,7 @@ public class SchemaAndValueProvider {
                         .put("signature", new byte[] {97, 98, 99, 100})
                         .put("children", joeChildren);
 
+        value.validate();
         return value;
     }
 }

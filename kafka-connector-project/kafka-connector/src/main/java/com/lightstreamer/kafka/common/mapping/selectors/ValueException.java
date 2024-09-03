@@ -47,6 +47,10 @@ public class ValueException extends RuntimeException {
         return mkException("The expression [%s] must evaluate to a non-complex object", expression);
     }
 
+    public static ValueException nonSchemaAssociated() throws ValueException {
+        return mkException("A Schema is required");
+    }
+
     private static ValueException mkException(String message, Object... args) {
         return new ValueException(message.formatted(args));
     }

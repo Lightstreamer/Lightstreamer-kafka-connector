@@ -177,10 +177,8 @@ public class RecordMapperSinkRecordTest {
                         .build();
 
         KafkaRecord<Object, Object> kafkaRecord =
-                ConsumerRecords.sink(
+                ConsumerRecords.sinkFromValue(
                         "topic",
-                        null,
-                        null,
                         SchemaAndValueProvider.STRUCT.schema(),
                         SchemaAndValueProvider.STRUCT);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);

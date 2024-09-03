@@ -161,4 +161,6 @@ public class JsonNodeSelectorsSuppliers {
     public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
         return new JsonNodeValueSelectorSupplier(config);
     }
+
+    private JsonNodeSelectorsSuppliers() {}
 }

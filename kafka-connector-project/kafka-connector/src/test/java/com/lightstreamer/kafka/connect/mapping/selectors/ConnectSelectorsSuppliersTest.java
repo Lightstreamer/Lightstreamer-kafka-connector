@@ -152,6 +152,17 @@ public class ConnectSelectorsSuppliersTest {
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
+    @Test
+    public void shouldNotExtractValueDueToMissingSchema() {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector("VALUE")
+                                        .extractValue(sinkFromValue("topic", null, "a Value")));
+        assertThat(ve.getMessage()).isEqualTo("A Schema is required");
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -327,6 +338,7 @@ public class ConnectSelectorsSuppliersTest {
     @Test
     public void shouldExtractFromNested() throws ExtractionException {
         Struct struct = new Struct(NESTED_SCHEMA).put("nested", makeFlatStruct());
+        struct.validate();
         Schema schema = struct.schema();
 
         KafkaRecord<Object, Object> record =
@@ -352,6 +364,7 @@ public class ConnectSelectorsSuppliersTest {
     public void shouldExtractFromMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA).put("map", Collections.singletonMap("key", "value"));
+        struct.validate();
         Schema schema = struct.schema();
 
         KafkaRecord<Object, Object> record =
@@ -367,6 +380,7 @@ public class ConnectSelectorsSuppliersTest {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put("complexMap", Collections.singletonMap("key", makeFlatStruct()));
+        struct.validate();
         Schema schema = struct.schema();
 
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
@@ -393,6 +407,7 @@ public class ConnectSelectorsSuppliersTest {
                                 "mapOfMap",
                                 Collections.singletonMap(
                                         "key", Collections.singletonMap("key", "value")));
+        struct.validate();
 
         Schema schema = struct.schema();
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
@@ -405,16 +420,19 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     private static Struct makeFlatStruct() {
-        return new Struct(OPTIONAL_FLAT_SCHEMA)
-                .put("int8", (byte) 8)
-                .put("int16", (short) 16)
-                .put("int32", 32)
-                .put("int64", (long) 64)
-                .put("float32", 32.f)
-                .put("float64", 64.d)
-                .put("boolean", true)
-                .put("string", "abcd")
-                .put("bytes", "abcd".getBytes())
-                .put("byteBuffer", ByteBuffer.wrap("abcd".getBytes()));
+        Struct struct =
+                new Struct(OPTIONAL_FLAT_SCHEMA)
+                        .put("int8", (byte) 8)
+                        .put("int16", (short) 16)
+                        .put("int32", 32)
+                        .put("int64", (long) 64)
+                        .put("float32", 32.f)
+                        .put("float64", 64.d)
+                        .put("boolean", true)
+                        .put("string", "abcd")
+                        .put("bytes", "abcd".getBytes())
+                        .put("byteBuffer", ByteBuffer.wrap("abcd".getBytes()));
+        struct.validate();
+        return struct;
     }
 }

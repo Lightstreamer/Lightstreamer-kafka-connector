@@ -22,6 +22,7 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerLoop.OffsetManager;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -33,7 +34,6 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -137,11 +137,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
         private final KafkaConsumer<K, V> consumer;
-        private final ConsumerLoop<K, V>.RebalancerListener relabancerListener;
+        private final OffsetManager offsetManager;
         private final CountDownLatch latch = new CountDownLatch(1);
         private final Thread hook;
         private final RecordErrorHandlingStrategy errorStrategy;
-        private volatile boolean enableFinalCommit = true;
 
         private final Multiplexer multiplexer;
 
@@ -170,7 +169,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 multiplexer = new Multiplexer(executor, batchSupport);
             }
 
-            this.relabancerListener = new RebalancerListener(consumer);
+            this.offsetManager = new OffsetManager(consumer);
             this.hook = setShutdownHook();
             log.atDebug().log("Set shutdown kook");
         }
@@ -197,18 +196,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 log.atDebug().log("Kafka Consumer woken up");
             } finally {
                 log.atDebug().log("Start closing Kafka Consumer");
-                try {
-                    if (enableFinalCommit) {
-                        consumer.commitSync();
-                    }
-                } catch (CommitFailedException e) {
-                    log.atWarn().setCause(e).log();
-                } finally {
-                    consumer.close();
-                    log.atDebug().log("Closed Kafka Consumer");
-                    latch.countDown();
-                    log.atDebug().log("Kafka Consumer closed");
-                }
+                offsetManager.commitSync();
+                consumer.close();
+                latch.countDown();
+                log.atDebug().log("Kafka Consumer closed");
             }
         }
 
@@ -225,11 +216,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 ListTopicsResult listTopics = admin.listTopics(options);
                 boolean notAllPresent = false;
 
-                // Retain from the origianl requestes topics the available ones.
+                // Retain from the original requestes topics the available ones.
                 Set<String> existingTopics = listTopics.names().get();
                 notAllPresent = topics.retainAll(existingTopics);
 
-                // Can't subscribe at all. Foruce unsubscription and exit the loop.
+                // Can't subscribe at all. Force unsubscription and exit the loop.
                 if (topics.isEmpty()) {
                     log.atWarn().log("Not found requested topics");
                     metadataListener.forceUnsubscriptionAll();
@@ -247,7 +238,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                                     "Actually subscribing to the following existing topics [{}]",
                                     loggableTopics);
                 }
-                consumer.subscribe(topics, relabancerListener);
+                consumer.subscribe(topics, offsetManager);
                 return true;
             } catch (Exception e) {
                 log.atError().setCause(e).log();
@@ -269,73 +260,55 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         // should keep the executor engaged while all other threads are idle,
                         // but this is not expected when all tasks are short and cpu-bound
                     }
-                    consumer.commitAsync();
+                    offsetManager.commitAsync();
                     log.atInfo().log("Consumed {} records", records.count());
-                } catch (ValueException ve) {
-                    log.atWarn().log("Error while extracting record: {}", ve.getMessage());
-                    log.atWarn().log("Applying the {} strategy", errorStrategy);
-
-                    switch (errorStrategy) {
-                        case IGNORE_AND_CONTINUE -> {
-                            log.atWarn().log("Commiting anyway");
-                            consumer.commitAsync();
-                        }
-
-                        case FORCE_UNSUBSCRIPTION -> {
-                            log.atWarn().log("Forcing unsubscription");
-                            enableFinalCommit = false;
-                            metadataListener.forceUnsubscriptionAll();
-                        }
-                    }
                 } catch (WakeupException we) {
-                    // Catch and rethrow the Exception here because of the next RuntimeException
+                    // Catch and rethrow the Exception here because of the next KafkaException
                     throw we;
-                } catch (RuntimeException ke) {
+                } catch (KafkaException ke) {
                     log.atError().setCause(ke).log("Unrecoverable exception");
                     metadataListener.forceUnsubscriptionAll();
+                    break;
                 }
             }
         }
 
         private void process(ConsumerRecord<K, V> record) {
-            MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
+            try {
+                MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
-            // Logging the mapped record is expensive, log lazly it only at trace level.
-            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log("Mapped Kafka record");
+                // Logging the mapped record is expensive, log lazly it only at trace level.
+                log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
+                log.atDebug().log("Mapped Kafka record");
 
-            Set<SubscribedItem> routables =
-                    config.itemTemplates().routes(mappedRecord, subscribedItems.values());
+                Set<SubscribedItem> routables =
+                        config.itemTemplates().routes(mappedRecord, subscribedItems.values());
 
-            log.atInfo().log("Routing record to {} items", routables.size());
-
-            for (SubscribedItem sub : routables) {
                 log.atDebug().log("Filtering updates");
                 Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
 
-                log.atDebug().log("Sending updates: {}", updates);
-                eventListener.smartUpdate(sub.itemHandle(), updates, false);
-            }
-        }
+                for (SubscribedItem sub : routables) {
+                    log.atDebug().log("Sending updates: {}", updates);
+                    eventListener.smartUpdate(sub.itemHandle(), updates, false);
+                }
 
-        protected void consume(ConsumerRecord<K, V> record) {
-            log.atDebug().log("Mapping incoming Kafka record");
-            log.atTrace().log("Kafka record: {}", record.toString());
+                offsetManager.updateOffsets(record);
+            } catch (ValueException ve) {
+                log.atWarn().log("Error while extracting record: {}", ve.getMessage());
+                log.atWarn().log("Applying the {} strategy", errorStrategy);
 
-            if (multiplexer == null) {
-                process(record);
-            } else {
-                String sequenceKey = Objects.toString(record.key(), null);
-                multiplexer.execute(sequenceKey, () -> {
-                    try {
-                        process(record);
-                    } catch (RuntimeException | Error e) {
-                        // TODO
+                switch (errorStrategy) {
+                    case IGNORE_AND_CONTINUE -> {
+                        log.atWarn().log("Ignoring error");
+                        offsetManager.updateOffsets(record);
                     }
-                });
-            }
 
-            relabancerListener.updateOffsets(record);
+                    case FORCE_UNSUBSCRIPTION -> {
+                        log.atWarn().log("Forcing unsubscription");
+                        throw new KafkaException(ve);
+                    }
+                }
+            }
         }
 
         void close() {
@@ -359,27 +332,28 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         }
     }
 
-    class RebalancerListener implements ConsumerRebalanceListener {
+    class OffsetManager implements ConsumerRebalanceListener {
 
         private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
         private final KafkaConsumer<?, ?> consumer;
 
-        RebalancerListener(KafkaConsumer<?, ?> consumer) {
+        OffsetManager(KafkaConsumer<?, ?> consumer) {
             this.consumer = consumer;
         }
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
             log.atWarn().log("Partions revoked, committing offsets {}", currentOffsets);
-            try {
-                consumer.commitSync(currentOffsets);
-            } catch (KafkaException e) {
-                log.atError()
-                        .setCause(e)
-                        .log(
-                                "An error occured while committing current offsets during after"
-                                        + " partitions have been revoked");
-            }
+            commitSync();
+        }
+
+        void commitSync() {
+            consumer.commitSync(currentOffsets);
+            log.atInfo().log("Offsets commited");
+        }
+
+        void commitAsync() {
+            consumer.commitAsync(currentOffsets, null);
         }
 
         @Override

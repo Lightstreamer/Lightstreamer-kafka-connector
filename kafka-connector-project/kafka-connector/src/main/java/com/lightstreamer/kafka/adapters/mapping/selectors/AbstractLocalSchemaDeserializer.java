@@ -36,7 +36,7 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
                         : ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
         String schemaFileName = config.getFile(schemaFileKey);
         if (schemaFileName == null) {
-            // Neve happens
+            // Never happens
             throw new ConfigException(schemaFileKey + " setting is mandatory");
         }
         Path path = Path.of(schemaFileName);
