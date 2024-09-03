@@ -136,16 +136,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
         private final KafkaConsumer<K, V> consumer;
         private final OffsetManager offsetManager;
-        private final OffsetManager offsetManager;
         private final CountDownLatch latch = new CountDownLatch(1);
         private final Thread hook;
         private final RecordErrorHandlingStrategy errorStrategy;
 
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
-            String bootStrapServers =
-                    config.consumerProperties()
-                            .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
             String bootStrapServers =
                     config.consumerProperties()
                             .getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
@@ -156,14 +152,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                             config.consumerProperties(),
                             config.keyDeserializer(),
                             config.valueDeserializer());
-            consumer =
-                    new KafkaConsumer<>(
-                            config.consumerProperties(),
-                            config.keyDeserializer(),
-                            config.valueDeserializer());
             log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
-            this.offsetManager = new OffsetManager(consumer);
             this.offsetManager = new OffsetManager(consumer);
             this.hook = setShutdownHook();
             log.atDebug().log("Set shutdown kook");
