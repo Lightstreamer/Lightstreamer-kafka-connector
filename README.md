@@ -1387,7 +1387,7 @@ To manually install Kafka Connect Lightstreamer Sink Connector to a local Conflu
 
 3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
    
-   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) or ['quickstart-lightstreamer-local.json`](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
 
 4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
 
