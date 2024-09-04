@@ -1298,7 +1298,7 @@ In this scenario, an instance of the connector plugin acts as a [_Remote Adapter
 
 ![KafkaConnectArchitecture](pictures/kafka-connect.png)
 
-The connector has been developed for Kafka Connect framework version 3.7.
+The connector has been developed for Kafka Connect framework version 3.7 and requires JDK version 17 or later.
 
 ### Usage
 
