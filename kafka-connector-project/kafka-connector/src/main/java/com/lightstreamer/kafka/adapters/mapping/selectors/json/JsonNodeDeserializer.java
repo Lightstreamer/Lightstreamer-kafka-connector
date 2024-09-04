@@ -28,10 +28,11 @@ import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.utils.Utils;
 import org.everit.json.schema.ValidationException;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 public class JsonNodeDeserializer implements Deserializer<JsonNode> {
@@ -41,7 +42,6 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
     private final boolean isKey;
 
     JsonNodeDeserializer(ConnectorConfig config, boolean isKey) {
-        Map<String, String> props = new HashMap<>();
         this.isKey = isKey;
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
             deserializer = new JsonLocalSchemaDeserializer(config, isKey);
@@ -60,7 +60,13 @@ public class JsonNodeDeserializer implements Deserializer<JsonNode> {
             deserializer = new KafkaJsonDeserializer<>();
         }
 
-        deserializer.configure(config.extendsConsumerProps(props), isKey);
+        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+    }
+
+    JsonNodeDeserializer(boolean isKey) {
+        this.isKey = isKey;
+        deserializer = new KafkaJsonDeserializer<>();
+        deserializer.configure(Collections.emptyMap(), isKey);
     }
 
     public boolean isKey() {
