@@ -10,6 +10,8 @@ services:
       - connect-standalone
       - /config/connect-standalone-docker.properties
       - /config/quickstart-lightstreamer-docker.properties
+      # You may also use the provided json format:
+      #- /config/quickstart-lightstreamer-docker.json
     depends_on:
       - broker
       - lightstreamer
