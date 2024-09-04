@@ -1,0 +1,12 @@
+{
+    "name": "lightstreamer-sink",
+    "connector.class": "com.lightstreamer.kafka.connect.LightstreamerSinkConnector",
+    "topics": "stocks",
+    "lightstreamer.server.proxy_adapter.address": "localhost:6661",
+    "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms": 15000,
+    "lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries": 5,
+    "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms": 15000,
+    "item.templates": "stock-template:stock-#{index=KEY}",
+    "topic.mappings": "stocks:item-template.stock-template",
+    "record.mapping": "timestamp:#{VALUE.timestamp},time:#{VALUE.time},stock_name:#{VALUE.name},last_price:#{VALUE.last_price},ask:#{VALUE.ask},ask_quantity:#{VALUE.ask_quantity},bid:#{VALUE.bid},bid_quantity:#{VALUE.bid_quantity},pct_change:#{VALUE.pct_change},min:#{VALUE.min},max:#{VALUE.max},ref_price:#{VALUE.ref_price},open_price:#{VALUE.open_price},item_status:#{VALUE.item_status},ts:#{TIMESTAMP},topic:#{TOPIC},offset:#{OFFSET},partition:#{PARTITION}"
+}
