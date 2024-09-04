@@ -153,6 +153,21 @@ class DataExtractorSupport {
 
         @Override
         public DataContainer extractData(KafkaRecord<K, V> record) throws ValueException {
+            Set<Data> s = new HashSet<>();
+            for (KeySelector<K> selector : keySelectors) {
+                s.add(selector.extractKey(record));
+            }
+            for (ValueSelector<V> selector : valueSelectors) {
+                s.add(selector.extractValue(record));
+            }
+            for (ConstantSelector selector : metaSelectors) {
+                s.add(selector.extract(record));
+            }
+            return new DefaultValuesContainer(this, s);
+        }
+
+        @Override
+        public DataContainer extractDataOld1_0(KafkaRecord<K, V> record) throws ValueException {
             return new DefaultValuesContainer(
                     this,
                     Stream.of(
@@ -161,6 +176,17 @@ class DataExtractorSupport {
                                     metaSelectors.stream().map(m -> m.extract(record)))
                             .flatMap(identity())
                             .collect(toSet()));
+        }
+
+        @Override
+        public DataContainer extractDataOld1_1(KafkaRecord<K, V> record) throws ValueException {
+            Stream<Data> keys = keySelectors.stream().map(k -> k.extractKey(record));
+            Stream<Data> values = valueSelectors.stream().map(v -> v.extractValue(record));
+            Stream<Data> meta = metaSelectors.stream().map(m -> m.extract(record));
+            Stream<Data> s = Stream.concat(keys, values);
+            Stream<Data> s1 = Stream.concat(s, meta);
+
+            return new DefaultValuesContainer(this, s1.collect(toSet()));
         }
 
         @Override
