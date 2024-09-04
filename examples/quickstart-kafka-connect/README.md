@@ -25,7 +25,7 @@ As with the original _Quick Start_, this app is structured as a Docker Compose s
 
 ## Run
 
-1. Make sure you have Docker, Docker Compose, and Java 17 (or later) installed on your local machine.
+1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
 
 2. From this directory, run the following:
 

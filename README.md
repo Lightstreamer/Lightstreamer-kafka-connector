@@ -80,7 +80,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 ### Run
 
-1. Make sure you have Docker, Docker Compose, and Java 17 (or later) installed on your local machine.
+1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
 2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following:
 
    ```sh
@@ -113,7 +113,7 @@ This section will guide you through the installation of Kafka Connector to get i
 
 ### Requirements
 
-- JDK version 17 or later
+- JDK version 17
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 - A running Kafka broker or Kafka Cluster
 
