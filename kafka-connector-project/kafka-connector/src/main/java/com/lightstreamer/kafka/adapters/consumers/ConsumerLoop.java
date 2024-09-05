@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -164,6 +165,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             } else {
                 ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
                 boolean asyncProcessing = true; // TODO config.isAsyncProcessing();
+                if (asyncProcessing && errorStrategy != RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE) {
+                    throw new KafkaException(errorStrategy + " error strategy not supported with pure asynchronous processing");
+                }
                 boolean batchSupport = !asyncProcessing;
                 multiplexer = new Multiplexer(executor, batchSupport);
             }
@@ -258,8 +262,15 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         // NOTE: this may be inefficient if, for instance, a single task
                         // should keep the executor engaged while all other threads are idle,
                         // but this is not expected when all tasks are short and cpu-bound
+                        offsetManager.commitAsync();
+                        ValueException ve = offsetManager.getFirstFailure();
+                        if (ve != null) {
+                            throw new KafkaException(ve);
+                        }
+                    } else {
+                        offsetManager.commitAsync();
+                        assert (offsetManager.getFirstFailure() == null);
                     }
-                    offsetManager.commitAsync();
                     log.atInfo().log("Consumed {} records", records.count());
                 } catch (WakeupException we) {
                     // Catch and rethrow the Exception here because of the next KafkaException
@@ -276,58 +287,75 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             log.atDebug().log("Consuming Kafka record");
 
             if (multiplexer == null) {
-                process(record);
+                try {
+                    process(record);
+                    offsetManager.updateOffsets(record);
+
+                } catch (ValueException ve) {
+                    log.atWarn().log("Error while extracting record: {}", ve.getMessage());
+                    log.atWarn().log("Applying the {} strategy", errorStrategy);
+
+                    switch (errorStrategy) {
+                        case IGNORE_AND_CONTINUE -> {
+                            log.atWarn().log("Ignoring error");
+                            offsetManager.updateOffsets(record);
+                        }
+
+                        case FORCE_UNSUBSCRIPTION -> {
+                            log.atWarn().log("Forcing unsubscription");
+                            throw new KafkaException(ve);
+                        }
+                    }
+                }
             } else {
+                offsetManager.updateOffsets(record);
                 String sequenceKey = Objects.toString(record.key(), null);
                 multiplexer.execute(
                         sequenceKey,
                         () -> {
                             try {
                                 process(record);
+                            } catch (ValueException ve) {
+                                log.atWarn().log("Error while extracting record: {}", ve.getMessage());
+                                log.atWarn().log("Applying the {} strategy", errorStrategy);
+
+                                switch (errorStrategy) {
+                                    case IGNORE_AND_CONTINUE -> {
+                                        log.atWarn().log("Ignoring error");
+                                    }
+
+                                    case FORCE_UNSUBSCRIPTION -> {
+                                        assert (multiplexer.supportsBatching());
+                                        log.atWarn().log("Forcing unsubscription");
+                                        offsetManager.onAsyncFailure(record, ve);
+                                    }
+                                }
                             } catch (RuntimeException | Error e) {
-                                // TODO
+                                // TODO uguale a ValueException ?
                             }
                         });
             }
         }
 
-        protected void process(ConsumerRecord<K, V> record) {
+        protected void process(ConsumerRecord<K, V> record) throws ValueException {
             log.atDebug().log("Mapping incoming Kafka record");
             log.atTrace().log("Kafka record: {}", record.toString());
-            try {
-                MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
-                // Logging the mapped record is expensive, log lazly it only at trace level.
-                log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-                log.atDebug().log("Mapped Kafka record");
+            MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
-                Set<SubscribedItem> routables =
-                        config.itemTemplates().routes(mappedRecord, subscribedItems.values());
+            // Logging the mapped record is expensive, log lazly it only at trace level.
+            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
+            log.atDebug().log("Mapped Kafka record");
 
-                log.atDebug().log("Filtering updates");
-                Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+            Set<SubscribedItem> routables =
+                    config.itemTemplates().routes(mappedRecord, subscribedItems.values());
 
-                for (SubscribedItem sub : routables) {
-                    log.atDebug().log("Sending updates: {}", updates);
-                    eventListener.smartUpdate(sub.itemHandle(), updates, false);
-                }
+            log.atDebug().log("Filtering updates");
+            Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
 
-                offsetManager.updateOffsets(record);
-            } catch (ValueException ve) {
-                log.atWarn().log("Error while extracting record: {}", ve.getMessage());
-                log.atWarn().log("Applying the {} strategy", errorStrategy);
-
-                switch (errorStrategy) {
-                    case IGNORE_AND_CONTINUE -> {
-                        log.atWarn().log("Ignoring error");
-                        offsetManager.updateOffsets(record);
-                    }
-
-                    case FORCE_UNSUBSCRIPTION -> {
-                        log.atWarn().log("Forcing unsubscription");
-                        throw new KafkaException(ve);
-                    }
-                }
+            for (SubscribedItem sub : routables) {
+                log.atDebug().log("Sending updates: {}", updates);
+                eventListener.smartUpdate(sub.itemHandle(), updates, false);
             }
         }
 
@@ -355,6 +383,8 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
     class OffsetManager implements ConsumerRebalanceListener {
 
         private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+        private final Map<TopicPartition, OffsetAndMetadata> currentFailedOffsets = new ConcurrentHashMap<>();
+        private volatile ValueException firstFailure = null;
         private final KafkaConsumer<?, ?> consumer;
 
         OffsetManager(KafkaConsumer<?, ?> consumer) {
@@ -368,12 +398,22 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         }
 
         void commitSync() {
+            integrateFailures();
             consumer.commitSync(currentOffsets);
             log.atInfo().log("Offsets commited");
         }
 
         void commitAsync() {
+            integrateFailures();
             consumer.commitAsync(currentOffsets, null);
+        }
+
+        private void integrateFailures() {
+            currentFailedOffsets.forEach((p, o) -> {
+                assert (currentOffsets.containsKey(o));
+                currentOffsets.put(p, o);
+                // if we reach this point, more invocations of updateOffsets will not be expected and supported
+            });
         }
 
         @Override
@@ -385,6 +425,19 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             currentOffsets.put(
                     new TopicPartition(record.topic(), record.partition()),
                     new OffsetAndMetadata(record.offset() + 1, null));
+        }
+
+        public void onAsyncFailure(ConsumerRecord<?, ?> record, ValueException ve) {
+            TopicPartition partition = new TopicPartition(record.topic(), record.partition());
+            OffsetAndMetadata offset = new OffsetAndMetadata(record.offset(), null); // this record should not be committed
+            currentFailedOffsets.compute(partition, (p, o) -> o == null || o.offset() > offset.offset() ? offset : o);
+            if (firstFailure == null) {
+                firstFailure = ve; // any of the first exceptions got should be enough
+            }
+        }
+
+        public ValueException getFirstFailure() {
+            return firstFailure;
         }
     }
 }
