@@ -49,6 +49,7 @@ import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
@@ -59,6 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConnectorConfigTest {
 
@@ -249,6 +251,14 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
 
+        ConfParameter clientId = configSpec.getParameter(ConnectorConfig.CONSUMER_CLIENT_ID);
+        assertThat(clientId.name()).isEqualTo(ConnectorConfig.CONSUMER_CLIENT_ID);
+        assertThat(clientId.required()).isFalse();
+        assertThat(clientId.multiple()).isFalse();
+        assertThat(clientId.mutable()).isFalse();
+        assertThat(clientId.defaultValue()).isEqualTo("");
+        assertThat(clientId.type()).isEqualTo(ConfType.TEXT);
+
         ConfParameter consumeEventsFrom =
                 configSpec.getParameter(ConnectorConfig.RECORD_CONSUME_FROM);
         assertThat(consumeEventsFrom.name()).isEqualTo(ConnectorConfig.RECORD_CONSUME_FROM);
@@ -291,6 +301,7 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         standardParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        standardParams.put(ConnectorConfig.CONSUMER_CLIENT_ID, "a.client.id"); // Unmodifiable
         standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
         standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
         standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
@@ -463,6 +474,8 @@ public class ConnectorConfigTest {
                 .containsAtLeast(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                         "server:8080,server:8081",
+                        ConsumerConfig.CLIENT_ID_CONFIG,
+                        "",
                         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
                         "latest",
                         ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
@@ -489,6 +502,48 @@ public class ConnectorConfigTest {
                         "250");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
+    }
+
+    static Stream<String> confluentCloudHostList() {
+        return Stream.of(
+                "abc-57rr02.mycloudrovider1.confluent.cloud:9092",
+                "def-437seq1.mycloudrovider2.confluent.cloud:9092,lopc-32wwg15.mycloudrovider2.confluent.cloud:9092");
+    }
+
+    @ParameterizedTest
+    @MethodSource("confluentCloudHostList")
+    public void shouldRetrieveLightstreamreClientIdWhenConnectedToConfluentClod(String hostList) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        Properties baseConsumerProps = config.baseConsumerProps();
+        assertThat(baseConsumerProps)
+                .containsAtLeast(
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        hostList,
+                        ConsumerConfig.CLIENT_ID_CONFIG,
+                        ConnectorConfig.LIGHSTREAMER_CLIENT_ID);
+    }
+
+    static Stream<String> partialConfluentCloudHostList() {
+        return Stream.of(
+                "def-437seq1.mycloudrovider2.my.com:9092,lopc-32wwg15.mycloudrovider2.confluent.cloud1:9092");
+    }
+
+    @ParameterizedTest
+    @MethodSource("partialConfluentCloudHostList")
+    public void shouldNonRetrieveLightstreamreClientIdWhenNotAllHostConnectedToConfluentClod(
+            String hostList) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        Properties baseConsumerProps = config.baseConsumerProps();
+        assertThat(baseConsumerProps)
+                .containsAtLeast(
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        hostList,
+                        ConsumerConfig.CLIENT_ID_CONFIG,
+                        "");
     }
 
     @Test
