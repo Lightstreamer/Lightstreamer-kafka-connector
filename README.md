@@ -1406,7 +1406,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 3. Edit a `producer.properties` file as follows:
 
    ```
-   # JSON deserializer with support for the Schema Registry
+   # JSON serializer with support for the Schema Registry
    value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
    # Schema Registry URL
    schema.registry.url=http://<schema-registry-address>:<schema-registry-port>
