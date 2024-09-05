@@ -1,3 +1,20 @@
+
+/*
+ * Copyright (C) 2024 Lightstreamer Srl
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
 package com.lightstreamer.kafka.adapters.consumers;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,21 +32,21 @@ public class Multiplexer {
     /*
      * The Map associates each sequence to the queue of tasks to be run.
      * The queue is implemented through the "next" element of each task.
-     * 
+     *
      * Associated invariant:
      * - As long as a sequence is present in the Map, its queue is being processed by a dequeuing activity.
-     *   When the dequeueing activity consumes the queue, it removes the sequence from the Map.  
+     *   When the dequeueing activity consumes the queue, it removes the sequence from the Map.
      *   Hence, at most one dequeueing activity can be active at any time.
      * - The element currently mapped corresponds to the last task of the queue if its "next" element is null;
      *   otherwise, it is a transient state MOD in which the queue is currently being modified.
-     * 
+     *
      * Associated constraints:
      * - Only the task that can add its sequence to the Map can also schedule a dequeueing activity.
      *   If the sequence is already present in the Map, other tasks can only add themselves to the queue.
      *   The dequeueing activity can take care of added tasks either immediately or by rescheduling;
-     *   the latter is done by delegating the new scheduling to the next task left in the queue. 
-     *   If the end of the queue is reached, the dequeueing activity should remove the sequence from the Map. 
-     * 
+     *   the latter is done by delegating the new scheduling to the next task left in the queue.
+     *   If the end of the queue is reached, the dequeueing activity should remove the sequence from the Map.
+     *
      * - Only one task at a time can add itself to an existing queue.
      *   In fact, the addition is a two-step process:
      *   first, the task sets itself as the next of the task associated in the Map, thus bringing state MOD;
@@ -38,7 +55,7 @@ public class Multiplexer {
      *   On the other hand, the first step is enough for the dequeueing activity to process the task;
      *   hence the task may even be mapped after it has already been processed.
      *
-     * - Moreover, during sequence removal by the dequeueing activity, new task additions cannot be run. 
+     * - Moreover, during sequence removal by the dequeueing activity, new task additions cannot be run.
      *   In fact, sequence removal is also a two-step process:
      *   first, the last task of the queue is set as the next of itself;
      *   then, the sequence is removed from the Map.
@@ -114,7 +131,7 @@ public class Multiplexer {
                         // the only contention is with my own getNext in [B],
                         // which may have already removed the element
 
-                        if (! queues.replace(sequence, last, this)) {
+                        if (!queues.replace(sequence, last, this)) {
                             // if a removal came first, this was not necessary
                         }
                         break;
@@ -238,7 +255,7 @@ public class Multiplexer {
         }
 
         private void waitEmpty() {
-            if (! waiting.compareAndSet(false, true)) {
+            if (!waiting.compareAndSet(false, true)) {
                 throw new IllegalStateException();
             }
             if (count.get() == 0) {
@@ -260,7 +277,8 @@ public class Multiplexer {
                     throw new IllegalStateException();
                 } else {
                     // race condition
-                    while (semaphore.drainPermits() == 0);
+                    while (semaphore.drainPermits() == 0)
+                        ;
                 }
             }
         }
@@ -291,14 +309,17 @@ public class Multiplexer {
             public volatile boolean active = false;
             public volatile long count = 0;
             public volatile double data = 0;
+
             public SequenceData(String name) {
                 this.name = name;
             }
         }
 
         public static void main(String[] args) {
-            Multiplexer multi1 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
-            Multiplexer multi2 = new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
+            Multiplexer multi1 =
+                    new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
+            Multiplexer multi2 =
+                    new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
 
             startMulti(multi1, "Test1");
             startMulti(multi2, "Test2");
@@ -321,7 +342,8 @@ public class Multiplexer {
                     for (int i = 0; i < sequences; i++) {
                         tot += sequenceData[i].count;
                     }
-                    System.out.println("Batch on " + name + " completed on count: " + (tot / sequences));
+                    System.out.println(
+                            "Batch on " + name + " completed on count: " + (tot / sequences));
                     try {
                         Thread.sleep(pause);
                     } catch (InterruptedException e) {
@@ -340,32 +362,45 @@ public class Multiplexer {
             }
         }
 
-        private static void submitLoop(Multiplexer multi, SequenceData[] sequenceData, boolean loop) {
+        private static void submitLoop(
+                Multiplexer multi, SequenceData[] sequenceData, boolean loop) {
             java.util.Random rnd = new java.util.Random();
-            while (true)  {
+            while (true) {
                 for (int i = 0; i < run; i++) {
                     SequenceData currSequence = sequenceData[rnd.nextInt(sequences)];
-                    multi.execute(currSequence.name, () -> {
-                        try {
-                            assert (! currSequence.active); // this is what we are testing (enable asserts on launch)
-                            currSequence.active = true;
-                            double tot = 0;
-                            for (int n = 0; n < work; n++) {
-                                tot += rnd.nextDouble();
-                            }
-                            currSequence.data += tot;
-                            currSequence.count++;
-                            if (currSequence.count % checkpoint == 0) {
-                                System.out.println(currSequence.name + " currently at " + currSequence.count + " with " + currSequence.data);
-                            }
-                            assert (currSequence.active); // this is what we are testing (enable asserts on launch)
-                            currSequence.active = false;
-                        } catch (RuntimeException | Error e) {
-                            System.out.println("Error on " + currSequence.name + ": " + e.toString());
-                        }
-                    });
+                    multi.execute(
+                            currSequence.name,
+                            () -> {
+                                try {
+                                    assert (!currSequence
+                                            .active); // this is what we are testing (enable asserts
+                                    // on launch)
+                                    currSequence.active = true;
+                                    double tot = 0;
+                                    for (int n = 0; n < work; n++) {
+                                        tot += rnd.nextDouble();
+                                    }
+                                    currSequence.data += tot;
+                                    currSequence.count++;
+                                    if (currSequence.count % checkpoint == 0) {
+                                        System.out.println(
+                                                currSequence.name
+                                                        + " currently at "
+                                                        + currSequence.count
+                                                        + " with "
+                                                        + currSequence.data);
+                                    }
+                                    assert (currSequence
+                                            .active); // this is what we are testing (enable asserts
+                                    // on launch)
+                                    currSequence.active = false;
+                                } catch (RuntimeException | Error e) {
+                                    System.out.println(
+                                            "Error on " + currSequence.name + ": " + e.toString());
+                                }
+                            });
                 }
-                if (! loop) {
+                if (!loop) {
                     break;
                 }
                 try {

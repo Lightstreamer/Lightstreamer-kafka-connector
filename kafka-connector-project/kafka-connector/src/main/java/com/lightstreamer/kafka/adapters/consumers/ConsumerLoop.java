@@ -22,7 +22,6 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerLoop.OffsetManager;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -49,7 +48,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -145,8 +143,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
         private final Multiplexer multiplexer;
 
-        private final Multiplexer multiplexer;
-
         ConsumerWrapper(RecordErrorHandlingStrategy errorStrategy) throws KafkaException {
             this.errorStrategy = errorStrategy;
             String bootStrapServers =
@@ -168,7 +164,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             } else {
                 ExecutorService executor = Executors.newFixedThreadPool(consumerThreads);
                 boolean asyncProcessing = true; // TODO config.isAsyncProcessing();
-                boolean batchSupport = ! asyncProcessing;
+                boolean batchSupport = !asyncProcessing;
                 multiplexer = new Multiplexer(executor, batchSupport);
             }
 
@@ -263,12 +259,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         // should keep the executor engaged while all other threads are idle,
                         // but this is not expected when all tasks are short and cpu-bound
                     }
-                    if (multiplexer != null && multiplexer.supportsBatching()) {
-                        multiplexer.waitBatch();
-                        // NOTE: this may be inefficient if, for instance, a single task
-                        // should keep the executor engaged while all other threads are idle,
-                        // but this is not expected when all tasks are short and cpu-bound
-                    }
                     offsetManager.commitAsync();
                     log.atInfo().log("Consumed {} records", records.count());
                 } catch (WakeupException we) {
@@ -279,6 +269,25 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                     metadataListener.forceUnsubscriptionAll();
                     break;
                 }
+            }
+        }
+
+        protected void consume(ConsumerRecord<K, V> record) {
+            log.atDebug().log("Consuming Kafka record");
+
+            if (multiplexer == null) {
+                process(record);
+            } else {
+                String sequenceKey = Objects.toString(record.key(), null);
+                multiplexer.execute(
+                        sequenceKey,
+                        () -> {
+                            try {
+                                process(record);
+                            } catch (RuntimeException | Error e) {
+                                // TODO
+                            }
+                        });
             }
         }
 
@@ -321,24 +330,6 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 }
             }
         }
-
-        protected void consume(ConsumerRecord<K, V> record) {
-            log.atDebug().log("Mapping incoming Kafka record");
-            log.atTrace().log("Kafka record: {}", record.toString());
-
-            if (multiplexer == null) {
-                process(record);
-            } else {
-                String sequenceKey = Objects.toString(record.key(), null);
-                multiplexer.execute(sequenceKey, () -> {
-                    try {
-                        process(record);
-                    } catch (RuntimeException | Error e) {
-                        // TODO
-                    }
-                });
-            }
-        }        
 
         void close() {
             shutdown();
