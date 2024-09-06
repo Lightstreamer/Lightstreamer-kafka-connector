@@ -997,9 +997,9 @@ This configuration enables the implementation of various routing scenarios, as s
 
 > [!NOTE]
 > For the sale of completeness, it would be also possible implement a  _One To Many_ scenario as follows:
-
+>
 >  ```xml
-  ><param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
+>  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
 >  ```
 >
 >  ![one-to-many](pictures/one-to-many.png)
