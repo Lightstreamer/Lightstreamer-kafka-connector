@@ -973,7 +973,7 @@ which defines the mapping between the source Kafka topic (`<topic-name>`) and th
 
 This configuration enables the implementation of various routing scenarios, as shown by the following examples:
 
-- _One To One_
+- _One-to-One_
 
   ```xml
   <param name="map.sample-topic.to">sample-item</param>
@@ -983,19 +983,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
 
-- _One To Many_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
-  ```
-
-  ![one-to-many](pictures/one-to-many.png)
-
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
-
-  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the [example](examples/custom-kafka-connector-adapter/)), in which every subscription must be validated against the user identity.
-
-- _Many to One_
+- _Many-to-One_
 
   ```xml
   <param name="map.sample-topic1.to">sample-item</param>
@@ -1006,6 +994,16 @@ This configuration enables the implementation of various routing scenarios, as s
   ![many-to-one](pictures/many-to-one.png)
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
+
+- _One-to-Many_
+
+  The one-to-many scenario is also supported, though it's often unnecessary. Lightstreamer already provides full control over individual items, such as differentiating access authorization for various users or subscribing with different maximum update frequencies, without requiring data replication across multiple items.
+
+  ```xml
+  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
+  ```
+
+  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
 ##### Record Mapping (`field.<fieldName>`)
 
@@ -1406,7 +1404,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 3. Edit a `producer.properties` file as follows:
 
    ```
-   # JSON deserializer with support for the Schema Registry
+   # JSON serializer with support for the Schema Registry
    value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
    # Schema Registry URL
    schema.registry.url=http://<schema-registry-address>:<schema-registry-port>
@@ -1599,9 +1597,9 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:orde
 
 The configuration above specifes:
 
-- A _One To Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
+- A _One-to-Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
-- A _One To One_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
+- A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
 #### `record.mappings`
 

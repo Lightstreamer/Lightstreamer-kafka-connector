@@ -102,7 +102,7 @@ configs:
       ssl.keystore.password=producer-password
       ssl.key.password=producer-private-key-password
       ssl.endpoint.identification.algorithm=
-      # JSON deserializer with support for the Schema Registry
+      # JSON serializer with support for the Schema Registry
       value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
       # Schema Registry URL
       schema.registry.url=https://schema-registry:8084

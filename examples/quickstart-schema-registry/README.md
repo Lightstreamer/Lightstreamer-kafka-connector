@@ -34,7 +34,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     
    ```yaml
    ...
-   # JSON deserializer with support for the Schema Registry
+   # JSON serializer with support for the Schema Registry
    value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
    # Schema Registry URL
    schema.registry.url=https://schema-registry:8084
