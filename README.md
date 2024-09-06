@@ -996,7 +996,7 @@ This configuration enables the implementation of various routing scenarios, as s
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
 > [!NOTE]
-> For the sale of completeness, it would be also possible implement a  _One To Many_ scenario as follows:
+> For the sake of completeness, it might also be possible to implement the _One To Many_ scenario as follows:
 >
 >  ```xml
 >  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
