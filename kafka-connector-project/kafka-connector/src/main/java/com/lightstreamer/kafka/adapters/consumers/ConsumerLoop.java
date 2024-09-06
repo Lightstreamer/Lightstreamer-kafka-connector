@@ -265,6 +265,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                         offsetManager.commitAsync();
                         ValueException ve = offsetManager.getFirstFailure();
                         if (ve != null) {
+                            log.atWarn().log("Forcing unsubscription");
                             throw new KafkaException(ve);
                         }
                     } else {
@@ -325,8 +326,25 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                                     }
 
                                     case FORCE_UNSUBSCRIPTION -> {
+                                        // Trying to emulate the behavior of the above synchronous case,
+                                        // whereas the first record which gets an error ends the commits;
+                                        // hence we will keep track of the first error found on each partition;
+                                        // then, when committing each partition after the termination of the current poll,
+                                        // we will end before the first failed record found;
+                                        // this, obviously, is not possible in the fire-and-forget policy, but requires the batching one.
+                                        //
+                                        // There is a difference, though:
+                                        // in the synchronous case, the first error also stops the elaboration on the whole topic
+                                        // and all partitions are committed to the current point;
+                                        // in this case, instead, the elaboration continues until the end of the poll,
+                                        // hence, partitions with errors are committed up to the first error,
+                                        // but subsequent records, though not committed, may have been processed all the same
+                                        // (even records with the same key of a previously failed record)
+                                        // and only then is the elaboration stopped;
+                                        // on the other hand, partitions without errors are processed and committed entirely,
+                                        // which is good, although, then, the elaboration stops also for them.
                                         assert (multiplexer.supportsBatching());
-                                        log.atWarn().log("Forcing unsubscription");
+                                        log.atWarn().log("Will force unsubscription");
                                         offsetManager.onAsyncFailure(record, ve);
                                     }
                                 }
