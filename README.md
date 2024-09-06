@@ -983,18 +983,6 @@ This configuration enables the implementation of various routing scenarios, as s
 
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
 
-- _One To Many_
-
-  ```xml
-  <param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
-  ```
-
-  ![one-to-many](pictures/one-to-many.png)
-
-  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
-
-  This scenario may activate unicast and multicast messaging, as it is possible to specify which item can be subscribed to by which user or group of users. To do that, it is required to provide a customized extension of the factory Metadata Adapter class (see the [example](examples/custom-kafka-connector-adapter/)), in which every subscription must be validated against the user identity.
-
 - _Many to One_
 
   ```xml
@@ -1006,6 +994,18 @@ This configuration enables the implementation of various routing scenarios, as s
   ![many-to-one](pictures/many-to-one.png)
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
+
+> [!NOTE]
+> For the sale of completeness, it would be also possible implement a  _One To Many_ scenario as follows:
+
+>  ```xml
+  ><param name="map.sample-topic.to">sample-item1,sample-item2,sample-item3</param>
+>  ```
+>
+>  ![one-to-many](pictures/one-to-many.png)
+>
+>  Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
+
 
 ##### Record Mapping (`field.<fieldName>`)
 
