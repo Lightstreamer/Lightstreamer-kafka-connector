@@ -44,11 +44,17 @@ public interface RecordMapper<K, V> {
         int mappedValuesSize();
 
         Map<String, String> filter(DataExtractor<?, ?> extractor);
+
+        Map<String, String> filter2_0(DataExtractor<?, ?> extractor);
     }
 
     int selectorsSize();
 
-    MappedRecord map(KafkaRecord<K, V> record);
+    MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
+
+    MappedRecord map_old(KafkaRecord<K, V> record) throws ValueException;
+
+    MappedRecord map2_0(KafkaRecord<K, V> record) throws ValueException;
 
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
@@ -88,6 +94,25 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     @Override
     public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
+        Set<DataContainer> set = new HashSet<>();
+        for (DataExtractor<K, V> dataExtractor : extractors) {
+            set.add(dataExtractor.extractData(record));
+        }
+        return new DefaultMappedRecord(record.topic(), set);
+    }
+
+    @Override
+    public MappedRecord map2_0(KafkaRecord<K, V> record) throws ValueException {
+        Set<DataContainer> set = new HashSet<>();
+        for (DataExtractor<K, V> dataExtractor : extractors) {
+            DataContainer data = dataExtractor.extractData2_0(record);
+            set.add(data);
+        }
+        return new DefaultMappedRecord(record.topic(), set);
+    }
+
+    @Override
+    public MappedRecord map_old(KafkaRecord<K, V> record) throws ValueException {
         return new DefaultMappedRecord(
                 record.topic(),
                 extractors.stream().map(ve -> ve.extractData(record)).collect(Collectors.toSet()));
@@ -128,6 +153,20 @@ class DefaultMappedRecord implements MappedRecord {
                 .flatMap(container -> container.data().stream())
                 .forEach(value -> eventsMap.put(value.name(), value.text()));
         return eventsMap;
+    }
+
+    @Override
+    public Map<String, String> filter2_0(DataExtractor<?, ?> extractor) {
+        for (DataContainer dataContainer : dataContainers) {
+            if (dataContainer.extractor().equals(extractor)) {
+                return dataContainer.dataAsMap();
+            }
+        }
+        return Collections.emptyMap();
+        // return dataContainers.stream()
+        //         .filter(container -> container.extractor().equals(extractor))
+        //         .findFirst()
+        //         .map(container -> container.dataAsMap()).orElseThrow();
     }
 
     @Override

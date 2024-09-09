@@ -127,6 +127,10 @@ public class JsonNodeSelectorsSuppliers {
             this.deseralizer = new JsonNodeDeserializer(config, false);
         }
 
+        JsonNodeValueSelectorSupplier() {
+            this.deseralizer = new JsonNodeDeserializer(false);
+        }
+
         @Override
         public ValueSelector<JsonNode> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
@@ -160,6 +164,10 @@ public class JsonNodeSelectorsSuppliers {
 
     public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
         return new JsonNodeValueSelectorSupplier(config);
+    }
+
+    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier() {
+        return new JsonNodeValueSelectorSupplier();
     }
 
     private JsonNodeSelectorsSuppliers() {}
