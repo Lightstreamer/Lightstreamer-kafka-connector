@@ -138,6 +138,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
         private final KafkaConsumer<K, V> consumer;
         private final OffsetManager offsetManager;
+        private final OffsetManager offsetManager;
         private final CountDownLatch latch = new CountDownLatch(1);
         private final Thread hook;
         private final RecordErrorHandlingStrategy errorStrategy;
@@ -361,12 +362,12 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
             MappedRecord mappedRecord = recordRemapper.map(KafkaRecord.from(record));
 
-            // Logging the mapped record is expensive, log lazly it only at trace level.
-            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log("Mapped Kafka record");
+                // Logging the mapped record is expensive, log lazly it only at trace level.
+                log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
+                log.atDebug().log("Mapped Kafka record");
 
-            Set<SubscribedItem> routables =
-                    config.itemTemplates().routes(mappedRecord, subscribedItems.values());
+                Set<SubscribedItem> routables =
+                        config.itemTemplates().routes(mappedRecord, subscribedItems.values());
 
             log.atDebug().log("Filtering updates");
             Map<String, String> updates = mappedRecord.filter(fieldsExtractor);

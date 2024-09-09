@@ -95,9 +95,22 @@ public class SplitTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"a-b", "  a-b  ", "a-  b ", "  a-b", " a  - b  "})
+    void shouldReturnPairWithNonDefaultSeparator(String splittable) {
+        assertThat(Split.asPair(splittable, '-')).hasValue(new Pair("a", "b"));
+    }
+
+    @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"a", "a:", "  :b  ", ":  b ", ":", " : "})
     void shouldReturnEmptyPair(String splittable) {
         assertThat(Split.asPair(splittable)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"a", "a-", "  -b  ", "-  b ", "-", " - "})
+    void shouldReturnEmptyPairWithNonDefaultSeparator(String splittable) {
+        assertThat(Split.asPair(splittable, '-')).isEmpty();
     }
 }

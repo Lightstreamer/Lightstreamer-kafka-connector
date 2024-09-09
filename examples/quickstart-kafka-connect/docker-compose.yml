@@ -89,7 +89,7 @@ services:
 configs:
   producer.properties:
     content: |
-      # JSON deserializer with support for the Schema Registry
+      # JSON serializer with support for the Schema Registry
       value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
       # Schema Registry URL
       schema.registry.url=http://schema-registry:8081

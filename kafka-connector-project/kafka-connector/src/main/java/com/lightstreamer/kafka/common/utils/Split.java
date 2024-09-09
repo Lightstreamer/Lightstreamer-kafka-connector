@@ -46,6 +46,18 @@ public class Split {
         return Optional.empty();
     }
 
+    public static Optional<Pair> asPair(String splittable, char separator) {
+        List<String> tokens = bySeparator(separator, splittable);
+        if (tokens.size() == 2) {
+            String key = tokens.get(0);
+            String value = tokens.get(1);
+            if (!(key.isBlank() || value.isBlank())) {
+                return Optional.of(new Pair(key, value));
+            }
+        }
+        return Optional.empty();
+    }
+
     public static List<String> byComma(String input) {
         return by(COMMA_WITH_WHITESPACE, input);
     }

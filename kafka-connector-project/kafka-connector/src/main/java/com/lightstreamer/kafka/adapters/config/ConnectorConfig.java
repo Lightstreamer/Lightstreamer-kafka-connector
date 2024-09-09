@@ -29,6 +29,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_BYTES_CONFIG;
@@ -58,7 +59,9 @@ import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.utils.Split;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 
 import java.io.File;
@@ -70,6 +73,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
+
+    static final String LIGHSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
     public static final String ENABLE = "enable";
 
@@ -112,6 +117,8 @@ public final class ConnectorConfig extends AbstractConfig {
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
+    public static final String CONSUMER_CLIENT_ID =
+            CONNECTOR_PREFIX + CommonClientConfigs.CLIENT_ID_CONFIG;
     public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG =
             CONNECTOR_PREFIX + ENABLE_AUTO_COMMIT_CONFIG;
     public static final String CONSUMER_FETCH_MIN_BYTES_CONFIG =
@@ -216,6 +223,27 @@ public final class ConnectorConfig extends AbstractConfig {
                                 CONSUME_FROM,
                                 defaultValue(RecordComsumeFrom.LATEST.toString()))
                         .add(
+                                CONSUMER_CLIENT_ID,
+                                false,
+                                false,
+                                TEXT,
+                                false,
+                                defaultValue(
+                                        params -> {
+                                            String hostList = params.get(BOOTSTRAP_SERVERS);
+                                            if (hostList == null) {
+                                                return "";
+                                            }
+                                            if (Split.byComma(hostList).stream()
+                                                    .flatMap(s -> Split.asPair(s, ':').stream())
+                                                    .map(p -> p.key())
+                                                    .allMatch(
+                                                            s -> s.endsWith(".confluent.cloud"))) {
+                                                return LIGHSTREAMER_CLIENT_ID;
+                                            }
+                                            return "";
+                                        }))
+                        .add(
                                 CONSUMER_ENABLE_AUTO_COMMIT_CONFIG,
                                 false,
                                 false,
@@ -319,6 +347,7 @@ public final class ConnectorConfig extends AbstractConfig {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
+        properties.setProperty(CLIENT_ID_CONFIG, getText(CONSUMER_CLIENT_ID));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
         properties.setProperty(
