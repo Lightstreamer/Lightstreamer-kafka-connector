@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 public interface DataContainer {
@@ -25,10 +27,13 @@ public interface DataContainer {
 
     Set<Data> data();
 
+    Map<String, String> dataAsMap();
+
     static DataContainer from(DataExtractor<?, ?> extractor, Set<Data> data) {
-        return new DefaultValuesContainer(extractor, data);
+        return new DefaultValuesContainer(extractor, data, Collections.emptyMap());
     }
 }
 
-record DefaultValuesContainer(DataExtractor<?, ?> extractor, Set<Data> data)
+record DefaultValuesContainer(
+        DataExtractor<?, ?> extractor, Set<Data> data, Map<String, String> dataAsMap)
         implements DataContainer {}

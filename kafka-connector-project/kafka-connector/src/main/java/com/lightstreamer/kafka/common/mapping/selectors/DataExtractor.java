@@ -25,6 +25,8 @@ public interface DataExtractor<K, V> {
 
     DataContainer extractData(KafkaRecord<K, V> record);
 
+    DataContainer extractData2_0(KafkaRecord<K, V> record);
+
     DataContainer extractDataOld1_0(KafkaRecord<K, V> record);
 
     DataContainer extractDataOld1_1(KafkaRecord<K, V> record);
