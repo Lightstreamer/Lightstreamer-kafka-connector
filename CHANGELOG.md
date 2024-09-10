@@ -8,9 +8,9 @@
 
 - Consistently updated all references to Java as "JDK version 17" throughout the project. ([#9])
 
-- Clarify the JDK version required to run the Sink connector. ([#10])
+- Clarify the JDK version required to run the Sink connector. ([#10](#10))
 
-- Updated the `manifest.json` file embedded in the Sink connector archive. ([#13])
+- Updated the `manifest.json` file embedded in the Sink connector archive. ([#13](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/13))
 
 - Made some additional minor fixes. ([#12])
 
