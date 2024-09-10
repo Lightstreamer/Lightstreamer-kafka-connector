@@ -16,7 +16,7 @@
     "url": "https://lightstreamer.com/contact",
     "provider_name": "Lightstreamer Srl"
   },
-  "tags": [ "Lightstreamer", "kafka-connect-lightstreamer", "last mile", "last-mile", "lastmile", "intelligent", "intelligent streaming", "websocket", "websockts", "ws", "proxy", "web", "mobile", "apps", "front end", "front-end", "frontend", "javascript", "android", "ios", "swift", "offloading", "fan out", "fanout", "scaling", "scalability", "scalable", "broadcast", "broadcasting", "rest", "mqtt", "firewall", "proxy", "filter", "filtering", "push", "push notifications", "real time", "real-time", "realtime", "bandwidth", "routing", "web streamng", "internet", "remote", "wan", "push technology", "http", "http streaming", "polling", "long polling"],
+  "tags": [ "Lightstreamer", "kafka-connect-lightstreamer", "last mile", "last-mile", "lastmile", "intelligent", "intelligent streaming", "websocket", "websockets", "ws", "proxy", "web", "mobile", "apps", "front end", "front-end", "frontend", "javascript", "html", "android", "ios", "swift", "offloading", "fan out", "fanout", "scaling", "scalability", "scalable", "broadcast", "broadcasting", "rest", "mqtt", "firewall", "proxy", "filter", "filtering", "push", "push notifications", "real time", "real-time", "realtime", "bandwidth", "routing", "web streamng", "internet", "remote", "wan", "push technology", "http", "http streaming", "polling", "long polling", "optimize", "optimization"],
   "features": {
     "supported_encodings": [ "any" ],
     "single_message_transforms": true,
