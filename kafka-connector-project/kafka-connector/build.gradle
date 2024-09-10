@@ -139,7 +139,9 @@ distributions {
 						version: version,
 						owner: connect_owner,
 						release_date: release_date
-						)
+						) {
+							escapeBackslash = true
+						}
 				rename {"manifest.json"}
 			}
 		}
