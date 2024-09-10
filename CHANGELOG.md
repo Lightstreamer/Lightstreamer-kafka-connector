@@ -4,19 +4,19 @@
 
 **Documentation**
 
-- Updated the [README.md](README.md) file to explain how to use either the configuration properties file or the configuration JSON file to run the Sink connector. In addition, examples of JSON files have been provided under the [kafka-connector-project/config/kafka-connect-config](kafka-connector-project/config/kafka-connect-config/) folder. (#8)
+- Updated the [README.md](README.md) file to explain how to use either the configuration properties file or the configuration JSON file to run the Sink connector. In addition, examples of JSON files have been provided under the [kafka-connector-project/config/kafka-connect-config](kafka-connector-project/config/kafka-connect-config/) folder. ([#8])
 
-- Consistently updated all references to Java as "JDK version 17" throughout the project. (#9)
+- Consistently updated all references to Java as "JDK version 17" throughout the project. ([#9])
 
-- Clarify the JDK version required to run the Sink connector. (#10)
+- Clarify the JDK version required to run the Sink connector. ([#10])
 
-- Updated the `manifest.json` file embedded in the Sink connector archive. (#13)
+- Updated the `manifest.json` file embedded in the Sink connector archive. ([#13])
 
-- Made some additional minor fixes. (#12)
+- Made some additional minor fixes. ([#12])
 
 **Improvements**
 
-- Introduced automatic configuration of the `client.id` consumer property when connected to Confluent Cloud. (#11)
+- Introduced automatic configuration of the `client.id` consumer property when connected to Confluent Cloud. ([#11])
 
 
 ## [1.0.3] (2024-09-03)
