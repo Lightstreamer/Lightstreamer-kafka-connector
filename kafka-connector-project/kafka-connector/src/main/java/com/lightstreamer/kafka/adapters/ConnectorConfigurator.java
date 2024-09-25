@@ -88,7 +88,7 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    protected ConsumerLoopConfig<?, ?> configure() throws ConfigException {
+    public ConsumerLoopConfig<?, ?> configure() throws ConfigException {
         // Process "field.<field-name>=#{...}"
         // Map<String, String> fieldsMapping = config.getFieldMappings();
         FieldConfigs fieldConfigs = config.getFieldConfigs();
