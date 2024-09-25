@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5] (2024-09-25)
+
+**Improvements**
+
+- Added the `etc` folder to the Sink connector zip file. ([#14](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/14))
+
+
 ## [1.0.4] (2024-09-10)
 
 **Documentation**

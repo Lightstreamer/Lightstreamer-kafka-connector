@@ -129,7 +129,6 @@ distributions {
 
 			from (connectConfigDir) {
 				into "etc"
-				include "quickstart-lightstreamer.properties"
 			}
 
 			from ("src/connect/manifest.json.tpl") {
