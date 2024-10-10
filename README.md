@@ -1197,7 +1197,7 @@ Example:
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
 
-###### `schema.registry.basic.authentication.enabled`
+###### `schema.registry.basic.authentication.enable`
 
 _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
 - `true`
@@ -1213,7 +1213,7 @@ Example:
 
 ##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
-_Mandatory if [basic authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
+_Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
 - `schema.registry.basic.authentication.username`: the username
 - `schema.registry.basic.authentication.password`: the password
