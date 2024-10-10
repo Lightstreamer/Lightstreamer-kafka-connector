@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6] (UNRELEASED)
+
+**Documentation**
+
+- Updated the `manifest.json` file embedded in the Sink connector archive. ([#15](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/15))
+- Updated the [README.md](README.md) and factory [adapters.xml](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files to explain how to configure Basic HTTP authentication for the Schema Registry. ([#16](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/16))
+
 ## [1.0.5] (2024-09-25)
 
 **Improvements**
