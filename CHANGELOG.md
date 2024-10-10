@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.6] (UNRELEASED)
+## [1.0.6] (2024-10-10)
 
 **Documentation**
 
