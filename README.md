@@ -1208,12 +1208,12 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="schema.registry.basic.authentication.enabled">true</param>
+<param name="schema.registry.basic.authentication.enable">true</param>
 ```
 
 ##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
-_Mandatory if [basic authentication](#schemaregistrybasicauthenticationenabled) is enabled_. The credentials.
+_Mandatory if [basic authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
 - `schema.registry.basic.authentication.username`: the username
 - `schema.registry.basic.authentication.password`: the password
