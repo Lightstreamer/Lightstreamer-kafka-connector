@@ -30,6 +30,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
       - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
     - [Schema Registry](#schema-registry)
       - [`schema.registry.url`](#schemaregistryurl)
+      - [Basic HTTP Authenticaion Parameters](#basic-http-authentication-parameters)
       - [Encryption Parameters](#encryption-parameters-1)
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
@@ -736,8 +737,6 @@ In the case of `GSSAPI` authentication mechanism, the following parameters will 
 
   Default value: `false`.
 
-  Default value: `false`.
-
 - `authentication.gssapi.kerberos.service.name`
 
   _Mandatory_. The name of the Kerberos service.
@@ -1194,6 +1193,31 @@ Example:
 <param name="schema.registry.url">https://localhost:8084</param>
 ```
 
+##### Basic HTTP Authentication Parameters
+
+[Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
+
+###### `schema.registry.basic.authentication.enabled`
+
+_Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="schema.registry.basic.authentication.enabled">true</param>
+```
+
+##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+
+_Mandatory if [basic authentication](#schemaregistrybasicauthenticationenabled) is enabled_. The credentials.
+
+- `schema.registry.basic.authentication.username`: the username
+- `schema.registry.basic.authentication.password`: the password
+
 ##### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
@@ -1372,11 +1396,11 @@ To manually install Kafka Connect Lightstreamer Sink Connector to a local Conflu
    which generates the zip file under the `kafka-connector-project/kafka-connector/build/distributions` folder.
 
 2. Extract the zip file into the desired location.
-   
+
    For example, you can copy the connector contents into a new directory named `CONFLUENT_HOME/share/kafka/plugins`.
 
 3. Edit the worker configuration properties file, ensuring you include the previous path in the `plugin.path` properties, for example:
-   
+
    ```
    plugins.path=/usr/local/share/kafka/plugins
    ```
@@ -1384,7 +1408,7 @@ To manually install Kafka Connect Lightstreamer Sink Connector to a local Conflu
    You may want to use the provided [connect-standalone-local.properties](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as a starting point.
 
 3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
-   
+
    You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties) or [`quickstart-lightstreamer-local.json`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.json) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
 
 4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
@@ -1426,7 +1450,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 #### Running in Docker
 
-If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder. 
+If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder.
 
 In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
@@ -1609,9 +1633,9 @@ The configuration above specifes:
 The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
- 
-where the Lightstreamer field `[fieldNameX]` whill hold the data extracted from a deserialized Kafka record using the 
-_Data Extraction Language_ `[extractionExpressionX]`. 
+
+where the Lightstreamer field `[fieldNameX]` whill hold the data extracted from a deserialized Kafka record using the
+_Data Extraction Language_ `[extractionExpressionX]`.
 
 - **Type:** list
 - **Default:** none
