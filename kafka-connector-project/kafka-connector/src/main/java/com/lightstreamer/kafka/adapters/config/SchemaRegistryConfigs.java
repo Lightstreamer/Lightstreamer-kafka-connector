@@ -71,7 +71,7 @@ public class SchemaRegistryConfigs {
     public static final String KEYSTORE_PASSWORD = nse(KeystoreConfigs.KEYSTORE_PASSWORD);
     public static final String KEY_PASSWORD = nse(KeystoreConfigs.KEY_PASSWORD);
 
-    public static final String ENABLE_BASIC_AUTHENTICATION = ns("basic.authentication.enabled");
+    public static final String ENABLE_BASIC_AUTHENTICATION = ns("basic.authentication.enable");
     public static final String BASIC_AUTHENTICATION_USER_NAME = ns("basic.authentication.username");
     public static final String BASIC_AUTHENTICATION_USER_PASSWORD =
             ns("basic.authentication.password");
