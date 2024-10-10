@@ -1211,7 +1211,7 @@ Example:
 <param name="schema.registry.basic.authentication.enable">true</param>
 ```
 
-##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+###### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
 _Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
