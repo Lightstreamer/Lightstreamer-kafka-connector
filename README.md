@@ -1218,6 +1218,13 @@ _Mandatory if [basic authentication](#schemaregistrybasicauthenticationenabled) 
 - `schema.registry.basic.authentication.username`: the username
 - `schema.registry.basic.authentication.password`: the password
 
+Example:
+
+```xml
+<param name="schema.registry.basic.authentication.username">authorized-schema-registry-user</param>
+<param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
+```
+
 ##### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
