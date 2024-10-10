@@ -1772,7 +1772,7 @@ public class ConnectorConfigTest {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce.getMessage())
                     .isEqualTo(
-                            "Parameter [schema.registry.basic.authentication.enabled] is not enabled");
+                            "Parameter [schema.registry.basic.authentication.enable] is not enabled");
         }
     }
 

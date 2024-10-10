@@ -82,7 +82,7 @@
              - true
              - false
 
-            Default value: false. -->
+             Default value: false. -->
         <!--
         <param name="encryption.enable">true</param>
         -->
@@ -375,6 +375,21 @@
         -->
         <!--
         <param name="schema.registry.url">https://schema-registry:8084</param>
+        -->
+
+        <!-- Optional. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="schema.registry.basic.authentication.enable">true</param>
+        -->
+
+        <!-- Mandatory if Basic HTTP authentication is enabled. The credentials. -->
+        <!--
+        <param name="schema.registry.basic.authentication.username">authorized-schema-registry-user</param>
+        <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
         -->
 
         <!-- The following parameters have the same meaning as the homologous ones defined in 
