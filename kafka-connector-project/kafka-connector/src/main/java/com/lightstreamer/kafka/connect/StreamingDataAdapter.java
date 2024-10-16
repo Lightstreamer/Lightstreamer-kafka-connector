@@ -305,7 +305,7 @@ public final class StreamingDataAdapter implements RecordSender {
         Set<SubscribedItem> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
 
         logger.debug("Filtering updates");
-        Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+        Map<String, String> updates = mappedRecord.filterByFields();
 
         logger.info("Routing record to {} items", routable.size());
         for (SubscribedItem sub : routable) {

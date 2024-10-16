@@ -22,7 +22,7 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -63,7 +63,7 @@ public class FieldConfigs {
         return expressions.get(fieldName);
     }
 
-    public <K, V> DataExtractor<K, V> extractor(SelectorSuppliers<K, V> selectorSuppliers)
+    public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
 
         return DataExtractor.<K, V>builder()

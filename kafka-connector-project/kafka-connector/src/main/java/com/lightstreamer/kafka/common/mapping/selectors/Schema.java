@@ -26,7 +26,7 @@ public interface Schema {
 
     String name();
 
-    public boolean matches(Schema other);
+    boolean matches(Schema other);
 
     static Schema from(String name, Set<String> keys) {
         return new DefaultSchema(name, keys);

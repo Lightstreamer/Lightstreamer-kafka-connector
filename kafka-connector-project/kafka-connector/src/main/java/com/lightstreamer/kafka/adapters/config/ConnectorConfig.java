@@ -48,7 +48,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
@@ -221,7 +221,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 false,
                                 CONSUME_FROM,
-                                defaultValue(RecordComsumeFrom.LATEST.toString()))
+                                defaultValue(RecordConsumeFrom.LATEST.toString()))
                         .add(
                                 CONSUMER_CLIENT_ID,
                                 false,
@@ -414,8 +414,8 @@ public final class ConnectorConfig extends AbstractConfig {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
     }
 
-    public final RecordComsumeFrom getRecordConsumeFrom() {
-        return RecordComsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
+    public final RecordConsumeFrom getRecordConsumeFrom() {
+        return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
@@ -437,6 +437,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryEnabledForValue() {
         return getBoolean(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+    }
+
+    public boolean hasSchemaFile() {
+        return hasKeySchemaFile() || hasValueSchemaFile();
     }
 
     public boolean isSchemaRegistryEnabled() {

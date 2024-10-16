@@ -23,13 +23,13 @@ import java.util.Map;
 
 public interface DataExtractor<K, V> {
 
-    DataContainer extractData(KafkaRecord<K, V> record);
+    SchemaAndValues extractData(KafkaRecord<K, V> record);
 
-    DataContainer extractData2_0(KafkaRecord<K, V> record);
+    SchemaAndValues extractData2_0(KafkaRecord<K, V> record);
 
-    DataContainer extractDataOld1_0(KafkaRecord<K, V> record);
+    SchemaAndValues extractDataOld1_0(KafkaRecord<K, V> record);
 
-    DataContainer extractDataOld1_1(KafkaRecord<K, V> record);
+    SchemaAndValues extractDataOld1_1(KafkaRecord<K, V> record);
 
     Schema schema();
 
@@ -39,7 +39,7 @@ public interface DataExtractor<K, V> {
 
     public interface Builder<K, V> {
 
-        Builder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers);
+        Builder<K, V> withSuppliers(KeyValueSelectorSuppliers<K, V> sSuppliers);
 
         Builder<K, V> withExpressions(Map<String, ExtractionExpression> expressions);
 

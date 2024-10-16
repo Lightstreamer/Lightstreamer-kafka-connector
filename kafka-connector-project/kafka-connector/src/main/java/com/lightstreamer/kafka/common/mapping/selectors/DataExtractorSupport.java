@@ -35,7 +35,7 @@ class DataExtractorSupport {
 
     static class DataExtractorBuilder<K, V> implements DataExtractor.Builder<K, V> {
 
-        private SelectorSuppliers<K, V> sSuppliers;
+        private KeyValueSelectorSuppliers<K, V> sSuppliers;
 
         private final Set<KeySelector<K>> keySelectors = new HashSet<>();
         private final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
@@ -44,14 +44,15 @@ class DataExtractorSupport {
         private Map<String, ExtractionExpression> expressions = new HashMap<>();
         private String schemaName;
 
-        DataExtractorBuilder(SelectorSuppliers<K, V> sSuppliers) {
+        DataExtractorBuilder(KeyValueSelectorSuppliers<K, V> sSuppliers) {
             this.sSuppliers = sSuppliers;
         }
 
         DataExtractorBuilder() {}
 
         @Override
-        public DataExtractorBuilder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers) {
+        public DataExtractorBuilder<K, V> withSuppliers(
+                KeyValueSelectorSuppliers<K, V> sSuppliers) {
             this.sSuppliers = sSuppliers;
             return this;
         }
@@ -151,23 +152,27 @@ class DataExtractorSupport {
             return schema;
         }
 
-        @Override
-        public DataContainer extractData(KafkaRecord<K, V> record) throws ValueException {
-            Set<Data> s = new HashSet<>();
-            for (KeySelector<K> selector : keySelectors) {
-                s.add(selector.extractKey(record));
-            }
-            for (ValueSelector<V> selector : valueSelectors) {
-                s.add(selector.extractValue(record));
-            }
-            for (ConstantSelector selector : metaSelectors) {
-                s.add(selector.extract(record));
-            }
-            return new DefaultValuesContainer(this, s, Collections.emptyMap());
+        // @Override
+        // public DataContainer extractData(KafkaRecord<K, V> record) throws ValueException {
+        //     Set<Data> s = new HashSet<>();
+        //     for (KeySelector<K> selector : keySelectors) {
+        //         s.add(selector.extractKey(record));
+        //     }
+        //     for (ValueSelector<V> selector : valueSelectors) {
+        //         s.add(selector.extractValue(record));
+        //     }
+        //     for (ConstantSelector selector : metaSelectors) {
+        //         s.add(selector.extract(record));
+        //     }
+        //     return new DefaultValuesContainer(this, s, Collections.emptyMap());
+        // }
+
+        public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
+            return extractData2_0(record);
         }
 
         @Override
-        public DataContainer extractData2_0(KafkaRecord<K, V> record) throws ValueException {
+        public SchemaAndValues extractData2_0(KafkaRecord<K, V> record) throws ValueException {
             Map<String, String> map = new HashMap<>();
             for (KeySelector<K> selector : keySelectors) {
                 Data data = selector.extractKey(record);
@@ -182,31 +187,33 @@ class DataExtractorSupport {
                 map.put(data.name(), data.text());
             }
 
-            return new DefaultValuesContainer(this, Collections.emptySet(), map);
+            return new DefaultSchemaAndValues(schema, map);
         }
 
         @Override
-        public DataContainer extractDataOld1_0(KafkaRecord<K, V> record) throws ValueException {
-            return new DefaultValuesContainer(
-                    this,
-                    Stream.of(
-                                    keySelectors.stream().map(k -> k.extractKey(record)),
-                                    valueSelectors.stream().map(v -> v.extractValue(record)),
-                                    metaSelectors.stream().map(m -> m.extract(record)))
-                            .flatMap(identity())
-                            .collect(toSet()),
-                    Collections.emptyMap());
+        public SchemaAndValues extractDataOld1_0(KafkaRecord<K, V> record) throws ValueException {
+            // return new DefaultSchemaAndValues(
+            //         schema,
+            //         Stream.of(
+            //                         keySelectors.stream().map(k -> k.extractKey(record)),
+            //                         valueSelectors.stream().map(v -> v.extractValue(record)),
+            //                         metaSelectors.stream().map(m -> m.extract(record)))
+            //                 .flatMap(identity())
+            //                 .collect(toSet()),
+            //         Collections.emptyMap());
+            return null;
         }
 
         @Override
-        public DataContainer extractDataOld1_1(KafkaRecord<K, V> record) throws ValueException {
-            Stream<Data> keys = keySelectors.stream().map(k -> k.extractKey(record));
-            Stream<Data> values = valueSelectors.stream().map(v -> v.extractValue(record));
-            Stream<Data> meta = metaSelectors.stream().map(m -> m.extract(record));
-            Stream<Data> s = Stream.concat(keys, values);
-            Stream<Data> s1 = Stream.concat(s, meta);
+        public SchemaAndValues extractDataOld1_1(KafkaRecord<K, V> record) throws ValueException {
+            // Stream<Data> keys = keySelectors.stream().map(k -> k.extractKey(record));
+            // Stream<Data> values = valueSelectors.stream().map(v -> v.extractValue(record));
+            // Stream<Data> meta = metaSelectors.stream().map(m -> m.extract(record));
+            // Stream<Data> s = Stream.concat(keys, values);
+            // Stream<Data> s1 = Stream.concat(s, meta);
 
-            return new DefaultValuesContainer(this, s1.collect(toSet()), Collections.emptyMap());
+            // return new DefaultValuesContainer(this, s1.collect(toSet()), Collections.emptyMap());
+            return null;
         }
 
         @Override

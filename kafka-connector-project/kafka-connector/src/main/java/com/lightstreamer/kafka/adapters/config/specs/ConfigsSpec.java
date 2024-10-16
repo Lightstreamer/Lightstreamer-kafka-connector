@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.config.specs;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
@@ -340,7 +340,7 @@ public class ConfigsSpec {
     static class Options implements Type {
 
         public static Options consumeEventsFrom() {
-            return new Options(RecordComsumeFrom.names());
+            return new Options(RecordConsumeFrom.names());
         }
 
         static Options booleans() {

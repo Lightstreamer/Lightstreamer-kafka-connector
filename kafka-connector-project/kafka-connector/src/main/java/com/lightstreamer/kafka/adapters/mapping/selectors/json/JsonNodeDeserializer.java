@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -35,90 +37,104 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-public class JsonNodeDeserializer implements Deserializer<JsonNode> {
+class JsonNodeDeserializer {
 
-    private Deserializer<JsonNode> deserializer;
+    static class JsonNodeLocalDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
-    private final boolean isKey;
+        private final ObjectMapper objectMapper = new ObjectMapper();
+        private final KafkaJsonDeserializer<JsonNode> deserializer;
+        private JsonSchema schema;
 
-    JsonNodeDeserializer(ConnectorConfig config, boolean isKey) {
-        this.isKey = isKey;
-        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            deserializer = new JsonLocalSchemaDeserializer(config, isKey);
-        } else {
-            if (isKey) {
-                if (config.isSchemaRegistryEnabledForKey()) {
-                    deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
-                }
-            } else {
-                if (config.isSchemaRegistryEnabledForValue()) {
-                    deserializer = new KafkaJsonSchemaDeserializer<JsonNode>();
-                }
-            }
-        }
-        if (deserializer == null) {
+        JsonNodeLocalDeserializer() {
             deserializer = new KafkaJsonDeserializer<>();
         }
 
-        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            deserializer.configure(configs, isKey);
+            try {
+                schema = new JsonSchema(objectMapper.readTree(getSchemaFile(isKey)));
+            } catch (IOException e) {
+                throw new SerializationException(e.getMessage());
+            }
+        }
+
+        @Override
+        public JsonNode deserialize(String topic, byte[] data) {
+            try {
+                JsonNode node = deserializer.deserialize(topic, data);
+                schema.validate(node);
+                return node;
+            } catch (IOException | ValidationException e) {
+                throw new SerializationException(e.getMessage());
+            }
+        }
     }
 
-    JsonNodeDeserializer(boolean isKey) {
-        this.isKey = isKey;
-        deserializer = new KafkaJsonDeserializer<>();
+    static Deserializer<JsonNode> ValueDeserializer() {
+        return makeDeserializerNoConfig(false);
+    }
+
+    static Deserializer<JsonNode> ValueDeserializer(ConnectorConfig config) {
+        return configuredDeserializer(config, false);
+    }
+
+    static Deserializer<JsonNode> KeyDeserializer(ConnectorConfig config) {
+        return configuredDeserializer(config, true);
+    }
+
+    static Deserializer<JsonNode> KeyDeserializer() {
+        return makeDeserializerNoConfig(true);
+    }
+
+    private static Deserializer<JsonNode> makeDeserializerNoConfig(boolean isKey) {
+        Deserializer<JsonNode> deserializer = new KafkaJsonDeserializer<>();
         deserializer.configure(Collections.emptyMap(), isKey);
+        return deserializer;
     }
 
-    public boolean isKey() {
-        return isKey;
+    private static Deserializer<JsonNode> configuredDeserializer(
+            ConnectorConfig config, boolean isKey) {
+        checkEvaluator(config, isKey);
+        Deserializer<JsonNode> deserializer = newDeserializer(config, isKey);
+        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+        return deserializer;
     }
 
-    public String deserializerClassName() {
-        return deserializer.getClass().getName();
-    }
-
-    @Override
-    public JsonNode deserialize(String topic, byte[] data) {
-        return deserializer.deserialize(topic, data);
-    }
-
-    @Override
-    public void close() {
-        deserializer.close();
-    }
-}
-
-class JsonLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private final KafkaJsonDeserializer<JsonNode> deserializer;
-
-    private JsonSchema schema;
-
-    public JsonLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
-        super(config, isKey);
-        deserializer = new KafkaJsonDeserializer<>();
-    }
-
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        deserializer.configure(configs, isKey);
-        try {
-            schema = new JsonSchema(objectMapper.readTree(schemaFile));
-        } catch (IOException e) {
-            throw new SerializationException(e.getMessage());
+    private static Deserializer<JsonNode> newDeserializer(ConnectorConfig config, boolean isKey) {
+        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
+            JsonNodeLocalDeserializer jsonNodeLocalDeserializer = new JsonNodeLocalDeserializer();
+            jsonNodeLocalDeserializer.preConfigure(config);
+            return jsonNodeLocalDeserializer;
         }
+        if ((isKey && config.isSchemaRegistryEnabledForKey())
+                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            return new KafkaJsonSchemaDeserializer<>();
+        }
+        return new KafkaJsonDeserializer<>();
     }
 
-    @Override
-    public JsonNode deserialize(String topic, byte[] data) {
-        try {
-            JsonNode node = deserializer.deserialize(topic, data);
-            schema.validate(node);
-            return node;
-        } catch (IOException | ValidationException e) {
-            throw new SerializationException(e.getMessage());
+    private static void checkEvaluator(ConnectorConfig config, boolean isKey) {
+        if (isJsonKeyEvaluator(config, isKey)) {
+            return;
         }
+        if (isJsonValueEvaluator(config, isKey)) {
+            return;
+        }
+        throw new IllegalArgumentException("Evaluator type is not JSON");
+    }
+
+    private static boolean isJsonValueEvaluator(ConnectorConfig config, boolean isKey) {
+        if (isKey) {
+            return false;
+        }
+        return config.getValueEvaluator().is(JSON);
+    }
+
+    private static boolean isJsonKeyEvaluator(ConnectorConfig config, boolean isKey) {
+        if (!isKey) {
+            return false;
+        }
+        return config.getKeyEvaluator().is(JSON);
     }
 }

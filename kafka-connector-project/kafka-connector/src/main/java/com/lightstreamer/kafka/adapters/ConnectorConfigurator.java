@@ -18,8 +18,10 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier;
+import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -31,10 +33,9 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
-import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,32 +45,32 @@ import java.util.Properties;
 
 public class ConnectorConfigurator {
 
-    public interface ConsumerLoopConfig<K, V> {
+    public interface ConsumerTriggerConfig<K, V> {
 
         String connectionName();
 
         Properties consumerProperties();
 
-        DataExtractor<K, V> fieldsExtractor();
-
         ItemTemplates<K, V> itemTemplates();
 
-        Deserializer<K> keyDeserializer();
+        DataExtractor<K, V> fieldsExtractor();
 
-        Deserializer<V> valueDeserializer();
+        KeyValueDeserializers<K, V> deserializers();
 
         RecordErrorHandlingStrategy recordErrorHandlingStrategy();
+
+        RecordConsumeFrom recordConsumeFrom();
     }
 
-    private static record ConsumerLoopConfigImpl<K, V>(
+    private static record ConsumerTriggerConfigImpl<K, V>(
             String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
             DataExtractor<K, V> fieldsExtractor,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer,
-            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
-            implements ConsumerLoopConfig<K, V> {}
+            KeyValueDeserializers<K, V> deserializers,
+            RecordErrorHandlingStrategy recordErrorHandlingStrategy,
+            RecordConsumeFrom recordConsumeFrom)
+            implements ConsumerTriggerConfig<K, V> {}
 
     private final ConnectorConfig config;
     private final Logger log;
@@ -88,63 +89,63 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    public ConsumerLoopConfig<?, ?> configure() throws ConfigException {
-        // Process "field.<field-name>=#{...}"
-        // Map<String, String> fieldsMapping = config.getFieldMappings();
-        FieldConfigs fieldConfigs = config.getFieldConfigs();
-
+    public ConsumerTriggerConfig<?, ?> configure() throws ConfigException {
         try {
-            TopicConfigurations topicsConfig =
-                    TopicConfigurations.of(
-                            config.getItemTemplateConfigs(), config.getTopicMappings());
-            SelectorSuppliers<?, ?> sSuppliers =
-                    SelectorSuppliers.of(
-                            mkKeySelectorSupplier(config), mkValueSelectorSupplier(config));
-
-            ItemTemplates<?, ?> itemTemplates = initItemTemplates(sSuppliers, topicsConfig);
-            DataExtractor<?, ?> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
-
-            return new ConsumerLoopConfigImpl(
-                    config.getAdapterName(),
-                    config.baseConsumerProps(),
-                    itemTemplates,
-                    fieldsExtractor,
-                    sSuppliers.keySelectorSupplier().deseralizer(),
-                    sSuppliers.valueSelectorSupplier().deseralizer(),
-                    config.getRecordExtractionErrorHandlingStrategy());
+            AdapterKeyValueSelectorSupplier<?, ?> sSuppliers = mkKeyValueSelectorSupplier(config);
+            return doConfigure(config, sSuppliers);
         } catch (Exception e) {
             log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
 
-    private ItemTemplates<?, ?> initItemTemplates(
-            SelectorSuppliers<?, ?> selected, TopicConfigurations topicsConfig)
+    private static <K, V> ConsumerTriggerConfigImpl<K, V> doConfigure(
+            ConnectorConfig config, AdapterKeyValueSelectorSupplier<K, V> sSuppliers)
             throws ExtractionException {
-        return initItemTemplatesHelper(topicsConfig, selected);
+        FieldConfigs fieldConfigs = config.getFieldConfigs();
+
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
+
+        ItemTemplates<K, V> itemTemplates = initItemTemplates(topicsConfig, sSuppliers);
+        DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+
+        return new ConsumerTriggerConfigImpl<>(
+                config.getAdapterName(),
+                config.baseConsumerProps(),
+                itemTemplates,
+                fieldsExtractor,
+                sSuppliers.deserializers(),
+                config.getRecordExtractionErrorHandlingStrategy(),
+                config.getRecordConsumeFrom());
     }
 
-    private <K, V> ItemTemplates<K, V> initItemTemplatesHelper(
-            TopicConfigurations topicsConfig, SelectorSuppliers<K, V> selected)
+    private static <K, V> ItemTemplates<K, V> initItemTemplates(
+            TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> selected)
             throws ExtractionException {
         return Items.from(topicsConfig, selected);
     }
 
-    private KeySelectorSupplier<?> mkKeySelectorSupplier(ConnectorConfig config) {
-        EvaluatorType evaluatorType = config.getKeyEvaluator();
-        return switch (evaluatorType) {
-            case AVRO -> GenericRecordSelectorsSuppliers.keySelectorSupplier(config);
-            case JSON -> JsonNodeSelectorsSuppliers.keySelectorSupplier(config);
-            default -> OthersSelectorSuppliers.keySelectorSupplier(evaluatorType);
-        };
-    }
+    private static AdapterKeyValueSelectorSupplier<?, ?> mkKeyValueSelectorSupplier(
+            ConnectorConfig config) {
+        OthersSelectorSuppliers or = new OthersSelectorSuppliers(config);
+        GenericRecordSelectorsSuppliers gr = new GenericRecordSelectorsSuppliers(config);
+        JsonNodeSelectorsSuppliers jr = new JsonNodeSelectorsSuppliers(config);
 
-    private ValueSelectorSupplier<?> mkValueSelectorSupplier(ConnectorConfig config) {
-        EvaluatorType evaluatorType = config.getValueEvaluator();
-        return switch (evaluatorType) {
-            case AVRO -> GenericRecordSelectorsSuppliers.valueSelectorSupplier(config);
-            case JSON -> JsonNodeSelectorsSuppliers.valueSelectorSupplier(config);
-            default -> OthersSelectorSuppliers.valueSelectorSupplier(evaluatorType);
-        };
+        KeySelectorSupplier<?> keySelectorSupplier =
+                switch (config.getKeyEvaluator()) {
+                    case AVRO -> gr.makeKeySelectorSupplier();
+                    case JSON -> jr.makeKeySelectorSupplier();
+                    default -> or.makeKeySelectorSupplier();
+                };
+
+        ValueSelectorSupplier<?> valueSelectorSupplier =
+                switch (config.getValueEvaluator()) {
+                    case AVRO -> gr.makeValueSelectorSupplier();
+                    case JSON -> jr.makeValueSelectorSupplier();
+                    default -> or.makeValueSelectorSupplier();
+                };
+
+        return new AdapterKeyValueSelectorSupplier<>(keySelectorSupplier, valueSelectorSupplier);
     }
 }

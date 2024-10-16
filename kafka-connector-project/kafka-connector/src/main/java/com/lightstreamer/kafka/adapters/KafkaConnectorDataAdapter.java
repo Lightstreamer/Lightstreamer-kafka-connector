@@ -22,11 +22,11 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerLoop;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
@@ -39,8 +39,8 @@ import javax.annotation.Nonnull;
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
-    private Loop loop;
-    private ConsumerLoopConfig<?, ?> loopConfig;
+    private ConsumerTrigger consumerTrigger;
+    private ConsumerTriggerConfig<?, ?> consumerTriggerConfig;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataListener;
 
@@ -57,7 +57,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                         connectorConfig.getAdapterName(), connectorConfig.isEnabled());
 
         log.info("Configuring Kafka Connector");
-        loopConfig = configurator.configure();
+        consumerTriggerConfig = configurator.configure();
         log.info("Configuration complete");
     }
 
@@ -66,17 +66,10 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
         return false;
     }
 
-    private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {
-        return new ConsumerLoop<>(config, metadataListener, eventListener);
-    }
-
-    private Loop makeLoop(ConsumerLoopConfig<?, ?> config, ItemEventListener eventListener) {
-        return loop(config, eventListener);
-    }
-
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.loop = makeLoop(loopConfig, eventListener);
+        this.consumerTrigger =
+                ConsumerTrigger.create(consumerTriggerConfig, metadataListener, eventListener);
     }
 
     @Override
@@ -88,13 +81,13 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
         log.info("Trying subscription to item [{}]", itemName);
-        loop.subscribe(itemName, itemHandle);
+        consumerTrigger.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
         log.info("Unsubscribing from item [{}]", itemName);
-        loop.unsubscribe(itemName);
+        consumerTrigger.unsubscribe(itemName);
     }
 }
