@@ -1,0 +1,266 @@
+
+/*
+ * Copyright (C) 2024 Lightstreamer Srl
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+package com.lightstreamer.kafka.adapters.consumers.offsets;
+
+import static com.google.common.truth.Truth.assertThat;
+
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class OffsetStoreTest {
+
+    private static String TOPIC = "topic";
+
+    static ConsumerRecord<?, ?> Record(int partition, String id) {
+        return ConsumerRecords.Record(TOPIC, partition, id);
+    }
+
+    private OffsetStore repo;
+
+    OffsetAndMetadata getOffsetAndMetadata(String topic, int partition) {
+        return repo.getStore().get(new TopicPartition(topic, 0));
+    }
+
+    @Test
+    void shoulddDecode() {
+        assertThat(OffsetStore.decode("")).isEmpty();
+        assertThat(OffsetStore.decode(",")).isEmpty();
+        assertThat(OffsetStore.decode("200")).containsExactly(200l);
+        assertThat(OffsetStore.decode("200,100,400")).containsExactly(200l, 100l, 400l);
+        assertThat(OffsetStore.decode("200,100,400")).isInOrder();
+    }
+
+    @Test
+    void shouldAppend() {
+        assertThat(OffsetStore.append("", 100)).isEqualTo("100");
+        assertThat(OffsetStore.append("100,300,150,301", 271)).isEqualTo("100,300,150,301,271");
+    }
+
+    @Test
+    void shouldReturnSameOffsetMap() {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(0));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+        Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.getStore();
+        assertThat(offsetsMap).isEqualTo(offsets);
+    }
+
+    @Test
+    void shouldUpdateOffsetSequentially() {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(0, null));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "0A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o1.offset()).isEqualTo(1);
+        assertThat(o1.metadata()).isEqualTo("");
+
+        repo.save(Record(0, "1B"));
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o2.offset()).isEqualTo(2);
+        assertThat(o2.metadata()).isEqualTo("");
+    }
+
+    @Test
+    void shouldUpdateOffsetBeyondLastCommited() {
+        long LAST_COMMITED_OFFSET = 0;
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "2A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        // Last offset is still the one provided by the initializing map (0)
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.metadata()).isEqualTo("2");
+
+        repo.save(Record(0, "4B"));
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o2.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o2.metadata()).isEqualTo("2,4");
+
+        repo.save(Record(0, "6B"));
+        OffsetAndMetadata o3 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o3.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o3.metadata()).isEqualTo("2,4,6");
+    }
+
+    @Test
+    void shouldSanityBeyondOffsetsSimple() {
+        long LAST_COMMITED_OFFSET = 0;
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "1A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        // Last offset is still the one provided by the initializing map (0)
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.metadata()).isEqualTo("1");
+
+        repo.save(Record(0, "0A"));
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        assertThat(o2.offset()).isEqualTo(2);
+        assertThat(o2.metadata()).isEqualTo("");
+    }
+
+    @Test
+    void shouldSanityBeyondOffsetsComplex() {
+        long LAST_COMMITED_OFFSET = 0;
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "1A"));
+        repo.save(Record(0, "2A"));
+        repo.save(Record(0, "3A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        // Last offset is still the one provided by the initializing map (0)
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.metadata()).isEqualTo("1,2,3");
+
+        repo.save(Record(0, "0A"));
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        assertThat(o2.offset()).isEqualTo(4);
+        assertThat(o2.metadata()).isEqualTo("");
+    }
+
+    @Test
+    void shouldSanityBeyondOffsetsComplexUnordered() {
+        long LAST_COMMITED_OFFSET = 0;
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "300A"));
+        repo.save(Record(0, "100A"));
+        repo.save(Record(0, "200A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        // Last offset is still the one provided by the initializing map (0)
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.metadata()).isEqualTo("300,100,200");
+
+        repo.save(Record(0, "0A"));
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        // the consumed list
+        assertThat(o2.offset()).isEqualTo(1);
+        assertThat(o2.metadata()).isEqualTo("300,100,200");
+    }
+
+    @Test
+    void shouldSanitizeBeyondOffsetsVeryComplex() {
+        long LAST_COMMITED_OFFSET = 0;
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+
+        repo.save(Record(0, "5A"));
+        repo.save(Record(0, "1A"));
+        repo.save(Record(0, "2A"));
+        repo.save(Record(0, "3A"));
+        repo.save(Record(0, "6A"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TOPIC, 0);
+        // Last offset is still the one provided by the initializing map (0)
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.metadata()).isEqualTo("5,1,2,3,6");
+
+        repo.save(Record(0, "0A"));
+        // Now the consumed list has been sanitized from 0 to 3, the next offet is 4
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o2.offset()).isEqualTo(4);
+        assertThat(o2.metadata()).isEqualTo("5,6");
+
+        repo.save(Record(0, "4A"));
+        // Sanitization complete
+        OffsetAndMetadata o3 = getOffsetAndMetadata(TOPIC, 0);
+        assertThat(o3.offset()).isEqualTo(7);
+        assertThat(o3.metadata()).isEqualTo("");
+    }
+
+    @Test
+    void shouldReturnOffsetMap() {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(0));
+
+        repo = new Offsets.OffsetStoreImpl(offsets);
+        Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.getStore();
+        assertThat(offsetsMap).isEqualTo(offsets);
+
+        repo.save(Record(0, "1A"));
+        OffsetAndMetadata o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(0);
+        assertThat(o1.metadata()).isEqualTo("1");
+
+        repo.save(Record(0, "0A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(2);
+        assertThat(o1.metadata()).isEqualTo("");
+
+        repo.save(Record(0, "2A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(3);
+        assertThat(o1.metadata()).isEqualTo("");
+
+        repo.save(Record(0, "4A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(3);
+        assertThat(o1.metadata()).isEqualTo("4");
+        repo.save(Record(0, "5A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(3);
+        assertThat(o1.metadata()).isEqualTo("4,5");
+
+        repo.save(Record(0, "3A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(6);
+        assertThat(o1.metadata()).isEqualTo("");
+
+        repo.save(Record(0, "8A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(6);
+        assertThat(o1.metadata()).isEqualTo("8");
+
+        repo.save(Record(0, "9A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(6);
+        assertThat(o1.metadata()).isEqualTo("8,9");
+
+        repo.save(Record(0, "6A"));
+        o1 = offsetsMap.get(new TopicPartition(TOPIC, 0));
+        assertThat(o1.offset()).isEqualTo(7);
+        assertThat(o1.metadata()).isEqualTo("8,9");
+    }
+}
