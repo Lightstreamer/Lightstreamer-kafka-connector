@@ -31,15 +31,15 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 
 import org.apache.kafka.common.serialization.Serde;
@@ -51,28 +51,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 public class OthersSelectorsTest {
-
-    static ValueSelector<?> valueSelector(EvaluatorType type, ExtractionExpression expression)
-            throws ExtractionException {
-        return OthersSelectorSuppliers.valueSelectorSupplier(type).newSelector("name", expression);
-    }
-
-    static KeySelector<?> keySelector(EvaluatorType type, ExtractionExpression expression)
-            throws ExtractionException {
-        return OthersSelectorSuppliers.keySelectorSupplier(type).newSelector("name", expression);
-    }
-
-    static ValueSelectorSupplier<?> valueSelectorSupplier(EvaluatorType type) {
-        return OthersSelectorSuppliers.valueSelectorSupplier(type);
-    }
-
-    static KeySelectorSupplier<?> keySelectorSupplier(EvaluatorType type) {
-        return OthersSelectorSuppliers.keySelectorSupplier(type);
-    }
 
     static Stream<Arguments> recordArgs() {
         return Stream.of(
@@ -101,8 +84,14 @@ public class OthersSelectorsTest {
     @MethodSource("recordArgs")
     public void shouldDeserializeAndExtractValue(EvaluatorType type, Serde serde, Object data)
             throws ExtractionException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of("record.value.evaluator.type", type.toString()));
+
         byte[] bytes = serde.serializer().serialize("topic", data);
-        ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(type);
+        OthersSelectorSuppliers othersSelectorSuppliers = new OthersSelectorSuppliers(config);
+        ValueSelectorSupplier<?> valueSupplier =
+                othersSelectorSuppliers.makeValueSelectorSupplier();
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = ConsumerRecords.fromValue(deserializedData);
@@ -117,7 +106,11 @@ public class OthersSelectorsTest {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Test
     public void shouldExtractNullValue() throws ExtractionException {
-        ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(EvaluatorType.INTEGER);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of("record.value.evaluator.type", EvaluatorType.INTEGER.toString()));
+        ValueSelectorSupplier<?> valueSupplier =
+                new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
         KafkaRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
         String text =
                 valueSupplier
@@ -128,40 +121,52 @@ public class OthersSelectorsTest {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @Test
-    public void shouldExtractNullKey() throws ExtractionException {
-        KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(EvaluatorType.INTEGER);
-        KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
-        String text =
-                valueSupplier
-                        .newSelector("name", Expressions.expression("KEY"))
-                        .extractKey(kafkaRecord)
-                        .text();
-        assertThat(text).isNull();
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @ParameterizedTest()
     @MethodSource("recordArgs")
     public void shouldDeserializeAndExtractKey(EvaluatorType type, Serde serde, Object data)
             throws ExtractionException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of("record.key.evaluator.type", type.toString()));
+        KeySelectorSupplier<?> keySupplier =
+                new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
         byte[] bytes = serde.serializer().serialize("topic", data);
-        KeySelectorSupplier<?> valueSupplier = keySelectorSupplier(type);
-        Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
+        Object deserializedData = keySupplier.deseralizer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = ConsumerRecords.fromKey(deserializedData);
         String text =
-                valueSupplier
+                keySupplier
                         .newSelector("name", Expressions.expression("KEY"))
                         .extractKey(kafkaRecord)
                         .text();
         assertThat(text).isEqualTo(String.valueOf(data));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Test
+    public void shouldExtractNullKey() throws ExtractionException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of("record.key.evaluator.type", EvaluatorType.INTEGER.toString()));
+        KeySelectorSupplier<?> keySupplier =
+                new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
+        KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
+        String text =
+                keySupplier
+                        .newSelector("name", Expressions.expression("KEY"))
+                        .extractKey(kafkaRecord)
+                        .text();
+        assertThat(text).isNull();
+    }
+
     @ParameterizedTest()
     @MethodSource("recordArgs")
     public void shouldNotCreateSelector(EvaluatorType type) throws ExtractionException {
-        ValueSelectorSupplier<?> valueSupplier = valueSelectorSupplier(type);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of("record.value.evaluator.type", EvaluatorType.INTEGER.toString()));
+        ValueSelectorSupplier<?> valueSupplier =
+                new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
         ExtractionExpression expression = Expressions.expression("VALUE.a");
         ExtractionException ee =
                 assertThrows(

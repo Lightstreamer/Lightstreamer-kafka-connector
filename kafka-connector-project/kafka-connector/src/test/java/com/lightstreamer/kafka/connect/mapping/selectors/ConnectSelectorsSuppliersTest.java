@@ -29,12 +29,15 @@ import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -80,14 +83,23 @@ public class ConnectSelectorsSuppliersTest {
                     .field("mapOfMap", OPTIONAL_MAP_OF_MAP_SCHEMA)
                     .build();
 
-    static ConnectValueSelector valueSelector(String expression) throws ExtractionException {
-        return ConnectSelectorsSuppliers.valueSelectorSupplier()
+    private ConnectSelectorsSuppliers connectSelectorsSuppliers;
+
+    ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
+        return connectSelectorsSuppliers
+                .valueSelectorSupplier()
                 .newSelector("name", Expressions.expression(expression));
     }
 
-    static ConnectKeySelector keySelector(String expression) throws ExtractionException {
-        return ConnectSelectorsSuppliers.keySelectorSupplier()
+    KeySelector<Object> keySelector(String expression) throws ExtractionException {
+        return connectSelectorsSuppliers
+                .keySelectorSupplier()
                 .newSelector("name", Expressions.expression(expression));
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        connectSelectorsSuppliers = new ConnectSelectorsSuppliers();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

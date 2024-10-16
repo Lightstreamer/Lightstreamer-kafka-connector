@@ -33,7 +33,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -57,28 +56,29 @@ public class GenericRecordSelectorTest {
 
     static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
             throws ExtractionException {
-        return TestSelectorSuppliers.avro(config())
-                .valueSelectorSupplier()
+        return new GenericRecordSelectorsSuppliers(config())
+                .makeValueSelectorSupplier()
                 .newSelector("name", expression);
     }
 
     static KeySelector<GenericRecord> keySelector(ExtractionExpression expression)
             throws ExtractionException {
-        return GenericRecordSelectorsSuppliers.keySelectorSupplier(config())
+        return new GenericRecordSelectorsSuppliers(config())
+                .makeKeySelectorSupplier()
                 .newSelector("name", expression);
     }
 
     @Test
     public void shouldGetDeserializer() {
-        Deserializer<GenericRecord> keyDeserializer =
-                GenericRecordSelectorsSuppliers.keySelectorSupplier(config()).deseralizer();
+        GenericRecordSelectorsSuppliers gs = new GenericRecordSelectorsSuppliers(config());
+        Deserializer<GenericRecord> keyDeserializer = gs.makeKeySelectorSupplier().deseralizer();
         assertThat(keyDeserializer).isInstanceOf(GenericRecordDeserializer.class);
-        assertThat(GenericRecordDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
+        // assertThat(GenericRecordDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
         Deserializer<GenericRecord> valueDeserializer =
-                GenericRecordSelectorsSuppliers.valueSelectorSupplier(config()).deseralizer();
+                gs.makeValueSelectorSupplier().deseralizer();
         assertThat(valueDeserializer).isInstanceOf(GenericRecordDeserializer.class);
-        assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
+        // assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")

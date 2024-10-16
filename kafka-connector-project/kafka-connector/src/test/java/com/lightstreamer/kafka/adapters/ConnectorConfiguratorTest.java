@@ -24,11 +24,11 @@ import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimal
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerLoopConfig;
+import com.fasterxml.jackson.databind.deser.std.JsonNodeDeserializer;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializer;
-import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializer;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
@@ -79,9 +79,9 @@ public class ConnectorConfiguratorTest {
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
         ConnectorConfigurator configurator = newConfigurator(basicParameters());
-        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
+        ConsumerTriggerConfig<?, ?> consumerTriggerConfig = configurator.configure();
 
-        Properties consumerProperties = loopConfig.consumerProperties();
+        Properties consumerProperties = consumerTriggerConfig.consumerProperties();
         assertThat(consumerProperties)
                 .containsAtLeast(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -93,18 +93,19 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        DataExtractor<?, ?> fieldExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
         Schema schema = fieldExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
 
-        ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = consumerTriggerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
         assertThat(itemTemplates.extractors().map(s -> s.schema().name())).containsExactly("item1");
 
-        assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
-        assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(StringDeserializer.class);
-        loopConfig.valueDeserializer();
+        assertThat(consumerTriggerConfig.deserializers().keyDeserializer().getClass())
+                .isEqualTo(StringDeserializer.class);
+        assertThat(consumerTriggerConfig.deserializers().valueDeserializer().getClass())
+                .isEqualTo(StringDeserializer.class);
     }
 
     @Test
@@ -120,7 +121,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
+        ConsumerTriggerConfig<?, ?> loopConfig = configurator.configure();
 
         DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
@@ -132,8 +133,10 @@ public class ConnectorConfiguratorTest {
         assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
                 .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
-        assertThat(loopConfig.keyDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
-        assertThat(loopConfig.valueDeserializer().getClass()).isEqualTo(JsonNodeDeserializer.class);
+        assertThat(loopConfig.deserializers().keyDeserializer().getClass())
+                .isEqualTo(JsonNodeDeserializer.class);
+        assertThat(loopConfig.deserializers().valueDeserializer().getClass())
+                .isEqualTo(JsonNodeDeserializer.class);
     }
 
     @Test
@@ -152,7 +155,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerLoopConfig<?, ?> loopConfig = configurator.configure();
+        ConsumerTriggerConfig<?, ?> loopConfig = configurator.configure();
 
         DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
@@ -164,9 +167,9 @@ public class ConnectorConfiguratorTest {
         assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
                 .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
-        assertThat(loopConfig.keyDeserializer().getClass())
+        assertThat(loopConfig.deserializers().keyDeserializer().getClass())
                 .isEqualTo(GenericRecordDeserializer.class);
-        assertThat(loopConfig.valueDeserializer().getClass())
+        assertThat(loopConfig.deserializers().valueDeserializer().getClass())
                 .isEqualTo(GenericRecordDeserializer.class);
     }
 

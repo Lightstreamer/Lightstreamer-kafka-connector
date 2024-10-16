@@ -22,7 +22,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.expressions.Expressions;
@@ -54,7 +53,8 @@ public class DataExtractorTest {
     }
 
     static <K, V> DataExtractor<K, V> extractor(
-            Map<String, ExtractionExpression> expressions, SelectorSuppliers<K, V> suppliers)
+            Map<String, ExtractionExpression> expressions,
+            KeyValueSelectorSuppliers<K, V> suppliers)
             throws ExtractionException {
         return DataExtractor.<K, V>builder()
                 .withSuppliers(suppliers)
@@ -65,11 +65,11 @@ public class DataExtractorTest {
 
     static Stream<Arguments> stringExtractorArguments() {
         return Stream.of(
-                arguments(emptyMap(), Schema.empty(TEST_SCHEMA), emptySet()),
+                arguments(emptyMap(), Schema.empty(TEST_SCHEMA), emptyMap()),
                 arguments(
                         Map.of("name", Expressions.expression("VALUE")),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
-                        Set.of(Data.from("name", "aValue"))),
+                        Map.of("name", "aValue")),
                 arguments(
                         Map.of(
                                 "value",
@@ -77,7 +77,7 @@ public class DataExtractorTest {
                                 "key",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value", "key")),
-                        Set.of(Data.from("key", "aKey"), Data.from("value", "aValue"))),
+                        Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         Map.of(
                                 "value1",
@@ -85,7 +85,7 @@ public class DataExtractorTest {
                                 "key1",
                                 Expressions.expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
-                        Set.of(Data.from("key1", "aKey"), Data.from("value1", "aValue"))),
+                        Map.of("key1", "aKey", "value1", "aValue")),
                 arguments(
                         Map.of(
                                 "timestamp",
@@ -95,10 +95,7 @@ public class DataExtractorTest {
                                 "topic",
                                 Expressions.expression("TOPIC")),
                         Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
-                        Set.of(
-                                Data.from("partition", "150"),
-                                Data.from("topic", "record-topic"),
-                                Data.from("timestamp", "-1"))));
+                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")));
     }
 
     @ParameterizedTest
@@ -106,7 +103,7 @@ public class DataExtractorTest {
     public void shouldCreateAndExtractValues(
             Map<String, ExtractionExpression> expressions,
             Schema expectedSchema,
-            Set<Data> expectedValues)
+            Map<String, String> expectedValues)
             throws ExtractionException {
         DataExtractor<String, String> extractor =
                 extractor(expressions, TestSelectorSuppliers.string());
@@ -114,10 +111,9 @@ public class DataExtractorTest {
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
-        DataContainer values = extractor.extractData(kafkaRecord);
+        SchemaAndValues container = extractor.extractData(kafkaRecord);
 
-        assertThat(values.extractor()).isSameInstanceAs(extractor);
-        Set<Data> values2 = values.data();
-        assertThat(values2).isEqualTo(expectedValues);
+        Map<String, String> values = container.values();
+        assertThat(values).isEqualTo(expectedValues);
     }
 }

@@ -40,7 +40,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
@@ -69,7 +69,8 @@ public class ItemTemplatesTest {
     private static final String TEST_TOPIC = "topic";
 
     private static <K, V> ItemTemplates<K, V> mkItemTemplates(
-            SelectorSuppliers<K, V> sSuppliers, String... template) throws ExtractionException {
+            KeyValueSelectorSuppliers<K, V> sSuppliers, String... template)
+            throws ExtractionException {
 
         List<TopicMappingConfig> topicMappings = new ArrayList<>();
         Map<String, String> templates = new HashMap<>();
@@ -87,7 +88,8 @@ public class ItemTemplatesTest {
     }
 
     private static <K, V> ItemTemplates<K, V> mkSimpleItems(
-            SelectorSuppliers<K, V> sSuppliers, String... items) throws ExtractionException {
+            KeyValueSelectorSuppliers<K, V> sSuppliers, String... items)
+            throws ExtractionException {
         List<TopicMappingConfig> topicMappings = new ArrayList<>();
         for (int i = 0; i < items.length; i++) {
             // Add a new TopicMapping referencing the item name
@@ -129,7 +131,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToManyTemplates() throws ExtractionException {
-        SelectorSuppliers<Object, Object> sSuppliers = TestSelectorSuppliers.object();
+        KeyValueSelectorSuppliers<Object, Object> sSuppliers = TestSelectorSuppliers.object();
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY.attrib}"));
 
@@ -146,7 +148,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToManySimple() throws ExtractionException {
-        SelectorSuppliers<String, JsonNode> sSuppliers =
+        KeyValueSelectorSuppliers<String, JsonNode> sSuppliers =
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two items.
@@ -183,7 +185,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldOneToMany() throws ExtractionException {
-        SelectorSuppliers<String, JsonNode> sSuppliers =
+        KeyValueSelectorSuppliers<String, JsonNode> sSuppliers =
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One topic mapping two item templates.
@@ -236,7 +238,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOneSimple() throws ExtractionException {
-        SelectorSuppliers<String, JsonNode> sSuppliers =
+        KeyValueSelectorSuppliers<String, JsonNode> sSuppliers =
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One item.
@@ -283,7 +285,7 @@ public class ItemTemplatesTest {
 
     @Test
     public void shouldManyToOne() throws ExtractionException {
-        SelectorSuppliers<String, JsonNode> sSuppliers =
+        KeyValueSelectorSuppliers<String, JsonNode> sSuppliers =
                 jsonValue(ConnectorConfigProvider.minimal());
 
         // One template.

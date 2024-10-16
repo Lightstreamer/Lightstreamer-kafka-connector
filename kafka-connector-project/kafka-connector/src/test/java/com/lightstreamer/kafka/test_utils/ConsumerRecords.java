@@ -99,6 +99,13 @@ public class ConsumerRecords {
                         Optional.empty()));
     }
 
+    public static ConsumerRecord<?, ?> Record(String topic, int partition, String id) {
+        String key = String.valueOf(id.charAt(1));
+        long offset = Long.parseLong(id.substring(0, id.length() - 1));
+        String value = offset + key;
+        return new ConsumerRecord<String, String>(topic, partition, offset, key, value);
+    }
+
     public static KafkaRecord<Object, Object> sinkFromValue(
             String topic, Schema valueSchema, Object value) {
         return sink(topic, null, null, valueSchema, value);

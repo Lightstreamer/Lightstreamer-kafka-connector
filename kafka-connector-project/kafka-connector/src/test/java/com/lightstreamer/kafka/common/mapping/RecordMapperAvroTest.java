@@ -27,7 +27,6 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
@@ -43,15 +42,14 @@ public class RecordMapperAvroTest {
     private static DataExtractor<String, GenericRecord> extractor(
             String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
-        SelectorSuppliers<String, GenericRecord> avroValue =
-                TestSelectorSuppliers.avroValue(
-                        ConnectorConfigProvider.minimalWith(
-                                "src/test/resources",
-                                Map.of(
-                                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                        "value.avsc")));
+
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        "src/test/resources",
+                        Map.of(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "value.avsc"));
+
         return DataExtractor.<String, GenericRecord>builder()
-                .withSuppliers(avroValue)
+                .withSuppliers(TestSelectorSuppliers.avroValue(config))
                 .withSchemaName(schemaName)
                 .withExpressions(expressions)
                 .build();
