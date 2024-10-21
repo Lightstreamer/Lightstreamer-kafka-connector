@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eu
-source ../utils/helpers.sh
+source ./helpers.sh
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 TMP_DIR=${SCRIPT_DIR}/tmp
 
