@@ -1,6 +1,6 @@
 # Quick Start with Confluent Cloud
 
-This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Confluent Cloud_ as the target Kafka cluster.
+This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use _Confluent Cloud_ as the target Kafka cluster.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ as follows:
 

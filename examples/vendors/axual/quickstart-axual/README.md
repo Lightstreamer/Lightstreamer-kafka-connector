@@ -1,6 +1,6 @@
 # Quick Start with Axual
 
-This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target cluster. You may follow the [_Getting started_](https://docs.axual.io/axual/2024.1/getting_started/index.html) on the Axual site to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target cluster. You may follow the [_Getting started_](https://docs.axual.io/axual/2024.1/getting_started/index.html) on the Axual site to perform the following operations:
 
 - Add a new topic `stocks` with:
   -  string key type
