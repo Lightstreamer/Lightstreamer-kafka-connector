@@ -4,7 +4,6 @@
 _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
 
 - [Introduction](#introduction)
-  - [Features](#features)
   - [Last-Mile Integration](#last-mile-integration)
   - [Intelligent Streaming](#intelligent-streaming)
   - [Comprehensive Client SDKs](#comprehensive-client-sdks)
@@ -85,6 +84,10 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 # Architecture
 
 ![Architecture](/pictures/architecture-full.png)
+
+The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customize-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
+
+Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
 
 # QUICK START: Set up in 5 minutes
 
