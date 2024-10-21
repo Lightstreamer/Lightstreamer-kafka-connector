@@ -154,7 +154,7 @@ This section will guide you through the installation of the Kafka Connector to g
 
 ## Requirements
 
-- JDK (Java Developmnet Kit) v17 or newer
+- JDK (Java Development Kit) v17 or newer
 - [Lightstreamer Broker](https://lightstreamer.com/download/) v7.4.2 or newer (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 - A running Kafka broker or Kafka cluster
 
@@ -1377,8 +1377,8 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
 
 #### Requirements
 
-- JDK version 17 or later
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+- JDK (Java Development Kit) v17 or newer
+- [Lightstreamer Broker](https://lightstreamer.com/download/) v7.4.2 or newer (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 
 #### Steps
 
