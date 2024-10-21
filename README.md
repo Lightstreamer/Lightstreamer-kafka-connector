@@ -5,6 +5,11 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 
 - [Introduction](#introduction)
   - [Features](#features)
+  - [Last-Mile Integration](#last-mile-integration)
+  - [Intelligent Streaming](#intelligent-streaming)
+  - [Comprehensive Client SDKs](#comprehensive-client-sdks)
+  - [Massive Scalability](#massive-scalability)
+  - [Other Features](#other-features)
 - [Quick Start: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Installation](#installation)
@@ -45,11 +50,11 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 - [Docs](#docs)
 - [Examples](#examples)
 
-## Introduction
+# Introduction
 
 Is your product struggling to deliver Kafka events to remote users? The [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/) is an intelligent proxy that bridges the gap, providing seamless, real-time data streaming to web and mobile applications with unmatched ease and reliability. It streams data in real time to your apps over WebSockets, eliminating the need for polling a REST proxy and surpassing the limitations of MQTT.
 
-### Last-Mile Integration
+## Last-Mile Integration
 
 Kafka, while powerful, isn’t designed for direct internet access—particularly when it comes to the **last mile**, the critical network segment that extends beyond enterprise boundaries and edges (LAN or WAN) to reach end users. Last-mile integration is essential for delivering real-time Kafka data to mobile, web, and desktop applications, addressing challenges that go beyond Kafka’s typical scope, such as:
 - Disruptions from corporate firewalls and client-side proxies blocking Kafka connections.
@@ -59,25 +64,25 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 
 ![Architecture](pictures/architecture.png)
 
-### Intelligent Streaming
+## Intelligent Streaming
 
 With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnections seamlessly, keeping your users connected and up-to-date.
 
-### Comprehensive Client SDKs
+## Comprehensive Client SDKs
 
 The rich set of supplied client libraries makes it easy to consume real-time Kafka data across a variety of platforms and languages.
 
 ![Client APIs](/pictures/client-platforms.png)
 
-### Massive Scalability
+## Massive Scalability
 
 Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers. Check out the [load tests performed on Lightstreamer Kafka Connector vs. plain Kafka](https://github.com/Lightstreamer/lightstreamer-kafka-connector-loadtest).
 
-### Other Features
+## Other Features
 
 The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
 
-## Quick Start: Set up in 5 minutes
+# Quick Start: Set up in 5 minutes
 
 To efficiently showcase the functionalities of Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
@@ -91,7 +96,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 2. _kafka-connector_: Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) sample client
 
-### Run
+## Run
 
 1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
 2. From the [`examples/quickstart`](examples/quickstart/) folder, run the following:
@@ -120,17 +125,17 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    $ ./stop.sh
    ```
 
-## Installation
+# Installation
 
 This section will guide you through the installation of Kafka Connector to get it up and running in a very short time.
 
-### Requirements
+## Requirements
 
 - JDK version 17
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 - A running Kafka broker or Kafka Cluster
 
-### Deploy
+## Deploy
 
 Download the deployment archive `lightstreamer-kafka-connector-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -166,7 +171,7 @@ LS_HOME/
 ...
 ```
 
-### Configure
+## Configure
 
 Before starting Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
@@ -228,7 +233,7 @@ To quickly complete the installation and verify the successful integration with 
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
-#### Connection with Confluent Cloud
+### Connection with Confluent Cloud
 
 If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
 
@@ -246,7 +251,7 @@ If your target Kafka cluster is _Confluent Cloud_, you also need to properly con
 
 where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
-#### Connection with Redpanda Cloud
+### Connection with Redpanda Cloud
 
 If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/SCRAM authentication, as follows:
 
@@ -265,7 +270,7 @@ If your target Kafka cluster is _Redpanda Cloud_, you also need to properly conf
 
 where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_.
 
-### Start
+## Start
 
 1. Launch Lightstreamer Server.
 
@@ -325,7 +330,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ![producer_video](pictures/producer.gif)
 
-   #### Publishing with Confluent Cloud
+   ### Publishing with Confluent Cloud
 
    If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -342,7 +347,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-   #### Publishing with Redpanda Cloud
+   ### Publishing with Redpanda Cloud
 
    If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -366,15 +371,15 @@ where you have to replace `username` and `password` with the credentials generat
 
    ![consumer_video](pictures/consumer.gif)
 
-## Configuration
+# Configuration
 
 As already anticipated, Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
 
 The following sections will guide you through the configuration details.
 
-### Global Settings
+## Global Settings
 
-#### `adapter_conf['id']` - _Kafka Connector Identifier_
+### `adapter_conf['id']` - _Kafka Connector Identifier_
 
   _Mandatory_. The `id` attribute of the `adapters_conf` root tag defines the _Kafka Connector Identifier_, which will be used by the Clients to request this Adapter Set while setting up the connection to a Lightstreamer Server through a _LightstreamerClient_ object.
 
@@ -386,7 +391,7 @@ The following sections will guide you through the configuration details.
   <adapters_conf id="KafkaConnector">
   ```
 
-#### `adapter_class`
+### `adapter_class`
 
 _Mandatory_. The `adapter_class` tag, specified inside the _metadata_provider_ block, defines the Java class name of the Metadata Adapter.
 
@@ -408,7 +413,7 @@ Example:
 ...
 ```
 
-#### `logging.configuration.path`
+### `logging.configuration.path`
 
 _Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
@@ -428,7 +433,7 @@ Example:
 ...
 ```
 
-### Connection Settings
+## Connection Settings
 
 Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
 
@@ -436,9 +441,9 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-#### General Parameters
+### General Parameters
 
-##### `data_provider['name']` - _Kafka Connection Name_
+#### `data_provider['name']` - _Kafka Connection Name_
 
 _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Connection Name_, which will be used by the Clients to request real-time data from this specific Kafka connection through a _Subscription_ object.
 
@@ -464,13 +469,13 @@ Example:
 
 Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
-##### `adapter_class`
+#### `adapter_class`
 
 _Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
 
 Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter`.
 
-##### `enable`
+#### `enable`
 
 _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
@@ -486,7 +491,7 @@ Example:
 <param name="enable">false</param>
 ```
 
-##### `bootstrap.servers`
+#### `bootstrap.servers`
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
@@ -498,7 +503,7 @@ Example:
 <param name="bootstrap.servers">broker:29092,broker:29093</param>
 ```
 
-##### `group.id`
+#### `group.id`
 
 _Optional_. The name of the consumer group this connection belongs to.
 
@@ -510,11 +515,11 @@ Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly gene
 <param name="group.id">kafka-connector-group</param>
 ```
 
-#### Encryption Parameters
+### Encryption Parameters
 
 A TCP secure connection to Kafka is configured through parameters with the prefix `encryption`.
 
-##### `encryption.enable`
+#### `encryption.enable`
 
 _Optional_. Enable encryption of this connection. Can be one of the following:
 - `true`
@@ -528,7 +533,7 @@ Example:
 <param name="encryption.enable">true</param>
 ```
 
-##### `encryption.protocol`
+#### `encryption.protocol`
 
 _Optional_. The SSL protocol to be used. Can be one of the following:
 - `TLSv1.2`
@@ -542,7 +547,7 @@ Example:
 <param name="encryption.protocol">TLSv1.2</param>
 ```
 
-##### `encryption.enabled.protocols`
+#### `encryption.enabled.protocols`
 
 _Optional_. The list of enabled secure communication protocols.
 
@@ -554,7 +559,7 @@ Example:
 <param name="encryption.enabled.protocols">TLSv1.3</param>
 ```
 
-##### `encryption.cipher.suites`
+#### `encryption.cipher.suites`
 
 _Optional_. The list of enabled secure cipher suites.
 
@@ -566,7 +571,7 @@ Example:
 <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
 ```
 
-##### `encryption.hostname.verification.enable`
+#### `encryption.hostname.verification.enable`
 
 _Optional_. Enable hostname verification. Can be one of the following:
 - `true`
@@ -580,7 +585,7 @@ Example:
 <param name="encryption.hostname.verification.enable">true</param>
 ```
 
-##### `encryption.truststore.path`
+#### `encryption.truststore.path`
 
 _Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
@@ -590,7 +595,7 @@ Example:
 <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
 ```
 
-##### `encryption.truststore.password `
+#### `encryption.truststore.password `
 
 _Optional_. The password of the trust store.
 
@@ -602,7 +607,7 @@ Example:
 <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
 ```
 
-##### `encryption.keystore.enable`
+#### `encryption.keystore.enable`
 
 _Optional_. Enable a key store. Can be one of the following:
 - `true`
@@ -624,7 +629,7 @@ Example:
 <param name="encryption.keystore.enable">true</param>
 ```
 
-##### `encryption.keystore.path`
+#### `encryption.keystore.path`
 
 _Mandatory if [key store](#encryptionkeystoreenable) is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
@@ -634,7 +639,7 @@ Example:
 <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
 ```
 
-##### `encryption.keystore.password`
+#### `encryption.keystore.password`
 
 _Optional_. The password of the key store.
 
@@ -646,7 +651,7 @@ Example:
 <param name="encryption.keystore.password">keystore-password</param>
 ```
 
-##### `encryption.keystore.key.password`
+#### `encryption.keystore.key.password`
 
 _Optional_. The password of the private key in the key store file.
 
@@ -656,15 +661,15 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-##### Quick Start SSL Example
+#### Quick Start SSL Example
 
 Check out the [adapters.xml](examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
-#### Broker Authentication Parameters
+### Broker Authentication Parameters
 
 Broker authentication is configured through parameters with the prefix `authentication`.
 
-##### `authentication.enable`
+#### `authentication.enable`
 
 _Optional_. Enable the authentication of this connection against the Kafka Cluster. Can be one of the following:
 - `true`
@@ -678,7 +683,7 @@ Example:
 <param name="authentication.enable">true</param>
 ```
 
-##### `authentication.mechanism`
+#### `authentication.mechanism`
 
 _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Kafka Connector accepts the following authentication mechanisms:
 
@@ -692,7 +697,7 @@ In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the cre
 - `authentication.username`: the username
 - `authentication.password`: the password
 
-###### `PLAIN`
+##### `PLAIN`
 
 Example:
 
@@ -703,7 +708,7 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM-SHA-256`
+##### `SCRAM-SHA-256`
 
 Example:
 
@@ -714,7 +719,7 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-###### `SCRAM-SHA-512`
+##### `SCRAM-SHA-512`
 
 Example:
 
@@ -725,7 +730,7 @@ Example:
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
 
-###### `GSSAPI`
+##### `GSSAPI`
 
 In the case of `GSSAPI` authentication mechanism, the following parameters will be part of the authentication configuration:
 
@@ -788,15 +793,15 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-##### Quick Start Confluent Cloud Example
+#### Quick Start Confluent Cloud Example
 
 Check out the [adapters.xml](examples/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](examples/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-##### Quick Start Redpanda Serverless Example
+#### Quick Start Redpanda Serverless Example
 
 Check out the [adapters.xml](examples/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start Redpanda Serverless_](examples/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
-#### Record Evaluation
+### Record Evaluation
 
 Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -821,7 +826,7 @@ Kafka Connector enables the independent deserialization of keys and values, allo
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
-##### `record.consume.from`
+#### `record.consume.from`
 
 _Optional_. Specifies where to start consuming events from:
 
@@ -838,7 +843,7 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-##### `record.key.evaluator.type` and `record.value.evaluator.type`
+#### `record.key.evaluator.type` and `record.value.evaluator.type`
 
 _Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:
 
@@ -865,7 +870,7 @@ Examples:
 <param name="record.value.evaluator.type">JSON</param>
 ```
 
-##### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
+#### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
@@ -876,7 +881,7 @@ Examples:
 <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
 ```
 
-##### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
@@ -891,7 +896,7 @@ Examples:
 <param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
-##### `record.extraction.error.strategy`
+#### `record.extraction.error.strategy`
 
 _Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
 
@@ -906,7 +911,7 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-#### Topic Mapping
+### Topic Mapping
 
 Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
@@ -914,7 +919,7 @@ The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analys
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
-##### Data Extraction Language
+#### Data Extraction Language
 
 To write an extraction expression, the _Data Extraction Language_ provides a pretty minimal syntax with the following basic rules:
 
@@ -972,7 +977,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
   In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-##### Record Routing (`map.<topic>.to`)
+#### Record Routing (`map.<topic>.to`)
 
 To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
 
@@ -1016,7 +1021,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-##### Record Mapping (`field.<fieldName>`)
+#### Record Mapping (`field.<fieldName>`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -1055,7 +1060,7 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 ..
 ```
 
-##### Filtered Record Routing (`item-template.<template-name>`)
+#### Filtered Record Routing (`item-template.<template-name>`)
 
 Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
@@ -1108,7 +1113,7 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-###### Example
+##### Example
 
 Consider the following configuration:
 
@@ -1181,13 +1186,13 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 
 
-#### Schema Registry
+### Schema Registry
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
 Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
 
-##### `schema.registry.url`
+#### `schema.registry.url`
 
 _Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
 
@@ -1205,11 +1210,11 @@ Example:
 <param name="schema.registry.url">https://localhost:8084</param>
 ```
 
-##### Basic HTTP Authentication Parameters
+#### Basic HTTP Authentication Parameters
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
 
-###### `schema.registry.basic.authentication.enable`
+##### `schema.registry.basic.authentication.enable`
 
 _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
 - `true`
@@ -1223,7 +1228,7 @@ Example:
 <param name="schema.registry.basic.authentication.enable">true</param>
 ```
 
-###### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
 _Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
@@ -1237,7 +1242,7 @@ Example:
 <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
 ```
 
-##### Encryption Parameters
+#### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
 
@@ -1273,11 +1278,11 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
 ```
 
-##### Quick Start Schema Registry Example
+#### Quick Start Schema Registry Example
 
 Check out the [adapters.xml](examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
-## Customize the Kafka Connector Metadata Adapter Class
+# Customize the Kafka Connector Metadata Adapter Class
 
 If you have any specific need to customize the _Kafka Connector Metadata Adapter_ class, you can provide your implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html). The class provides the following hook methods, which you can override to add your custom logic:
 
@@ -1287,7 +1292,7 @@ If you have any specific need to customize the _Kafka Connector Metadata Adapter
 
 - [_onUnsubcription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
 
-### Develop the Extension
+## Develop the Extension
 
 To develop your extension, you need the Kafka Connector jar library, which is hosted on _Github Packages_.
 
@@ -1331,7 +1336,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector-adapter/) folder, you can find a sample Gradle project you may use as a starting point to build and deploy your custom extension.
 
-## Kafka Connect Lightstreamer Sink Connector
+# Kafka Connect Lightstreamer Sink Connector
 
 Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into [_Kafka Connect_](https://docs.confluent.io/platform/current/connect/index.html).
 
@@ -1341,18 +1346,18 @@ In this scenario, an instance of the connector plugin acts as a [_Remote Adapter
 
 The connector has been developed for Kafka Connect framework version 3.7 and requires JDK version 17 or later.
 
-### Usage
+## Usage
 
-#### Lightstreamer Setup
+### Lightstreamer Setup
 
 Before running the connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance.
 
-##### Requirements
+#### Requirements
 
 - JDK version 17 or later
 - [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 
-##### Steps
+#### Steps
 
 1. Create a directory within `LS_HOME/adapters` (choose whatever name you prefer, for example `kafka-connect-proxy`).
 
@@ -1402,7 +1407,7 @@ LS_HOME/
 ├── bin
 ...
 ```
-#### Running
+### Running
 
 To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform (version 7.6 or later) and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
@@ -1467,13 +1472,13 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
    You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
 
-#### Running in Docker
+### Running in Docker
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder.
 
 In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
-### Supported Converters
+## Supported Converters
 
 Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
 
@@ -1492,20 +1497,20 @@ It also supports the built-in primitive converters:
 - `org.apache.kafka.connect.converters.LongConverter`
 - `org.apache.kafka.connect.converters.ShortConverter`
 
-### Configuration Reference
+## Configuration Reference
 
 The Kafka Connect Lightstreamer Sink Connector configuration properties are described below.
 
-#### `connector.class`
+### `connector.class`
 
 To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
-##### `tasks.max`
+#### `tasks.max`
 
 Due to the one-to-one relationship between a Proxy Adapter instance (deployed into the Lightstreamer server) and a Remote Adapter instance (a task), configuring more than one task in the `tasks.max` configuration parameter is pointless.
 
-#### `lightstreamer.server.proxy_adapter.address`
+### `lightstreamer.server.proxy_adapter.address`
 
 The Lightstreamer server's Proxy Adapter address to connect to in the format **`host:port`**.
 
@@ -1519,7 +1524,7 @@ Example:
 lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 ```
 
-#### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
+### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
 
 The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
@@ -1534,7 +1539,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms=15000
 ```
 
-#### `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`
+### `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`
 
 The (optional) max number of retries to establish a connection to the Lightstreamer server's Proxy Adapter.
 
@@ -1549,7 +1554,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ```
 
-#### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
+### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
 `lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
@@ -1565,7 +1570,7 @@ Example:
 lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 ```
 
-#### `lightstreamer.server.proxy_adapter.username`
+### `lightstreamer.server.proxy_adapter.username`
 
 The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1579,7 +1584,7 @@ Example:
 lightstreamer.server.proxy_adapter.username=lightstreamer_user
 ```
 
-#### `lightstreamer.server.proxy_adapter.password`
+### `lightstreamer.server.proxy_adapter.password`
 
 The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
 
@@ -1592,7 +1597,7 @@ Example:
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
 
-#### `record.extraction.error.strategy`
+### `record.extraction.error.strategy`
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
@@ -1614,7 +1619,7 @@ Example:
 record.extraction.error.strategy=FORWARD_TO_DLQ
 ```
 
-#### `topic.mappings`
+### `topic.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
@@ -1644,7 +1649,7 @@ The configuration above specifes:
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
-#### `record.mappings`
+### `record.mappings`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
@@ -1678,7 +1683,7 @@ The configuration above specifies the following mappings:
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 
-#### `item.templates`
+### `item.templates`
 
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate-name) section.
@@ -1719,10 +1724,10 @@ topic.mappings=user:item-template.by-name,item-template.by-age
 
 The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
 
-## Docs
+# Docs
 
 The [docs](docs/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), already mentioned in the [Develop the Extension](#develop-the-extension) section.
 
-## Examples
+# Examples
 
 The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
