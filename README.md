@@ -62,7 +62,7 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 - User interfaces struggling with large data volumes.
 - The need for scalable solutions capable of supporting millions of concurrent users.
 
-![Architecture](/pictures/architecture.png)
+![High-Level Architecture](/pictures/architecture.png)
 
 ## Intelligent Streaming
 
@@ -81,6 +81,10 @@ Connect millions of clients without compromising performance. Fanout real-time m
 ## Other Features
 
 The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
+
+# Architecture
+
+![Architecture](/pictures/architecture-full.png)
 
 # QUICK START: Set up in 5 minutes
 
