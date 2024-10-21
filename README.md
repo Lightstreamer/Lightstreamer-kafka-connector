@@ -89,6 +89,18 @@ The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broke
 
 Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
 
+## Kafka Client vs. Kafka Connect
+
+The Lightstreamer Kafka Connector can operate in two distinct modes: as a direct Kafka client or as a Kafka Connect connector.
+
+### Lightstreamer Kafka Connector as a Kafka Client
+
+In this mode, the Lightstreamer Kafka Connector uses the Kafka client API to communicate directly with the Kafka broker. This approach is typically lighter, faster, and more scalable, as it avoids the additional layer of Kafka Connect. All sections of this documentation refer to this mode, except for the section specifically dedicated to the Sink Connector.
+
+### Lightstreamer Kafka Connector as a Kafka Connect Sink Connector
+
+In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connect framework, acting as a sink connector. While this introduces an additional messaging layer, there are scenarios where the standardized deployment provided by Kafka Connect is required. For more details on using the Lightstreamer Kafka Connector as a Kafka Connect sink connector, please refer to this section: [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector).
+
 # QUICK START: Set up in 5 minutes
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
