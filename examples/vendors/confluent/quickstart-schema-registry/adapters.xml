@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+
+<adapters_conf id="KafkaConnector">
+    <metadata_provider>
+        <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
+        <param name="logging.configuration.path">log4j.properties</param>
+    </metadata_provider>
+
+    <data_provider name="QuickStart">
+        <!-- ##### GENERAL PARAMETERS ##### -->
+
+        <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
+
+        <param name="bootstrap.servers">broker:29094</param>
+        <param name="group.id">quick-start-group</param>
+
+        <!-- ##### ENCRYPTION SETTINGS ##### -->
+        <param name="encryption.enable">true</param>
+        <param name="encryption.protocol">TLSv1.3</param>
+        <param name="encryption.hostname.verification.enable">false</param>
+        <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
+        <param name="encryption.keystore.enable">true</param>
+        <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="encryption.keystore.password">kafka-connector-password</param>
+        <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
+
+        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <param name="record.consume.from">EARLIEST</param>
+        <param name="record.key.evaluator.type">INTEGER</param>
+        <param name="record.value.evaluator.type">JSON</param>
+        <param name="record.value.evaluator.schema.registry.enable">true</param>
+
+        <!-- ##### RECORD ROUTING SETTINGS ##### -->
+        <param name="item-template.stock">stock-#{index=KEY}</param>
+        <param name="map.stocks.to">item-template.stock</param>
+
+        <!-- ##### RECORD MAPPING SETTINGS ##### -->
+        <param name="field.timestamp">#{VALUE.timestamp}</param>
+        <param name="field.time">#{VALUE.time}</param>
+        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.last_price">#{VALUE.last_price}</param>
+        <param name="field.ask">#{VALUE.ask}</param>
+        <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
+        <param name="field.bid">#{VALUE.bid}</param>
+        <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
+        <param name="field.pct_change">#{VALUE.pct_change}</param>
+        <param name="field.min">#{VALUE.min}</param>
+        <param name="field.max">#{VALUE.max}</param>
+        <param name="field.ref_price">#{VALUE.ref_price}</param>
+        <param name="field.open_price">#{VALUE.open_price}</param>
+        <param name="field.item_status">#{VALUE.item_status}</param>
+        <param name="field.ts">#{TIMESTAMP}</param>
+        <param name="field.topic">#{TOPIC}</param>
+        <param name="field.offset">#{OFFSET}</param>
+        <param name="field.partition">#{PARTITION}</param>
+
+        <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
+        <param name="schema.registry.url">https://schema-registry:8084</param>
+        <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+        <param name="schema.registry.encryption.keystore.enable">true</param>
+        <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
+        <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+
+    </data_provider>
+
+</adapters_conf>

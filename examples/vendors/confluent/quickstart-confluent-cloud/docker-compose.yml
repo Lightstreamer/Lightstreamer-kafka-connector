@@ -1,0 +1,40 @@
+---
+name: quickstart-kafka-connector-confluent-cloud
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - producer
+    ports:
+      - 8080:8080
+    environment:
+      - bootstrap_server=${bootstrap_server}
+      - api_key=${api_key}
+      - secret=${secret}
+      - topic_mapping=map.${topic}.to
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+
+  producer:
+    container_name: producer
+    build:
+      context: quickstart-producer
+      args:
+        VERSION: ${version}
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "${topic}", "--config-file", "/usr/app/producer.properties"]
+
+configs:
+  producer.properties:
+    content: |
+      # Configure SASL/PLAIN mechanism
+      sasl.mechanism=PLAIN
+      # Enable SSL encryption
+      security.protocol=SASL_SSL
+      # JAAS configuration
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${secret}";

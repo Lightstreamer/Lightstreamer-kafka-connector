@@ -1,0 +1,115 @@
+---
+name: quickstart-kafka-connector-schema-registry
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - broker
+      - schema-registry
+      - producer
+    ports:
+      - 8080:8080
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - ./secrets/kafka-connector:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+
+  producer:
+    container_name: producer
+    depends_on:
+      - broker
+      - schema-registry
+    build:
+      context: quickstart-producer
+      args:
+        VERSION: ${version}
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    volumes:
+      - ./secrets/producer:/usr/app/secrets
+    command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
+
+  broker:
+    image: apache/kafka
+    hostname: broker
+    container_name: broker
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+      - "8082:8082"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CLIENT_SSL:SSL,CLIENT_SSL_HOST:SSL,CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'CLIENT_SSL://broker:29094,CLIENT_SSL_HOST://localhost:9094,PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: broker_truststore_credentials
+      KAFKA_SSL_KEYSTORE_FILENAME: broker.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: broker_keystore_credentials
+      KAFKA_SSL_KEY_CREDENTIALS: broker_key_credentials
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: " "
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
+      KAFKA_LISTENERS: 'CLIENT_SSL://broker:29094,CLIENT_SSL_HOST://0.0.0.0:9094,PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+    volumes:
+      - ./secrets/broker:/etc/kafka/secrets
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+      - "8084:8084"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081,https://0.0.0.0:8084'
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/schema-registry/secrets/schema-registry.truststore.jks
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: schema-registry-truststore-password
+      SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: /etc/schema-registry/secrets/schema-registry.keystore.jks
+      SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: schema-registry-password
+      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: schema-registry-private-key-password
+      SCHEMA_REGISTRY_SSL_CLIENT_AUTHENTICATION: 'REQUIRED'
+    volumes:
+     - ./secrets/schema-registry:/etc/schema-registry/secrets
+
+configs:
+  producer.properties:
+    content: |
+      # Enable SSL
+      security.protocol=SSL
+      # Trust store configuration to authenticate the broker
+      ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+      ssl.truststore.password=producer-truststore-password
+      # Key store configuration for client authentication with the broker
+      ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+      ssl.keystore.password=producer-password
+      ssl.key.password=producer-private-key-password
+      ssl.endpoint.identification.algorithm=
+      # JSON serializer with support for the Schema Registry
+      value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+      # Schema Registry URL
+      schema.registry.url=https://schema-registry:8084
+      # Trust store configuration to authenticate the Schema Registry
+      schema.registry.ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+      schema.registry.ssl.truststore.password=producer-truststore-password
+      # Key store configuration for client authentication with the Schema Registry
+      schema.registry.ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+      schema.registry.ssl.keystore.password=producer-password
+      schema.registry.ssl.key.password=producer-private-key-password
