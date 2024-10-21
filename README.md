@@ -1749,8 +1749,12 @@ The configuration above specifies how to route records published from the topic 
 
 # Docs
 
-The [docs](docs/) folder contains the complete [Kafka Connector API Specification](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), already mentioned in the [Develop the Extension](#develop-the-extension) section.
+The [docs](docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class) section.
+
+To learn more about the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) and the [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/), visit their respective product pages.
 
 # Examples
 
-The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
+The [examples](examples/) folder contains all the examples referenced throughout this guide. Additionally, you can explore the [_Airport Demo_](examples/airport-demo/) for deeper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
+
+For more examples and live demos, visit our [online showcase](https://demos.lightstreamer.com/?p=kafkaconnector&lclient=noone&f=all&lall=all&sallall=all).
