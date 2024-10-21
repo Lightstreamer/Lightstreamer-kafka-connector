@@ -1755,6 +1755,6 @@ To learn more about the [Lightstreamer Broker](https://lightstreamer.com/product
 
 # Examples
 
-The [examples](examples/) folder contains all the examples referenced throughout this guide. Additionally, you can explore the [_Airport Demo_](examples/airport-demo/) for deeper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
+The [examples](examples/) folder contains all the examples referenced throughout this guide, along with additional resources tailored for specific Kafka broker vendors. Additionally, you can explore the [_Airport Demo_](examples/airport-demo/) for deeper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
 
 For more examples and live demos, visit our [online showcase](https://demos.lightstreamer.com/?p=kafkaconnector&lclient=noone&f=all&lall=all&sallall=all).
