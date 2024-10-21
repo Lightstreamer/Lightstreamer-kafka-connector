@@ -10,7 +10,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
   - [Comprehensive Client SDKs](#comprehensive-client-sdks)
   - [Massive Scalability](#massive-scalability)
   - [Other Features](#other-features)
-- [Quick Start: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
+- [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Installation](#installation)
   - [Requirements](#requirements)
@@ -76,24 +76,24 @@ The rich set of supplied client libraries makes it easy to consume real-time Kaf
 
 ## Massive Scalability
 
-Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers. Check out the [load tests performed on Lightstreamer Kafka Connector vs. plain Kafka](https://github.com/Lightstreamer/lightstreamer-kafka-connector-loadtest).
+Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers. Check out the [load tests performed on the Lightstreamer Kafka Connector vs. plain Kafka](https://github.com/Lightstreamer/lightstreamer-kafka-connector-loadtest).
 
 ## Other Features
 
 The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
 
-# Quick Start: Set up in 5 minutes
+# QUICK START: Set up in 5 minutes
 
-To efficiently showcase the functionalities of Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
 ![Quickstart Diagram](pictures/quickstart-diagram.png)
 
-The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via Lightstreamer Kafka Connector.
+The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](examples/quickstart/docker-compose.yml) comprises the following services:
 
 1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](examples/quickstart-confluent-cloud/), [`Redpanda Serverless`](examples/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](examples/quickstart-redpanda-selfhosted), [`Aiven`](examples/quickstart-aiven), and more.
-2. _kafka-connector_: Lightstreamer Server with Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
+2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](examples/quickstart-producer/) sample client
 
 ## Run
@@ -127,7 +127,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 # Installation
 
-This section will guide you through the installation of Kafka Connector to get it up and running in a very short time.
+This section will guide you through the installation of the Kafka Connector to get it up and running in a very short time.
 
 ## Requirements
 
@@ -173,7 +173,7 @@ LS_HOME/
 
 ## Configure
 
-Before starting Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -187,7 +187,7 @@ To quickly complete the installation and verify the successful integration with 
 
 - Configure topic and record mapping.
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
+  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
   The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
@@ -196,7 +196,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
-    which defines the general format name of the items a client must subscribe to to receive updates from Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
@@ -204,13 +204,13 @@ To quickly complete the installation and verify the successful integration with 
     ```
     which maps the topic `stocks` to the provided item template.
 
-  This configuration instructs Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
+  This configuration instructs the Kafka Connector to analyze every single event published to the topic `stocks` and check if it matches against any item subscribed by the client as:
 
   - `stock-[index=1]`: an item with the `index` parameter bound to a record key equal to `1`
   - `stock-[index=2]`: an item with the `index` parameter bound to a record key equal to `2`
   - ...
 
-  Kafka Connector will then route the event to all matched items.
+  The Kafka Connector will then route the event to all matched items.
 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
 
@@ -301,7 +301,7 @@ where you have to replace `username` and `password` with the credentials generat
    As you can see, you have to specify a few parameters:
 
    - `--address`: the Lightstreamer Server address
-   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthtreamer to activate Kafka Connector deployed into the `adapters` folder
+   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder
    - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
    - `--items`: the list of items to subscribe to
    - `--fields`: the list of requested fields for the items
@@ -373,7 +373,7 @@ where you have to replace `username` and `password` with the credentials generat
 
 # Configuration
 
-As already anticipated, Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
+As already anticipated, the Kafka Connector is a Lightstreamer Adapter Set, which means it is made up of a Metadata Adapter and one or more Data Adapters, whose settings are defined in the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file.
 
 The following sections will guide you through the configuration details.
 
@@ -395,7 +395,7 @@ The following sections will guide you through the configuration details.
 
 _Mandatory_. The `adapter_class` tag, specified inside the _metadata_provider_ block, defines the Java class name of the Metadata Adapter.
 
-The factory value is set to `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`, which implements the internal business of Kafka Connector.
+The factory value is set to `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`, which implements the internal business of the Kafka Connector.
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
@@ -435,11 +435,11 @@ Example:
 
 ## Connection Settings
 
-Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
+The Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
 
 Every single connection is configured via the definition of its own Data Adapter through the _data_provider_ block. At least one connection must be provided.
 
-Since Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
+Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
 ### General Parameters
 
@@ -685,7 +685,7 @@ Example:
 
 #### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. Kafka Connector accepts the following authentication mechanisms:
+_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
 - `PLAIN` (the default value)
 - `SCRAM-SHA-256`
@@ -803,7 +803,7 @@ Check out the [adapters.xml](examples/quickstart-redpanda-serverless/adapters.xm
 
 ### Record Evaluation
 
-Kafka Connector can deserialize Kafka records from the following formats:
+The Kafka Connector can deserialize Kafka records from the following formats:
 
 - _Apache Avro_
 - _JSON_
@@ -813,12 +813,12 @@ Kafka Connector can deserialize Kafka records from the following formats:
 
 and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recordvalueevaluatortype)).
 
-In particular, Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
+In particular, the Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
 
 - Local schema files
 - The _Confluent Schema Registry_
 
-Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
+The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
@@ -913,7 +913,7 @@ Example:
 
 ### Topic Mapping
 
-Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
+The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
 The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following purposes:
 - Mapping records to Lightstreamer fields
@@ -945,7 +945,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > - An [Object](https://www.json.org/json-en.html), in the case of JSON format
  > - A [Record](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  >
- > Such a constraint may be removed in a future version of Kafka Connector.
+ > Such a constraint may be removed in a future version of the Kafka Connector.
 
 - Expressions use the _square notation_ to access:
 
@@ -1062,7 +1062,7 @@ The `QuickStart` [factory configuration](kafka-connector-project/kafka-connector
 
 #### Filtered Record Routing (`item-template.<template-name>`)
 
-Besides mapping topics to statically predefined items, Kafka Connector allows you to configure the _item templates_,
+Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
 The item template leverages the [_Data Extraction Language_](#data-extraction-language) to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
@@ -1103,7 +1103,7 @@ To activate the filtered routing, the Lightstreamer clients must subscribe to a 
 <item-prefix>-[paramName1=filterValue_1,paramName2=filerValue_2,...]
 ```
 
-Upon consuming a message, Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
+Upon consuming a message, the Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
 
 ```js
 <item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...]
@@ -1190,7 +1190,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
+The Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
 
 #### `schema.registry.url`
 
@@ -1338,7 +1338,7 @@ In the [examples/custom-kafka-connector-adapter](examples/custom-kafka-connector
 
 # Kafka Connect Lightstreamer Sink Connector
 
-Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into [_Kafka Connect_](https://docs.confluent.io/platform/current/connect/index.html).
+The Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ to be installed into [_Kafka Connect_](https://docs.confluent.io/platform/current/connect/index.html).
 
 In this scenario, an instance of the connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
@@ -1730,4 +1730,4 @@ The [docs](docs/) folder contains the complete [Kafka Connector API Specificatio
 
 # Examples
 
-The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of Kafka Connector.
+The [examples](examples/) folder contains all the examples mentioned throughout this guide. Furthermore, you may explore the [_Airport Demo_](examples/airport-demo/) for depper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
