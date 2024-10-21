@@ -62,7 +62,7 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 - User interfaces struggling with large data volumes.
 - The need for scalable solutions capable of supporting millions of concurrent users.
 
-![Architecture](pictures/architecture.png)
+![Architecture](/pictures/architecture.png)
 
 ## Intelligent Streaming
 
@@ -86,7 +86,7 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](pictures/quickstart-diagram.png)
+![Quickstart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -117,7 +117,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 4. After a few moments, the user interface starts displaying the real-time stock data.
 
-   ![Demo](pictures/quickstart.gif)
+   ![Demo](/pictures/quickstart.gif)
 
 5. To shutdown Docker Compose and clean up all temporary resources:
 
@@ -328,7 +328,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
    ```
 
-   ![producer_video](pictures/producer.gif)
+   ![producer_video](/pictures/producer.gif)
 
    ### Publishing with Confluent Cloud
 
@@ -369,7 +369,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
-   ![consumer_video](pictures/consumer.gif)
+   ![consumer_video](/pictures/consumer.gif)
 
 # Configuration
 
@@ -995,7 +995,7 @@ This configuration enables the implementation of various routing scenarios, as s
   <param name="map.sample-topic.to">sample-item</param>
   ```
 
-  ![one-to-one](pictures/one-to-one.png)
+  ![one-to-one](/pictures/one-to-one.png)
 
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
 
@@ -1007,7 +1007,7 @@ This configuration enables the implementation of various routing scenarios, as s
   <param name="map.sample-topic3.to">sample-item</param>
   ```
 
-  ![many-to-one](pictures/many-to-one.png)
+  ![many-to-one](/pictures/many-to-one.png)
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
@@ -1025,7 +1025,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
-![record-mapping](pictures/record-fields-mapping.png)
+![record-mapping](/pictures/record-fields-mapping.png)
 
 To configure the mapping, you define the set of all subscribable fields through parameters with the prefix `field.`:
 
@@ -1066,7 +1066,7 @@ Besides mapping topics to statically predefined items, the Kafka Connector allow
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
 The item template leverages the [_Data Extraction Language_](#data-extraction-language) to extract data from Kafka records and match them against the _parameterized_ subscribed items.
 
-![filtered-routing](pictures/filtered-routing.png)
+![filtered-routing](/pictures/filtered-routing.png)
 
 To configure an item template, use the `item-template.<template-name>` parameter:
 
@@ -1342,7 +1342,7 @@ The Lightstreamer Kafka Connector is also available as _Sink Connector plugin_ t
 
 In this scenario, an instance of the connector plugin acts as a [_Remote Adapter_](https://github.com/Lightstreamer/Lightstreamer-lib-adapter-java-remote) for the Lightstreamer server as depicted in the following picture:
 
-![KafkaConnectArchitecture](pictures/kafka-connect.png)
+![KafkaConnectArchitecture](/pictures/kafka-connect.png)
 
 The connector has been developed for Kafka Connect framework version 3.7 and requires JDK version 17 or later.
 
