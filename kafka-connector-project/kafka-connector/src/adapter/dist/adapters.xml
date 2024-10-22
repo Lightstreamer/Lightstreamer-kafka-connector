@@ -20,7 +20,7 @@
 
     </metadata_provider>
 
-    <!-- Mandatory. Kafka Connector allows the configuration of different independent connections to different Kafka 
+    <!-- Mandatory. The Kafka Connector allows the configuration of different independent connections to different Kafka
          broker/clusters.
 
          Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
@@ -184,7 +184,7 @@
         -->
 
         <!-- Mandatory if authentication is enabled. The SASL mechanism type.
-             Kafka Connector supports the following authentication mechanisms:
+             The Kafka Connector accepts the following authentication mechanisms:
 
              - PLAIN
              - SCRAM-SHA-256
@@ -254,11 +254,11 @@
 
         <!-- Optional. Specifies where to start consuming events from:
              - LATEST: start consuming events from the end of the topic partition
-             - EARLIEST: start consuming events from the beginning of the topic partition 
-             
+             - EARLIEST: start consuming events from the beginning of the topic partition
+
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
-        
+
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
              Can be one of the following:
              - AVRO
@@ -279,15 +279,15 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is AVRO and the Confluent Schema Registry is disabled. The path of the local schema 
-             file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for 
+        <!-- Mandatory if evaluator type is AVRO and the Confluent Schema Registry is disabled. The path of the local schema
+             file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for
              message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the key and 
+        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the key and
              value. Can be one of the following:
              - true
              - false
@@ -325,8 +325,8 @@
         <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
              - one or more simple items
              - one or more item templates
-             - any combination of the above 
-             
+             - any combination of the above
+
              At least one mapping must be provided. -->
         <!-- Example 1:
         <param name="map.<topic>.to">item1,item2,itemN,...</param>
@@ -341,10 +341,10 @@
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
-        <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to 
+        <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to
              field <fieldName>. The expression is written in the Data Extraction Language. See documentation at:
              https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfiledname
-        
+
              At least one mapping must be provided. -->
         <!--
         <param name="field.<fieldName>">extraction_expression</param>
@@ -371,8 +371,7 @@
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 
         <!-- Mandatory if the Confluent Schema Registry is enabled. The URL of the Confluent Schema Registry.
-             An encrypted connection is enabled by specifying the "https" protocol 
-        -->
+             An encrypted connection is enabled by specifying the "https" protocol. -->
         <!--
         <param name="schema.registry.url">https://schema-registry:8084</param>
         -->
@@ -392,7 +391,7 @@
         <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
         -->
 
-        <!-- The following parameters have the same meaning as the homologous ones defined in 
+        <!-- The following parameters have the same meaning as the homologous ones defined in
              the ENCRYPTION SETTINGS section. -->
 
         <!-- Set general encryption settings -->
