@@ -103,7 +103,7 @@ In this mode, the Lightstreamer Kafka Connector uses the Kafka client API to com
 
 ### Lightstreamer Kafka Connector as a Kafka Connect Sink Connector
 
-In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connect framework, acting as a sink connector. While this introduces an additional messaging layer, there are scenarios where the standardized deployment provided by Kafka Connect is required. For more details on using the Lightstreamer Kafka Connector as a Kafka Connect sink connector, please refer to this section: [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector).
+In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connect framework, acting as a sink connector. While this introduces an additional messaging layer, there are scenarios where the standardized deployment provided by Kafka Connect is required. For more details on using the Lightstreamer Kafka Connector as a Kafka Connect sink connector, please refer to this section: [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector).
 
 # QUICK START: Set up in 5 minutes
 
@@ -1432,7 +1432,7 @@ LS_HOME/
 ```
 ### Running
 
-To manually install Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform (version 7.6 or later) and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
+To manually install the Kafka Connect Lightstreamer Sink Connector to a local Confluent Platform (version 7.6 or later) and run it in [_standalone mode_](https://docs.confluent.io/platform/current/connect/userguide.html#standalone-mode):
 
 1. Download the connector zip file `lightstreamer-kafka-connect-lightstreamer-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](kafka-connector-project/) folder:
 
@@ -1503,7 +1503,7 @@ In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka
 
 ## Supported Converters
 
-Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
+The Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
 
 - _AvroConverter_ `io.confluent.connect.avro.AvroConverter`
 - _ProtobufConverter_ `io.confluent.connect.protobuf.ProtobufConverter`
