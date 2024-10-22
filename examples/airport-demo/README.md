@@ -10,7 +10,7 @@ The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), 
 The demo project consists of:
 - A web client designed to visualize the airport departure board from a browser.
 - A random flight information generator that acts as a message producer for Kafka.
-- Files to configure Kafka Connector according to the needs of the demo.
+- Files to configure the Kafka Connector according to the needs of the demo.
 
 ## The Web Client
 
@@ -33,7 +33,7 @@ As you can see, items have been expressed in a parameterized format to activate 
 ```
 
 which requires every subscription to include a filtering value for the _bind parameter_ `key`.
-Upon consuming an incoming message, Kafka Connector will then route the record if the subscribed item has specified a filtering value that matches the record key.
+Upon consuming an incoming message, the Kafka Connector will then route the record if the subscribed item has specified a filtering value that matches the record key.
 
 ## The Producer
 
@@ -44,7 +44,7 @@ The source code of the producer is basically contained in the `producer` package
 
 ## Connector Configurations
 
-In the [`connector`](connector/) folder, we found the configuration files needed to configure Kafka Connector:
+In the [`connector`](connector/) folder, we found the configuration files needed to configure the Kafka Connector:
 
 - `adapters.xml`: in this file, parameters are essentially configured for the connector to consume messages from Kafka, and the mapping between Kafka cluster topics and Lightstreamer items that the client will subscribe to is defined. In the specific case of this demo, message serialization occurs via JSON objects, and therefore, the mapping of fields from the received JSON object to the Lightstreamer item fields to be sent to clients is also defined. In particular, the section defining the field mapping is this one:
   ```xml
@@ -117,7 +117,7 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 - Download Lightstreamer Server version 7.4.2 or later (Lightstreamer Server comes with a free non-expiring demo license for 20 connected users) from [Lightstreamer Download page](https://lightstreamer.com/download/), and install it, as explained in the `GETTING_STARTED.TXT` file in the installation home directory.
 - Make sure that Lightstreamer Server is not running.
-- Deploy a fresh installation of Lightstreamer Kafka Connector following the instructions provided [here](../../README.md#deploy).
+- Deploy a fresh installation of the Lightstreamer Kafka Connector following the instructions provided [here](../../README.md#deploy).
 - Replace the `adapters.xml` file with the one of this project and in the case update the settings as discussed in the previous section.
 - [Optional] Customize the logging settings in the log4j configuration file `log4j.properties`.
 - Launch Lightstreamer Server.
