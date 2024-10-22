@@ -1,4 +1,4 @@
-<img src="pictures/lightstreamer.png" width="250">
+<img src="/pictures/lightstreamer.png" width="250">
 
 # Lightstreamer Kafka Connector
 _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
