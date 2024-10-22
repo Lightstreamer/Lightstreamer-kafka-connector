@@ -12,7 +12,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
-- Removal of the `broker` service, because replaced by the remote cluster
+- Removal of the `broker` service, because replaced by the remote cluster.
 - _kafka-connector_:
   - Definition of new environment variables to configure remote endpoint, credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
@@ -30,23 +30,22 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ...
       - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include:
-    - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+    - new Kafka cluster address (retrieved from the environment variable `bootstrap_server`):
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - encryption settings, with the trust store password retrieved from the environment variable `truststore_password`
+    - Encryption settings, with the trust store password retrieved from the environment variable `truststore_password`
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       <param name="encryption.hostname.verification.enable">false</param>
       <param name="encryption.truststore.path">secrets/client.truststore.jks</param>
       <param name="encryption.truststore.password">$env.truststore_password</param>
-
       ```
 
-    - authentication settings, with the credentials retrieved from environment variables `username` and `password`:
+    - Authentication settings, with the credentials retrieved from environment variables `username` and `password`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
@@ -55,14 +54,14 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```
 
 - _producer_:
-   - mounting of the local `secrets` folder to `/usr/app/secrets` in the container:
+   - Mounting of the local `secrets` folder to `/usr/app/secrets` in the container:
    
      ```yaml
      volumes:
        - ./secrets:/usr/app/secrets
      ```
-   - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
-   - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
+   - Setting of the parameter `--boostrap-servers` from the environment variable `bootstrap_server`
+   - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
    ```yaml
    # Configure SASL/SCRAM mechanism
@@ -86,8 +85,8 @@ $ bootstrap_server=<bootstrap_server> username=<username> password=<password> tr
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Apache Kafka service
-- `username` and `password` are the credentials of the user automatically created from the _Aiven Console_
-- `truststore_password` is the password of the trust store file
+- `bootstrap_server` is the bootstrap server address of the Apache Kafka service.
+- `username` and `password` are the credentials of the user automatically created from the _Aiven Console_.
+- `truststore_password` is the password of the trust store file.
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
