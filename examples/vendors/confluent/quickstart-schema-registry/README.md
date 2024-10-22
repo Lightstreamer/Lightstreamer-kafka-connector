@@ -60,4 +60,4 @@ $ ./generate-secrets.sh
 
 ## Run
 
-From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#run) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick Start](../../../../README.md#run) section of the main README file.
