@@ -2,17 +2,17 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Redpanda Serverless_](https://redpanda.com/redpanda-cloud/serverless) as the target cluster. You may follow the [instructions](https://docs.redpanda.com/current/deploy/deployment-option/cloud/serverless/) on [Redpanda Docs](https://docs.redpanda.com/current/home/) to perform the following operations:
 
-- deploy a _Serverless Cluster_
-- create a user that uses `SCRAM-SHA-256` mechanism
-- create a topic
-- allow `All` permissions to the user on the topic
-- allow `All` permissions to the user on the consumer group `quick-start-group`
+- Deploy a _Serverless Cluster_.
+- Create a user that uses `SCRAM-SHA-256` mechanism.
+- Create a topic.
+- Allow `All` permissions to the user on the topic.
+- Allow `All` permissions to the user on the consumer group `quick-start-group`.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Redpanda Serverless_ as follows:
 
-- removal of the `broker` service, because replaced by the remote cluster
+- Removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -23,35 +23,35 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - topic_mapping=map.${topic}.to
     ...
     ```
-  - adaption of [`adapters.xml`](./adapters.xml) to include:
-    - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
+  - Aaption of [`adapters.xml`](./adapters.xml) to include thw following:
+    - New Kafka cluster address (retrieved from the environment variable `bootstrap_server`):
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - encryption settings:
+    - Encryption settings:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       <param name="encryption.hostname.verification.enable">true</param>
       ```
 
-    - authentication settings, with the credentials retrieved from environment variables `username` and `password`:
+    - Authentication settings, with the credentials retrieved from environment variables `username` and `password`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
       <param name="authentication.username">$env.username</param>
       <param name="authentication.password">$env.password</param>
       ```
-    - parameter `map.<topic>.to` built from env variable `topic_mapping`, composed from env variable `topic`
+    - Parameter `map.<topic>.to`, built from env variable `topic_mapping` (which in turn is composed from env variable `topic`)
       ```xml
       <param name="$env.topic_mapping">item-template.stock</param>
       ```
 
 - _producer_:
-   - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
-   - parameter `--topic` retrieved from the environment variable `topic`
-   - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
+   - Setting of the parameter `--boostrap-servers` from the environment variable `bootstrap_server`
+   - Setting of the parameter `--topic` from the environment variable `topic`
+   - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
     
    ```yaml
    # Configure SASL/PLAIN mechanism
@@ -71,8 +71,8 @@ $ bootstrap_server=<bootstrap_server> username=<username> password=<password> to
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Redpanda cluster
-- `username` and `password` are the credentials of the user created from the _Redpanda Console_
-- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_
+- `bootstrap_server` is the bootstrap server address of the Redpanda cluster.
+- `username` and `password` are the credentials of the user created from the _Redpanda Console_.
+- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_.
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
