@@ -17,7 +17,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - topic_mapping=map.${topic}.to
     ...
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include:
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
     - New Kafka cluster address (retrieved from the environment variable `bootstrap_server`):
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
