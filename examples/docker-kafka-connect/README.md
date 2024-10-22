@@ -1,6 +1,6 @@
 # Kafka Connect Lightstreamer Sink Connector Docker Image
 
-This folder contains the resources required to build a minimal Docker image of Kafka Connect Lightstreamer Sink Connector.
+This folder contains the resources required to build a minimal Docker image of the Kafka Connect Lightstreamer Sink Connector.
 
 The image is based on the official [Official Confluent Docker Base Image for Kafka Connect](https://hub.docker.com/r/confluentinc/cp-kafka-connect-base). Check out the [`Dockerfile`](./Dockerfile) for more details.
 

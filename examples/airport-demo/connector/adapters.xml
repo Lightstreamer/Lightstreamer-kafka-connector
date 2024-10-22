@@ -20,7 +20,7 @@
 
     </metadata_provider>
 
-    <!-- Mandatory. Kafka Connector allows the configuration of different independent connections to different Kafka 
+    <!-- Mandatory. The Kafka Connector allows the configuration of different independent connections to different Kafka
          broker/clusters.
 
          Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
