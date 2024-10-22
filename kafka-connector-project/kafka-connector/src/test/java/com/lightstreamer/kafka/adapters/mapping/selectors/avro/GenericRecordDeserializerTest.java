@@ -26,280 +26,284 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.JsonNodeDeserializer;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializer.GenericRecordLocalSchemaDeserializer;
-import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializer.WrapperKafkaAvroDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.WrapperKafkaAvroDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 public class GenericRecordDeserializerTest {
 
+    private static final String SCHEMA_FOLDER = "src/test/resources";
+    private static final String TEST_SCHEMA_FILE = "test_schema.avsc";
+
+    private static byte[] serializeRecord(GenericRecord record) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Encoder encoder = EncoderFactory.get().binaryEncoder(outputStream, null);
+        DatumWriter<GenericRecord> writer = new SpecificDatumWriter<>(record.getSchema());
+        writer.write(record, encoder);
+        encoder.flush();
+        byte[] bytes = outputStream.toByteArray();
+        return bytes;
+    }
+
     @Test
-    public void shouldDeserializeWithLocalSchema() {
-        Path adapterDir = Paths.get("src/test/resources");
+    public void shouldDeserializeWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        adapterDir.toString(),
+                        SCHEMA_FOLDER,
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 AVRO.toString(),
-                                ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                "value.avsc"));
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
-        String flight =
-                """
-          {
-            "airline": "Lightstreamer Airlines",
-            "code": "LA1704",
-            "departureTime": "19:25",
-            "status": "SCHEDULED_ON_TIME",
-            "terminal": 1
-          }
-                """;
-        try (Deserializer<GenericRecord> deserializer = GenericRecordDeserializer.ValueDeserializer(config)) {
-            GenericRecord node = deserializer.deserialize("topic", flight.getBytes());
-        //     assertThat(node.get("airline").asText()).isEqualTo("Lightstreamer Airlines");
-        //     assertThat(node.get("code").asText()).isEqualTo("LA1704");
-        //     assertThat(node.get("departureTime").asText()).isEqualTo("19:25");
-        //     assertThat(node.get("status").asText()).isEqualTo("SCHEDULED_ON_TIME");
-        //     assertThat(node.get("terminal").asInt()).isEqualTo(1);
+        Schema.Parser parser = new Schema.Parser();
+        Schema schema =
+                parser.parse(
+                        GenericRecordDeserializerTest.class
+                                .getClassLoader()
+                                .getResourceAsStream(TEST_SCHEMA_FILE));
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("firstName", "John");
+        record.put("lastName", "Doe");
+
+        byte[] bytes = serializeRecord(record);
+
+        try (Deserializer<GenericRecord> deserializer =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            GenericRecord deserializedRecord = deserializer.deserialize("topic", bytes);
+            assertThat(deserializedRecord.get("firstName")).isEqualTo(new Utf8("John"));
+            assertThat(deserializedRecord.get("lastName")).isEqualTo(new Utf8("Doe"));
         }
-    }        
+    }
 
     @Test
     public void shouldGetKeyDeserializerWithSchemaRegsitry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deserializer =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetValueDeserializerWithSchemaRegsitry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deserializer =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyAndVaueDeserializeWithSchemaRegisstry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         try (Deserializer<GenericRecord> deserializer =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass())
+                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetValueDeserializerWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         try (Deserializer<GenericRecord> deserializer =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass())
+                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(WrapperKafkaAvroDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
         }
     }
 
     @Test
     public void shouldDeserializazionWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
             throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080",
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(GenericRecordLocalSchemaDeserializer.class.getName());
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
         }
     }
 }

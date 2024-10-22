@@ -58,7 +58,7 @@ public class DataAdapterConfigurator {
                 TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
         KeyValueSelectorSuppliers<Object, Object> sSuppliers = new ConnectSelectorsSuppliers();
         try {
-            ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
+            ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
             logger.info("Constructed item templates: {}", templates);
 
             FieldConfigs fieldConfigs = config.getFieldConfigs();

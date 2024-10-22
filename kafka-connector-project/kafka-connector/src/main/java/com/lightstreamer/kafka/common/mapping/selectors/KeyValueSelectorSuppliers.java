@@ -26,32 +26,4 @@ public interface KeyValueSelectorSuppliers<K, V> {
     SelectorSupplier<KeySelector<K>> keySelectorSupplier();
 
     SelectorSupplier<ValueSelector<V>> valueSelectorSupplier();
-
-    static <K, V> KeyValueSelectorSuppliers<K, V> from(
-            SelectorSupplier<KeySelector<K>> k, SelectorSupplier<ValueSelector<V>> v) {
-        return new WrapperSelectors<>(k, v);
-    }
-
-    public static class WrapperSelectors<K, V> implements KeyValueSelectorSuppliers<K, V> {
-
-        private final SelectorSupplier<KeySelector<K>> keySelectorSupplier;
-        private final SelectorSupplier<ValueSelector<V>> valueSelectorSupplier;
-
-        public WrapperSelectors(
-                SelectorSupplier<KeySelector<K>> keySelectorSupplier,
-                SelectorSupplier<ValueSelector<V>> valueSelectorSupplier) {
-            this.keySelectorSupplier = keySelectorSupplier;
-            this.valueSelectorSupplier = valueSelectorSupplier;
-        }
-
-        @Override
-        public SelectorSupplier<KeySelector<K>> keySelectorSupplier() {
-            return keySelectorSupplier;
-        }
-
-        @Override
-        public SelectorSupplier<ValueSelector<V>> valueSelectorSupplier() {
-            return valueSelectorSupplier;
-        }
-    }
 }

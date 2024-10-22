@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.test_utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -30,46 +30,52 @@ import org.apache.avro.generic.GenericRecord;
 
 public interface TestSelectorSuppliers {
 
-    public static KeyValueSelectorSuppliers<String, String> string() {
-        return new AdapterKeyValueSelectorSupplier<>(
+    public static KeyValueSelectorSuppliers<String, String> String() {
+        return new WrapperKeyValueSelectorSuppliers<>(
                 OthersSelectorSuppliers.StringKey(), OthersSelectorSuppliers.StringValue());
     }
 
-    public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> avro(
+    public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> Avro(
             ConnectorConfig config) {
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
-        return new AdapterKeyValueSelectorSupplier<>(
+        return new WrapperKeyValueSelectorSuppliers<>(
                 g.makeKeySelectorSupplier(), g.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<String, GenericRecord> avroValue(
+    public static KeyValueSelectorSuppliers<String, GenericRecord> AvroValue(
             ConnectorConfig config) {
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
-        return new AdapterKeyValueSelectorSupplier<>(
+        return new WrapperKeyValueSelectorSuppliers<>(
                 OthersSelectorSuppliers.StringKey(), g.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<GenericRecord, JsonNode> avroKeyJsonValue(
+    public static KeyValueSelectorSuppliers<GenericRecord, JsonNode> AvroKeyJsonValue(
             ConnectorConfig config) {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
-        return new AdapterKeyValueSelectorSupplier<>(
+        return new WrapperKeyValueSelectorSuppliers<>(
                 g.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> json(ConnectorConfig config) {
+    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> Json(ConnectorConfig config) {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
-        return new AdapterKeyValueSelectorSupplier<>(
+        return new WrapperKeyValueSelectorSuppliers<>(
                 j.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<String, JsonNode> jsonValue(ConnectorConfig config) {
+    public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue(ConnectorConfig config) {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
-        return new AdapterKeyValueSelectorSupplier<>(
+        return new WrapperKeyValueSelectorSuppliers<>(
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<Object, Object> object() {
+    public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue() {
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
+        return new WrapperKeyValueSelectorSuppliers<>(
+                OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
+    }
+
+    public static KeyValueSelectorSuppliers<Object, Object> Object() {
         return new ConnectSelectorsSuppliers();
     }
 }

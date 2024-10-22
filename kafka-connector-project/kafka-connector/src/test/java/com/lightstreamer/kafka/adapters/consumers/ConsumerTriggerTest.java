@@ -30,7 +30,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeKafkaConsumer;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeMetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
-import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier.KeyValueDeserializers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -75,7 +75,7 @@ class TestLoopConfig implements ConsumerTriggerConfig<String, String> {
     @Override
     public ItemTemplates<String, String> itemTemplates() {
         try {
-            return Items.from(topicsConfig, TestSelectorSuppliers.string());
+            return Items.templatesFrom(topicsConfig, TestSelectorSuppliers.String());
         } catch (ExtractionException e) {
             throw new RuntimeException(e);
         }

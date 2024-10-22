@@ -18,18 +18,18 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.emptyMap;
 
-import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -42,58 +42,60 @@ public class DataExtractorTest {
 
     static final String TEST_SCHEMA = "schema";
 
-    static ConnectorConfig avroConfig() {
-        return ConnectorConfigProvider.minimalWith(
-                "src/test/resources",
-                Map.of(
-                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc"));
-    }
-
-    static <K, V> DataExtractor<K, V> extractor(
-            Map<String, ExtractionExpression> expressions,
-            KeyValueSelectorSuppliers<K, V> suppliers)
+    private static DataExtractor<String, String> extractor(
+            String schemaName, Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
-        return DataExtractor.<K, V>builder()
-                .withSuppliers(suppliers)
-                .withSchemaName(TEST_SCHEMA)
+
+        return DataExtractor.<String, String>builder()
+                .withSuppliers(TestSelectorSuppliers.String())
+                .withSchemaName(schemaName)
                 .withExpressions(expressions)
                 .build();
+    }
+
+    @Test
+    public void shouldCreateEqualExtractors() throws ExtractionException {
+        DataExtractor<String, String> extractor1 =
+                extractor("prefix1", Map.of("aKey", Expression("KEY")));
+        assertThat(extractor1.equals(extractor1)).isTrue();
+
+        DataExtractor<String, String> extractor2 =
+                extractor("prefix1", Map.of("aKey", Expression("KEY")));
+        assertThat(extractor1.hashCode()).isEqualTo(extractor2.hashCode());
+        assertThat(extractor1.equals(extractor2)).isTrue();
     }
 
     static Stream<Arguments> stringExtractorArguments() {
         return Stream.of(
                 arguments(emptyMap(), Schema.empty(TEST_SCHEMA), emptyMap()),
                 arguments(
-                        Map.of("name", Expressions.expression("VALUE")),
+                        Map.of("name", Expressions.Expression("VALUE")),
                         Schema.from(TEST_SCHEMA, Set.of("name")),
                         Map.of("name", "aValue")),
                 arguments(
                         Map.of(
                                 "value",
-                                Expressions.expression("VALUE"),
+                                Expressions.Expression("VALUE"),
                                 "key",
-                                Expressions.expression("KEY")),
+                                Expressions.Expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value", "key")),
                         Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         Map.of(
                                 "value1",
-                                Expressions.expression("VALUE"),
+                                Expressions.Expression("VALUE"),
                                 "key1",
-                                Expressions.expression("KEY")),
+                                Expressions.Expression("KEY")),
                         Schema.from(TEST_SCHEMA, Set.of("value1", "key1")),
                         Map.of("key1", "aKey", "value1", "aValue")),
                 arguments(
                         Map.of(
                                 "timestamp",
-                                Expressions.expression("TIMESTAMP"),
+                                Expressions.Expression("TIMESTAMP"),
                                 "partition",
-                                Expressions.expression("PARTITION"),
+                                Expressions.Expression("PARTITION"),
                                 "topic",
-                                Expressions.expression("TOPIC")),
+                                Expressions.Expression("TOPIC")),
                         Schema.from(TEST_SCHEMA, Set.of("timestamp", "partition", "topic")),
                         Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")));
     }
@@ -101,12 +103,12 @@ public class DataExtractorTest {
     @ParameterizedTest
     @MethodSource("stringExtractorArguments")
     public void shouldCreateAndExtractValues(
+            String schemaName,
             Map<String, ExtractionExpression> expressions,
             Schema expectedSchema,
             Map<String, String> expectedValues)
             throws ExtractionException {
-        DataExtractor<String, String> extractor =
-                extractor(expressions, TestSelectorSuppliers.string());
+        DataExtractor<String, String> extractor = extractor(schemaName, expressions);
 
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 

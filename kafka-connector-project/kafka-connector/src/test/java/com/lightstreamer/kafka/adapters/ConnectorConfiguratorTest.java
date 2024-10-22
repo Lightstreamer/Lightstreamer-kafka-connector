@@ -18,25 +18,27 @@
 package com.lightstreamer.kafka.adapters;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.fasterxml.jackson.databind.deser.std.JsonNodeDeserializer;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
+import io.confluent.kafka.serializers.KafkaJsonDeserializer;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -46,34 +48,29 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class ConnectorConfiguratorTest {
 
-    static File adapterDir;
+    static File ADAPTER_DIR = new File("src/test/resources");
 
     static ConnectorConfigurator newConfigurator(Map<String, String> params) {
-        return new ConnectorConfigurator(params, adapterDir);
+        return new ConnectorConfigurator(params, ADAPTER_DIR);
     }
 
     static Map<String, String> basicParameters() {
         Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
+        adapterParams.put(BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
-        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        adapterParams.put(DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put("item-template.template1", "item1-#{partition=PARTITION}");
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
-    }
-
-    @BeforeEach
-    public void before() throws IOException {
-        adapterDir = Files.createTempDirectory("adapter_dir").toFile();
     }
 
     @Test
@@ -100,10 +97,12 @@ public class ConnectorConfiguratorTest {
 
         ItemTemplates<?, ?> itemTemplates = consumerTriggerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
-        assertThat(itemTemplates.extractors().map(s -> s.schema().name())).containsExactly("item1");
 
-        assertThat(consumerTriggerConfig.deserializers().keyDeserializer().getClass())
-                .isEqualTo(StringDeserializer.class);
+        Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
+        assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
+
+        KeyValueDeserializers<?, ?> deserializers = consumerTriggerConfig.deserializers();
+        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
         assertThat(consumerTriggerConfig.deserializers().valueDeserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
     }
@@ -121,22 +120,31 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerTriggerConfig<?, ?> loopConfig = configurator.configure();
+        ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
-        DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
-        assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
-                .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
-        assertThat(loopConfig.deserializers().keyDeserializer().getClass())
-                .isEqualTo(JsonNodeDeserializer.class);
-        assertThat(loopConfig.deserializers().valueDeserializer().getClass())
-                .isEqualTo(JsonNodeDeserializer.class);
+        Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
+        assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
+
+        Set<Schema> schemasForTopic2 = itemTemplates.getExtractorSchemasByTopicName("topic2");
+        assertThat(schemasForTopic2.stream().map(Schema::name)).containsExactly("item1");
+
+        Set<Schema> schemasForTopic3 = itemTemplates.getExtractorSchemasByTopicName("topic3");
+        assertThat(schemasForTopic3.stream().map(Schema::name))
+                .containsExactly("simple-item1", "simple-item2");
+
+        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
+        assertThat(deserializers.keyDeserializer().getClass())
+                .isEqualTo(KafkaJsonDeserializer.class);
+        assertThat(config.deserializers().valueDeserializer().getClass())
+                .isEqualTo(KafkaJsonDeserializer.class);
     }
 
     @Test
@@ -151,26 +159,35 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
-        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "test_schema.avsc");
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerTriggerConfig<?, ?> loopConfig = configurator.configure();
+        ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
-        DataExtractor<?, ?> fieldsExtractor = loopConfig.fieldsExtractor();
+        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = loopConfig.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
-        assertThat(itemTemplates.extractors().map(s -> s.schema().name()))
-                .containsExactly("item1", "item2", "simple-item1", "simple-item2");
 
-        assertThat(loopConfig.deserializers().keyDeserializer().getClass())
-                .isEqualTo(GenericRecordDeserializer.class);
-        assertThat(loopConfig.deserializers().valueDeserializer().getClass())
-                .isEqualTo(GenericRecordDeserializer.class);
+        Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
+        assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
+
+        Set<Schema> schemasForTopic2 = itemTemplates.getExtractorSchemasByTopicName("topic2");
+        assertThat(schemasForTopic2.stream().map(Schema::name)).containsExactly("item1");
+
+        Set<Schema> schemasForTopic3 = itemTemplates.getExtractorSchemasByTopicName("topic3");
+        assertThat(schemasForTopic3.stream().map(Schema::name))
+                .containsExactly("simple-item1", "simple-item2");
+
+        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
+        assertThat(deserializers.keyDeserializer().getClass().getSimpleName())
+                .isEqualTo("WrapperKafkaAvroDeserializer");
+        assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
+                .isEqualTo("GenericRecordLocalSchemaDeserializer");
     }
 
     @ParameterizedTest
@@ -180,7 +197,8 @@ public class ConnectorConfiguratorTest {
         Map<String, String> config = minimalConfigWith(Map.of(topicMappingParam, "item"));
         ConfigException e =
                 assertThrows(
-                        ConfigException.class, () -> new ConnectorConfigurator(config, adapterDir));
+                        ConfigException.class,
+                        () -> new ConnectorConfigurator(config, ADAPTER_DIR));
         assertThat(e.getMessage()).isEqualTo("Specify a valid parameter [map.<...>.to]");
     }
 

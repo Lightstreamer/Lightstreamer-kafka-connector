@@ -38,50 +38,7 @@ import org.apache.kafka.common.utils.Utils;
 import java.io.IOException;
 import java.util.Map;
 
-public class GenericRecordDeserializer {
-
-    // private Deserializer<?> deserializer;
-    // private final boolean isKey;
-
-    // GenericRecordDeserializer(ConnectorConfig config, boolean isKey) {
-    //     this.isKey = isKey;
-    //     if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-    //         deserializer = new GenericRecordLocalSchemaDeserializer(config, isKey);
-    //     } else {
-    //         if (isKey) {
-    //             if (config.isSchemaRegistryEnabledForKey()) {
-    //                 deserializer = new KafkaAvroDeserializer();
-    //             }
-    //         } else {
-    //             if (config.isSchemaRegistryEnabledForValue()) {
-    //                 deserializer = new KafkaAvroDeserializer();
-    //             }
-    //         }
-    //     }
-    //     if (deserializer == null) {
-    //         throw new ConfigException("No AVRO deserializer could be instantiated");
-    //     }
-    //     deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-    // }
-
-    // public boolean isKey() {
-    //     return isKey;
-    // }
-
-    // public String deserializerClassName() {
-    //     return deserializer.getClass().getName();
-    // }
-
-    // @Override
-    // public GenericRecord deserialize(String topic, byte[] data) {
-    //     GenericRecord deserialize = (GenericRecord) deserializer.deserialize(topic, data);
-    //     return deserialize;
-    // }
-
-    // @Override
-    // public void close() {
-    //     deserializer.close();
-    // }
+public class GenericRecordDeserializers {
 
     static class WrapperKafkaAvroDeserializer implements Deserializer<GenericRecord> {
 
@@ -161,30 +118,31 @@ public class GenericRecordDeserializer {
             return new WrapperKafkaAvroDeserializer();
         }
 
+        // Never happens
         throw new ConfigException("No AVRO deserializer could be instantiated");
     }
 
     private static void checkEvaluator(ConnectorConfig config, boolean isKey) {
-        if (isJsonKeyEvaluator(config, isKey)) {
+        if (isAvroKeyEvaluator(config, isKey)) {
             return;
         }
-        if (isJsonValueEvaluator(config, isKey)) {
+        if (isAvroValueEvaluator(config, isKey)) {
             return;
         }
         throw new IllegalArgumentException("Evaluator type is not AVRO");
     }
 
-    private static boolean isJsonValueEvaluator(ConnectorConfig config, boolean isKey) {
-        if (isKey) {
-            return false;
-        }
-        return config.getValueEvaluator().is(AVRO);
-    }
-
-    private static boolean isJsonKeyEvaluator(ConnectorConfig config, boolean isKey) {
+    private static boolean isAvroKeyEvaluator(ConnectorConfig config, boolean isKey) {
         if (!isKey) {
             return false;
         }
         return config.getKeyEvaluator().is(AVRO);
+    }
+
+    private static boolean isAvroValueEvaluator(ConnectorConfig config, boolean isKey) {
+        if (isKey) {
+            return false;
+        }
+        return config.getValueEvaluator().is(AVRO);
     }
 }

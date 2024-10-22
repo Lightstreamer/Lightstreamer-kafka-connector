@@ -25,11 +25,11 @@ public interface DataExtractor<K, V> {
 
     SchemaAndValues extractData(KafkaRecord<K, V> record);
 
-    SchemaAndValues extractData2_0(KafkaRecord<K, V> record);
+    // SchemaAndValues extractData2_0(KafkaRecord<K, V> record);
 
-    SchemaAndValues extractDataOld1_0(KafkaRecord<K, V> record);
+    // SchemaAndValues extractDataOld1_0(KafkaRecord<K, V> record);
 
-    SchemaAndValues extractDataOld1_1(KafkaRecord<K, V> record);
+    // SchemaAndValues extractDataOld1_1(KafkaRecord<K, V> record);
 
     Schema schema();
 

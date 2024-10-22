@@ -48,4 +48,8 @@ final record DefaultSchema(String name, Set<String> keys) implements Schema {
     public boolean matches(Schema other) {
         return this.equals(other);
     }
+
+    public String toString() {
+        return String.format("(%s-%s)", name(), keys());
+    }
 }

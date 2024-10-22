@@ -108,7 +108,7 @@ public class TopicConfigurations {
                 String templateName = entry.getKey();
                 String templateExpression = entry.getValue();
                 try {
-                    TemplateExpression te = Expressions.template(templateExpression);
+                    TemplateExpression te = Expressions.Template(templateExpression);
                     expressions.put(templateName, te);
                 } catch (ExpressionException e) {
                     String msg =

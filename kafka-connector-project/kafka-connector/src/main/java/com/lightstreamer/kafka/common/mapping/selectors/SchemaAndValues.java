@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 public interface SchemaAndValues {
 
@@ -29,9 +30,25 @@ public interface SchemaAndValues {
     default boolean matches(SchemaAndValues other) {
         return schema().matches(other.schema()) && values().equals(other.values());
     }
+
+    static SchemaAndValues from(Schema schema, Map<String, String> values) {
+        return new DefaultSchemaAndValues(schema, values);
+    }
+
+    static SchemaAndValues from(String schemNane, Map<String, String> values) {
+        Schema schema = Schema.from(schemNane, values.keySet());
+        return new DefaultSchemaAndValues(schema, values);
+    }
+
+    static SchemaAndValues nop() {
+        return DefaultSchemaAndValues.NOP;
+    }
 }
 
 class DefaultSchemaAndValues implements SchemaAndValues {
+
+    static Schema NOPSchema = new DefaultSchema("NOSCHEMA", Collections.emptySet());
+    static SchemaAndValues NOP = new DefaultSchemaAndValues(NOPSchema, Collections.emptyMap());
 
     private final Schema schema;
     private final Map<String, String> values;
@@ -49,5 +66,20 @@ class DefaultSchemaAndValues implements SchemaAndValues {
     @Override
     public Map<String, String> values() {
         return values;
+    }
+
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+
+        return obj instanceof SchemaAndValues other && this.matches(other);
+    }
+
+    public int hashCode() {
+        return Objects.hash(schema, values);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("(%s-<%s>)", schema.name(), values);
     }
 }

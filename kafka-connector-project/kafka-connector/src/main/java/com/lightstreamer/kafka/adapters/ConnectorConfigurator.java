@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier;
-import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier.KeyValueDeserializers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -33,7 +33,6 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.slf4j.Logger;
@@ -91,8 +90,7 @@ public class ConnectorConfigurator {
 
     public ConsumerTriggerConfig<?, ?> configure() throws ConfigException {
         try {
-            AdapterKeyValueSelectorSupplier<?, ?> sSuppliers = mkKeyValueSelectorSupplier(config);
-            return doConfigure(config, sSuppliers);
+            return doConfigure(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
             log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
@@ -100,14 +98,14 @@ public class ConnectorConfigurator {
     }
 
     private static <K, V> ConsumerTriggerConfigImpl<K, V> doConfigure(
-            ConnectorConfig config, AdapterKeyValueSelectorSupplier<K, V> sSuppliers)
+            ConnectorConfig config, WrapperKeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
 
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
 
-        ItemTemplates<K, V> itemTemplates = initItemTemplates(topicsConfig, sSuppliers);
+        ItemTemplates<K, V> itemTemplates = Items.templatesFrom(topicsConfig, sSuppliers);
         DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
 
         return new ConsumerTriggerConfigImpl<>(
@@ -120,13 +118,7 @@ public class ConnectorConfigurator {
                 config.getRecordConsumeFrom());
     }
 
-    private static <K, V> ItemTemplates<K, V> initItemTemplates(
-            TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> selected)
-            throws ExtractionException {
-        return Items.from(topicsConfig, selected);
-    }
-
-    private static AdapterKeyValueSelectorSupplier<?, ?> mkKeyValueSelectorSupplier(
+    private static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(
             ConnectorConfig config) {
         OthersSelectorSuppliers or = new OthersSelectorSuppliers(config);
         GenericRecordSelectorsSuppliers gr = new GenericRecordSelectorsSuppliers(config);
@@ -146,6 +138,6 @@ public class ConnectorConfigurator {
                     default -> or.makeValueSelectorSupplier();
                 };
 
-        return new AdapterKeyValueSelectorSupplier<>(keySelectorSupplier, valueSelectorSupplier);
+        return new WrapperKeyValueSelectorSuppliers<>(keySelectorSupplier, valueSelectorSupplier);
     }
 }

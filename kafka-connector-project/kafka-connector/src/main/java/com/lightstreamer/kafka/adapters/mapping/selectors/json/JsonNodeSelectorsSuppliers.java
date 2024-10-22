@@ -92,11 +92,11 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         private final Deserializer<JsonNode> deseralizer;
 
         JsonNodeKeySelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = JsonNodeDeserializer.KeyDeserializer(config);
+            this.deseralizer = JsonNodeDeserializers.KeyDeserializer(config);
         }
 
         JsonNodeKeySelectorSupplier() {
-            this.deseralizer = JsonNodeDeserializer.KeyDeserializer();
+            this.deseralizer = JsonNodeDeserializers.KeyDeserializer();
         }
 
         @Override
@@ -131,11 +131,11 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         private final Deserializer<JsonNode> deseralizer;
 
         JsonNodeValueSelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = JsonNodeDeserializer.ValueDeserializer(config);
+            this.deseralizer = JsonNodeDeserializers.ValueDeserializer(config);
         }
 
         JsonNodeValueSelectorSupplier() {
-            this.deseralizer = JsonNodeDeserializer.ValueDeserializer();
+            this.deseralizer = JsonNodeDeserializers.ValueDeserializer();
         }
 
         @Override

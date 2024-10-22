@@ -79,19 +79,16 @@ public class RecordConsumerTest {
     private static RecordMapper<String, String> newRecordMapper(
             ConsumerTriggerConfig<String, String> config) {
         return RecordMapper.<String, String>builder()
-                .withExtractor(config.itemTemplates().extractors())
-                .withExtractor(config.fieldsExtractor())
+                .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
 
     private static Logger logger = LogFactory.getLogger("connection");
 
     private RecordConsumer<String, String> recordConsumer;
-
     private ConsumerTriggerConfig<String, String> config;
-
     private RecordMapper<String, String> recordMapper;
-
     private Set<SubscribedItem> subscriptions;
 
     @SuppressWarnings("unchecked")
@@ -120,8 +117,6 @@ public class RecordConsumerTest {
             ItemEventListener listener, int threads, OrderStrategy orederStrategy) {
 
         return RecordConsumer.<String, String>recordMapper(recordMapper)
-                .itemTemplates(config.itemTemplates())
-                .fieldsExtractor(config.fieldsExtractor())
                 .subscribedItems(subscriptions)
                 .eventListener(listener)
                 .offsetService(new FakeOffsetService())
@@ -262,8 +257,6 @@ public class RecordConsumerTest {
 
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
-                        .itemTemplates(config.itemTemplates())
-                        .fieldsExtractor(config.fieldsExtractor())
                         .subscribedItems(subscriptions)
                         .eventListener(listener)
                         .offsetService(offsetService)
@@ -288,8 +281,6 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.templates).isSameInstanceAs(config.itemTemplates());
-        assertThat(recordProcessor.fieldsExtractor).isSameInstanceAs(config.fieldsExtractor());
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.log).isSameInstanceAs(logger);
@@ -338,8 +329,6 @@ public class RecordConsumerTest {
 
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
-                        .itemTemplates(config.itemTemplates())
-                        .fieldsExtractor(config.fieldsExtractor())
                         .subscribedItems(subscriptions)
                         .eventListener(listener)
                         .offsetService(offsetService)
@@ -367,8 +356,6 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.templates).isSameInstanceAs(config.itemTemplates());
-        assertThat(recordProcessor.fieldsExtractor).isSameInstanceAs(config.fieldsExtractor());
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.log).isSameInstanceAs(logger);
@@ -412,8 +399,6 @@ public class RecordConsumerTest {
 
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
-                        .itemTemplates(config.itemTemplates())
-                        .fieldsExtractor(config.fieldsExtractor())
                         .subscribedItems(subscriptions)
                         .eventListener(listener)
                         .offsetService(offsetService)
@@ -437,8 +422,6 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) monoThreadedConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.templates).isSameInstanceAs(config.itemTemplates());
-        assertThat(recordProcessor.fieldsExtractor).isSameInstanceAs(config.fieldsExtractor());
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.log).isSameInstanceAs(logger);
@@ -476,8 +459,6 @@ public class RecordConsumerTest {
                 NullPointerException.class,
                 () -> {
                     RecordConsumer.<String, String>recordMapper(recordMapper)
-                            .itemTemplates(config.itemTemplates())
-                            .fieldsExtractor(config.fieldsExtractor())
                             .subscribedItems(subscriptions)
                             .eventListener(null)
                             .offsetService(new FakeOffsetService())
@@ -489,8 +470,6 @@ public class RecordConsumerTest {
                 NullPointerException.class,
                 () -> {
                     RecordConsumer.<String, String>recordMapper(null)
-                            .itemTemplates(config.itemTemplates())
-                            .fieldsExtractor(config.fieldsExtractor())
                             .subscribedItems(subscriptions)
                             .eventListener(new FakteItemEventListener())
                             .offsetService(new FakeOffsetService())
@@ -502,8 +481,6 @@ public class RecordConsumerTest {
                 NullPointerException.class,
                 () -> {
                     RecordConsumer.<String, String>recordMapper(recordMapper)
-                            .itemTemplates(config.itemTemplates())
-                            .fieldsExtractor(config.fieldsExtractor())
                             .subscribedItems(subscriptions)
                             .eventListener(new FakteItemEventListener())
                             .offsetService(new FakeOffsetService())
@@ -539,8 +516,6 @@ public class RecordConsumerTest {
                         IllegalArgumentException.class,
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .itemTemplates(config.itemTemplates())
-                                    .fieldsExtractor(config.fieldsExtractor())
                                     .subscribedItems(subscriptions)
                                     .eventListener(new FakteItemEventListener())
                                     .offsetService(new FakeOffsetService())

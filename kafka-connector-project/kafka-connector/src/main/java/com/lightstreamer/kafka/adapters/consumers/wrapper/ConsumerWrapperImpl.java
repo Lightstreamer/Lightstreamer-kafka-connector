@@ -70,8 +70,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withExtractor(config.itemTemplates().extractors())
-                        .withExtractor(config.fieldsExtractor())
+                        .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                        .withFieldExtractor(config.fieldsExtractor())
                         .build();
         String bootStrapServers =
                 config.consumerProperties().getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
@@ -88,8 +88,6 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         // the configured number of threads.
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
-                        .itemTemplates(config.itemTemplates())
-                        .fieldsExtractor(config.fieldsExtractor())
                         .subscribedItems(subscribedItems)
                         .eventListener(eventListener)
                         .offsetService(offsetService)

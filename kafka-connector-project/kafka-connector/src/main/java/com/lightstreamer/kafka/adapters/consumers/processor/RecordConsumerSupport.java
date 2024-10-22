@@ -25,16 +25,12 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WihtOffsetService;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithFieldsExtractor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithItemTemplates;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
@@ -83,8 +79,6 @@ class RecordConsumerSupport {
     static class StartBuildingProcessorBuilderImpl<K, V> implements StartBuildingProcessor<K, V> {
 
         protected RecordMapper<K, V> mapper;
-        protected ItemTemplates<K, V> templates;
-        protected DataExtractor<K, V> fieldsExtractor;
         protected Collection<SubscribedItem> subscribed;
         protected ItemEventListener listener;
 
@@ -93,38 +87,10 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WithItemTemplates<K, V> itemTemplates(ItemTemplates<K, V> templates) {
-            this.templates = templates;
-            return new WithItemTemplatesImpl<>(this);
-        }
-    }
-
-    static class WithItemTemplatesImpl<K, V> implements WithItemTemplates<K, V> {
-
-        final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
-
-        WithItemTemplatesImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
-            this.parentBuilder = b;
-        }
-
-        @Override
-        public WithFieldsExtractor<K, V> fieldsExtractor(DataExtractor<K, V> fieldsExtractor) {
-            this.parentBuilder.fieldsExtractor = fieldsExtractor;
-            return new WithDataExtractorImpl<>(parentBuilder);
-        }
-    }
-
-    static class WithDataExtractorImpl<K, V> implements WithFieldsExtractor<K, V> {
-        final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
-
-        WithDataExtractorImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
-            this.parentBuilder = b;
-        }
-
         public WithSubscribedItems<K, V> subscribedItems(
                 Collection<SubscribedItem> subscribedItems) {
-            this.parentBuilder.subscribed = subscribedItems;
-            return new WithSubscribedItemsImpl<>(parentBuilder);
+            this.subscribed = subscribedItems;
+            return new WithSubscribedItemsImpl<>(this);
         }
     }
 
@@ -139,15 +105,11 @@ class RecordConsumerSupport {
         public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
             this.parentBuilder.listener = listener;
             Objects.requireNonNull(this.parentBuilder.mapper);
-            Objects.requireNonNull(this.parentBuilder.templates);
-            Objects.requireNonNull(this.parentBuilder.fieldsExtractor);
             Objects.requireNonNull(this.parentBuilder.subscribed);
             Objects.requireNonNull(this.parentBuilder.listener);
             RecordProcessor<K, V> recordProcessor =
                     new DefaultRecordProcessor<>(
                             this.parentBuilder.mapper,
-                            this.parentBuilder.templates,
-                            this.parentBuilder.fieldsExtractor,
                             this.parentBuilder.subscribed,
                             this.parentBuilder.listener);
             return new StartBuildingConsumerImpl<>(recordProcessor);
@@ -227,21 +189,15 @@ class RecordConsumerSupport {
     static class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V> {
 
         protected final RecordMapper<K, V> recordMapper;
-        protected final ItemTemplates<K, V> templates;
-        protected final DataExtractor<K, V> fieldsExtractor;
         protected final Collection<SubscribedItem> subscribedItems;
         protected final ItemEventListener listener;
         protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
-                ItemTemplates<K, V> templates,
-                DataExtractor<K, V> fieldsExtractor,
                 Collection<SubscribedItem> subscribedItems,
                 ItemEventListener listener) {
             this.recordMapper = recordMapper;
-            this.templates = templates;
-            this.fieldsExtractor = fieldsExtractor;
             this.subscribedItems = subscribedItems;
             this.listener = listener;
         }
@@ -262,10 +218,10 @@ class RecordConsumerSupport {
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log("Mapped Kafka record");
 
-            Set<SubscribedItem> routables = templates.routes(mappedRecord, subscribedItems);
+            Set<SubscribedItem> routables = mappedRecord.route(subscribedItems);
 
             log.atDebug().log("Filtering updates");
-            Map<String, String> updates = mappedRecord.filterByFields();
+            Map<String, String> updates = mappedRecord.fieldsMap();
 
             for (SubscribedItem sub : routables) {
                 log.atDebug().log("Sending updates: {}", updates);

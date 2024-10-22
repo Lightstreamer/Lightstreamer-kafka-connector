@@ -760,11 +760,11 @@ public class ConnectorConfigTest {
 
         TemplateExpression te1 = templateConfigs.getExpression("template1");
         assertThat(te1.prefix()).isEqualTo("item1");
-        assertThat(te1.params()).containsExactly("param1", Expressions.expression("VALUE.value1"));
+        assertThat(te1.params()).containsExactly("param1", Expressions.Expression("VALUE.value1"));
 
         TemplateExpression te2 = templateConfigs.getExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
-        assertThat(te2.params()).containsExactly("param2", Expressions.expression("VALUE.value2"));
+        assertThat(te2.params()).containsExactly("param2", Expressions.Expression("VALUE.value2"));
     }
 
     @Test

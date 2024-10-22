@@ -23,11 +23,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-/**
- * The interface for wrapping a key selector supplier and a value selector supplier for the given
- * data type.
- */
-public class AdapterKeyValueSelectorSupplier<K, V> implements KeyValueSelectorSuppliers<K, V> {
+/** Default implementation of the {@code KeyValueSelectorSuppliers} interface. */
+public class WrapperKeyValueSelectorSuppliers<K, V> implements KeyValueSelectorSuppliers<K, V> {
 
     public interface KeyValueDeserializers<K, V> {
 
@@ -61,7 +58,7 @@ public class AdapterKeyValueSelectorSupplier<K, V> implements KeyValueSelectorSu
     protected final ValueSelectorSupplier<V> valueSelectorSupplier;
     private final KeyValueDeserializers<K, V> deserializers;
 
-    public AdapterKeyValueSelectorSupplier(
+    public WrapperKeyValueSelectorSuppliers(
             KeySelectorSupplier<K> keySelectorSupplier,
             ValueSelectorSupplier<V> valueSelectorSupplier) {
         this.keySelectorSupplier = keySelectorSupplier;

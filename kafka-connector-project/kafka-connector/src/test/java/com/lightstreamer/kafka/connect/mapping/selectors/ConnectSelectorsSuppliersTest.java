@@ -88,13 +88,13 @@ public class ConnectSelectorsSuppliersTest {
     ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
         return connectSelectorsSuppliers
                 .valueSelectorSupplier()
-                .newSelector("name", Expressions.expression(expression));
+                .newSelector("name", Expressions.Expression(expression));
     }
 
     KeySelector<Object> keySelector(String expression) throws ExtractionException {
         return connectSelectorsSuppliers
                 .keySelectorSupplier()
-                .newSelector("name", Expressions.expression(expression));
+                .newSelector("name", Expressions.Expression(expression));
     }
 
     @BeforeEach

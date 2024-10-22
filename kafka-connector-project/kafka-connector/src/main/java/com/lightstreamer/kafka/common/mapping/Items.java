@@ -17,6 +17,10 @@
 
 package com.lightstreamer.kafka.common.mapping;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
+
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
@@ -24,7 +28,6 @@ import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
@@ -32,16 +35,12 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Items {
 
@@ -52,20 +51,15 @@ public class Items {
         Object itemHandle();
     }
 
-    public interface ItemTemplates<K, V> extends Iterable<ItemTemplate<K, V>> {
-
-        Stream<Item> expand(MappedRecord record);
+    public interface ItemTemplates<K, V> {
 
         boolean matches(Item item);
 
-        Stream<DataExtractor<K, V>> extractors();
-
         Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName();
 
-        Set<String> topics();
+        Set<Schema> getExtractorSchemasByTopicName(String topic);
 
-        public Set<SubscribedItem> routes(
-                MappedRecord record, Collection<? extends SubscribedItem> subscribed);
+        Set<String> topics();
     }
 
     public static class DefaultItem implements Item {
@@ -150,7 +144,7 @@ public class Items {
         }
     }
 
-    public static class ItemTemplate<K, V> {
+    private static class ItemTemplate<K, V> {
 
         private final Schema schema;
         private final String topic;
@@ -164,15 +158,6 @@ public class Items {
 
         public boolean matches(Item item) {
             return schema.matches(item.schema());
-        }
-
-        Optional<Item> expand(MappedRecord record) {
-            // if (record.topic().equals(this.topic)) {
-            //     Map<String, String> values = record.filter(extractor);
-            //     return Optional.of(new DefaultItem(schema.name(), values));
-            // }
-
-            return Optional.empty();
         }
 
         DataExtractor<K, V> selectors() {
@@ -193,48 +178,34 @@ public class Items {
         }
 
         @Override
-        public Stream<Item> expand(MappedRecord record) {
-            return templates.stream()
-                    .flatMap(template -> template.expand(record).stream())
-                    .distinct();
-        }
-
-        @Override
-        public Set<SubscribedItem> routes(
-                MappedRecord record, Collection<? extends SubscribedItem> subscribed) {
-            return subscribed.stream()
-                    .filter(sItem -> expand(record).anyMatch(eItem -> eItem.matches(sItem)))
-                    .collect(Collectors.toSet());
-        }
-
-        @Override
         public boolean matches(Item item) {
             return templates.stream().anyMatch(i -> i.matches(item));
-        }
-
-        @Override
-        public Stream<DataExtractor<K, V>> extractors() {
-            return templates.stream().map(ItemTemplate::selectors).distinct();
         }
 
         @Override
         public Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName() {
             return templates.stream()
                     .collect(
-                            Collectors.groupingBy(
-                                    i -> i.topic(),
-                                    Collectors.mapping(
-                                            ItemTemplate::selectors, Collectors.toSet())));
+                            groupingBy(
+                                    ItemTemplate::topic,
+                                    mapping(ItemTemplate::selectors, toSet())));
         }
 
         @Override
         public Set<String> topics() {
-            return templates.stream().map(ItemTemplate::topic).collect(Collectors.toSet());
+            return templates.stream().map(ItemTemplate::topic).collect(toSet());
         }
 
         @Override
-        public Iterator<ItemTemplate<K, V>> iterator() {
-            return templates.iterator();
+        public Set<Schema> getExtractorSchemasByTopicName(String topic) {
+            return extractorsByTopicName().getOrDefault(topic, Collections.emptySet()).stream()
+                    .map(DataExtractor::schema)
+                    .collect(toSet());
+        }
+
+        @Override
+        public String toString() {
+            return templates.stream().map(Object::toString).collect(Collectors.joining(","));
         }
     }
 
@@ -244,7 +215,7 @@ public class Items {
 
     public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
             throws ExpressionException {
-        SubscriptionExpression result = Expressions.subscription(input);
+        SubscriptionExpression result = Expressions.Subscription(input);
         return subscribedFrom(itemHandle, result.prefix(), result.params());
     }
 
@@ -253,11 +224,11 @@ public class Items {
         return new DefaultSubscribedItem(itemHandle, prefix, values);
     }
 
-    public static Item from(String prefix, Map<String, String> values) {
+    public static Item itemFrom(String prefix, Map<String, String> values) {
         return new DefaultItem(prefix, values);
     }
 
-    public static <K, V> ItemTemplates<K, V> from(
+    public static <K, V> ItemTemplates<K, V> templatesFrom(
             TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();

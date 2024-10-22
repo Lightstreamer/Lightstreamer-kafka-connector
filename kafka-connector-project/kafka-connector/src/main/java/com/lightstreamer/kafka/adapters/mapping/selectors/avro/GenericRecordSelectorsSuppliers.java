@@ -189,7 +189,7 @@ public class GenericRecordSelectorsSuppliers
         private final Deserializer<GenericRecord> deserializer;
 
         GenericRecordKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = GenericRecordDeserializer.KeyDeserializer(config);
+            this.deserializer = GenericRecordDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -225,7 +225,7 @@ public class GenericRecordSelectorsSuppliers
         private final Deserializer<GenericRecord> deseralizer;
 
         GenericRecordValueSelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = GenericRecordDeserializer.KeyDeserializer(config);
+            this.deseralizer = GenericRecordDeserializers.ValueDeserializer(config);
         }
 
         @Override

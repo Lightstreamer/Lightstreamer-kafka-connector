@@ -42,7 +42,7 @@ public class FieldConfigsTest {
     void shoudCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<String, String> extractor = configs.extractor(TestSelectorSuppliers.string());
+        DataExtractor<String, String> extractor = configs.extractor(TestSelectorSuppliers.String());
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
@@ -55,7 +55,7 @@ public class FieldConfigsTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> configs.extractor(TestSelectorSuppliers.string()));
+                        () -> configs.extractor(TestSelectorSuppliers.String()));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values while evaluating [field1]");
@@ -75,7 +75,7 @@ public class FieldConfigsTest {
             throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<Object, Object> extractor = configs.extractor(TestSelectorSuppliers.object());
+        DataExtractor<Object, Object> extractor = configs.extractor(TestSelectorSuppliers.Object());
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());

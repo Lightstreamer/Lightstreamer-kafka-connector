@@ -20,10 +20,8 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -61,16 +59,6 @@ public interface RecordConsumer<K, V> {
     }
 
     public interface StartBuildingProcessor<K, V> {
-
-        WithItemTemplates<K, V> itemTemplates(ItemTemplates<K, V> templates);
-    }
-
-    interface WithItemTemplates<K, V> {
-
-        WithFieldsExtractor<K, V> fieldsExtractor(DataExtractor<K, V> fieldsExtractor);
-    }
-
-    interface WithFieldsExtractor<K, V> {
 
         WithSubscribedItems<K, V> subscribedItems(Collection<SubscribedItem> subscribedItems);
     }

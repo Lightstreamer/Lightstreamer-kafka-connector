@@ -37,7 +37,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-class JsonNodeDeserializer {
+class JsonNodeDeserializers {
 
     static class JsonNodeLocalDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
@@ -124,17 +124,17 @@ class JsonNodeDeserializer {
         throw new IllegalArgumentException("Evaluator type is not JSON");
     }
 
-    private static boolean isJsonValueEvaluator(ConnectorConfig config, boolean isKey) {
-        if (isKey) {
-            return false;
-        }
-        return config.getValueEvaluator().is(JSON);
-    }
-
     private static boolean isJsonKeyEvaluator(ConnectorConfig config, boolean isKey) {
         if (!isKey) {
             return false;
         }
         return config.getKeyEvaluator().is(JSON);
+    }
+
+    private static boolean isJsonValueEvaluator(ConnectorConfig config, boolean isKey) {
+        if (isKey) {
+            return false;
+        }
+        return config.getValueEvaluator().is(JSON);
     }
 }

@@ -18,14 +18,21 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromKey;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromValue;
 import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.RECORD;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -44,40 +51,91 @@ import java.util.Map;
 
 public class GenericRecordSelectorTest {
 
-    static ConnectorConfig config() {
-        return ConnectorConfigProvider.minimalWith(
-                "src/test/resources",
-                Map.of(
-                        ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc"));
-    }
+    static ConnectorConfig CONFIG =
+            ConnectorConfigProvider.minimalWith(
+                    "src/test/resources",
+                    Map.of(
+                            RECORD_KEY_EVALUATOR_TYPE,
+                            AVRO.toString(),
+                            RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                            "value.avsc",
+                            RECORD_VALUE_EVALUATOR_TYPE,
+                            AVRO.toString(),
+                            RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                            "value.avsc"));
 
     static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
             throws ExtractionException {
-        return new GenericRecordSelectorsSuppliers(config())
+        return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
                 .newSelector("name", expression);
     }
 
     static KeySelector<GenericRecord> keySelector(ExtractionExpression expression)
             throws ExtractionException {
-        return new GenericRecordSelectorsSuppliers(config())
+        return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
                 .newSelector("name", expression);
     }
 
     @Test
+    public void shouldMakeKeySelectorSupplier() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        "src/test/resources",
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                "value.avsc"));
+        GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
+        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+    }
+
+    @Test
+    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
+        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not AVRO");
+    }
+
+    @Test
+    public void shouldMakeValueSelectorSupplier() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        "src/test/resources",
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                "value.avsc"));
+        GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
+        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+    }
+
+    @Test
+    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
+        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not AVRO");
+    }
+
+    @Test
     public void shouldGetDeserializer() {
-        GenericRecordSelectorsSuppliers gs = new GenericRecordSelectorsSuppliers(config());
-        Deserializer<GenericRecord> keyDeserializer = gs.makeKeySelectorSupplier().deseralizer();
-        assertThat(keyDeserializer).isInstanceOf(GenericRecordDeserializer.class);
+        Deserializer<GenericRecord> keyDeserializer =
+                new GenericRecordSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deseralizer();
+        assertThat(keyDeserializer).isInstanceOf(GenericRecordLocalSchemaDeserializer.class);
         // assertThat(GenericRecordDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
         Deserializer<GenericRecord> valueDeserializer =
-                gs.makeValueSelectorSupplier().deseralizer();
-        assertThat(valueDeserializer).isInstanceOf(GenericRecordDeserializer.class);
+                new GenericRecordSelectorsSuppliers(CONFIG)
+                        .makeValueSelectorSupplier()
+                        .deseralizer();
+        assertThat(valueDeserializer).isInstanceOf(GenericRecordLocalSchemaDeserializer.class);
         // assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
 
@@ -107,7 +165,7 @@ public class GenericRecordSelectorTest {
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
                 assertThat(valueSelector(expression).extractValue(fromValue(RECORD)).text());
         if (expected.equals("NULL")) {
@@ -139,7 +197,7 @@ public class GenericRecordSelectorTest {
                         VALUE.type.attrib,            Field [attrib] not found
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -172,7 +230,7 @@ public class GenericRecordSelectorTest {
                         KEY.children[1].children[1]['name']  |  terence
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
                 assertThat(keySelector(expression).extractKey(fromKey(RECORD)).text());
         if (expected.equals("NULL")) {
@@ -203,7 +261,7 @@ public class GenericRecordSelectorTest {
                         KEY.type.attrib,            Field [attrib] not found
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -225,7 +283,7 @@ public class GenericRecordSelectorTest {
                         VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
@@ -245,7 +303,7 @@ public class GenericRecordSelectorTest {
                         KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);

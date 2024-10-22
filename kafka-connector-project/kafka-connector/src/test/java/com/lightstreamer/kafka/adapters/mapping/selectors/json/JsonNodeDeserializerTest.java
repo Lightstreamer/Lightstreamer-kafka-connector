@@ -31,7 +31,7 @@ import static org.junit.Assert.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializer.JsonNodeLocalDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeLocalDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -42,12 +42,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 public class JsonNodeDeserializerTest {
+
+    private static final String SCHEMA_FOLDER = "src/test/resources";
+    private static final String TEST_SCHEMA_FILE = "flights.json";
 
     @Test
     public void shouldDeserializeWithNoSchema() {
@@ -55,22 +55,21 @@ public class JsonNodeDeserializerTest {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.ValueDeserializer(config)) {
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
             deser.deserialize("topic", s.getBytes());
         }
     }
 
     @Test
     public void shouldDeserializeWithLocalSchema() {
-        Path adapterDir = Paths.get("src/test/resources");
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        adapterDir.toString(),
+                        SCHEMA_FOLDER,
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
-                                ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                "flights.json"));
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         String flight =
                 """
@@ -82,7 +81,8 @@ public class JsonNodeDeserializerTest {
             "terminal": 1
           }
                 """;
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
             JsonNode node = deserializer.deserialize("topic", flight.getBytes());
             assertThat(node.get("airline").asText()).isEqualTo("Lightstreamer Airlines");
             assertThat(node.get("code").asText()).isEqualTo("LA1704");
@@ -93,16 +93,15 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldNotDeserializeWithLocalSchemaDueToInvalidSchema() {
-        Path adapterDir = Paths.get("src/test/resources");
+    public void shouldNotDeserializeWithLocalSchemaDueToInvalidRecord() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        adapterDir.toString(),
+                        SCHEMA_FOLDER,
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
-                                ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                "flights.json"));
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
         // Missing required 'terminal' key
         String flight =
@@ -114,7 +113,7 @@ public class JsonNodeDeserializerTest {
             "status": "SCHEDULED_ON_TIME"
           }
                 """;
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.ValueDeserializer(config)) {
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
             SerializationException se =
                     assertThrows(
                             SerializationException.class,
@@ -132,231 +131,216 @@ public class JsonNodeDeserializerTest {
                                 JSON.toString(),
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString()));
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonDeserializer.class);
         }
     }
 
     @Test
     public void shouldGeKeyDeserializerWithSchemaRegistry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetValueDeserializerWithSchemaRegsitry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyAndVaueDeserializeWithSchemaRegisstry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
-        ConnectorConfig config = ConnectorConfigProvider.minimalWith(otherConfigs);
-
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
-        Path adapterDir = Files.createTempDirectory("adapter_dir");
-        Path keySchemaFile = Files.createTempFile(adapterDir, "key_schema_", "json");
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        keySchemaFile.toFile().getName());
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetValueDeserializerWithLocalSchema() throws IOException {
-        Path adapterDir = Files.createTempDirectory("adapter_dir");
-        Path valueSchemaFile = Files.createTempFile(adapterDir, "value_schema_", "json");
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        valueSchemaFile.toFile().getName());
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(adapterDir.toString(), otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "flights.json",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "flights.json");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
     }
 
     @Test
     public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "flights.json",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
     }
 
     @Test
     public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "flights.json",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
 
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deser = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deser.getClass().getName())
-                    .isEqualTo(KafkaJsonSchemaDeserializer.class.getName());
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
     }
 
     @Test
     public void shouldDeserializazionWithLocalSchemaTakePrecedenceOverSchemaRegistry()
             throws IOException {
-        Map<String, String> otherConfigs =
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "flights.json",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true",
-                        SchemaRegistryConfigs.URL,
-                        "http://localhost:8080",
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "flights.json");
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith("src/test/resources", otherConfigs);
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
 
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializer.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass().getName())
-                    .isEqualTo(JsonNodeLocalDeserializer.class.getName());
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
         }
     }
 }

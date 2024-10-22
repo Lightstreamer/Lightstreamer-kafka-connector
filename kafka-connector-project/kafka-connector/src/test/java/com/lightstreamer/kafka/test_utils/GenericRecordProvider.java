@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorTest;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -32,24 +30,21 @@ import java.util.Map;
 public class GenericRecordProvider {
 
     private final Schema valueSchema;
-
     private final Schema childrenSchema;
 
     private GenericRecordProvider() {
-        ClassLoader classLoader = GenericRecordSelectorTest.class.getClassLoader();
+        ClassLoader classLoader = GenericRecordProvider.class.getClassLoader();
         Schema.Parser parser = new Schema.Parser();
 
         try {
             valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
             childrenSchema = valueSchema.getField("children").schema();
-
         } catch (IOException io) {
             throw new RuntimeException(io);
         }
     }
 
     private static GenericRecordProvider PROVIDER = new GenericRecordProvider();
-
     public static GenericRecord RECORD = PROVIDER.newGenericRecord();
 
     private GenericRecord newGenericRecord() {

@@ -17,10 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 
+import static com.lightstreamer.kafka.common.expressions.Constant.KEY;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.mapping.selectors.AdapterKeyValueSelectorSupplier;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
@@ -50,24 +52,10 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
     private static class BaseOthersSelectorSupplier<T> {
         protected final Deserializer<T> deseralizer;
-        private final ConstantSelectorSupplier constantSelectorSupplier;
 
         @SuppressWarnings("unchecked")
         BaseOthersSelectorSupplier(EvaluatorType type, Class<T> klass, Constant constant) {
             this.deseralizer = (Deserializer<T>) DESERIALIAZERS.get(type);
-            this.constantSelectorSupplier = new ConstantSelectorSupplier(constant);
-        }
-
-        @SuppressWarnings("unchecked")
-        public KeySelector<T> newKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            return (KeySelector<T>) constantSelectorSupplier.newKeySelector(name, expression);
-        }
-
-        @SuppressWarnings("unchecked")
-        public ValueSelector<T> newValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            return (ValueSelector<T>) constantSelectorSupplier.newValueSelector(name, expression);
         }
 
         public Deserializer<T> deseralizer() {
@@ -78,28 +66,36 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
     private static class OthersKeySelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
             implements KeySelectorSupplier<T> {
 
+        private final ConstantSelectorSupplier constantSelectorSupplier =
+                ConstantSelectorSupplier.KeySelector();
+
         OthersKeySelectorSupplier(EvaluatorType type, Class<T> klass) {
-            super(type, klass, Constant.KEY);
+            super(type, klass, KEY);
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public KeySelector<T> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return newKeySelector(name, expression);
+            return (KeySelector<T>) constantSelectorSupplier.newSelector(name, expression);
         }
     }
 
     private static class OthersValueSelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
             implements ValueSelectorSupplier<T> {
 
+        private final ConstantSelectorSupplier selectorSupplier =
+                ConstantSelectorSupplier.ValueSelector();
+
         OthersValueSelectorSupplier(EvaluatorType type, Class<T> klass) {
             super(type, klass, Constant.VALUE);
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public ValueSelector<T> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return newValueSelector(name, expression);
+            return (ValueSelector<T>) selectorSupplier.newSelector(name, expression);
         }
     }
 
@@ -136,6 +132,14 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         this.valueEvaluatorType = valueType;
     }
 
+    public EvaluatorType keyEvaluatorType() {
+        return keyEvaluatorType;
+    }
+
+    public EvaluatorType valueEvaluatorType() {
+        return valueEvaluatorType;
+    }
+
     @Override
     public KeySelectorSupplier<Object> makeKeySelectorSupplier() {
         return new OthersKeySelectorSupplier<>(keyEvaluatorType, Object.class);
@@ -163,6 +167,6 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
     }
 
     public static KeyValueSelectorSuppliers<String, String> String() {
-        return new AdapterKeyValueSelectorSupplier<>(StringKey(), StringValue());
+        return new WrapperKeyValueSelectorSuppliers<>(StringKey(), StringValue());
     }
 }
