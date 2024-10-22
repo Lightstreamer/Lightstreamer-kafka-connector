@@ -4,24 +4,24 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
-- new `schema-registry` service, pulled from the mentioned Docker image and configured with security settings
+- New `schema-registry` service, pulled from the mentioned Docker image and configured with security settings.
 - _kafka-connector_:
 
-  adaption of [`adapters.xml`](./adapters.xml) to include:
-  - enabling of the Schema Registry:
+  Adaption of [`adapters.xml`](./adapters.xml) to include:
+  - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
-  - configuration of the target Schema Registry URL:
+  - Configuration of the target Schema Registry URL:
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
-  - configuration of the trust store to authenticate the Schema Registry.
+  - Configuration of the trust store to authenticate the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
     <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-  - configuration of the key store for client authentication with the Schema Registry.
+  - Configuration of the key store for client authentication with the Schema Registry.
     ```xml
     <param name="schema.registry.encryption.keystore.enable">true</param>
     <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
@@ -30,7 +30,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     ```
 - _producer_:
 
-   extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
+   Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
     
    ```yaml
    ...
@@ -47,10 +47,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
    schema.registry.ssl.key.password=producer-private-key-password
    ```  
 
-In addition, the `schema-registry` service references the local [`secrets/schema-registry`](./secrets/schema-registry/) folder to retrieve its secrets:
+In addition, the `schema-registry` service references the local [`secrets/schema-registry`](./secrets/schema-registry/) folder to retrieve the following secrets:
 
-- the trust store file [`schema-registry.truststore.jks`](./secrets/schema-registry/schema-registry.truststore.jks);
-- the key store file [`schema-registry.keystore.jks`](./secrets/schema-registry/schema-registry.keystore.jks);
+- The trust store file [`schema-registry.truststore.jks`](./secrets/schema-registry/schema-registry.truststore.jks)
+- The key store file [`schema-registry.keystore.jks`](./secrets/schema-registry/schema-registry.keystore.jks)
 
 You can regenerate all of them with:
 
