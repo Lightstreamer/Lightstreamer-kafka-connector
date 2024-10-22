@@ -895,7 +895,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO`_ and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
 Examples:
 
@@ -1529,7 +1529,7 @@ The Kafka Connect Lightstreamer Sink Connector configuration properties are desc
 To use the connector, specify the following setting:
 `connector.class=com.lightstreamer.kafka.connect.LightstreamerSinkConnector`
 
-#### `tasks.max`
+### `tasks.max`
 
 Due to the one-to-one relationship between a Proxy Adapter instance (deployed into the Lightstreamer server) and a Remote Adapter instance (a task), configuring more than one task in the `tasks.max` configuration parameter is pointless.
 
