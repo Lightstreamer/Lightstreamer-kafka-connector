@@ -44,7 +44,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     ```
 
 - _producer_:
-  - Setting of the parameter `--bootstrap-servers` to the new SSL endpoint (`broker:29094`)
+  - Update of the parameter `--bootstrap-servers` to the new SSL endpoint (`broker:29094`)
   - Provisioning of the `producer.properties` configuration file to enable SSL support:
     ```yaml
     # Enable SSL
