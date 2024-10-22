@@ -1,7 +1,7 @@
-<img src="/pictures/lightstreamer.png" width="250">
+<img src="/pictures/confluent-lightstreamer.png" width="600">
 
 # Lightstreamer Kafka Connector
-_Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
+_Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
 
 - [Introduction](#introduction)
   - [Last-Mile Integration](#last-mile-integration)
@@ -55,7 +55,7 @@ _Extend Kafka topics to the web effortlessly. Stream real-time data to mobile an
 
 # Introduction
 
-Is your product struggling to deliver Kafka events to remote users? The [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/) is an intelligent proxy that bridges the gap, providing seamless, real-time data streaming to web and mobile applications with unmatched ease and reliability. It streams data in real time to your apps over WebSockets, eliminating the need for polling a REST proxy and surpassing the limitations of MQTT.
+Is your product struggling to deliver Kafka events to remote users? The [Lightstreamer Kafka Connector](https://lightstreamer.com/confluent/) is an intelligent proxy that bridges the gap, providing seamless, real-time data streaming to web and mobile applications with unmatched ease and reliability. It streams data in real time to your apps over WebSockets, eliminating the need for polling a REST proxy and surpassing the limitations of MQTT.
 
 ## Last-Mile Integration
 
@@ -83,7 +83,7 @@ Connect millions of clients without compromising performance. Fanout real-time m
 
 ## Other Features
 
-The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
+The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/confluent/).
 
 # Architecture
 
@@ -1751,7 +1751,7 @@ The configuration above specifies how to route records published from the topic 
 
 The [docs](/docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class) section.
 
-To learn more about the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) and the [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/), visit their respective product pages.
+To learn more about the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) and the [Lightstreamer Kafka Connector](https://lightstreamer.com/confluent/), visit their respective product pages.
 
 # Examples
 
