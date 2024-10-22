@@ -41,7 +41,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.password">$env.secret</param>
       ```
 
-    - Update fo the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`)
+    - Update of the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`)
       ```xml
       <param name="$env.topic_mapping">item-template.stock</param>
       ```
