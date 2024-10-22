@@ -1,7 +1,7 @@
 <img src="/pictures/lightstreamer.png" width="250">
 
 # Lightstreamer Kafka Connector
-_Extend Kafka topics to the web effortlessly. Stream real-time data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
+_Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
 
 - [Introduction](#introduction)
   - [Last-Mile Integration](#last-mile-integration)
