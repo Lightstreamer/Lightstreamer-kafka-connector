@@ -7,7 +7,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 - New `schema-registry` service, pulled from the mentioned Docker image and configured with security settings.
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include:
+  Adaption of [`adapters.xml`](./adapters.xml) to include the following:
   - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
