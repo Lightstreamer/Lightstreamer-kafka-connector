@@ -19,11 +19,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Requirements](#requirements)
   - [Deploy](#deploy)
   - [Configure](#configure)
-    - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
-    - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
-    - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
-    - [Publishing with Redpanda Cloud](#publishing-with-redpanda-cloud)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
@@ -87,9 +83,9 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 # Architecture
 
-![Architecture](/pictures/architecture-full.png)
+![Architecture](/pictures/architecture-full-confluent.png)
 
-The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customize-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
+The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with [Confluent Cloud](https://www.confluent.io/confluent-cloud/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_generic&utm_source=Lightstreamer&utm_medium=partnerref) and Confluent Platform. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customize-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
 
 Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
 
@@ -106,6 +102,9 @@ In this mode, the Lightstreamer Kafka Connector uses the Kafka client API to com
 In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connect framework, acting as a sink connector. While this introduces an additional messaging layer, there are scenarios where the standardized deployment provided by Kafka Connect is required. For more details on using the Lightstreamer Kafka Connector as a Kafka Connect sink connector, please refer to this section: [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector).
 
 # QUICK START: Set up in 5 minutes
+
+> [!CAUTION]
+> @GIANLU: REPLACE THIS QUICKSTART WITH A SELF-CONTAINED QUICKSTART FOR CONFLUENT CLOUD
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
@@ -155,8 +154,8 @@ This section will guide you through the installation of the Kafka Connector to g
 ## Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) v7.4.2 or newer (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
-- A running Kafka broker or Kafka cluster
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
+- [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account
 
 ## Deploy
 
@@ -197,6 +196,25 @@ LS_HOME/
 ## Configure
 
 Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+
+> [!CAUTION]
+> @GIANLU: MAKE ALL THE CONFIGURATION RESOURCES READY FOR CONFLUENT CLOUD, INCLUDING THE PARAMETERS BELOW, WHICH CAN BE DELETED FROM HERE
+> 
+> you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
+> 
+> ```xml
+> <param name="encryption.enable">true</param>
+> <param name="encryption.protocol">TLSv1.2</param>
+> <param name="encryption.hostname.verification.enable">true</param>
+> 
+> <param name="authentication.enable">true</param>
+> <param name="authentication.mechanism">PLAIN</param>
+> <param name="authentication.username">API.key</param>
+> <param name="authentication.password">secret</param>
+> ...
+> ```
+> 
+> where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -256,43 +274,6 @@ To quickly complete the installation and verify the successful integration with 
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
-### Connection with Confluent Cloud
-
-If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
-
-```xml
-<param name="encryption.enable">true</param>
-<param name="encryption.protocol">TLSv1.2</param>
-<param name="encryption.hostname.verification.enable">true</param>
-
-<param name="authentication.enable">true</param>
-<param name="authentication.mechanism">PLAIN</param>
-<param name="authentication.username">API.key</param>
-<param name="authentication.password">secret</param>
-...
-```
-
-where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
-
-### Connection with Redpanda Cloud
-
-If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/SCRAM authentication, as follows:
-
-```xml
-<param name="encryption.enable">true</param>
-<param name="encryption.protocol">TLSv1.2</param>
-<param name="encryption.hostname.verification.enable">true</param>
-
-<param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM-SHA-256</param>
-<!-- <param name="authentication.mechanism">SCRAM-SHA-512</param> -->
-<param name="authentication.username">username</param>
-<param name="authentication.password">password</param>
-...
-```
-
-where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_.
-
 ## Start
 
 1. Launch Lightstreamer Server.
@@ -345,17 +326,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    which generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
 
-   Then, launch it with:
-
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
-   ```
-
-   ![producer_video](/pictures/producer.gif)
-
-   ### Publishing with Confluent Cloud
-
-   If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
+   Then, create a properties file that includes encryption and authentication settings, as follows:
 
    ```java
    security.protocol=SASL_SSL
@@ -366,27 +337,13 @@ where you have to replace `username` and `password` with the credentials generat
 
    where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
-   ```
-
-   ### Publishing with Redpanda Cloud
-
-   If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
-
-   ```java
-   security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="username" password="password";
-   sasl.mechanism=SCRAM-SHA-256
-   #sasl.mechanism=SCRAM-SHA-512
-   ...
-   ```
-
-   where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
+   Now, launch the publisher:
 
    ```sh
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
+
+   ![producer_video](/pictures/producer.gif)
 
 4. Check the consumed events.
 
@@ -473,7 +430,7 @@ _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Conne
 Furthermore, the name is also used to group all logging messages belonging to the same connection.
 
 > [!TIP]
-> For every Data Adaper connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
+> For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
 > For example, the factory [logging configuration](/kafka-connector-project/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
 > ```java
 > ...
@@ -816,13 +773,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-#### Quick Start Confluent Cloud Example
-
 Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
-
-#### Quick Start Redpanda Serverless Example
-
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
 ### Record Evaluation
 
@@ -1378,7 +1329,7 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
 #### Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) v7.4.2 or newer (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 
 #### Steps
 
