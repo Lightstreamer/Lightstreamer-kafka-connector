@@ -1,4 +1,4 @@
-# Quick Start Redpanda Self-hosted
+# Quick Start with Redpanda Self-hosted
 
 This folder contains a variant of the [_Quick Start_](../../../../README.md#quick-start-set-up-in-5-minutes) app configured to use _Redpanda_ as the target broker.
 
