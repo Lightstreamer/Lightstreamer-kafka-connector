@@ -15,7 +15,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     - `KAFKA_SSL_CLIENT_AUTH`
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include:
+  Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+
   - New SSL endpoint (`broker:29094`):
     ```xml
     <param name="bootstrap.servers">broker:29094</param>
