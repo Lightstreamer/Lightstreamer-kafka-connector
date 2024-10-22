@@ -49,8 +49,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 
 In addition, the `schema-registry` service references the local [`secrets/schema-registry`](./secrets/schema-registry/) folder to retrieve the following secrets:
 
-- The trust store file [`schema-registry.truststore.jks`](./secrets/schema-registry/schema-registry.truststore.jks)
-- The key store file [`schema-registry.keystore.jks`](./secrets/schema-registry/schema-registry.keystore.jks)
+- The trust store file [`schema-registry.truststore.jks`](../../../compose-templates/secrets/schema-registry/schema-registry.truststore.jks)
+- The key store file [`schema-registry.keystore.jks`](../../../compose-templates/secrets/schema-registry/schema-registry.keystore.jks)
 
 You can regenerate all of them with:
 
