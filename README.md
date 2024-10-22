@@ -115,7 +115,7 @@ The diagram above illustrates how, in this setup, a stream of simulated market e
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/quickstart-confluent-cloud/), [`Redpanda Serverless`](/examples/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
+1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/), [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -1303,7 +1303,7 @@ Example:
 
 #### Quick Start Schema Registry Example
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/vendors/confluent/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Customize the Kafka Connector Metadata Adapter Class
 
@@ -1497,9 +1497,9 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 ### Running in Docker
 
-If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](./examples/docker-kafka-connect/) folder.
+If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](./examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
 ## Supported Converters
 
