@@ -3,7 +3,7 @@
 This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target cluster. You may follow the [_Getting started_](https://docs.axual.io/axual/2024.1/getting_started/index.html) on the Axual site to perform the following operations:
 
 - Add a new topic `stocks` with:
-  -  string key type
+  -  String key type
   -  JSON value type
   -  _delete_ retention policy
   -  1 partition
@@ -19,9 +19,9 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
-- removal of the `broker` service, because replaced by the remote cluster
+- Removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
-  - definition of new environment variables to configure remote endpoint, credentials, topic name and consumer group in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint, credentials, topic name and consumer group in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -32,25 +32,25 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - topic_mapping=map.${topic}.to
     ...
     ```
-  - adaption of [`adapters.xml`](./adapters.xml) to include:
-    - new Kafka cluster address retrieved from the environment variable `bootstrap_server`:
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+    - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - the consumer group retrieved from the environment variable `group_id`
+    - Update of the parameter `group.id` to the the environment variable `group_id`:
       ```xml
       <param name="group.id">$env.group_id</param>
       ```
 
-    - encryption settings:
+    - Configuration of the encryption settings:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.3</param>
       <param name="encryption.hostname.verification.enable">false</param>
       ```
 
-    - authentication settings, with the credentials retrieved from environment variables `username` and `password`:
+    - Configuration of the authentication settings, with the credentials retrieved from environment variables `username` and `password`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
@@ -58,15 +58,15 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.password">$env.password</param>
       ```
 
-    - parameter `map.<topic>.to` built from env variable `topic_mapping`, composed from env variable `topic`
+    - Update of the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`)
       ```xml
       <param name="$env.topic_mapping">item-template.stock</param>
       ```      
 
 - _producer_:
-   - parameter `--boostrap-servers` retrieved from the environment variable `bootstrap_server`
-   - parameter `--topic` retrieved from the environment variable `topic`
-   - provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
+   - Update of the parameter `--boostrap-servers` to the environment variable `bootstrap_server`
+   - Update of the parameter `--topic` to the environment variable `topic`
+   - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
     
    ```yaml
    # Configure SASL/SCRAM mechanism
@@ -86,10 +86,10 @@ $ bootstrap_server=<bootstrap_server> group_id=<group_id> username=<username> pa
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Axual cluster
-- `group_id` is the consumer group ID
-- `username` and `password` are the authentication credentials
-- `topic` is the name of the topic
+- `bootstrap_server` is the bootstrap server address of the Axual cluster.
+- `group_id` is the consumer group ID.
+- `username` and `password` are the authentication credentials.
+- `topic` is the name of the topic.
 
 > [!TIP]
 > You can get the correct values for bootstrap_server, group_id, and topic by looking at the _Cluster connectivity Information_ of the `stocks-application` from the Axual _Self-service_ portal.

@@ -17,34 +17,35 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - topic_mapping=map.${topic}.to
     ...
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
-    - New Kafka cluster address (retrieved from the environment variable `bootstrap_server`):
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+    - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - Encryption settings:
+    - Configuration of the encryption settings:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       <param name="encryption.hostname.verification.enable">true</param>
       ```
 
-    - Authentication settings, with the credentials retrieved from environment variables `api_key` and `secret`:
+    - Configuration of the authentication settings, with the credentials retrieved from environment variables `api_key` and `secret`:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">PLAIN</param>
       <param name="authentication.username">$env.api_key</param>
       <param name="authentication.password">$env.secret</param>
       ```
-    - Parameter `map.<topic>.to`, built from env variable `topic_mapping` (which in turn is composed from env variable `topic`)
+
+    - Update fo the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`)
       ```xml
       <param name="$env.topic_mapping">item-template.stock</param>
       ```
 
 - _producer_:
-   - Setting of the parameter `--boostrap-servers` from the environment variable `bootstrap_server`
-   - Setting of the parameter `--topic` from the environment variable `topic`
+   - Update of the parameter `--boostrap-servers` to the environment variable `bootstrap_server`
+   - Update of the parameter `--topic` to the environment variable `topic`
    - Provisioning of the `producer.properties` configuration file to enable `SASL/PLAN` over TLS, with username and password retrieved from the environment variables `api_key` and `secret`:
     
    ```yaml

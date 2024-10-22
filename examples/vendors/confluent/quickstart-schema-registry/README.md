@@ -7,21 +7,25 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 - New `schema-registry` service, pulled from the mentioned Docker image and configured with security settings.
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+  Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+  
   - Enabling of the Schema Registry:
     ```xml
     <param name="value.evaluator.schema.registry.enable">true</param>
     ```
+  
   - Configuration of the target Schema Registry URL:
     ```xml
     <param name="schema.registry.url">https://schema-registry:8084</param>
     ```
-  - Configuration of the trust store to authenticate the Schema Registry.
+  
+  - Configuration of the trust store to authenticate the Schema Registry:
     ```xml
     <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
     <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
-  - Configuration of the key store for client authentication with the Schema Registry.
+  
+  - Configuration of the key store for client authentication with the Schema Registry:
     ```xml
     <param name="schema.registry.encryption.keystore.enable">true</param>
     <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
