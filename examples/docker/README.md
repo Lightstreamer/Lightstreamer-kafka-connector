@@ -42,8 +42,6 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
    $ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
    ```
  
-5. Check the logs:
- 
-   ```sh
-   $ docker logs -f kafka-connector
-   ```
+5. Verify the container
+
+   Point your browser to [http://localhost:8080](http://localhost:8080) and see the Lightstreamer Welcome pages.
