@@ -478,6 +478,7 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > ```java
 > ...
 > # QuickStart logger
+> log4j.logger.QuickStart=INFO, QuickStartFile
 > log4j.appender.QuickStartFile=org.apache.log4j.RollingFileAppender
 > log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
 > log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
