@@ -15,11 +15,17 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
-- [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Deploy](#deploy)
-  - [Configure](#configure)
-  - [Start](#start)
+- [Deployment](#deployment)
+  - [Deploy Manually](#deploy-manually)
+    - [Requirements](#requirements)
+    - [Install](#install)
+    - [Configure](#configure)
+    - [Start](#start)
+  - [Deploy with Docker](#deploy-with-docker)
+    - [Requirements](#requirements-1)
+    - [Build the Docker Image](#build-the-docker-image)
+    - [Start](#start-1)
+  - [End to End Streaming](#end-to-end-streaming)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
@@ -109,9 +115,9 @@ To efficiently showcase the functionalities of the Lightstreamer Kafka Connector
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
-To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/quickstart/docker-compose.yml) comprises the following services:
+To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/vendors/confluent/quickstart-confluent/docker-compose.yml) comprises the following services:
 
-1. _broker_: the Kafka broker, based on [Official Confluent Docker Image for Kafka (Community Version)](https://hub.docker.com/r/confluentinc/cp-kafka)
+1. _broker_: the Kafka broker, based on the [Official Confluent Docker Image for Kafka (Community Version)](https://hub.docker.com/r/confluentinc/cp-kafka)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -144,17 +150,24 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    $ ./stop.sh
    ```
 
-# Installation
+# Deployment
 
-This section will guide you through the installation of the Kafka Connector to get it up and running in a very short time.
+This section will guide you through the deployment of the Kafka Connector to get it up and running in a very short time. 
 
-## Requirements
+You have two options:
+
+- Deploy manually
+- Deploy with Docker
+
+## Deploy Manually
+
+### Requirements
 
 - JDK (Java Development Kit) v17 or newer
 - [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 - [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account
 
-## Deploy
+### Install
 
 Download the deployment archive `lightstreamer-kafka-connector-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](/kafka-connector-project/) folder:
 
@@ -190,30 +203,11 @@ LS_HOME/
 ...
 ```
 
-## Configure
+### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
-> [!CAUTION]
-> @GIANLU: MAKE ALL THE CONFIGURATION RESOURCES READY FOR CONFLUENT CLOUD, INCLUDING THE PARAMETERS BELOW, WHICH CAN BE DELETED FROM HERE
-> 
-> you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
-> 
-> ```xml
-> <param name="encryption.enable">true</param>
-> <param name="encryption.protocol">TLSv1.2</param>
-> <param name="encryption.hostname.verification.enable">true</param>
-> 
-> <param name="authentication.enable">true</param>
-> <param name="authentication.mechanism">PLAIN</param>
-> <param name="authentication.username">API.key</param>
-> <param name="authentication.password">secret</param>
-> ...
-> ```
-> 
-> where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
-
-To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
+To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStartConfluentCloud` in the file as follows:
 
 - Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
 
@@ -221,7 +215,12 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+- Update the [`authentication.username` and `authentication.password`](#authenticationmechanism) parameters with the API key and API secret associated with to your account:
+
+  ```xml
+  <param name="authentication.username">API.key</param>
+  <param name="authentication.password">API.secret</param>
+  ```
 
 - Configure topic and record mapping.
 
@@ -269,19 +268,74 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart-confluent.log` file).
+
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
-## Start
+### Start
 
-1. Launch Lightstreamer Server.
-
-   From the `LS_HOME/bin/unix-like` directory, run the following:
+To start the Kafka Connector, run the following fom the `LS_HOME/bin/unix-like` directory:
 
    ```sh
    $ ./background_start.sh
    ```
 
-2. Attach a Lightstreamer consumer.
+Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
+
+## Deploy with Docker
+
+### Requirements:
+
+- JDK version 17
+- Docker
+
+### Build the Image
+
+To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps:
+
+1. Copy the the factory [adapters.xml](./kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
+
+2. Custome the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
+
+3. Optionally, provide a minimal version of the `log4j.properties` file similar to the following:
+  
+   ```java
+   log4j.logger.com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter
+   log4j.logger.org.apache.kafka=WARN, stdout
+   log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+   log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+   log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+   log4j.appender.stdout.Target=System.out
+
+   # QuickStartConfluent logger
+   log4j.logger.QuickStartConfluent=INFO, stdout
+   ```
+
+   and put it in the [examples/docker/resources](/examples/docker/resources) folder.
+
+3. Run the following from the [/examples/docker](examples/docker) directory:
+
+    ```sh
+   $ ./build.sh
+   ```
+
+For more insights on creating a Docker Image for the Lightstreamer Kafka Connector, check out [examples/docker](/examples/docker/).
+
+### Start
+
+To launch the container, run the following from the [examples/docker](/examples/docker/) directory:
+
+```sh
+$ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+```
+
+Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
+
+## End to End Streaming
+
+After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic n _end-to-end_ streaming flow in action
+
+1. Attach a Lightstreamer consumer.
 
    The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -296,7 +350,7 @@ You can get more details about all possible settings in the [Configuration](#con
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -310,7 +364,7 @@ You can get more details about all possible settings in the [Configuration](#con
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-3. Publish the events.
+2. Publish the events.
 
    The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -342,7 +396,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
    ![producer_video](/pictures/producer.gif)
 
-4. Check the consumed events.
+3. Check the consumed events.
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
