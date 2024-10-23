@@ -293,7 +293,7 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps:
 
-1. Copy the the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
+1. Copy the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
 
 2. Custome the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
 
