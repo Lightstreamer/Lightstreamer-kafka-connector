@@ -16,12 +16,12 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Deployment](#deployment)
-  - [Deploy Manually](#deploy-manually)
+  - [Manual Deployment](#manual-deployment)
     - [Requirements](#requirements)
     - [Install](#install)
     - [Configure](#configure)
     - [Start](#start)
-  - [Deploy with Docker](#deploy-with-docker)
+  - [Docker Deployment](#docker-deployment)
     - [Requirements](#requirements-1)
     - [Build the Docker Image](#build-the-docker-image)
     - [Start](#start-1)
@@ -154,12 +154,17 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 This section will guide you through the deployment of the Kafka Connector to get it up and running in a very short time. 
 
-You have two options:
+Deployment options:
 
-- Deploy manually
-- Deploy with Docker
+- Mannual deployment
 
-## Deploy Manually
+  Download and configure the Lightstreamer Broker and the Kafka Connector from their archives.
+
+- Docker Deployment
+  
+  Build and configure a Docker image that seamlessly integrates the Lighstreamer Broker and the Kafka Connector.
+
+## Manual Deployment
 
 ### Requirements
 
@@ -282,7 +287,7 @@ To start the Kafka Connector, run the following fom the `LS_HOME/bin/unix-like` 
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-## Deploy with Docker
+## Docker Deployment
 
 ### Requirements:
 
