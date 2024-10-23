@@ -156,7 +156,7 @@ This section will guide you through the deployment of the Kafka Connector to get
 
 Deployment options:
 
-- Mannual deployment
+- Manual deployment
 
   Download and configure the Lightstreamer Broker and the Kafka Connector from their archives.
 
