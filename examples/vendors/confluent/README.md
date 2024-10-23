@@ -273,7 +273,7 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart-confluent.log` file).
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart-confluent.log` file).
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
@@ -338,7 +338,7 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 ## End to End Streaming
 
-After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic n _end-to-end_ streaming flow in action
+After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic _end-to-end_ streaming flow in action
 
 1. Attach a Lightstreamer consumer.
 
