@@ -226,7 +226,7 @@ To quickly complete the installation and verify the successful integration with 
 
   Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
 
-  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
 
   - An item template:
     ```xml
@@ -482,14 +482,15 @@ Furthermore, the name is also used to group all logging messages belonging to th
 
 > [!TIP]
 > For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](/kafka-connector-project/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L30) provides the logger `QuickStartConfluentCloud` to print every log messages relative to the `QuickStartConfluent` connection:
 > ```java
 > ...
-> # QuickStart logger
-> log4j.appender.QuickStartFile=org.apache.log4j.RollingFileAppender
-> log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
-> log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
-> log4j.appender.QuickStartFile.File=../../logs/quickstart.log
+> # QuickStartConfluent logger
+> log4j.logger.QuickStartConfluent=INFO, QuickStartConfluentFile
+> log4j.appender.QuickStartConfluentFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartConfluentFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartConfluentFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+> log4j.appender.QuickStartConfluentFile.File=../../logs/quickstart-confluent.log
 > ```
 
 Example:
@@ -1064,7 +1065,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L352) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L448) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
