@@ -103,10 +103,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
-> [!CAUTION]
-> @GIANLU: REPLACE THIS QUICKSTART WITH A SELF-CONTAINED QUICKSTART FOR CONFLUENT CLOUD
-
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/vendors/confluent/quickstart-confluent/`](/examples/vendors/confluent/quickstart-confluent/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
 ![Quickstart Diagram](/pictures/quickstart-diagram.png)
 
@@ -114,14 +111,14 @@ The diagram above illustrates how, in this setup, a stream of simulated market e
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/), [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
+1. _broker_: the Kafka broker, based on [Official Confluent Docker Image for Kafka (Community Version)](https://hub.docker.com/r/confluentinc/cp-kafka)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
 ## Run
 
 1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
-2. From the [`examples/quickstart`](/examples/quickstart/) folder, run the following:
+2. From the [`examples/vendors/confluent/quickstart-confluent/`](/examples/vendors/confluent/quickstart-confluent/) folder, run the following:
 
    ```sh
    $ ./start.sh
