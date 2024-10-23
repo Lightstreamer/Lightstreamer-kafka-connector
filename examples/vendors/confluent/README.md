@@ -1305,7 +1305,7 @@ Example:
 
 #### Quick Start Schema Registry Example
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/vendors/confluent/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Customize the Kafka Connector Metadata Adapter Class
 
