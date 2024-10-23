@@ -307,8 +307,8 @@ To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps
    log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
    log4j.appender.stdout.Target=System.out
 
-   # QuickStartConfluent logger
-   log4j.logger.QuickStartConfluent=INFO, stdout
+   # QuickStartConfluentCloud logger
+   log4j.logger.QuickStartConfluentCloud=INFO, stdout
    ```
 
    and put it in the [examples/docker/resources](/examples/docker/resources) folder.
@@ -485,12 +485,12 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L30) provides the logger `QuickStartConfluentCloud` to print every log messages relative to the `QuickStartConfluent` connection:
 > ```java
 > ...
-> # QuickStartConfluent logger
-> log4j.logger.QuickStartConfluent=INFO, QuickStartConfluentFile
-> log4j.appender.QuickStartConfluentFile=org.apache.log4j.RollingFileAppender
-> log4j.appender.QuickStartConfluentFile.layout=org.apache.log4j.PatternLayout
-> log4j.appender.QuickStartConfluentFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
-> log4j.appender.QuickStartConfluentFile.File=../../logs/quickstart-confluent.log
+> # QuickStartConfluentCloud logger
+> log4j.logger.QuickStartConfluentCloud=INFO, QuickStartConfluentCloudFile
+> log4j.appender.QuickStartConfluentCloudFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartConfluentCloudFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartConfluentCloudFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+> log4j.appender.QuickStartConfluentCloudFile.File=../../logs/quickstart-confluent.log
 > ```
 
 Example:
