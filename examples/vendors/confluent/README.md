@@ -340,7 +340,7 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic _end-to-end_ streaming flow in action
 
-1. Attach a Lightstreamer consumer.
+### 1. Attach a Lightstreamer consumer
 
    The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -369,7 +369,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-2. Publish the events.
+### 2. Publish the events
 
    The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -401,7 +401,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
    ![producer_video](/pictures/producer.gif)
 
-3. Check the consumed events.
+### 3. Check the consumed events
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
