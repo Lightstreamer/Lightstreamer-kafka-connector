@@ -25,7 +25,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Requirements](#requirements-1)
     - [Build the Docker Image](#build-the-docker-image)
     - [Start](#start-1)
-  - [End to End Streaming](#end-to-end-streaming)
+  - [End-to-End Streaming](#end-to-end-streaming)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
@@ -336,7 +336,7 @@ $ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connecto
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-## End to End Streaming
+## End-to-End Streaming
 
 After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic _end-to-end_ streaming flow in action
 
