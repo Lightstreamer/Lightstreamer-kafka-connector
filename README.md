@@ -206,7 +206,7 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the additional `quickstart.log` file).
+- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
 
 - Configure topic and record mapping.
 
@@ -318,7 +318,7 @@ where you have to replace `username` and `password` with the credentials generat
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
