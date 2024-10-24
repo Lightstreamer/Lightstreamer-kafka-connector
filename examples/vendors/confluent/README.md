@@ -384,7 +384,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
    
    1. Establishing a Connection.
       
-      To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server on http://localhost:8080 and specifies the adapter set as `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the the `adapters.xml` file.
+      To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server on http://localhost:8080 and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the _adapters_conf_ root tag in the `adapters.xml` file.
 
       ```js
       var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
@@ -413,7 +413,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
  
       To send a subcription, a `Subscription` object is created and configured in `MERGE` mode with the list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
-      The subscription references the `QuickStartConfluentCloud` data adapter, which has been [configured](#data_providername---kafka-connection-name) on the server side through the `adapters.xml` file.
+      The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the _data_provider_ element in the `adapters.xml` file.
        
       The `StaticGrid` is attached as a listener to the subscription to receive and display the updates.
 
