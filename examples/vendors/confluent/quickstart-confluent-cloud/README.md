@@ -3,7 +3,7 @@
 This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [Confluent Cloud](https://www.confluent.io/confluent-cloud/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_generic&utm_source=Lightstreamer&utm_medium=partnerref) as the target Kafka cluster.
 
 > [!TIP]
-> Don't have a Confluent Cloud account? Start [your free trial of Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) today. New signups receive $400 to spend during their first 30 days.
+> Don't have a Confluent Cloud account yet? Start [your free trial of Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) today. New signups receive $400 to spend during their first 30 days.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ as follows:
 
