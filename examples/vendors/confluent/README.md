@@ -391,7 +391,7 @@ Download the provided [sample web client](web-client), based on HTML and JavaScr
 As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
 1. **Establishing a Connection:**  
-   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `_adapters_conf_` root tag in the `adapters.xml` file.
+   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
 
    ```js
    var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
@@ -418,7 +418,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
 3. **Subscribing to Live Data:**  
    To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
-   The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `_data_provider_` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
+   The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
 
    ```js
    var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
