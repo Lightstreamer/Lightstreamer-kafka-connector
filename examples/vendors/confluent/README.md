@@ -376,11 +376,11 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
 ### 2. Attach a Lightstreamer consumer
 
-   After starting the publisher, load into your browser a sample [web client](web-client/index.html) (similar to one already used for the _Quick Start_ app) to immediately see the real-time updates populating the front-end page.
-
+   After starting the publisher, open the provided [sample web client](web-client/index.html) in your browser, similar to the one used for the _Quick Start_ app, to see real-time updates populating the front-end page immediately.
+   
    ![consumer_video](/pictures/end-to-end-streaming.gif)
 
-   As you can see from the source code, very few steps are involved to consume live data from the Kafka Connector:
+   As shown in the source code, consuming live data from the Kafka Connector involves very few steps:
    
    1. Establishing a Connection.
       
@@ -394,7 +394,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
      
    2. Setting up the Data Grid:
 
-      To visualize real-time update, a `StaticGrid` object is instantiated and configured to display data from a Subscription into statically prepared HTML rows.
+      To visualize real-time update, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows.
       
       ```js
       var stocksGrid = new StaticGrid("stocks", true);
@@ -411,16 +411,16 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
    3. Subscribing to Live Data:
  
-      To send a subcription, a `Subscription` object is created and configured in `MERGE` mode with the list of items and fields to subscribe to, extracted from the static grid.
+      To send a subcription, a `Subscription` object is created and configured in `MERGE` mode with the list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
       The subscription references the `QuickStartConfluentCloud` data adapter, which has been [configured](#data_providername---kafka-connection-name) on the server side through the `adapters.xml` file.
        
-      The static grid is attached as a listener to the subscription to receive and display the updates.
+      The `StaticGrid` is attached as a listener to the subscription to receive and display the updates.
 
       ```js
       var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
-      stockSubscription.addListener(stocksGrid);
       stockSubscription.setDataAdapter("QuickStart");
+      stockSubscription.addListener(stocksGrid);
       lsClient.subscribe(stockSubscription);
       ```
 
