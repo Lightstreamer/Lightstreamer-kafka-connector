@@ -21,9 +21,9 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Install](#install)
     - [Configure](#configure)
     - [Start](#start)
-  - [Docker Deployment](#docker-deployment)
+  - [Docker-based Deployment](#docker-based-deployment)
     - [Requirements](#requirements-1)
-    - [Build the Docker Image](#build-the-docker-image)
+    - [Build the Image](#build-the-image)
     - [Start](#start-1)
   - [End-to-End Streaming](#end-to-end-streaming)
 - [Configuration](#configuration)
@@ -123,7 +123,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 ## Run
 
-1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
+1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
 2. From the [`examples/vendors/confluent/quickstart-confluent/`](/examples/vendors/confluent/quickstart-confluent/) folder, run the following:
 
    ```sh
@@ -152,17 +152,20 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 # Deployment
 
-This section will guide you through the deployment of the Kafka Connector to get it up and running in a very short time. 
+This section will guide you through deploying the Kafka Connector quickly and easily with [Confluent Cloud](https://www.confluent.io/confluent-cloud/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_generic&utm_source=Lightstreamer&utm_medium=partnerref).
 
 Deployment options:
 
-- Manual deployment
+- **Manual Deployment:**  
+  Download and configure the Lightstreamer Broker and Kafka Connector from their respective archives.
 
-  Download and configure the Lightstreamer Broker and the Kafka Connector from their archives.
+- **Docker-based Deployment:**  
+  Build and configure a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
 
-- Docker Deployment
-  
-  Build and configure a Docker image that seamlessly integrates the Lighstreamer Broker and the Kafka Connector.
+In both cases, you'll need a [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account.
+
+> [!TIP]
+> Don't have a Confluent Cloud account yet? Start [your free trial of Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) today. New signups receive $400 to spend during their first 30 days.
 
 ## Manual Deployment
 
@@ -220,7 +223,7 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Update the [`authentication.username` and `authentication.password`](#authenticationmechanism) parameters with the API key and API secret associated with to your account:
+- Update the [`authentication.username` and `authentication.password`](#authenticationmechanism) parameters with the API key and API secret linked to your Confluent Cloud account:
 
   ```xml
   <param name="authentication.username">API.key</param>
@@ -229,9 +232,9 @@ To quickly complete the installation and verify the successful integration with 
 
 - Configure topic and record mapping.
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
+  To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L419) comes with a simple mapping through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L419) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -287,11 +290,11 @@ To start the Kafka Connector, run the following fom the `LS_HOME/bin/unix-like` 
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-## Docker Deployment
+## Docker-based Deployment
 
 ### Requirements:
 
-- JDK version 17
+- JDK (Java Development Kit) v17 or newer
 - Docker
 
 ### Build the Image
@@ -391,7 +394,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
    ...
    ```
 
-   where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    Now, launch the publisher:
 
@@ -1375,7 +1378,7 @@ In this scenario, an instance of the connector plugin acts as a [_Remote Adapter
 
 ![KafkaConnectArchitecture](/pictures/kafka-connect.png)
 
-The connector has been developed for Kafka Connect framework version 3.7 and requires JDK version 17 or later.
+The connector has been developed for Kafka Connect framework version 3.7 and requires JDK (Java Development Kit) v17 or newer.
 
 ## Usage
 
