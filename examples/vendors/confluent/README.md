@@ -357,7 +357,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -401,13 +401,13 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-   ![producer_video](/pictures/producer.gif)
+   ![producer_video](/pictures/producer-confluent.gif)
 
 ### 3. Check the consumed events
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
-   ![consumer_video](/pictures/consumer.gif)
+   ![consumer_video](/pictures/consumer-confluent.gif)
 
 # Configuration
 
