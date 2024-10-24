@@ -6,7 +6,7 @@ The image is built by deriving the official [Lightstreamer Docker image](https:/
 
 ## Requirements:
 
-- JDK version 17
+- JDK version 17 or newer
 - Docker
 
 ## Instructions
