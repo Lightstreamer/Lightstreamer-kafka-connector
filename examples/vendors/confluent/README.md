@@ -382,7 +382,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
    As shown in the source code, consuming live data from the Kafka Connector involves very few steps:
    
-   1. Establishing a Connection.
+   1. Establishing a Connection:
       
       To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server on http://localhost:8080 and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the _adapters_conf_ root tag in the `adapters.xml` file.
 
