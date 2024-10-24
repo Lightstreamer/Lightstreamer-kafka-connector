@@ -384,11 +384,11 @@ After starting the publisher, you can connect a client application to consume re
 
 #### Connect a Browser-based Consumer
 
-Download the provided [sample web client](web-client/index.html), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
+Download the provided [sample web client](web-client), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
 
 ![consumer_video](/pictures/end-to-end-streaming.gif)
 
-As shown in the source code, consuming live data from the Kafka Connector involves just a few steps:
+As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
 1. **Establishing a Connection:**  
    To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `_adapters_conf_` root tag in the `adapters.xml` file.
