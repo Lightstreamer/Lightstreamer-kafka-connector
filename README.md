@@ -121,7 +121,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 ## Run
 
-1. Make sure you have Docker, Docker Compose, and JDK version 17 installed on your local machine.
+1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
 2. From the [`examples/quickstart`](/examples/quickstart/) folder, run the following:
 
    ```sh
@@ -206,14 +206,13 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Optionally customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
 
 - Configure topic and record mapping.
 
-  Since a generic Ligthstreamer client needs to subscribe to one or more items to receive real-time updates, the Kafka Connector has to offer proper mechanisms to realize the mapping between Kafka topics and Lightstreamer items.
+  To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a simple mapping through the following settings:
-
+  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
+  
   - An item template:
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
@@ -254,6 +253,7 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
 ### Connection with Confluent Cloud
@@ -359,12 +359,12 @@ where you have to replace `username` and `password` with the credentials generat
 
    ```java
    security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<secret>";
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
    sasl.mechanism=PLAIN
    ...
    ```
 
-   where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<API.secret>` with the API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    ```sh
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>

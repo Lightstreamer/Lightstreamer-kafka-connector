@@ -1,6 +1,6 @@
 # Quick Start with Aiven for Apache Kafka
 
-This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started) on the Aiven site to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target Kafka cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started) on the Aiven site to perform the following operations:
 
 - Create a new _Apache Kafka_ service.
 - Enable the SASL authentication mechanism.
