@@ -173,7 +173,6 @@ In both cases, you'll need a [Confluent Cloud](https://www.confluent.io/confluen
 
 - JDK (Java Development Kit) v17 or newer
 - [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
-- [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account
 
 ### Install
 
