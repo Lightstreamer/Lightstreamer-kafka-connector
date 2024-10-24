@@ -156,10 +156,10 @@ This section will guide you through deploying the Kafka Connector quickly and ea
 
 Deployment options:
 
-- **Manual Deployment:**  
+- **Manual Deployment:**
   Download and configure the Lightstreamer Broker and Kafka Connector from their respective archives.
 
-- **Docker-based Deployment:**  
+- **Docker-based Deployment:**
   Build and configure a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
 
 In both cases, you'll need a [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account.
@@ -305,7 +305,7 @@ To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps
 2. Custome the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
 
 3. Optionally, provide a minimal version of the `log4j.properties` file similar to the following:
-  
+
    ```java
    log4j.logger.com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter
    log4j.logger.org.apache.kafka=WARN, stdout
