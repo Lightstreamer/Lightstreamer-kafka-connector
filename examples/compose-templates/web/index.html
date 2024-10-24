@@ -26,6 +26,40 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
   <title>Lightstreamer Kafka Connector | Basic Stock-List Demo</title>
   <link rel="stylesheet" type="text/css" href="css/table.css" />
+  <script src="https://unpkg.com/lightstreamer-client-web/lightstreamer.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('The page has loaded!');
+      subsribeToKafkaConnector();
+    });
+    
+    function subsribeToKafkaConnector() {
+      var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
+
+      lsClient.addListener(new StatusWidget("left", "0px", true));
+      lsClient.connect();
+
+      var stocksGrid = new StaticGrid("stocks", true);
+      stocksGrid.setAutoCleanBehavior(true, false);
+      stocksGrid.addListener({
+          onVisualUpdate: function (key, info, pos) {
+              if (info == null) {
+                  //cleaning
+                  return;
+              }
+              var stockIndex = key.substring(13, key.indexOf(']'))
+              var cold = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
+              info.setAttribute("#fff7d5", cold, "backgroundColor");
+          }
+      });
+
+      var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
+      stockSubscription.addListener(stocksGrid);
+      stockSubscription.setDataAdapter("QuickStart");
+
+      lsClient.subscribe(stockSubscription);
+    }
+  </script>
 </head>
 
 <body>
@@ -199,56 +233,8 @@
       </table>
     </div>
     <div class="disc">Simulated market data.</div>
-
-    <script src="js/require.js"></script>
-    <script src="js/lightstreamer.min.js"></script>
-    <script>
-      //////////////// Connect to current host (or localhost) and configure a StatusWidget
-      define("js/lsClient",["LightstreamerClient","StatusWidget"],function(LightstreamerClient,StatusWidget) {
-        var protocolToUse = document.location.protocol != "file:" ? document.location.protocol : "http:";
-        var portToUse = document.location.protocol == "https:" ? "443" : "8080";
-        // in accordance with the port configuration in the factory lightstreamer_conf.xml
-        // (although the https port is not open by the factory lightstreamer_conf.xml)
-    
-        var lsClient = new LightstreamerClient(protocolToUse+"//localhost:"+portToUse,"KafkaConnector");
-    
-        lsClient.addListener(new StatusWidget("left", "0px", true));
-        lsClient.connect();
-    
-        return lsClient;
-      });
-    </script>
-    <!-- JavaScript code specific of this application -->  
-    <script>
-
-      require(["js/lsClient","Subscription","StaticGrid"], 
-        function(lsClient,Subscription,StaticGrid) {
-        
-        var stocksGrid = new StaticGrid("stocks", true);
-        stocksGrid.setAutoCleanBehavior(true,false);
-        stocksGrid.addListener({
-          onVisualUpdate: function(key, info, pos) {
-            if (info == null) {
-              //cleaning
-              return;
-            }
-            var stockIndex = key.substring(13, key.indexOf(']'))
-            var cold = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
-            info.setAttribute("#fff7d5", cold, "backgroundColor");
-          }
-        });
-        
-        var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
-        stockSubscription.addListener(stocksGrid);
-        stockSubscription.setDataAdapter("QuickStart");
-        
-        lsClient.subscribe(stockSubscription);
-      });
-
-    </script>
-  
+ 
   </div>
-  
 </body>
 
 </html>
