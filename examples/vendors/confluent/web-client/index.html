@@ -55,7 +55,7 @@
 
       var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
       stockSubscription.addListener(stocksGrid);
-      stockSubscription.setDataAdapter("QuickStartConfluent");
+      stockSubscription.setDataAdapter("QuickStartConfluentCloud");
 
       lsClient.subscribe(stockSubscription);
     }
