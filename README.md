@@ -212,7 +212,7 @@ To quickly complete the installation and verify the successful integration with 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
   The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
-  
+
   - An item template:
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
@@ -254,6 +254,7 @@ To quickly complete the installation and verify the successful integration with 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
 - Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
+
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
 ### Connection with Confluent Cloud
@@ -295,7 +296,7 @@ where you have to replace `username` and `password` with the credentials generat
 
 ## Start
 
-1. Launch Lightstreamer Server.
+### 1. Launch Lightstreamer Server
 
    From the `LS_HOME/bin/unix-like` directory, run the following:
 
@@ -303,7 +304,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ ./background_start.sh
    ```
 
-2. Attach a Lightstreamer consumer.
+### 2. Attach a Lightstreamer consumer
 
    The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -332,7 +333,7 @@ where you have to replace `username` and `password` with the credentials generat
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-3. Publish the events.
+### 3. Publish the events
 
    The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -353,7 +354,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ![producer_video](/pictures/producer.gif)
 
-   ### Publishing with Confluent Cloud
+   #### Publishing with Confluent Cloud
 
    If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -364,13 +365,13 @@ where you have to replace `username` and `password` with the credentials generat
    ...
    ```
 
-   where you have to replace `<API.key>` and `<API.secret>` with the API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<API.secret>` with the API key and API secret generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    ```sh
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-   ### Publishing with Redpanda Cloud
+   #### Publishing with Redpanda Cloud
 
    If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -388,7 +389,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-4. Check the consumed events.
+### 4. Check the consumed events
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
@@ -1304,7 +1305,7 @@ Example:
 
 #### Quick Start Schema Registry Example
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/vendors/confluent/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Customize the Kafka Connector Metadata Adapter Class
 
@@ -1368,7 +1369,7 @@ In this scenario, an instance of the connector plugin acts as a [_Remote Adapter
 
 ![KafkaConnectArchitecture](/pictures/kafka-connect.png)
 
-The connector has been developed for Kafka Connect framework version 3.7 and requires JDK version 17 or later.
+The connector has been developed for Kafka Connect framework version 3.7 and requires JDK (Java Development Kit) v17 or newer.
 
 ## Usage
 
