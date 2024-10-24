@@ -14,6 +14,16 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
+  - [Last-Mile Integration](#last-mile-integration)
+  - [Intelligent Streaming](#intelligent-streaming)
+  - [Comprehensive Client SDKs](#comprehensive-client-sdks)
+  - [Massive Scalability](#massive-scalability)
+  - [Other Features](#other-features)
+- [Architecture](#architecture)
+  - [Kafka Client vs. Kafka Connect](#kafka-client-vs-kafka-connect)
+    - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
+    - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
+- [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Installation](#installation)
   - [Requirements](#requirements)
@@ -354,7 +364,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ![producer_video](/pictures/producer.gif)
 
-   #### Publishing with Confluent Cloud
+   ### Publishing with Confluent Cloud
 
    If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -371,7 +381,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-   #### Publishing with Redpanda Cloud
+   ### Publishing with Redpanda Cloud
 
    If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
