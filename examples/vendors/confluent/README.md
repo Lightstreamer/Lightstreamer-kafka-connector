@@ -376,7 +376,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
 ### 2. Attach a Lightstreamer consumer
 
-   After starting the publisher, open the provided [sample web client](web-client/index.html) in your browser, similar to the one used for the _Quick Start_ app, to see real-time updates populating the front-end page immediately.
+   After starting the publisher, open in your browse the provided [sample web client](web-client/index.html), similar to the one used for the _Quick Start_ app, to see real-time updates populating the front-end page immediately.
    
    ![consumer_video](/pictures/end-to-end-streaming.gif)
 
