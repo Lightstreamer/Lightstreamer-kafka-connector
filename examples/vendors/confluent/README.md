@@ -393,7 +393,7 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
    ...
    ```
 
-   where you have to replace `<API.key>` and `<API.secret>` with the API Key and Api secret linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<API.secret>` with the API key and API secret linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    Now, launch the publisher:
 
