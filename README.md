@@ -14,16 +14,6 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
-  - [Last-Mile Integration](#last-mile-integration)
-  - [Intelligent Streaming](#intelligent-streaming)
-  - [Comprehensive Client SDKs](#comprehensive-client-sdks)
-  - [Massive Scalability](#massive-scalability)
-  - [Other Features](#other-features)
-- [Architecture](#architecture)
-  - [Kafka Client vs. Kafka Connect](#kafka-client-vs-kafka-connect)
-    - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
-    - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
-- [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Installation](#installation)
   - [Requirements](#requirements)
@@ -32,9 +22,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
     - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
-    - [Publishing with Confluent Cloud](#publishing-with-confluent-cloud)
-    - [Publishing with Redpanda Cloud](#publishing-with-redpanda-cloud)
-- [Configuration](#configuration)
+    - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
+    - [2. Attach a Lightstreamer consumer](#2-attach-a-lightstreamer-consumer)
+    - [3. Publish the Events](#3-publish-the-events)
+    - [4. Check the Consumed Events](#4-check-the-consumed-events)
+  - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
     - [General Parameters](#general-parameters)
@@ -314,7 +306,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ ./background_start.sh
    ```
 
-### 2. Attach a Lightstreamer consumer
+### 2. Attach a Lightstreamer Consumer
 
    The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -343,7 +335,7 @@ where you have to replace `username` and `password` with the credentials generat
   > [!NOTE]
   > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
-### 3. Publish the events
+### 3. Publish the Events
 
    The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
@@ -364,7 +356,7 @@ where you have to replace `username` and `password` with the credentials generat
 
    ![producer_video](/pictures/producer.gif)
 
-   ### Publishing with Confluent Cloud
+   #### Publishing with Confluent Cloud
 
    If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -381,7 +373,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-   ### Publishing with Redpanda Cloud
+   #### Publishing with Redpanda Cloud
 
    If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
 
@@ -399,7 +391,7 @@ where you have to replace `username` and `password` with the credentials generat
    $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
    ```
 
-### 4. Check the consumed events
+### 4. Check the Consumed Events
 
    After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
 
