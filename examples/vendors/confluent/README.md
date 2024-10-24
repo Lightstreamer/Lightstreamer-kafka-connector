@@ -388,12 +388,12 @@ After successfully launching the Lightstreamer Kafka Connector — whether manua
 
    ```java
    security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<secret>";
+   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
    sasl.mechanism=PLAIN
    ...
    ```
 
-   where you have to replace `<API.key>` and `<secret>` with the _API Key_ and _secret_ linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+   where you have to replace `<API.key>` and `<API.secret>` with the API Key and Api secret linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
 
    Now, launch the publisher:
 
