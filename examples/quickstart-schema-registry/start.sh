@@ -1,1 +1,1 @@
-../../../compose-templates/start.sh
+../compose-templates/start.sh

@@ -1,1 +1,1 @@
-../../../compose-templates/stop.sh
+../compose-templates/stop.sh
