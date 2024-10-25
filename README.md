@@ -327,7 +327,7 @@ where you have to replace `username` and `password` with the credentials generat
    As you can see, you have to specify a few parameters:
 
    - `--address`: the Lightstreamer Server address
-   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder
+   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthstreamer to activate the Kafka Connector deployed into the `adapters` folder
    - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
    - `--items`: the list of items to subscribe to
    - `--fields`: the list of requested fields for the items
@@ -337,7 +337,7 @@ where you have to replace `username` and `password` with the credentials generat
 
 ### 3. Publish the Events
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
+   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quick Start_ app.
 
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 

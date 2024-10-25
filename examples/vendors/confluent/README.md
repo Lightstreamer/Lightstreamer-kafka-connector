@@ -26,6 +26,10 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Build the Image](#build-the-image)
     - [Start](#start-1)
   - [End-to-End Streaming](#end-to-end-streaming)
+    - [Connect a Kafka Producer](#connect-a-kafka-producer)
+    - [Connect a Lightstreamer Consumer](#connect-a-lightstreamer-consumer)
+      - [Connect a Browser-based Consumer](#connect-a-browser-based-consumer)
+      - [Connect a Java Consumer](#connect-a-java-consumer)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
@@ -118,7 +122,7 @@ The diagram above illustrates how, in this setup, a stream of simulated market e
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/vendors/confluent/quickstart-confluent/docker-compose.yml) comprises the following services:
 
 1. _broker_: the Kafka broker, based on the [Official Confluent Docker Image for Kafka (Community Version)](https://hub.docker.com/r/confluentinc/cp-kafka)
-2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
+2. _kafka-connector_: Lightstreamer Broker with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
 ## Run
@@ -340,74 +344,116 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 ## End-to-End Streaming
 
-After successfully launching the Lightstreamer Kafka Connector — whether manually or using Docker -  it's time to connect a Lightstreamer consumer and a Kafka producer to observe a basic _end-to-end_ streaming flow in action
+Once the Lightstreamer Kafka Connector is up and running—whether deployed manually or using Docker—it's time to publish events and connect a Lightstreamer consumer to experience a basic *end-to-end* streaming flow in action.
 
-### 1. Attach a Lightstreamer consumer
+### Connect a Kafka Producer
 
-   The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
+The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder contains a simple native Kafka producer designed to publish simulated market events for the *QuickStart* app.
 
-   Before launching the consumer, you first need to build it from the [`kafka-connector-project`](/kafka-connector-project/) folder with the command:
+Before launching the producer, you first need to build it. Open a new shell from the folder and execute the following command:
 
-   ```sh
-   $ ./gradlew kafka-connector-utils:build
-   ```
+```sh
+$ cd examples/quickstart-producer
+$ ./gradlew build
+```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-project/kafka-connector-utils/build/libs` folder.
+This command generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
 
-   Then, launch it with:
+Next, create a properties file that includes encryption and authentication settings as follows:
 
-   ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
-   ```
+```java
+security.protocol=SASL_SSL
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
+sasl.mechanism=PLAIN
+...
+```
 
-   As you can see, you have to specify a few parameters:
+Replace `<API.key>` and `<API.secret>` with the API key and API secret linked to your Confluent Cloud account, which you can generate using the *Confluent CLI* or from the *Confluent Cloud Console*.
 
-   - `--address`: the Lightstreamer Server address
-   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthtreamer to activate the Kafka Connector deployed into the `adapters` folder
-   - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
-   - `--items`: the list of items to subscribe to
-   - `--fields`: the list of requested fields for the items
+Now, launch the producer:
 
-  > [!NOTE]
-  > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
+```sh
+$ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+```
 
-### 2. Publish the events
+![producer_video](/pictures/producer-confluent.gif)
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
+### Connect a Lightstreamer Consumer
 
-   Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
+After starting the publisher, you can connect a client application to consume real-time data and display it in its frontend. Below, we'll demonstrate a browser-based example using **HTML and JavaScript**, and a **Java** example. However, you are encouraged to explore any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments and languages, including **iOS, Android, Python, and more**.
 
-   ```sh
-   $ cd examples/quickstart-producer
-   $ ./gradlew build
-   ```
+#### Connect a Browser-based Consumer
 
-   which generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
+Download the provided [sample web client](web-client), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
 
-   Then, create a properties file that includes encryption and authentication settings, as follows:
+![consumer_video](/pictures/end-to-end-streaming.gif)
 
-   ```java
-   security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
-   sasl.mechanism=PLAIN
+As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
+
+1. **Establishing a Connection:**  
+   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
+
+   ```js
+   var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
    ...
+   lsClient.connect();
    ```
 
-   where you have to replace `<API.key>` and `<API.secret>` with the API key and API secret linked to your Confluent Cloud account and generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
+2. **Setting up the Data Grid:**  
+   To visualize real-time updates, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows. This is a simple widget provided by the Lightstreamer client library for demonstration purposes. You are free to use any existing JavaScript framework or library to display the data.
 
-   Now, launch the publisher:
-
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+   ```js
+   var stocksGrid = new StaticGrid("stocks", true);
+   stocksGrid.setAutoCleanBehavior(true, false);
+   stocksGrid.addListener({
+       onVisualUpdate: function (key, info, pos) {
+           ...
+           var stockIndex = key.substring(13, key.indexOf(']'));
+           var color = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
+           info.setAttribute("#fff7d5", color, "backgroundColor");
+       }
+   });
    ```
 
-   ![producer_video](/pictures/producer-confluent.gif)
+3. **Subscribing to Live Data:**  
+   To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
-### 3. Check the consumed events
+   The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
 
-   After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
+   ```js
+   var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
+   stockSubscription.setDataAdapter("QuickStart");
+   stockSubscription.addListener(stocksGrid);
+   lsClient.subscribe(stockSubscription);
+   ```
 
-   ![consumer_video](/pictures/consumer-confluent.gif)
+#### Connect a Java Consumer
+
+In addition to the browser-based consumer above, you can set up a Java consumer. The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
+
+Before launching the consumer, you first need to build it from the [`kafka-connector-project`](/kafka-connector-project/) folder with the command:
+
+```sh
+$ ./gradlew kafka-connector-utils:build
+```
+
+This command generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-project/kafka-connector-utils/build/libs` folder.
+
+Then, launch it with:
+
+```sh
+$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+```
+
+As you can see, you need to specify a few parameters:
+
+- `--address`: the Lightstreamer Server address
+- `--adapter-set`: the name of the requested Adapter Set, which triggers Lightstreamer to activate the Kafka Connector deployed into the `adapters` folder
+- `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
+- `--items`: the list of items to subscribe to
+- `--fields`: the list of requested fields for the items
+
+![consumer_video](/pictures/consumer-confluent.gif)
 
 # Configuration
 
