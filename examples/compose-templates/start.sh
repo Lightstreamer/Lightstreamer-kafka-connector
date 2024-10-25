@@ -1,8 +1,9 @@
 #!/bin/bash
-source ../utils/helpers.sh
+#source ../utils/helpers.sh
+source ./helpers.sh
 
 # Build the Lightstreamer Kafka Connector Docker image
-../docker/build.sh
+./docker/build.sh
 
 if [ $? == 0 ]; then
      export version

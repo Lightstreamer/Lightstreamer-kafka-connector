@@ -50,7 +50,7 @@ services:
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       KAFKA_REST_HOST_NAME: rest-proxy
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_LISTENERS: 'http://0.0.0.0:8082'
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
 
   init-broker:

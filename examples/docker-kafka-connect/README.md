@@ -8,7 +8,7 @@ The image is based on the official [Official Confluent Docker Base Image for Kaf
 
 ### Requirements:
 
-- Java 17
+- JDK version 17 or newer
 - Docker
 
 ### Instructions

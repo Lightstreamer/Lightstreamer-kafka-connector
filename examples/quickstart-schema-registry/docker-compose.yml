@@ -22,7 +22,7 @@ services:
       - broker
       - schema-registry
     build:
-      context: ../quickstart-producer
+      context: quickstart-producer
       args:
         VERSION: ${version}
     configs:
@@ -63,7 +63,7 @@ services:
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       KAFKA_REST_HOST_NAME: rest-proxy
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_LISTENERS: 'http://0.0.0.0:8082'
     volumes:
       - ./secrets/broker:/etc/kafka/secrets
 
