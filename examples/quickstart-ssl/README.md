@@ -60,20 +60,20 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     ssl.endpoint.identification.algorithm=
     ```  
 
-In addition, all services reference the local [`secrets`](secrets/) folder to retrieve their secrets. In particular:
+In addition, all services reference the local [`secrets`](../compose-templates/secrets/) folder to retrieve their secrets. In particular:
 
-- _broker_ mounts [`secrets/broker`](secrets/broker/) to `/etc/kafka/secrets` for the following resources:
-  - The trust store file [`broker.truststore.jks`](secrets/broker/broker.truststore.jks)
-  - The key store file [`broker.keystore.jks`](secrets/broker/broker.keystore.jks)
-  - The credentials files [`broker_keystore_credentials`](secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](secrets/broker/broker_key_credentials)
+- _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for the following resources:
+  - The trust store file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks)
+  - The key store file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks)
+  - The credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials)
 
-- _kafka-connector_ mounts [`secrets/kafka-connector`](secrets/kafka-connector/) to `LS_KAFKA_CONNECTOR_HOME/secrets` for the following resources:
-  - The trust store file [`kafka-connector.truststore.jks`](secrets/kafka-connector/kafka-connector.truststore.jks)
-  - The key store file [`kafka-connector.keystore.jks`](secrets/kafka-connector/kafka-connector.keystore.jks)
+- _kafka-connector_ mounts [`secrets/kafka-connector`](../compose-templates/secrets/kafka-connector/) to `LS_KAFKA_CONNECTOR_HOME/secrets` for the following resources:
+  - The trust store file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks)
+  - The key store file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks)
 
-- _producer_ mounts [`secrets/producer`](secrets/producer/) to `/usr/app/secrets` for the following resources:
-  - The trust store file [`producer.truststore.jks`](secrets/producer/producer.truststore.jks)
-  - The key store file [`producer.keystore.jks`](secrets/producer/producer.keystore.jks)
+- _producer_ mounts [`secrets/producer`](../compose-templates/secrets/producer/) to `/usr/app/secrets` for the following resources:
+  - The trust store file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks)
+  - The key store file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks)
 
 You can regenerate all of them with:
 
