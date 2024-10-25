@@ -5,6 +5,7 @@ This folder contains several examples showing you how to use Lightstreamer Kafka
 - [docker](./docker/): a minimal Docker image
 - [quickstart](quickstart/): the _Quick Start_ app
 - [quickstart-producer](quickstart-producer/): the producer for the _Quick Start_ app
+- [quickstart-producer](quickstart-consumer/): the consumer for the _Quick Start_ app
 - [quickstart-ssl](quickstart-ssl/): the _Quick Start_ app with encryption settings
 - [quickstart-confluent](vendors/confluent/quickstart-confluent/): the _Quick Start_ app with the _Confluent Platform_ as the target broker
 - [quickstart-schema-registry](quickstart-schema-registry/): the _Quick Start_ app with the _Confluent Schema Registry_
