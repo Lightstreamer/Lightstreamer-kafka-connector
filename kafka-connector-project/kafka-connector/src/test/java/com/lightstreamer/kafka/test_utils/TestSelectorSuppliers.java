@@ -30,11 +30,6 @@ import org.apache.avro.generic.GenericRecord;
 
 public interface TestSelectorSuppliers {
 
-    public static KeyValueSelectorSuppliers<String, String> String() {
-        return new WrapperKeyValueSelectorSuppliers<>(
-                OthersSelectorSuppliers.StringKey(), OthersSelectorSuppliers.StringValue());
-    }
-
     public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> Avro(
             ConnectorConfig config) {
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);

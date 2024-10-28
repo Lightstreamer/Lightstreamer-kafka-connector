@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -42,7 +43,8 @@ public class FieldConfigsTest {
     void shoudCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<String, String> extractor = configs.extractor(TestSelectorSuppliers.String());
+        DataExtractor<String, String> extractor =
+                configs.extractor(OthersSelectorSuppliers.String());
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
@@ -55,7 +57,7 @@ public class FieldConfigsTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> configs.extractor(TestSelectorSuppliers.String()));
+                        () -> configs.extractor(OthersSelectorSuppliers.String()));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values while evaluating [field1]");

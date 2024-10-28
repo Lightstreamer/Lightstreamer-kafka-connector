@@ -18,49 +18,153 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
+import static com.google.common.truth.Truth.assertWithMessage;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.withBoundExpression;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.withSimple;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
-
 import static java.util.Collections.emptySet;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
-
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ItemTemplatesTest {
 
-    private static final String TEST_TOPIC = "topic";
+    private static final String TEST_TOPIC_1 = "topic";
+
+    private static final String TEST_TOPIC_2 = "anotherTopic";
+
+    /*
+     * Prefix each input element with "item-template." and concatenate all of them, separated by a comma character
+     */
+    static String getFullTemplateNames(String... template) {
+        return Stream.of(template).map(t -> "item-template." + t).collect(Collectors.joining(","));
+    }
+
+    @Test
+    public void shouldCreateWihtCommonTemplateDefinition() throws ExtractionException {
+        // Define three template names
+        String template1 = "template1";
+        String template2 = "template2";
+        String template3 = "template3";
+
+        // TEST_TOPIC_1 mapped to template "template1" and "template2"
+        TopicMappingConfig testTopic1Mapping =
+                TopicMappingConfig.fromDelimitedMappings(
+                        TEST_TOPIC_1, getFullTemplateNames(template1, template2));
+
+        // TEST_TOPIC_2 mapped to template "template1","template2", and "template3"
+        TopicMappingConfig testTopic2Mapping =
+                TopicMappingConfig.fromDelimitedMappings(
+                        TEST_TOPIC_2, getFullTemplateNames(template1, template2, template3));
+
+        // Create the three templates, sharing the same template definition
+        String templateDefinition = "stock-#{index=KEY.attrib}";
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(
+                        Map.of(
+                                template1,
+                                templateDefinition,
+                                template2,
+                                templateDefinition,
+                                template3,
+                                templateDefinition));
+        ItemTemplates<Object, Object> templates =
+                Items.templatesFrom(
+                        TopicConfigurations.of(
+                                templateConfigs, List.of(testTopic1Mapping, testTopic2Mapping)),
+                        Object());
+        assertWithMessage("Templates object contains the expected topics")
+                .that(templates.topics())
+                .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
+
+        Map<String, Set<DataExtractor<Object, Object>>> extractors =
+                templates.extractorsByTopicName();
+        assertThat(extractors).hasSize(2);
+        assertWithMessage("Only one extractor associated with TEST_TOPIC_1")
+                .that(extractors.get(TEST_TOPIC_1))
+                .hasSize(1);
+        assertWithMessage("The extractor associated with TEST_TOPIC_1 is as expected")
+                .that(extractors.get(TEST_TOPIC_1))
+                .containsExactly(withBoundExpression(Object(), "stock", "index", "KEY.attrib"));
+
+        assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
+                .that(extractors.get(TEST_TOPIC_2))
+                .hasSize(1);
+        assertWithMessage("The extractor associated with TEST_TOPIC_2 is as expected")
+                .that(extractors.get(TEST_TOPIC_2))
+                .containsExactly(withBoundExpression(Object(), "stock", "index", "KEY.attrib"));
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
+                .containsExactly(Schema.from("stock", Set.of("index")));
+
+        assertWithMessage("The item matche at least a template")
+                .that(templates.matches(Items.subscribedFrom("stock-[index=1]")))
+                .isTrue();
+        assertWithMessage("The item matches at least a template")
+                .that(templates.matches(Items.subscribedFrom("stock-[index=2]")))
+                .isTrue();
+        assertWithMessage("The item does not match any defined template")
+                .that(templates.matches(Items.subscribedFrom("anItem")))
+                .isFalse();
+    }
+
+    @Test
+    public void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
+        TopicMappingConfig tm =
+                TopicMappingConfig.fromDelimitedMappings(
+                        TEST_TOPIC_1, "item-template.template1,simple-item-1");
+
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(Map.of("template1", "stock-#{index=KEY.attrib}"));
+        TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
+
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(templates.extractorsByTopicName()).hasSize(1);
+        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+                .containsExactly(
+                        Schema.from("stock", Set.of("index")),
+                        Schema.from("simple-item-1", emptySet()));
+
+        assertThat(templates.matches(Items.subscribedFrom("simple-item-1"))).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("stock-[index=1]"))).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("stock-[index=2]"))).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("simple-item-2"))).isFalse();
+        assertThat(templates.matches(Items.subscribedFrom("stock-[key=1]"))).isFalse();
+    }
 
     @Test
     public void shouldCreateOneToOneItemTemplateFromSimpleItem() throws ExtractionException {
         // One topic mapping one item
         TopicMappingConfig tm =
-                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC, "simple-item-1");
+                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC_1, "simple-item-1");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC);
+        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
         assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC)).hasSize(1);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC))
+        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(1);
+        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1))
+                .containsExactly(withSimple(Object(), "simple-item-1"));
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
     }
 
@@ -81,49 +185,36 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        Item subcribingItem1 = Items.subscribedFrom("stock-[index=1]");
-        assertThat(templates.matches(subcribingItem1)).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("stock-[index=1]"))).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("stock-[key=1]"))).isFalse();
     }
 
     @Test
     public void shouldCreateOneToManyItemTemplateFromSimpleItem() throws ExtractionException {
         // One topic mapping two items.
         TopicMappingConfig tm =
-                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC, "simple-item-1,simple-item-2");
+                TopicMappingConfig.fromDelimitedMappings(
+                        TEST_TOPIC_1, "simple-item-1,simple-item-2");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC);
+        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
         assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC)).hasSize(2);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC))
+        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("simple-item-1", emptySet()),
                         Schema.from("simple-item-2", emptySet()));
 
-        SubscribedItem item1 = Items.susbcribedFrom("simple-item-1", "itemHandle1");
+        SubscribedItem item1 = Items.subcribedFrom("simple-item-1", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
 
-        SubscribedItem item2 = Items.susbcribedFrom("simple-item-2", "itemHandle2");
+        SubscribedItem item2 = Items.subcribedFrom("simple-item-2", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
 
-        SubscribedItem item3 = Items.susbcribedFrom("simple-item-3", "itemHandle2");
-        // assertThat(templates.matches(item2)).isTrue();
-
-        RecordMapper<String, JsonNode> mapper =
-                RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractors(templates.extractorsByTopicName())
-                        .build();
-
-        KafkaRecord<String, JsonNode> kafkaRecord =
-                record(TEST_TOPIC, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord = mapper.map(kafkaRecord);
-
-        // Kafka records coming from same topic "topic" matches two different items
-        // Set<Item> expandedItems = templates.expand(mappedRecord).collect(Collectors.toSet());
-        Set<SubscribedItem> expandedItems = mappedRecord.route(Set.of(item1, item2, item3));
-        assertThat(expandedItems).containsExactly(item1, item2);
+        SubscribedItem item3 = Items.subcribedFrom("simple-item-3", "itemHandle2");
+        assertThat(templates.matches(item3)).isFalse();
     }
 
     @Test
@@ -131,7 +222,7 @@ public class ItemTemplatesTest {
         // One topic mapping two item templates.
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC, "item-template.family,item-template.relatives");
+                        TEST_TOPIC_1, "item-template.family,item-template.relatives");
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of(
@@ -143,43 +234,23 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC);
+        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
         assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC)).hasSize(2);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC))
+        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("template-family", Set.of("topic", "info")),
                         Schema.from("template-relatives", Set.of("topic", "info1")));
 
         SubscribedItem item1 =
-                Items.susbcribedFrom(
-                        "template-family-[topic=" + TEST_TOPIC + ",info=150]", "itemHandle1");
+                Items.subcribedFrom(
+                        "template-family-[topic=" + TEST_TOPIC_1 + ",info=150]", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
 
         SubscribedItem item2 =
-                Items.susbcribedFrom(
-                        "template-relatives-[topic=" + TEST_TOPIC + ",info1=-1]", "itemHandle2");
+                Items.subcribedFrom(
+                        "template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
-
-        RecordMapper<String, JsonNode> mapper =
-                RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractors(templates.extractorsByTopicName())
-                        .build();
-
-        KafkaRecord<String, JsonNode> kafkaRecord =
-                record(TEST_TOPIC, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord = mapper.map(kafkaRecord);
-
-        // Kafka records coming from same topic "topic" matches two different item
-        // templates.
-        // Set<Item> expandedItems = templates.expand(mappedRecord).collect(Collectors.toSet());
-        // assertThat(expandedItems)
-        //         .containsExactly(
-        //         Items.from("template-family", Map.of(TEST_TOPIC, "topic", "info", "150")),
-        //         Items.from(
-        //                 "template-relatives", Map.of(TEST_TOPIC, "topic", "info1", "-1")));
-        Set<SubscribedItem> routed = mappedRecord.route(Set.of(item1, item2));
-        assertThat(routed).containsExactly(item1, item2);
     }
 
     @Test
@@ -202,35 +273,12 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(templates.extractorsByTopicName()).hasSize(2);
+        assertThat(templates.extractorsByTopicName().get(newOrdersTopic)).hasSize(1);
+        assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem subcribingItem = Items.susbcribedFrom("orders", "");
+        SubscribedItem subcribingItem = Items.subcribedFrom("orders", "");
         assertThat(templates.matches(subcribingItem)).isTrue();
-
-        RecordMapper<String, JsonNode> mapper =
-                RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractors(templates.extractorsByTopicName())
-                        .build();
-
-        // Kafka Record coming from topic "new_orders"
-        KafkaRecord<String, JsonNode> kafkaRecord1 =
-                record(newOrdersTopic, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
-        assertThat(mappedRecord1.route(Set.of(subcribingItem))).containsExactly(subcribingItem);
-
-        // Kafka Record coming from topic "past_orders"
-        KafkaRecord<String, JsonNode> kafkaRecord2 =
-                record(pastOrderTopic, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        assertThat(mappedRecord2.route(Set.of(subcribingItem))).containsExactly(subcribingItem);
-
-        // Kafka records coming from different topics ("new_orders" and "past_orders")
-        // match the same item.
-        // Stream<Item> expandedItems1 = templates.expand(mappedRecord1);
-        // assertThat(expandedItems1).containsExactly(Items.from("orders", Collections.emptyMap()));
-
-        // Stream<Item> expandedItems2 = templates.expand(mappedRecord2);
-        // assertThat(expandedItems2).containsExactly(Items.from("orders", Collections.emptyMap()));
-
     }
 
     @Test
@@ -241,7 +289,6 @@ public class ItemTemplatesTest {
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of("template-order", "template-orders-#{topic=TOPIC}"));
-        // ItemReference orders = ItemReference.forTemplate("", "template-orders-#{topic=TOPIC}");
 
         // Two topics mapping the template.
         String newOrdersTopic = "new_orders";
@@ -257,44 +304,16 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(templates.extractorsByTopicName()).hasSize(2);
+        assertThat(templates.extractorsByTopicName().get(newOrdersTopic)).hasSize(1);
+        assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
 
         SubscribedItem itemFilteringTopic1 =
-                Items.susbcribedFrom("template-orders-[topic=new_orders]", "");
+                Items.subcribedFrom("template-orders-[topic=new_orders]", "");
         assertThat(templates.matches(itemFilteringTopic1)).isTrue();
 
         SubscribedItem itemFilteringTopic2 =
-                Items.susbcribedFrom("template-orders-[topic=past_orders]", "");
-        assertThat(templates.matches(itemFilteringTopic1)).isTrue();
-
-        RecordMapper<String, JsonNode> mapper =
-                RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractors(templates.extractorsByTopicName())
-                        .build();
-
-        // Kafka Record coming from topic "new_orders"
-        KafkaRecord<String, JsonNode> kafkaRecord1 =
-                record(newOrdersTopic, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
-        assertThat(mappedRecord1.route(Set.of(itemFilteringTopic1, itemFilteringTopic2)))
-                .containsExactly(itemFilteringTopic1);
-
-        // Kafka Record coming from topic "past_orders"
-        KafkaRecord<String, JsonNode> kafkaRecord2 =
-                record(pastOrderTopic, "key", JsonNodeProvider.RECORD);
-        MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        assertThat(mappedRecord2.route(Set.of(itemFilteringTopic1, itemFilteringTopic2)))
-                .containsExactly(itemFilteringTopic2);
-
-        // Kafka records coming from different topics ("new_orders" and "past_orders")
-        // match the same item template.
-        // Stream<Item> expandedItems1 = templates.expand(mappedRecord1);
-        // assertThat(expandedItems1)
-        //         .containsExactly(Items.from("template-orders", Map.of(TEST_TOPIC,
-        // "new_orders")));
-
-        // Stream<Item> expandedItems2 = templates.expand(mappedRecord2);
-        // assertThat(expandedItems2)
-        //         .containsExactly(Items.from("template-orders", Map.of(TEST_TOPIC,
-        // "past_orders")));
+                Items.subcribedFrom("template-orders-[topic=past_orders]", "");
+        assertThat(templates.matches(itemFilteringTopic2)).isTrue();
     }
 }

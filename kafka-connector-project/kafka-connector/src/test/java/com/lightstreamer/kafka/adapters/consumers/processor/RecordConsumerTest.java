@@ -107,7 +107,7 @@ public class RecordConsumerTest {
         this.config = (ConsumerTriggerConfig<String, String>) connectorConfigurator.configure();
 
         String item = "item";
-        this.subscriptions = Collections.singleton(Items.susbcribedFrom(item, new Object()));
+        this.subscriptions = Collections.singleton(Items.subcribedFrom(item, new Object()));
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);

@@ -85,7 +85,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     public final CompletableFuture<Void> subscribe(String item, Object itemHandle)
             throws SubscriptionException {
         try {
-            SubscribedItem newItem = Items.susbcribedFrom(item, itemHandle);
+            SubscribedItem newItem = Items.subcribedFrom(item, itemHandle);
             if (!config.itemTemplates().matches(newItem)) {
                 log.atWarn().log("Item [{}] does not match any defined item templates", item);
                 throw new SubscriptionException("Item does not match any defined item templates");

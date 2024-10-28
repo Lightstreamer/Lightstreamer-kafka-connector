@@ -18,17 +18,16 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.with;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,17 +37,6 @@ import java.util.Set;
 public class RecordMapperTest {
 
     private static final String TEST_TOPIC = "topic";
-
-    private static DataExtractor<String, String> extractor(
-            String schemaName, Map<String, ExtractionExpression> expressions)
-            throws ExtractionException {
-
-        return DataExtractor.<String, String>builder()
-                .withSuppliers(TestSelectorSuppliers.String())
-                .withSchemaName(schemaName)
-                .withExpressions(expressions)
-                .build();
-    }
 
     private static Builder<String, String> builder() {
         return RecordMapper.<String, String>builder();
@@ -68,10 +56,10 @@ public class RecordMapperTest {
                 builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor("test", Map.of("aKey", Expression("PARTITION"))))
+                                with(String(), "test", Map.of("aKey", Expression("PARTITION"))))
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor("test", Map.of("aKey", Expression("PARTITION"))))
+                                with(String(), "test", Map.of("aKey", Expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -79,7 +67,7 @@ public class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC))
-                .containsExactly(extractor("test", Map.of("aKey", Expression("PARTITION"))));
+                .containsExactly(with(String(), "test", Map.of("aKey", Expression("PARTITION"))));
     }
 
     @Test
@@ -87,13 +75,20 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withTemplateExtractor(
-                                TEST_TOPIC, extractor("prefix1", Map.of("aKey", Expression("KEY"))))
+                                TEST_TOPIC,
+                                with(String(), "prefix1", Map.of("aKey", Expression("KEY"))))
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor("prefix2", Map.of("aValue", Expression("PARTITION"))))
+                                with(
+                                        String(),
+                                        "prefix2",
+                                        Map.of("aValue", Expression("PARTITION"))))
                         .withTemplateExtractor(
                                 "anotherTopic",
-                                extractor("anotherPrefix", Map.of("aKey", Expression("PARTITION"))))
+                                with(
+                                        String(),
+                                        "anotherPrefix",
+                                        Map.of("aKey", Expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -103,12 +98,12 @@ public class RecordMapperTest {
         assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC)).hasSize(2);
         assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC))
                 .containsExactly(
-                        extractor("prefix1", Map.of("aKey", Expression("KEY"))),
-                        extractor("prefix2", Map.of("aValue", Expression("PARTITION"))));
+                        with(String(), "prefix1", Map.of("aKey", Expression("KEY"))),
+                        with(String(), "prefix2", Map.of("aValue", Expression("PARTITION"))));
         assertThat(mapper.getExtractorsByTopicName("anotherTopic")).hasSize(1);
         assertThat(mapper.getExtractorsByTopicName("anotherTopic"))
                 .containsExactly(
-                        extractor("anotherPrefix", Map.of("aKey", Expression("PARTITION"))));
+                        with(String(), "anotherPrefix", Map.of("aKey", Expression("PARTITION"))));
     }
 
     @Test
@@ -116,7 +111,7 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                extractor("fields", Map.of("aKey", Expression("PARTITION"))))
+                                with(String(), "fields", Map.of("aKey", Expression("PARTITION"))))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -130,7 +125,8 @@ public class RecordMapperTest {
                 builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor(
+                                with(
+                                        String(),
                                         "prefix1",
                                         Map.of(
                                                 "partition",
@@ -139,14 +135,16 @@ public class RecordMapperTest {
                                                 Expression("VALUE"))))
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor("prefix2", Map.of("topic", Expression("TOPIC"))))
+                                with(String(), "prefix2", Map.of("topic", Expression("TOPIC"))))
                         .withTemplateExtractor(
-                                TEST_TOPIC, extractor("prefix3", Map.of("key", Expression("KEY"))))
+                                TEST_TOPIC,
+                                with(String(), "prefix3", Map.of("key", Expression("KEY"))))
                         .withTemplateExtractor(
                                 "anotherTopic",
-                                extractor("prefix3", Map.of("value", Expression("VALUE"))))
+                                with(String(), "prefix3", Map.of("value", Expression("VALUE"))))
                         .withFieldExtractor(
-                                extractor(
+                                with(
+                                        String(),
                                         "fields",
                                         Map.of(
                                                 "keyField",
@@ -161,8 +159,8 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord1 =
                 ConsumerRecords.record(TEST_TOPIC, "aKey", "aValue");
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
-        Set<SchemaAndValues> expanded1 = mappedRecord1.expanded();
-        assertThat(expanded1)
+        Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord1.expanded();
+        assertThat(expandedFromTestsTopic)
                 .containsExactly(
                         SchemaAndValues.from(
                                 "prefix1", Map.of("partition", "150", "value", "aValue")),
@@ -175,8 +173,8 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord2 =
                 ConsumerRecords.record("anotherTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        Set<SchemaAndValues> expanded2 = mappedRecord2.expanded();
-        assertThat(expanded2)
+        Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
+        assertThat(expandedFromAnotherTopic)
                 .containsExactly(SchemaAndValues.from("prefix3", Map.of("value", "anotherValue")));
         assertThat(mappedRecord2.fieldsMap())
                 .containsExactly("keyField", "anotherKey", "valueField", "anotherValue");

@@ -18,26 +18,16 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.Items.subcribedFrom;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
-
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
-import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
@@ -46,106 +36,142 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
+import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 
 public class RecordRoutingTest {
 
-    private static final String TEST_TOPIC = "topic";
+    private static final String TEST_TOPIC_1 = "topic";
+    private static final String TEST_TOPIC_2 = "anotherTopic";
 
     static Stream<Arguments> itemArgs() {
         return Stream.of(
+                // One-to-One
                 arguments(
-                        List.of("item"),
+                        List.of(TEST_TOPIC_1, TEST_TOPIC_2),
+                        "item",
                         // Routeable item
-                        List.of(Items.susbcribedFrom("item", "handle1")),
+                        List.of(subcribedFrom("item", "handle1")),
                         // Non-routeable item
-                        List.of(Items.susbcribedFrom("otherItem", "handle2"))));
+                        List.of(subcribedFrom("otherItem", "handle2"))),
+                // Many-to-One
+                arguments(
+                        List.of(TEST_TOPIC_1, TEST_TOPIC_2),
+                        "item",
+                        // Routeable item
+                        List.of(subcribedFrom("item", "handle1")),
+                        // Non-routeable item
+                        List.of(subcribedFrom("otherItem", "handle2"))));
     }
 
     @ParameterizedTest
     @MethodSource("itemArgs")
     public void shouldRoutesFromSimpleItems(
-            List<String> templateStr,
+            List<String> topics,
+            String item,
             List<SubscribedItem> routables,
             List<SubscribedItem> nonRoutables)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.mkSimpleItems(
-                        TEST_TOPIC,
-                        TestSelectorSuppliers.String(),
-                        templateStr.toArray(size -> new String[size]));
+                        OthersSelectorSuppliers.String(), topics, List.of(item));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
                         .withTemplateExtractors(templates.extractorsByTopicName())
                         .build();
 
-        MappedRecord mapped = mapper.map(ConsumerRecords.record(TEST_TOPIC, "key", "value"));
-        List<SubscribedItem> all =
-                Stream.concat(routables.stream(), nonRoutables.stream()).toList();
+        for (String topic : topics) {
+            MappedRecord mapped = mapper.map(ConsumerRecords.record(topic, "key", "value"));
+            List<SubscribedItem> all =
+                    Stream.concat(routables.stream(), nonRoutables.stream()).toList();
 
-        Set<SubscribedItem> routed = mapped.route(all);
-        assertThat(routed).containsExactlyElementsIn(routables);
+            Set<SubscribedItem> routed = mapped.route(all);
+            assertThat(routed).containsExactlyElementsIn(routables);
+        }
     }
 
     static Stream<Arguments> templateArgs() {
         return Stream.of(
                 arguments(
-                        List.of("item-#{key=KEY,value=VALUE}"),
-                        List.of(
-                                Items.susbcribedFrom("item-[key=key,value=value]", "handle1"),
-                                Items.susbcribedFrom("item-[value=value,key=key]", "handle2")),
-                        List.of(
-                                Items.susbcribedFrom("item", "handle3"),
-                                Items.susbcribedFrom("item-[key=key]", "handle4"),
-                                Items.susbcribedFrom("item-[key=anotherKey]", "handle5"),
-                                Items.susbcribedFrom("item-[value=anotherValue]", "handle6"),
-                                Items.susbcribedFrom("nonRoutable", new Object()))),
-                arguments(
-                        List.of(
-                                "item-#{key=KEY,value=VALUE}",
-                                "item-#{topic=TOPIC}",
-                                "myItem-#{topic=TOPIC}"),
-                        List.of(
-                                Items.susbcribedFrom("item-[key=key,value=value]", "handle1"),
-                                Items.susbcribedFrom("item-[value=value,key=key]", "handle2"),
-                                Items.susbcribedFrom("item-[topic=topic]", "handle3"),
-                                Items.susbcribedFrom("myItem-[topic=topic]", "handle4")),
-                        List.of(
-                                Items.susbcribedFrom("nonRoutable", "handle5"),
-                                Items.susbcribedFrom("item-[key=anotherKey]", "handle6"),
-                                Items.susbcribedFrom("item-[value=anotherValue]", "handle7"),
-                                Items.susbcribedFrom("item-[topic=anotherTopic]", "handle8"),
-                                Items.susbcribedFrom("item", "handle9"),
-                                Items.susbcribedFrom("item-[key=key]", "handle10"),
-                                Items.susbcribedFrom("item-[value=value]", "handle11"),
-                                Items.susbcribedFrom("myItem-[topic=anotherTopic]", "handle12"))));
+                        List.of(TEST_TOPIC_1, TEST_TOPIC_2),
+                        List.of("item-#{key=KEY,value=VALUE,topic=TOPIC}"),
+                        Map.of(
+                                // Routable items for TEST_TOPIC_1
+                                TEST_TOPIC_1,
+                                List.of(
+                                        subcribedFrom(
+                                                "item-[key=key,value=value,topic=topic]",
+                                                "handle1"),
+                                        subcribedFrom(
+                                                "item-[value=value,topic=topic,key=key]",
+                                                "handle2")),
+                                // Routable items for TEST_TOPIC_2
+                                TEST_TOPIC_2,
+                                List.of(
+                                        subcribedFrom(
+                                                "item-[key=key,value=value,topic=anotherTopic]",
+                                                "handle1"),
+                                        subcribedFrom(
+                                                "item-[topic=anotherTopicalue=value,key=key]",
+                                                "handle2"))),
+                        Map.of(
+                                // Non-routable items for TEST_TOPIC_1
+                                TEST_TOPIC_1,
+                                List.of(
+                                        subcribedFrom("item", "handle3"),
+                                        subcribedFrom("item-[key=key]", "handle4"),
+                                        subcribedFrom("item-[key=anotherKey]", "handle5"),
+                                        subcribedFrom("item-[value=anotherValue]", "handle6"),
+                                        subcribedFrom("nonRoutable", new Object())),
+                                // Non-routable items for TEST_TOPIC_2
+                                TEST_TOPIC_2,
+                                List.of(
+                                        subcribedFrom("item", "handle3"),
+                                        subcribedFrom("item-[key=key]", "handle4"),
+                                        subcribedFrom("item-[key=anotherKey]", "handle5"),
+                                        subcribedFrom("item-[value=anotherValue]", "handle6"),
+                                        subcribedFrom("nonRoutable", new Object())))));
     }
 
     @ParameterizedTest
     @MethodSource("templateArgs")
     public void shouldRoutesFromTemplates(
+            List<String> topics,
             List<String> templateStr,
-            List<SubscribedItem> routables,
-            List<SubscribedItem> nonRoutables)
+            Map<String, List<SubscribedItem>> routables,
+            Map<String, List<SubscribedItem>> nonRoutables)
             throws ExtractionException {
-        KeyValueSelectorSuppliers<String, String> sSuppliers = TestSelectorSuppliers.String();
-
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.ItemTemplates(
-                        TEST_TOPIC, sSuppliers, templateStr.toArray(size -> new String[size]));
+                        OthersSelectorSuppliers.String(), topics, templateStr);
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
                         .withTemplateExtractors(templates.extractorsByTopicName())
                         .build();
 
-        MappedRecord mapped = mapper.map(ConsumerRecords.record(TEST_TOPIC, "key", "value"));
-        List<SubscribedItem> all =
-                Stream.concat(routables.stream(), nonRoutables.stream()).toList();
+        for (String topic : topics) {
+            MappedRecord mapped = mapper.map(ConsumerRecords.record(topic, "key", "value"));
+            List<SubscribedItem> routablesForTopic = routables.get(topic);
+            List<SubscribedItem> nonRoutableForTopic = nonRoutables.get(topic);
 
-        Set<SubscribedItem> routed = mapped.route(all);
-        assertThat(routed).containsExactlyElementsIn(routables);
+            List<SubscribedItem> all = new ArrayList<>(routablesForTopic);
+            all.addAll(nonRoutableForTopic);
+
+            Set<SubscribedItem> routed = mapped.route(all);
+            assertThat(routed).containsExactlyElementsIn(routablesForTopic);
+        }
     }
 
     static Stream<Arguments> templateArgsJson() {
@@ -160,14 +186,14 @@ public class RecordRoutingTest {
                             """,
                         List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
                         List.of(
-                                Items.susbcribedFrom(
+                                subcribedFrom(
                                         "user-[firstName=James,lastName=Kirk]", new Object())),
                         List.of(
-                                Items.susbcribedFrom("item", new Object()),
-                                Items.susbcribedFrom("item-[key=key]", new Object()),
-                                Items.susbcribedFrom("item-[key=anotherKey]", new Object()),
-                                Items.susbcribedFrom("item-[value=anotherValue]", new Object())),
-                        Items.susbcribedFrom("nonRoutable", new Object())));
+                                subcribedFrom("item", new Object()),
+                                subcribedFrom("item-[key=key]", new Object()),
+                                subcribedFrom("item-[key=anotherKey]", new Object()),
+                                subcribedFrom("item-[value=anotherValue]", new Object()),
+                                subcribedFrom("nonRoutable", new Object()))));
     }
 
     @ParameterizedTest
@@ -179,8 +205,7 @@ public class RecordRoutingTest {
             List<SubscribedItem> nonRoutables)
             throws JsonMappingException, JsonProcessingException, ExtractionException {
         ItemTemplates<String, JsonNode> templates =
-                ItemTemplatesUtils.ItemTemplates(
-                        TEST_TOPIC, JsonValue(), templateStr.toArray(size -> new String[size]));
+                ItemTemplatesUtils.ItemTemplates(JsonValue(), List.of(TEST_TOPIC_1), templateStr);
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
                         .withTemplateExtractors(templates.extractorsByTopicName())
@@ -188,7 +213,7 @@ public class RecordRoutingTest {
 
         ObjectMapper om = new ObjectMapper();
         JsonNode jsonNode = om.readTree(jsonString);
-        MappedRecord mapped = mapper.map(ConsumerRecords.record(TEST_TOPIC, "key", jsonNode));
+        MappedRecord mapped = mapper.map(ConsumerRecords.record(TEST_TOPIC_1, "key", jsonNode));
         List<SubscribedItem> all =
                 Stream.concat(routables.stream(), nonRoutables.stream()).toList();
         Set<SubscribedItem> routed = mapped.route(all);
@@ -204,17 +229,16 @@ public class RecordRoutingTest {
             String template, String subscribingItem, boolean canSubscribe, boolean routeable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, GenericRecord> templates =
-                ItemTemplatesUtils.AvroAvroTemplates(TEST_TOPIC, template);
+                ItemTemplatesUtils.AvroAvroTemplates(TEST_TOPIC_1, template);
         RecordMapper<GenericRecord, GenericRecord> mapper =
                 RecordMapper.<GenericRecord, GenericRecord>builder()
                         .withTemplateExtractors(templates.extractorsByTopicName())
-                        // .withFieldExtractor(FieldConfigs.from(Map.of()))
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
-                record(TEST_TOPIC, GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
+                record(TEST_TOPIC_1, GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = Items.susbcribedFrom(subscribingItem, new Object());
+        SubscribedItem subscribedItem = subcribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
         Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
@@ -223,49 +247,34 @@ public class RecordRoutingTest {
         } else {
             assertThat(routed).isEmpty();
         }
-
-        // Stream<Item> expandedItem = templates.expand(mapped);
-        // List<Item> list = expandedItem.toList();
-        // assertThat(list.size()).isEqualTo(1);
-        // Item first = list.get(0);
-        // assertThat(first.matches(subscribedItem)).isEqualTo(exandable);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvFileSource(
-            files = "src/test/resources/should-expand-items.csv",
+            files = "src/test/resources/should-route-items.csv",
             useHeadersInDisplayName = true,
             delimiter = '|')
-    public void shouldExpandMixedKeyAndValueTypes(
-            String template, String subscribingItem, boolean canSubscribe, boolean exandable)
+    public void shouldRouteWithMixedKeyAndValueTypes(
+            String template, String subscribingItem, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, JsonNode> templates =
-                ItemTemplatesUtils.AvroJsonTemplates(TEST_TOPIC, template);
+                ItemTemplatesUtils.AvroJsonTemplates(TEST_TOPIC_1, template);
         RecordMapper<GenericRecord, JsonNode> mapper =
                 RecordMapper.<GenericRecord, JsonNode>builder()
                         .withTemplateExtractors(templates.extractorsByTopicName())
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                record(TEST_TOPIC, GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
+                record(TEST_TOPIC_1, GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = Items.susbcribedFrom(subscribingItem, new Object());
+        SubscribedItem subscribedItem = subcribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
         Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
-        if (exandable) {
+        if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {
             assertThat(routed).isEmpty();
         }
-
-        // Stream<Item> expandedItem = templates.expand(mapped);
-        // Optional<Item> first = expandedItem.findFirst();
-
-        // assertThat(first.isPresent()).isTrue();
-        // assertThat(first.get().matches(subscribedItem)).isEqualTo(exandable);
     }
-
-    @Test
-    void shouldNotRouteFromNonRoutableRecord() {}
 }

@@ -26,6 +26,8 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJsonValue;
 
+import static java.util.stream.Collectors.joining;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
@@ -39,36 +41,50 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSupplier
 import org.apache.avro.generic.GenericRecord;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ItemTemplatesUtils {
 
-    public static <K, V> ItemTemplates<K, V> ItemTemplates(
-            String topic, KeyValueSelectorSuppliers<K, V> sSuppliers, String... template)
-            throws ExtractionException {
-
-        List<TopicMappingConfig> topicMappings = new ArrayList<>();
-        Map<String, String> templates = new HashMap<>();
-        for (int i = 0; i < template.length; i++) {
-            // Add a new item template with name "template-<i>"
-            templates.put("template-" + i, template[i]);
-            // Add a new TopicMapping referencing the template
-            topicMappings.add(
-                    TopicMappingConfig.fromDelimitedMappings(topic, "item-template.template-" + i));
-        }
-
-        return getTopicsConfig(sSuppliers, topicMappings, ItemTemplateConfigs.from(templates));
+    /*
+     * Prefix each input element with "item-template." and concatenate all of them, separated by a comma character
+     */
+    static String getFullTemplateNames(Collection<String> template) {
+        return template.stream().map(t -> "item-template." + t).collect(joining(","));
     }
 
+    public static <K, V> ItemTemplates<K, V> ItemTemplates(
+            KeyValueSelectorSuppliers<K, V> sSuppliers, List<String> topics, List<String> templates)
+            throws ExtractionException {
+
+        List<TopicMappingConfig> topicMappings = new ArrayList<>();
+        Map<String, String> templatesMap = new HashMap<>();
+        for (int i = 0; i < templates.size(); i++) {
+            // Add a new item template with name "template-<i>"
+            templatesMap.put("template-" + i, templates.get(i));
+        }
+
+        for (String topic : topics) {
+            // Add a new TopicMapping referencing the template
+            topicMappings.add(
+                    TopicMappingConfig.fromDelimitedMappings(
+                            topic, getFullTemplateNames(templatesMap.keySet())));
+        }
+
+        return getTopicsConfig(sSuppliers, topicMappings, ItemTemplateConfigs.from(templatesMap));
+    }
+
+    /** Map the specified topic to the specified item names */
     public static <K, V> ItemTemplates<K, V> mkSimpleItems(
-            String topic, KeyValueSelectorSuppliers<K, V> sSuppliers, String... items)
+            KeyValueSelectorSuppliers<K, V> sSuppliers, List<String> topics, List<String> items)
             throws ExtractionException {
         List<TopicMappingConfig> topicMappings = new ArrayList<>();
-        for (int i = 0; i < items.length; i++) {
+        String delimitedItems = String.join(",", items);
+        for (String topic : topics) {
             // Add a new TopicMapping referencing the item name
-            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(topic, items[i]));
+            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(topic, delimitedItems));
         }
 
         // No template configuration required in this case
@@ -78,20 +94,20 @@ public class ItemTemplatesUtils {
     private static <K, V> ItemTemplates<K, V> getTopicsConfig(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             List<TopicMappingConfig> topicMappings,
-            ItemTemplateConfigs noTemplatesMap)
+            ItemTemplateConfigs templateConfigs)
             throws ExtractionException {
-        TopicConfigurations topicsConfig = TopicConfigurations.of(noTemplatesMap, topicMappings);
+        TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, topicMappings);
         return Items.templatesFrom(topicsConfig, sSuppliers);
     }
 
     public static ItemTemplates<GenericRecord, GenericRecord> AvroAvroTemplates(
             String topic, String template) throws ExtractionException {
-        return ItemTemplates(topic, Avro(avroAvroConfig()), template);
+        return ItemTemplates(Avro(avroAvroConfig()), List.of(topic), List.of(template));
     }
 
     public static ItemTemplates<GenericRecord, JsonNode> AvroJsonTemplates(
             String topic, String template) throws ExtractionException {
-        return ItemTemplates(topic, AvroKeyJsonValue(avroJsonConfig()), template);
+        return ItemTemplates(AvroKeyJsonValue(avroJsonConfig()), List.of(topic), List.of(template));
     }
 
     private static ConnectorConfig avroJsonConfig() {

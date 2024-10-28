@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeKafkaConsumer;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeMetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -39,7 +40,6 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.serialization.Serde;
@@ -75,7 +75,7 @@ class TestLoopConfig implements ConsumerTriggerConfig<String, String> {
     @Override
     public ItemTemplates<String, String> itemTemplates() {
         try {
-            return Items.templatesFrom(topicsConfig, TestSelectorSuppliers.String());
+            return Items.templatesFrom(topicsConfig, OthersSelectorSuppliers.String());
         } catch (ExtractionException e) {
             throw new RuntimeException(e);
         }
@@ -158,10 +158,10 @@ public class ConsumerTriggerTest {
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(2);
 
         Item item1 = consumerTrigger.getSubscribeditem("anItemTemplate");
-        assertThat(item1).isEqualTo(Items.susbcribedFrom("anItemTemplate", itemHandle1));
+        assertThat(item1).isEqualTo(Items.subcribedFrom("anItemTemplate", itemHandle1));
 
         Item item2 = consumerTrigger.getSubscribeditem("anotherItemTemplate");
-        assertThat(item2).isEqualTo(Items.susbcribedFrom("anotherItemTemplate", itemHandle2));
+        assertThat(item2).isEqualTo(Items.subcribedFrom("anotherItemTemplate", itemHandle2));
 
         assertThat(consuming1).isSameInstanceAs(consuming2);
 
@@ -198,7 +198,7 @@ public class ConsumerTriggerTest {
         CompletableFuture<Void> consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);
         Item item = consumerTrigger.getSubscribeditem("anItemTemplate");
 
-        assertThat(item).isEqualTo(Items.susbcribedFrom("anItemTemplate", itemHandle));
+        assertThat(item).isEqualTo(Items.subcribedFrom("anItemTemplate", itemHandle));
         assertThat(consuming.isCompletedExceptionally());
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(1);
         assertThat(kafkaConsumer.hasRan()).isFalse();

@@ -17,8 +17,11 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
+import java.util.Collections;
 import java.util.Map;
 
 public interface DataExtractor<K, V> {
@@ -46,5 +49,32 @@ public interface DataExtractor<K, V> {
         Builder<K, V> withSchemaName(String schema);
 
         DataExtractor<K, V> build() throws ExtractionException;
+    }
+
+    public static <K, V> DataExtractor<K, V> withSimple(
+            KeyValueSelectorSuppliers<K, V> sSuppliers, String schema) throws ExtractionException {
+        return with(sSuppliers, schema, Collections.emptyMap());
+    }
+
+    public static <K, V> DataExtractor<K, V> withBoundExpression(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            String schema,
+            String parameter,
+            String expression)
+            throws ExtractionException {
+        return with(sSuppliers, schema, Map.of(parameter, Expression(expression)));
+    }
+
+    public static <K, V> DataExtractor<K, V> with(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            String schema,
+            Map<String, ExtractionExpression> expressions)
+            throws ExtractionException {
+
+        return DataExtractor.<K, V>builder()
+                .withSuppliers(sSuppliers)
+                .withSchemaName(schema)
+                .withExpressions(expressions)
+                .build();
     }
 }

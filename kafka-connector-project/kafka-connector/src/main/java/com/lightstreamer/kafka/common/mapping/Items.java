@@ -210,10 +210,10 @@ public class Items {
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return susbcribedFrom(input, input);
+        return subcribedFrom(input, input);
     }
 
-    public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
+    public static SubscribedItem subcribedFrom(String input, Object itemHandle)
             throws ExpressionException {
         SubscriptionExpression result = Expressions.Subscription(input);
         return subscribedFrom(itemHandle, result.prefix(), result.params());

@@ -18,7 +18,9 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.with;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -27,7 +29,6 @@ import static java.util.Collections.emptyMap;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.ConsumerRecords;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,25 +43,14 @@ public class DataExtractorTest {
 
     static final String TEST_SCHEMA = "schema";
 
-    private static DataExtractor<String, String> extractor(
-            String schemaName, Map<String, ExtractionExpression> expressions)
-            throws ExtractionException {
-
-        return DataExtractor.<String, String>builder()
-                .withSuppliers(TestSelectorSuppliers.String())
-                .withSchemaName(schemaName)
-                .withExpressions(expressions)
-                .build();
-    }
-
     @Test
     public void shouldCreateEqualExtractors() throws ExtractionException {
         DataExtractor<String, String> extractor1 =
-                extractor("prefix1", Map.of("aKey", Expression("KEY")));
+                with(String(), "prefix1", Map.of("aKey", Expression("KEY")));
         assertThat(extractor1.equals(extractor1)).isTrue();
 
         DataExtractor<String, String> extractor2 =
-                extractor("prefix1", Map.of("aKey", Expression("KEY")));
+                with(String(), "prefix1", Map.of("aKey", Expression("KEY")));
         assertThat(extractor1.hashCode()).isEqualTo(extractor2.hashCode());
         assertThat(extractor1.equals(extractor2)).isTrue();
     }
@@ -108,7 +98,7 @@ public class DataExtractorTest {
             Schema expectedSchema,
             Map<String, String> expectedValues)
             throws ExtractionException {
-        DataExtractor<String, String> extractor = extractor(schemaName, expressions);
+        DataExtractor<String, String> extractor = with(String(), schemaName, expressions);
 
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 

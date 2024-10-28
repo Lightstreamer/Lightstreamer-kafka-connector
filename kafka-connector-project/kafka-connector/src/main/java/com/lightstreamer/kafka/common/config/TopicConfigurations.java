@@ -218,8 +218,7 @@ public class TopicConfigurations {
                             .toList();
             configs.add(new TopicConfiguration(topicMapping.topic(), refs));
         }
-        // this.topicConfigurations = Collections.unmodifiableSet(configs);
-        this.topicConfigurations = configs;
+        this.topicConfigurations = Collections.unmodifiableSet(configs);
     }
 
     public Set<TopicConfiguration> configurations() {
