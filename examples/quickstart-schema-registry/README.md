@@ -1,6 +1,6 @@
 # Quick Start with Schema Registry
 
-This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
+This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
@@ -51,10 +51,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
    schema.registry.ssl.key.password=producer-private-key-password
    ```  
 
-In addition, the `schema-registry` service references the local [`secrets/schema-registry`](./secrets/schema-registry/) folder to retrieve the following secrets:
+In addition, the `schema-registry` service references the local [`secrets/schema-registry`](../compose-templates/secrets/schema-registry/) folder to retrieve the following secrets:
 
-- The trust store file [`schema-registry.truststore.jks`](../../../compose-templates/secrets/schema-registry/schema-registry.truststore.jks)
-- The key store file [`schema-registry.keystore.jks`](../../../compose-templates/secrets/schema-registry/schema-registry.keystore.jks)
+- The trust store file [`schema-registry.truststore.jks`](../compose-templates/secrets/schema-registry/schema-registry.truststore.jks)
+- The key store file [`schema-registry.keystore.jks`](../compose-templates/secrets/schema-registry/schema-registry.keystore.jks)
 
 You can regenerate all of them with:
 
@@ -64,4 +64,4 @@ $ ./generate-secrets.sh
 
 ## Run
 
-From this directory, follow the same instructions you can find in the [Quick Start](../../../../README.md#run) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#run) section of the main README file.

@@ -1,1 +1,1 @@
-../../../compose-templates/helpers.sh
+../compose-templates/helpers.sh

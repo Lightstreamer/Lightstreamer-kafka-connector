@@ -75,12 +75,37 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordEr
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
+<<<<<<< HEAD
 
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE;
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
 
+=======
+>>>>>>> main
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.Stream;
+
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
@@ -94,6 +119,7 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
+<<<<<<< HEAD
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
@@ -115,6 +141,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
+=======
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
+>>>>>>> main
 
 public class ConnectorConfigTest {
 
@@ -336,6 +365,7 @@ public class ConnectorConfigTest {
                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH, valueSchemaFile.getFileName().toString());
         standardParams.put(RECORD_KEY_EVALUATOR_TYPE, "JSON");
         standardParams.put(
+<<<<<<< HEAD
                 RECORD_KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
         standardParams.put(ITEM_INFO_NAME, "INFO_ITEM");
         standardParams.put(ITEM_INFO_FIELD, "INFO_FIELD");
@@ -352,6 +382,27 @@ public class ConnectorConfigTest {
         standardParams.put(CONSUMER_SESSION_TIMEOUT_MS, "800");
         standardParams.put(CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
         standardParams.put(CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+=======
+                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                keySchemaFile.getFileName().toString());
+        standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
+        standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
+        standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        standardParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        standardParams.put(ConnectorConfig.CONSUMER_CLIENT_ID, "a.client.id"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
+        standardParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
+        standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
+>>>>>>> main
         standardParams.put("item-template.template1", "template1-#{v=VALUE}");
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
@@ -522,7 +573,12 @@ public class ConnectorConfigTest {
                         ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
                         "5000",
                         ConsumerConfig.METADATA_MAX_AGE_CONFIG,
-                        "250");
+                        "250",
+                        ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG,
+                        "60000",
+                        ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                        "30000"
+                        );
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
     }

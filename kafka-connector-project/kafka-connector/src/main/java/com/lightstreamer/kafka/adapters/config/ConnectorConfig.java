@@ -279,7 +279,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 INT,
                                 false,
-                                defaultValue("1000"))
+                                defaultValue("30000"))
                         .add(CONSUMER_RETRIES, false, false, INT, false, defaultValue("0"))
                         .add(
                                 CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG,
@@ -287,7 +287,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 INT,
                                 false,
-                                defaultValue("15000"))
+                                defaultValue("60000"))
                         .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCYRPTION_ENABLE)
                         .withEnabledChildConfigs(
                                 BrokerAuthenticationConfigs.spec(), AUTHENTICATION_ENABLE)
