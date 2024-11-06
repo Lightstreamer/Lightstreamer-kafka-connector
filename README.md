@@ -928,8 +928,8 @@ Examples:
 
 _Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section).
+- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
+- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section)
 
 Default value: `IGNORE_AND_CONTINUE`.
 
@@ -1651,9 +1651,9 @@ Example:
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
-- `TERMINATE_TASK`: terminate the task immediately.
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record.
-- `FORWARD_TO_DLQ`: forward the record to the dead letter queue.
+- `TERMINATE_TASK`: terminate the task immediately
+- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
+- `FORWARD_TO_DLQ`: forward the record to the dead letter queue
 
 In particular, the `FORWARD_TO_DLQ` value requires a [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/) to be configured; otherwise it will fallback to `TERMINATE_TASK`.
 
