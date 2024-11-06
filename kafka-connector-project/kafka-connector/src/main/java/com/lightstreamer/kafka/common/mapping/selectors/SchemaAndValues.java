@@ -47,8 +47,7 @@ public interface SchemaAndValues {
 
 class DefaultSchemaAndValues implements SchemaAndValues {
 
-    static Schema NOPSchema = new DefaultSchema("NOSCHEMA", Collections.emptySet());
-    static SchemaAndValues NOP = new DefaultSchemaAndValues(NOPSchema, Collections.emptyMap());
+    static SchemaAndValues NOP = new DefaultSchemaAndValues(Schema.nop(), Collections.emptyMap());
 
     private final Schema schema;
     private final Map<String, String> values;

@@ -17,7 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import java.util.Collections;
+import static java.util.Collections.emptySet;
+
 import java.util.Set;
 
 public interface Schema {
@@ -33,11 +34,18 @@ public interface Schema {
     }
 
     static Schema empty(String name) {
-        return from(name, Collections.emptySet());
+        return from(name, emptySet());
+    }
+
+    static Schema nop() {
+        return DefaultSchema.NOP;
     }
 }
 
 final record DefaultSchema(String name, Set<String> keys) implements Schema {
+
+    static Schema NOP = Schema.empty("NOSCHEMA");
+
     DefaultSchema {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Schema name must be a non empty string");

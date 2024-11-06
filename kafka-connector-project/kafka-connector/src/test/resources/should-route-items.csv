@@ -21,4 +21,3 @@ item-#{ts=TIMESTAMP,partition=PARTITION}                                       |
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[ts=-1,partition=150]                     | true              | true
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[partition=150,ts=1]                      | true              | false
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[partition=50]                            | false             | false
-simple-item-1                                                                  | simple-item-1                                  | true              | true

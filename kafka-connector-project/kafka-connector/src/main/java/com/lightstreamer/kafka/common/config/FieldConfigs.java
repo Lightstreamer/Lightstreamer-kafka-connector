@@ -65,11 +65,6 @@ public class FieldConfigs {
 
     public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
-
-        return DataExtractor.<K, V>builder()
-                .withSuppliers(selectorSuppliers)
-                .withSchemaName(SCHEMA_NAME)
-                .withExpressions(expressions)
-                .build();
+        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions);
     }
 }

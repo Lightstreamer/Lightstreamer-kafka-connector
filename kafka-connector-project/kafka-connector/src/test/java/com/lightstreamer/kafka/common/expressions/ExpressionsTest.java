@@ -18,6 +18,10 @@
 package com.lightstreamer.kafka.common.expressions;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Subscription;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -45,8 +49,8 @@ public class ExpressionsTest {
 
     @Test
     void shouldCreateEqualExpressions() {
-        ExtractionExpression ee1 = Expressions.Expression("VALUE");
-        ExtractionExpression ee2 = Expressions.Expression("VALUE");
+        ExtractionExpression ee1 = Expression("VALUE");
+        ExtractionExpression ee2 = Expression("VALUE");
 
         assertThat(ee1.equals(ee1)).isTrue(); // Enforces code coverage
         assertThat(ee1).isEqualTo(ee2);
@@ -54,7 +58,7 @@ public class ExpressionsTest {
         assertThat(ee1).isNotEqualTo(new Object());
         assertThat(ee1.hashCode()).isEqualTo(ee2.hashCode());
 
-        ExtractionExpression ee3 = Expressions.Expression("KEY");
+        ExtractionExpression ee3 = Expression("KEY");
         assertThat(ee1).isNotEqualTo(ee3);
         assertThat(ee1.hashCode()).isNotEqualTo(ee3.hashCode());
     }
@@ -73,7 +77,7 @@ public class ExpressionsTest {
     @MethodSource("expressionArgs")
     void shouldCreateExpression(
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Expressions.Expression(expressionStr);
+        ExtractionExpression ee = Expression(expressionStr);
         assertThat(ee.expression()).isEqualTo(expressionStr);
         assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
@@ -85,8 +89,7 @@ public class ExpressionsTest {
     @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\"})
     void shouldNotCreateExpression(String expressionStr) {
         ExpressionException ee =
-                assertThrows(
-                        ExpressionException.class, () -> Expressions.Expression(expressionStr));
+                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
                 .isEqualTo("Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]");
     }
@@ -95,8 +98,7 @@ public class ExpressionsTest {
     @ValueSource(strings = {"VALUE.", "VALUE..", "VALUE.attrib.", "VALUE.attrib[]]."})
     void shouldNotCreateExpressionDueToTrailingDots(String expressionStr) {
         ExpressionException ee =
-                assertThrows(
-                        ExpressionException.class, () -> Expressions.Expression(expressionStr));
+                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found unexpected trailing dot(s) in the expression ["
@@ -120,7 +122,7 @@ public class ExpressionsTest {
     @MethodSource("templateArgs")
     void shouldCreateTemplateExpression(
             String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
-        TemplateExpression template = Expressions.Template(expressionStr);
+        TemplateExpression template = Template(expressionStr);
         assertThat(template.prefix()).isEqualTo(expectedPrefix);
 
         Map<String, ExtractionExpression> templateParams = template.params();
@@ -159,7 +161,7 @@ public class ExpressionsTest {
                     """)
     void shouldNotCreateTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expressions.Template(expressionStr));
+                assertThrows(ExpressionException.class, () -> Template(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -180,7 +182,7 @@ public class ExpressionsTest {
     @MethodSource("subscriptionArgs")
     void shouldCreateSubscriptionEpression(
             String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
-        SubscriptionExpression subscription = Expressions.Subscription(expressionStr);
+        SubscriptionExpression subscription = Subscription(expressionStr);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);
 
         Map<String, String> subscriptionParams = subscription.params();
@@ -205,8 +207,7 @@ public class ExpressionsTest {
                     """)
     void shouldNotCreateSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(
-                        ExpressionException.class, () -> Expressions.Subscription(expressionStr));
+                assertThrows(ExpressionException.class, () -> Subscription(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -225,7 +226,7 @@ public class ExpressionsTest {
     @MethodSource("fieldArgs")
     void shouldCreateFieldExpression(
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Expressions.Wrapped(expressionStr);
+        ExtractionExpression ee = Wrapped(expressionStr);
         // Remove '#{' and '}'
         String expectedExpression =
                 expressionStr.substring(
@@ -239,7 +240,7 @@ public class ExpressionsTest {
     @ValueSource(strings = {"#{NOT-EXISTING-CONSTANT}", "#{..}", "#{@}", "#{\\}"})
     void shouldNotCreateFieldExpression(String expressionStr) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expressions.Wrapped(expressionStr));
+                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
         assertThat(ee.getMessage())
                 .isEqualTo("Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]");
     }
@@ -261,7 +262,7 @@ public class ExpressionsTest {
     void shouldNotCreateFieldExpressionDueToInvalidExpression(
             String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expressions.Wrapped(expressionStr));
+                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }

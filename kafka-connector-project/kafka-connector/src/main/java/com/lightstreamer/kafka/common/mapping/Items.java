@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
@@ -27,7 +29,6 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfigurat
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
@@ -234,16 +235,11 @@ public class Items {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
             for (ItemReference reference : topicConfig.itemReferences()) {
-                DataExtractor.Builder<K, V> builder =
-                        DataExtractor.<K, V>builder().withSuppliers(sSuppliers);
-
-                if (reference.isTemplate()) {
-                    TemplateExpression evaluated = reference.template();
-                    builder.withSchemaName(evaluated.prefix()).withExpressions(evaluated.params());
-                } else {
-                    builder.withSchemaName(reference.itemName());
-                }
-                templates.add(new ItemTemplate<>(topicConfig.topic(), builder.build()));
+                DataExtractor<K, V> dataExtractor =
+                        reference.isTemplate()
+                                ? extractor(sSuppliers, reference.template())
+                                : extractor(sSuppliers, reference.itemName());
+                templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
             }
         }
         return new DefaultItemTemplates<>(templates);

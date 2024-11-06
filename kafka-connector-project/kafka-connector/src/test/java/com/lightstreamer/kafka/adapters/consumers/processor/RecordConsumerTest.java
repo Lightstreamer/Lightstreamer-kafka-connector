@@ -535,7 +535,6 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         List<Event> events = Collections.synchronizedList(new ArrayList<>());
-
         recordConsumer =
                 mkRecordConsumer(
                         new FakteItemEventListener(buildEvent(events)),

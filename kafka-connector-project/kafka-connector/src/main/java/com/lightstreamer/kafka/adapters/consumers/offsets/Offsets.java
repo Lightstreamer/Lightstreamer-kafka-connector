@@ -18,25 +18,111 @@
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-class Offsets {
+public class Offsets {
 
-    static class OffsetServiceImpl implements OffsetService {
+    static String SEPARATOR = ",";
+    static Supplier<Collection<Long>> SUPPLIER = ArrayList::new;
+    static Predicate<String> NOT_EMPTY_STRING = ((Predicate<String>) String::isEmpty).negate();
+
+    static String encode(Collection<Long> offsets) {
+        return offsets.stream().map(String::valueOf).collect(Collectors.joining(SEPARATOR));
+    }
+
+    static Collection<Long> decode(String str) {
+        if (str.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Split.byComma(str).stream()
+                .filter(NOT_EMPTY_STRING)
+                .map(Long::valueOf)
+                .sorted()
+                .collect(Collectors.toCollection(SUPPLIER));
+    }
+
+    static String append(String str, long offset) {
+        String prefix = str.isEmpty() ? "" : str + SEPARATOR;
+        return prefix + offset;
+    }
+
+    public static OffsetService OffsetService(Consumer<?, ?> consumer) {
+        return new OffsetServiceImpl(consumer, LoggerFactory.getLogger(OffsetService.class));
+    }
+
+    public static OffsetService OffsetService(Consumer<?, ?> consumer, Logger log) {
+        return new OffsetServiceImpl(consumer, log);
+    }
+
+    public static OffsetStore OffsetStore(Map<TopicPartition, OffsetAndMetadata> committed) {
+        return new OffsetStoreImpl(committed);
+    }
+
+    public interface OffsetStore {
+
+        void save(ConsumerRecord<?, ?> record);
+
+        default Map<TopicPartition, OffsetAndMetadata> current() {
+            return Collections.emptyMap();
+        }
+    }
+
+    public interface OffsetService extends ConsumerRebalanceListener {
+
+        @FunctionalInterface
+        interface OffsetStoreSupplier {
+
+            OffsetStore newOffsetStore(Map<TopicPartition, OffsetAndMetadata> offsets);
+        }
+
+        default void initStore(boolean fromLatest) {
+            initStore(fromLatest, Offsets.OffsetStoreImpl::new);
+        }
+
+        void initStore(boolean flag, OffsetStoreSupplier storeSupplier);
+
+        void initStore(
+                OffsetStoreSupplier storeSupplier,
+                Map<TopicPartition, Long> startOffsets,
+                Map<TopicPartition, OffsetAndMetadata> committed);
+
+        boolean isNotAlreadyConsumed(ConsumerRecord<?, ?> record);
+
+        void commitSync();
+
+        void commitAsync();
+
+        void updateOffsets(ConsumerRecord<?, ?> record);
+
+        void onAsyncFailure(ValueException ve);
+
+        ValueException getFirstFailure();
+
+        Optional<OffsetStore> offsetStore();
+    }
+
+    private static class OffsetServiceImpl implements OffsetService {
 
         private volatile ValueException firstFailure;
         private final Consumer<?, ?> consumer;
@@ -52,37 +138,40 @@ class Offsets {
             this.log = logger;
         }
 
-        OffsetServiceImpl(Consumer<?, ?> consumer) {
-            this(consumer, LoggerFactory.getLogger(OffsetService.class));
-        }
-
         @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
             Set<TopicPartition> partitions = consumer.assignment();
             // Retrieve the offset to start from, which has to be used in case no commited offset is
-            // available fora given partition.
-            // The start offset depemds on the auto.offset.reset property.
+            // available for a given partition.
+            // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =
                     fromLatest
                             ? consumer.endOffsets(partitions)
                             : consumer.beginningOffsets(partitions);
-
             // Get the current commited offsets for all the assigned partitions
-            Map<TopicPartition, OffsetAndMetadata> committed =
-                    new HashMap<>(consumer.committed(partitions));
-            // In case of missing the commited offset for a parition, just put the the current
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(partitions);
+            initStore(storeSupplier, startOffsets, committed);
+        }
+
+        @Override
+        public void initStore(
+                OffsetStoreSupplier storeSupplier,
+                Map<TopicPartition, Long> startOffsets,
+                Map<TopicPartition, OffsetAndMetadata> committed) {
+
+            Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
+            // In case of missing the commited offset for a partition, just put the the current
             // offset
-            for (TopicPartition partition : partitions) {
+            for (TopicPartition partition : startOffsets.keySet()) {
                 OffsetAndMetadata offsetAndMetadata =
-                        committed.computeIfAbsent(
+                        offsetRepo.computeIfAbsent(
                                 partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
-                Collection<Long> alreadyConsumedOffset =
-                        OffsetStore.decode(offsetAndMetadata.metadata());
+                Collection<Long> alreadyConsumedOffset = decode(offsetAndMetadata.metadata());
                 if (!alreadyConsumedOffset.isEmpty()) {
                     skipMap.put(partition, alreadyConsumedOffset);
                 }
             }
-            offsetStore = storeSupplier.newOffsetStore(committed);
+            offsetStore = storeSupplier.newOffsetStore(offsetRepo);
         }
 
         @Override
@@ -107,13 +196,13 @@ class Offsets {
 
         @Override
         public void commitSync() {
-            consumer.commitSync(offsetStore.getStore());
+            consumer.commitSync(offsetStore.current());
             log.atInfo().log("Offsets commited");
         }
 
         @Override
         public void commitAsync() {
-            consumer.commitAsync(offsetStore.getStore(), null);
+            consumer.commitAsync(offsetStore.current(), null);
         }
 
         @Override
@@ -131,9 +220,14 @@ class Offsets {
         public ValueException getFirstFailure() {
             return firstFailure;
         }
+
+        @Override
+        public Optional<OffsetStore> offsetStore() {
+            return Optional.of(offsetStore);
+        }
     }
 
-    static class OffsetStoreImpl implements OffsetStore {
+    private static class OffsetStoreImpl implements OffsetStore {
 
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
 
@@ -142,7 +236,7 @@ class Offsets {
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> getStore() {
+        public Map<TopicPartition, OffsetAndMetadata> current() {
             return Collections.unmodifiableMap(offsets);
         }
 
@@ -158,7 +252,7 @@ class Offsets {
             long lastOffset = lastOffsetAndMetadata.offset();
             long consumedOffset = record.offset();
             if (consumedOffset == lastOffset) {
-                Collection<Long> orderedConsumedList = OffsetStore.decode(lastMetadata);
+                Collection<Long> orderedConsumedList = decode(lastMetadata);
                 Iterator<Long> iterator = orderedConsumedList.iterator();
 
                 long newOffset = lastOffset;
@@ -172,12 +266,10 @@ class Offsets {
                     break;
                 }
                 String newMetadata =
-                        newOffset == lastOffset
-                                ? lastMetadata
-                                : OffsetStore.encode(orderedConsumedList);
+                        newOffset == lastOffset ? lastMetadata : encode(orderedConsumedList);
                 return new OffsetAndMetadata(newOffset + 1, newMetadata);
             }
-            String newMetadata = OffsetStore.append(lastMetadata, consumedOffset);
+            String newMetadata = append(lastMetadata, consumedOffset);
             return new OffsetAndMetadata(lastOffset, newMetadata);
         }
     }

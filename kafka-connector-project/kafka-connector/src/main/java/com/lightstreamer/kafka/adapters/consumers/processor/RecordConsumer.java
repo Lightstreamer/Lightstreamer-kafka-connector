@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -95,12 +95,12 @@ public interface RecordConsumer<K, V> {
     }
 
     public static <K, V> StartBuildingProcessor<K, V> recordMapper(RecordMapper<K, V> mapper) {
-        return new RecordConsumerSupport.StartBuildingProcessorBuilderImpl<>(mapper);
+        return RecordConsumerSupport.startBuildingProcessor(mapper);
     }
 
     public static <K, V> StartBuildingConsumer<K, V> recordProcessor(
             RecordProcessor<K, V> recordProcessor) {
-        return new RecordConsumerSupport.StartBuildingConsumerImpl<>(recordProcessor);
+        return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
     default void consumeFilteredRecords(

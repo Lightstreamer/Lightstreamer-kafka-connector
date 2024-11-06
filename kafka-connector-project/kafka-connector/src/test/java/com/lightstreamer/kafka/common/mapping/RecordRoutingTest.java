@@ -21,20 +21,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subcribedFrom;
 import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
+
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
-
-import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvFileSource;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -51,6 +39,18 @@ import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 
+import org.apache.avro.generic.GenericRecord;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
+
 public class RecordRoutingTest {
 
     private static final String TEST_TOPIC_1 = "topic";
@@ -60,7 +60,7 @@ public class RecordRoutingTest {
         return Stream.of(
                 // One-to-One
                 arguments(
-                        List.of(TEST_TOPIC_1, TEST_TOPIC_2),
+                        List.of(TEST_TOPIC_1),
                         "item",
                         // Routeable item
                         List.of(subcribedFrom("item", "handle1")),
@@ -124,12 +124,15 @@ public class RecordRoutingTest {
                                                 "item-[key=key,value=value,topic=anotherTopic]",
                                                 "handle1"),
                                         subcribedFrom(
-                                                "item-[topic=anotherTopicalue=value,key=key]",
+                                                "item-[topic=anotherTopic,value=value,key=key]",
                                                 "handle2"))),
                         Map.of(
                                 // Non-routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
+                                        subcribedFrom(
+                                                "item-[key=key,value=value,topic=anotherTopic]",
+                                                "handle1"),
                                         subcribedFrom("item", "handle3"),
                                         subcribedFrom("item-[key=key]", "handle4"),
                                         subcribedFrom("item-[key=anotherKey]", "handle5"),
@@ -138,6 +141,9 @@ public class RecordRoutingTest {
                                 // Non-routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
+                                        subcribedFrom(
+                                                "item-[key=key,value=value,topic=topic]",
+                                                "handle1"),
                                         subcribedFrom("item", "handle3"),
                                         subcribedFrom("item-[key=key]", "handle4"),
                                         subcribedFrom("item-[key=anotherKey]", "handle5"),

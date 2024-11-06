@@ -19,19 +19,11 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.withBoundExpression;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.withSimple;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
+
 import static java.util.Collections.emptySet;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
@@ -43,6 +35,14 @@ import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ItemTemplatesTest {
 
@@ -102,14 +102,14 @@ public class ItemTemplatesTest {
                 .hasSize(1);
         assertWithMessage("The extractor associated with TEST_TOPIC_1 is as expected")
                 .that(extractors.get(TEST_TOPIC_1))
-                .containsExactly(withBoundExpression(Object(), "stock", "index", "KEY.attrib"));
+                .containsExactly(extractor(Object(), "stock", "index", "KEY.attrib"));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
                 .that(extractors.get(TEST_TOPIC_2))
                 .hasSize(1);
         assertWithMessage("The extractor associated with TEST_TOPIC_2 is as expected")
                 .that(extractors.get(TEST_TOPIC_2))
-                .containsExactly(withBoundExpression(Object(), "stock", "index", "KEY.attrib"));
+                .containsExactly(extractor(Object(), "stock", "index", "KEY.attrib"));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
@@ -163,7 +163,7 @@ public class ItemTemplatesTest {
         assertThat(templates.extractorsByTopicName()).hasSize(1);
         assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(1);
         assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1))
-                .containsExactly(withSimple(Object(), "simple-item-1"));
+                .containsExactly(extractor(Object(), "simple-item-1"));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
     }

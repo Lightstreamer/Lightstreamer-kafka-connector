@@ -17,19 +17,12 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJsonValue;
 
 import static java.util.stream.Collectors.joining;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
@@ -47,13 +40,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ItemTemplatesUtils {
-
-    /*
-     * Prefix each input element with "item-template." and concatenate all of them, separated by a comma character
-     */
-    static String getFullTemplateNames(Collection<String> template) {
-        return template.stream().map(t -> "item-template." + t).collect(joining(","));
-    }
 
     public static <K, V> ItemTemplates<K, V> ItemTemplates(
             KeyValueSelectorSuppliers<K, V> sSuppliers, List<String> topics, List<String> templates)
@@ -73,7 +59,7 @@ public class ItemTemplatesUtils {
                             topic, getFullTemplateNames(templatesMap.keySet())));
         }
 
-        return getTopicsConfig(sSuppliers, topicMappings, ItemTemplateConfigs.from(templatesMap));
+        return mkItemTemplates(sSuppliers, topicMappings, ItemTemplateConfigs.from(templatesMap));
     }
 
     /** Map the specified topic to the specified item names */
@@ -88,51 +74,32 @@ public class ItemTemplatesUtils {
         }
 
         // No template configuration required in this case
-        return getTopicsConfig(sSuppliers, topicMappings, ItemTemplateConfigs.empty());
+        return mkItemTemplates(sSuppliers, topicMappings, ItemTemplateConfigs.empty());
     }
 
-    private static <K, V> ItemTemplates<K, V> getTopicsConfig(
+    public static ItemTemplates<GenericRecord, GenericRecord> AvroAvroTemplates(
+            String topic, String template) throws ExtractionException {
+        return ItemTemplates(Avro(), List.of(topic), List.of(template));
+    }
+
+    public static ItemTemplates<GenericRecord, JsonNode> AvroJsonTemplates(
+            String topic, String template) throws ExtractionException {
+        return ItemTemplates(AvroKeyJsonValue(), List.of(topic), List.of(template));
+    }
+
+    /*
+     * Prefix each input element with "item-template." and concatenate all of them, separated by a comma character
+     */
+    static String getFullTemplateNames(Collection<String> template) {
+        return template.stream().map(t -> "item-template." + t).collect(joining(","));
+    }
+
+    private static <K, V> ItemTemplates<K, V> mkItemTemplates(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             List<TopicMappingConfig> topicMappings,
             ItemTemplateConfigs templateConfigs)
             throws ExtractionException {
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, topicMappings);
         return Items.templatesFrom(topicsConfig, sSuppliers);
-    }
-
-    public static ItemTemplates<GenericRecord, GenericRecord> AvroAvroTemplates(
-            String topic, String template) throws ExtractionException {
-        return ItemTemplates(Avro(avroAvroConfig()), List.of(topic), List.of(template));
-    }
-
-    public static ItemTemplates<GenericRecord, JsonNode> AvroJsonTemplates(
-            String topic, String template) throws ExtractionException {
-        return ItemTemplates(AvroKeyJsonValue(avroJsonConfig()), List.of(topic), List.of(template));
-    }
-
-    private static ConnectorConfig avroJsonConfig() {
-        return ConnectorConfigProvider.minimalWith(
-                "src/test/resources",
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        JSON.toString()));
-    }
-
-    private static ConnectorConfig avroAvroConfig() {
-        return ConnectorConfigProvider.minimalWith(
-                "src/test/resources",
-                Map.of(
-                        RECORD_KEY_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc",
-                        RECORD_VALUE_EVALUATOR_TYPE,
-                        AVRO.toString(),
-                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                        "value.avsc"));
     }
 }

@@ -44,6 +44,14 @@ public class SchemaTest {
     }
 
     @Test
+    public void shouldCreateNopSchema() {
+        Schema schema = Schema.nop();
+
+        assertThat(schema.name()).isEqualTo("NOSCHEMA");
+        assertThat(schema.keys()).isEmpty();
+    }
+
+    @Test
     public void shouldMatch() {
         Schema schema1 = Schema.from("test", Set.of("a", "b"));
         Schema schema2 = Schema.from("test", Set.of("a", "b"));

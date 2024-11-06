@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
 import static java.util.Collections.emptyMap;
 
@@ -26,7 +27,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -88,7 +88,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteMatchingItems() {
+    public void shouldRouteMatchingParameterizedItems() {
         SchemaAndValues expandedTemplate1 =
                 SchemaAndValues.from(
                         "schema1", Map.of("topic", "aTopic", "partition", "aPartition"));
@@ -100,13 +100,13 @@ public class MappedRecordTest {
 
         // This item should match the expandedTemplate 1: routable
         SubscribedItem matchingItem1 =
-                Items.subscribedFrom("schema1-[topic=aTopic,partition=aPartition]");
+                subscribedFrom("schema1-[topic=aTopic,partition=aPartition]");
         // This item should match the expandedTemplate 2: routable
-        SubscribedItem matchingItem2 = Items.subscribedFrom("schema2-[key=aKey,value=aValue]");
+        SubscribedItem matchingItem2 = subscribedFrom("schema2-[key=aKey,value=aValue]");
         // The following items shuld match no templates: non-routable
         SubscribedItem notMatchingBindParameters =
-                Items.subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
-        SubscribedItem notMatchingSchema = Items.subscribedFrom("schemaX-[key=aKey,value=aValue]");
+                subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
+        SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
 
         assertThat(
                         record.route(
@@ -120,20 +120,18 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteFromSimpleItems() {
-        SchemaAndValues expandedTemplate =
-                SchemaAndValues.from("simple-item-1", Collections.emptyMap());
-        SchemaAndValues expandedTemplate2 =
-                SchemaAndValues.from("simple-item-2", Collections.emptyMap());
+    public void shouldRouteMatchingSimpleItems() {
+        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
+        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
         DefaultMappedRecord record =
                 new DefaultMappedRecord(
-                        Set.of(expandedTemplate, expandedTemplate2), SchemaAndValues.nop());
-        assertThat(record.expanded()).containsExactly(expandedTemplate, expandedTemplate2);
+                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
+        assertThat(record.expanded()).containsExactly(expandedTemplate1, expandedTemplate2);
         assertThat(record.fieldsMap()).isEmpty();
 
-        SubscribedItem matchingItem1 = Items.subscribedFrom("simple-item-1");
-        SubscribedItem matchingItem2 = Items.subscribedFrom("simple-item-2");
-        SubscribedItem notMatchingItem = Items.subscribedFrom("simple-item-3");
+        SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
+        SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
+        SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
         assertThat((record.route(Set.of(matchingItem1, matchingItem2, notMatchingItem))))
                 .containsExactly(matchingItem1, matchingItem2);
     }

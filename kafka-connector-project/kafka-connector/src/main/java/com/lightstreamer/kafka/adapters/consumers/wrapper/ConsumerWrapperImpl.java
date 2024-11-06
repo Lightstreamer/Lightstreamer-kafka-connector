@@ -21,7 +21,8 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
-import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -79,10 +80,10 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
         // Instantiate the Kafka Consumer
-        consumer = consumerSupplier.get();
+        this.consumer = consumerSupplier.get();
         log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
-        this.offsetService = OffsetService.newOffsetService(consumer, log);
+        this.offsetService = Offsets.OffsetService(consumer, log);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.

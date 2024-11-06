@@ -42,8 +42,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -55,11 +53,9 @@ import java.util.function.Function;
 class TestLoopConfig implements ConsumerTriggerConfig<String, String> {
 
     private final TopicConfigurations topicsConfig;
-    private Serde<String> serdes;
 
     TestLoopConfig(TopicConfigurations topicsConfig) {
         this.topicsConfig = topicsConfig;
-        this.serdes = Serdes.String();
     }
 
     @Override

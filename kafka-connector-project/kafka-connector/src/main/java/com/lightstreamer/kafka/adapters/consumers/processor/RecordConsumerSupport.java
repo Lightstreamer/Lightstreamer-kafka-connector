@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
@@ -53,7 +53,17 @@ import java.util.stream.StreamSupport;
 
 class RecordConsumerSupport {
 
-    static class StartBuildingConsumerImpl<K, V> implements StartBuildingConsumer<K, V> {
+    public static <K, V> StartBuildingProcessor<K, V> startBuildingProcessor(
+            RecordMapper<K, V> mapper) {
+        return new StartBuildingProcessorBuilderImpl<>(mapper);
+    }
+
+    public static <K, V> StartBuildingConsumer<K, V> startBuildingConsumer(
+            RecordProcessor<K, V> recordProcessor) {
+        return new StartBuildingConsumerImpl<>(recordProcessor);
+    }
+
+    private static class StartBuildingConsumerImpl<K, V> implements StartBuildingConsumer<K, V> {
 
         protected RecordProcessor<K, V> processor;
         protected OffsetService offsetService;
@@ -76,7 +86,8 @@ class RecordConsumerSupport {
         }
     }
 
-    static class StartBuildingProcessorBuilderImpl<K, V> implements StartBuildingProcessor<K, V> {
+    private static class StartBuildingProcessorBuilderImpl<K, V>
+            implements StartBuildingProcessor<K, V> {
 
         protected RecordMapper<K, V> mapper;
         protected Collection<SubscribedItem> subscribed;
@@ -94,7 +105,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class WithSubscribedItemsImpl<K, V> implements WithSubscribedItems<K, V> {
+    private static class WithSubscribedItemsImpl<K, V> implements WithSubscribedItems<K, V> {
         final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
 
         WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
@@ -116,7 +127,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class WithOffsetServiceImpl<K, V> implements WihtOffsetService<K, V> {
+    private static class WithOffsetServiceImpl<K, V> implements WihtOffsetService<K, V> {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
@@ -131,7 +142,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class WithLoggerImpl<K, V> implements WithLogger<K, V> {
+    private static class WithLoggerImpl<K, V> implements WithLogger<K, V> {
 
         final StartBuildingConsumerImpl<K, V> b;
 
@@ -146,7 +157,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class WithOptionalsImpl<K, V> implements WithOptionals<K, V> {
+    private static class WithOptionalsImpl<K, V> implements WithOptionals<K, V> {
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
         WithOptionalsImpl(StartBuildingConsumerImpl<K, V> b) {
@@ -230,7 +241,7 @@ class RecordConsumerSupport {
         }
     }
 
-    abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
+    private abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
 
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;

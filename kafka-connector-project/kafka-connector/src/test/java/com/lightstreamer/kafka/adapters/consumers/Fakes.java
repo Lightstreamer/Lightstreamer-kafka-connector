@@ -23,8 +23,9 @@ import com.lightstreamer.interfaces.data.ItemEvent;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetStore;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService.OffsetStoreSupplier;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -40,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class Fakes {
@@ -126,6 +128,20 @@ public class Fakes {
         public boolean isNotAlreadyConsumed(ConsumerRecord<?, ?> record) {
             throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
         }
+
+        @Override
+        public Optional<OffsetStore> offsetStore() {
+            throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
+        }
+
+        @Override
+        public void initStore(
+                OffsetStoreSupplier storeSupplier,
+                Map<TopicPartition, Long> startOffsets,
+                Map<TopicPartition, OffsetAndMetadata> committed) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'initStore'");
+        }
     }
 
     public static class FakeOffsetStore implements OffsetStore {
@@ -143,7 +159,7 @@ public class Fakes {
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> getStore() {
+        public Map<TopicPartition, OffsetAndMetadata> current() {
             return topicMap;
         }
 
