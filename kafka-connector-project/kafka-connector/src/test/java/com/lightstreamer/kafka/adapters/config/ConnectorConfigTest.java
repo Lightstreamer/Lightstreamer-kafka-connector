@@ -20,30 +20,9 @@ package com.lightstreamer.kafka.adapters.config;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
+
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.stream.Stream;
-
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.junit.function.ThrowingRunnable;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
@@ -60,6 +39,28 @@ import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
+
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConnectorConfigTest {
 
@@ -311,8 +312,10 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
         standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
         standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
-        standardParams.put(ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
-        standardParams.put(ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
         standardParams.put("item-template.template1", "template1-#{v=VALUE}");
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
@@ -504,8 +507,7 @@ public class ConnectorConfigTest {
                         ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG,
                         "60000",
                         ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
-                        "30000"
-                        );
+                        "30000");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
     }
