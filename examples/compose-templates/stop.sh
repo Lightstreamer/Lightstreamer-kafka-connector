@@ -1,5 +1,5 @@
 #!/bin/bash
-source ../utils/helpers.sh
+source ./helpers.sh
 
 # Export the version env variable to be used by Compose
 export version
