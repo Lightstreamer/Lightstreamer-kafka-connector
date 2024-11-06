@@ -312,6 +312,10 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
         standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
         standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
         standardParams.put("item-template.template1", "template1-#{v=VALUE}");
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
@@ -499,7 +503,11 @@ public class ConnectorConfigTest {
                         ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
                         "5000",
                         ConsumerConfig.METADATA_MAX_AGE_CONFIG,
-                        "250");
+                        "250",
+                        ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG,
+                        "60000",
+                        ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                        "30000");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
     }

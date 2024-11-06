@@ -181,7 +181,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 log.atDebug().log("Kafka Consumer woken up");
             } finally {
                 log.atDebug().log("Start closing Kafka Consumer");
-                offsetManager.commitSync();
+                offsetManager.commitSyncAndIgnoreErrors();
                 consumer.close();
                 latch.countDown();
                 log.atDebug().log("Kafka Consumer closed");
@@ -330,8 +330,24 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
         }
 
         void commitSync() {
-            consumer.commitSync(currentOffsets);
-            log.atInfo().log("Offsets commited");
+            commitSync(false);
+        }
+
+        void commitSyncAndIgnoreErrors() {
+            commitSync(true);
+        }
+
+        private void commitSync(boolean ignoreErrors) {
+            try {
+                log.atDebug().log("Start commiting offset synchronously");
+                consumer.commitSync(currentOffsets);
+                log.atInfo().log("Offsets commited");
+            } catch (KafkaException e) {
+                log.atError().setCause(e).log("Unable to commit offsets");
+                if (!ignoreErrors) {
+                    throw e;
+                }
+            }
         }
 
         void commitAsync() {
