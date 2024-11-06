@@ -7,8 +7,7 @@
 - Revised some default settings for the internal Kafka consumer. ([#25](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/25))
 
 - Improved the [README.md](README.md) file. ([#18](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/18), [#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20),
-[#21](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/21),
-[#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))  
+[#21](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/21), [#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
 
 - Significantly reorganized the [examples](examples) folder. Specifically:
 
