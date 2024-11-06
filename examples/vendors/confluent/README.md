@@ -71,7 +71,7 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 - User interfaces struggling with large data volumes.
 - The need for scalable solutions capable of supporting millions of concurrent users.
 
-![High-Level Architecture](/pictures/architecture.png)
+![High-Level Architecture](/pictures/architecture-confluent.png)
 
 ## Intelligent Streaming
 

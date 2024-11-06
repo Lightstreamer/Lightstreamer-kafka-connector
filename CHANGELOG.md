@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.0.7] (2024-11-06)
+
+**Improvements and Documentation**
+
+- Revised some default settings for the internal Kafka consumer. ([#25](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/25))
+
+- Improved the [README.md](README.md) file. ([#18](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/18), [#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20),
+[#21](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/21), [#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
+
+- Significantly reorganized the [examples](examples) folder. Specifically:
+
+  - Moved the quick start examples for specific vendors (Confluent, Redpanda, Aiven, and Axual) into dedicated subfolders under [examples/vendors](examples/vendors/). ([#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20), [#23](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/23), [#24](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/24))
+
+  - Adjusted the script files to align with the updated layout of the examples folder. ([#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20))
+
+  - Improved the `docker-compose.yml` and `README.md` files within the quick start folders. ([#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20))
+
+  - Improved the `README.md` files within [examples/docker](examples/docker/) and [examples/docker-kafka-connect](examples/docker-kafka-connect/) folders. ([#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20))
+
+  - Introduced a dedicated [README.md](examples/vendors/confluent/README.md) file for _Confluent Cloud_ along with further specific resources under [examples/vendors/confluent](examples/vendors/confluent/). ([#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20), [#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22), [#26](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/26))
+
+  - Added new resources to the [pictures](pictures) folder. ([#18](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/18), [#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20), [#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
+
+  - Added a new data adapter configuration named `QuickStartConfluentCloud` to the factory [adapters.xml](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
+
+  - Added a new logger configuration named `QuickStartConfluentCloud` to the factory [log4j.properties](kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties) file. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
+
+  - Improved the [QuickStart web client](examples/compose-templates/web/) by refactoring the JavaScript coied and using the CDN version of the Lightstreamer client library. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22)) 
+
+**Bug Fixes**
+
+- Unhandled runtime exceptions during synchronous commits prevented the fulfillment of new subscription requests. ([#27](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/27))
+
+
 ## [1.0.6] (2024-10-10)
 
 **Documentation**
@@ -7,6 +41,7 @@
 - Updated the `manifest.json` file embedded in the Sink connector archive. ([#15](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/15))
 
 - Updated the [README.md](README.md) and factory [adapters.xml](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files to explain how to configure Basic HTTP authentication for the Schema Registry. ([#16](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/16))
+
 
 ## [1.0.5] (2024-09-25)
 
@@ -111,4 +146,3 @@ Modified the [README.md](README.md) file has follows:
 ## [0.1.0] (2024-03-17)
 
 - First public pre-release
-
