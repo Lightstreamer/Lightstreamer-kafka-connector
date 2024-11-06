@@ -530,6 +530,7 @@ public class ConnectorConfigTest {
                         "60000",
                         ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
                         "30000");
+                        "30000");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
     }
