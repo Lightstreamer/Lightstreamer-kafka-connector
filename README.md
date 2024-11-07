@@ -1006,7 +1006,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
-To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC.to` parameter. The general format is:
+To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC_NAME.TO` parameter. The general format is:
 
 ```xml
 <param name="map.TOPIC_NAME.to">item1,item2,itemN,...</param>
