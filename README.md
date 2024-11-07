@@ -35,7 +35,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Record Evaluation](#record-evaluation)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
-    - [Record Routing (`map.TOPIC.to`)](#record-routing-maptopicto)
+    - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nametorecord-routing-maptopicto)
     - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
     - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
   - [Schema Registry](#schema-registry)
