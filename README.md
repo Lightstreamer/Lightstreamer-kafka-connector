@@ -220,7 +220,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
-    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate-name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfieldname) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfield_name) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
