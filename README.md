@@ -35,9 +35,9 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Record Evaluation](#record-evaluation)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
-    - [Record Routing (`map.<topic>.to`)](#record-routing-maptopicto)
-    - [Record Mapping (`field.<fieldName>`)](#record-mapping-fieldfieldname)
-    - [Filtered Record Routing (`item-template.<template-name>`)](#filtered-record-routing-item-templatetemplate-name)
+    - [Record Routing (`map.TOPIC.to`)](#record-routing-maptopicto)
+    - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
+    - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
   - [Schema Registry](#schema-registry)
     - [`schema.registry.url`](#schemaregistryurl)
     - [Basic HTTP Authenticaion Parameters](#basic-http-authentication-parameters)
@@ -1004,15 +1004,15 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
   In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy).
 
-#### Record Routing (`map.<topic>.to`)
+#### Record Routing (`map.TOPIC_NAME.to`)
 
-To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.<topic>.to` parameter. The general format is:
+To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC.to` parameter. The general format is:
 
 ```xml
-<param name="map.<topic-name>.to">item1,item2,itemN,...</param>
+<param name="map.TOPIC_NAME.to">item1,item2,itemN,...</param>
 ```
 
-which defines the mapping between the source Kafka topic (`<topic-name>`) and the target items (`item1`, `item2`, `itemN`, etc.).
+which defines the mapping between the source Kafka topic (`TOPIC_NAME`) and the target items (`item1`, `item2`, `itemN`, etc.).
 
 This configuration enables the implementation of various routing scenarios, as shown by the following examples:
 
@@ -1048,7 +1048,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-#### Record Mapping (`field.<fieldName>`)
+#### Record Mapping (`field.FIELD_NAME`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -1087,7 +1087,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ..
 ```
 
-#### Filtered Record Routing (`item-template.<template-name>`)
+#### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
@@ -1095,16 +1095,16 @@ The item template leverages the [_Data Extraction Language_](#data-extraction-la
 
 ![filtered-routing](/pictures/filtered-routing.png)
 
-To configure an item template, use the `item-template.<template-name>` parameter:
+To configure an item template, use the `item-template.TEMPLATE_NAME` parameter:
 
 ```xml
-<param name="item-template.<template-name>"><item-prefix>-<expressions></param>
+<param name="item-template.TEMPLATE_NAME">ITEM_PREFIX-EXPRESSIONS</param>
 ```
 
-Then, map one (or more) topic to the template by referecing it in the `map.<topic>.to` parameter:
+Then, map one (or more) topic to the template by referecing it in the `map.TOPIC_NAME.to` parameter:
 
 ```xml
-<param name="map.<topic>.to">item-template.<template-name></param>
+<param name="map.TOPIC_NAME.to">item-template.TEMPLATE_NAME</param>
 ```
 
 > [!TIP]
@@ -1115,8 +1115,8 @@ Then, map one (or more) topic to the template by referecing it in the `map.<topi
 > ```
 
 The item template is made of:
-- `<item-prefix>`: the prefix of the item name
-- `<expressions>`: a sequence of _extraction expressions_, which define filtering rules specified as:
+- `ITEM_PREFIX`: the prefix of the item name
+- `EXPRESSIONS`: a sequence of _extraction expressions_, which define filtering rules specified as:
 
   ```js
   #{paramName1=<extractionExpression1>,paramName2=<extractionExpression2>,...}
@@ -1126,14 +1126,14 @@ The item template is made of:
 
 To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
-```js
-<item-prefix>-[paramName1=filterValue_1,paramName2=filerValue_2,...]
+```java
+ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filerValue_2,...]
 ```
 
 Upon consuming a message, the Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
 
-```js
-<item-prefix>-[paramName1=extractedValue_1,paramName2=extractedValue_2,...]
+```java
+ITEM_PREFIX-[paramName1=extractedValue_1,paramName2=extractedValue_2,...]
 ```
 
 Finally, the message will be mapped and routed only in case the subscribed item completely matches the expanded template or, more formally, the following is true:
