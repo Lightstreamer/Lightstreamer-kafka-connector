@@ -44,7 +44,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
       - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
     - [Schema Registry](#schema-registry)
       - [`schema.registry.url`](#schemaregistryurl)
-      - [Basic HTTP Authenticaion Parameters](#basic-http-authentication-parameters)
+      - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
       - [Encryption Parameters](#encryption-parameters-1)
       - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
