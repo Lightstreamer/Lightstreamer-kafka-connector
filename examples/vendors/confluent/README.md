@@ -1765,7 +1765,7 @@ The configuration above specifies the following mappings:
 ### `item.templates`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Filtered Routing](#filtered-record-routing-item-templatetemplate_name) section.
+> This configuration implements the same concepts already presented in the [Filtered Record Routing](#filtered-record-routing-item-templatetemplate_name) section.
 
 Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
 
