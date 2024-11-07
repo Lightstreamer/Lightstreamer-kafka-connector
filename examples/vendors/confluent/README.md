@@ -1701,7 +1701,7 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 ### `topic.mappings`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
+> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopic_nameto) section.
 
 Semicolon-separated list of mappings between source topics and Lightstreamer items. The list should describe a set of mappings in the form:
 
