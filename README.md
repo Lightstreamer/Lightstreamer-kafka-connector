@@ -220,7 +220,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
-    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#record-mapping-fieldfield_name) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#data-extraction-language) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
@@ -1126,13 +1126,13 @@ The item template is made of:
 
 To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
-```java
+```js
 ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filerValue_2,...]
 ```
 
 Upon consuming a message, the Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
 
-```java
+```js
 ITEM_PREFIX-[paramName1=extractedValue_1,paramName2=extractedValue_2,...]
 ```
 
