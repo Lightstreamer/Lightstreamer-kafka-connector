@@ -1016,7 +1016,7 @@ which defines the mapping between the source Kafka topic (`TOPIC_NAME`) and the 
 
 This configuration enables the implementation of various routing scenarios, as shown by the following examples:
 
-- _One-to-One_
+- _One-to-one_
 
   ```xml
   <param name="map.sample-topic.to">sample-item</param>
@@ -1026,7 +1026,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   This is the most straightforward scenario one may think of: every record published to the Kafka topic `sample-topic` will simply be routed to the Lightstreamer item `sample-item`. Therefore, messages will be immediately broadcasted as real-time updates to all clients subscribed to such an item.
 
-- _Many-to-One_
+- _Many-to-one_
 
   ```xml
   <param name="map.sample-topic1.to">sample-item</param>
@@ -1038,7 +1038,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   With this scenario, it is possible to broadcast to all clients subscribed to a single item (`sample-item`) every message published to different topics (`sample-topic1`, `sample-topic2`, `sample-topic3`).
 
-- _One-to-Many_
+- _One-to-many_
 
   The one-to-many scenario is also supported, though it's often unnecessary. Lightstreamer already provides full control over individual items, such as differentiating access authorization for various users or subscribing with different maximum update frequencies, without requiring data replication across multiple items.
 
@@ -1649,7 +1649,7 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 ### `topic.mappings`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopicto) section.
+> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopic_nameto) section.
 
 Semicolon-separated list of mappings between source topics and Lightstreamer items. The list should describe a set of mappings in the form:
 
@@ -1672,7 +1672,7 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:orde
 
 The configuration above specifes:
 
-- A _One-to-Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
+- A _One-to-many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
