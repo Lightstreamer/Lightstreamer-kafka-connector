@@ -1673,13 +1673,13 @@ topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:orde
 The configuration above specifes:
 
 - A _One-to-Many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
-- [_Filtered routing_](#filtered-record-routing-item-templatetemplate-name) through the reference to the item template `template1` (not shown in the snippet)
+- [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
 ### `record.mappings`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfieldname) section.
+> This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
 
 The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
 
