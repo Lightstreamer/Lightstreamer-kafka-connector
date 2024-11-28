@@ -336,25 +336,27 @@ public class ConnectorConfigTest {
                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH, valueSchemaFile.getFileName().toString());
         standardParams.put(RECORD_KEY_EVALUATOR_TYPE, "JSON");
         standardParams.put(
-                RECORD_KEY_EVALUATOR_SCHEMA_PATH, keySchemaFile.getFileName().toString());
-        standardParams.put(ITEM_INFO_NAME, "INFO_ITEM");
-        standardParams.put(ITEM_INFO_FIELD, "INFO_FIELD");
-        standardParams.put(ADAPTERS_CONF_ID, "KAFKA");
-        standardParams.put(DATA_ADAPTER_NAME, "CONNECTOR");
-        standardParams.put(CONSUMER_CLIENT_ID, "a.client.id"); // Unmodifiable
-        standardParams.put(CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
-        standardParams.put(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
-        standardParams.put(CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
-        standardParams.put(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
-        standardParams.put(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
-        standardParams.put(CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
-        standardParams.put(CONSUMER_MAX_POLL_RECORDS, "700");
-        standardParams.put(CONSUMER_SESSION_TIMEOUT_MS, "800");
-        standardParams.put(CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
-        standardParams.put(CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
-        standardParams.put(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
-        standardParams.put(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
-
+                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                keySchemaFile.getFileName().toString());
+        standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
+        standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
+        standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        standardParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        standardParams.put(ConnectorConfig.CONSUMER_CLIENT_ID, "a.client.id"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG, "100");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, "200");
+        standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
+        standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
+        standardParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
+        standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
+        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
+        standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
+        standardParams.put(
+                ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
         standardParams.put("item-template.template1", "template1-#{v=VALUE}");
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
@@ -529,7 +531,6 @@ public class ConnectorConfigTest {
                         ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG,
                         "60000",
                         ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
-                        "30000");
                         "30000");
         assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
