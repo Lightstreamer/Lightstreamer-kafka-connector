@@ -23,6 +23,8 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
@@ -49,6 +51,7 @@ import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
@@ -105,6 +108,11 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
+
+    public static final String RECORD_CONSUME_WITH_ORDER_STRATEGY =
+            "record.consume.with.order.strategy";
+
+    public static final String RECORD_CONSUME_WITH_NUM_THREADS = "record.consume.with.num.threads";
 
     public static final String ITEM_INFO_NAME = "info.item";
 
@@ -214,6 +222,18 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
+                        .add(
+                                RECORD_CONSUME_WITH_ORDER_STRATEGY,
+                                false,
+                                false,
+                                ORDER_STRATEGY,
+                                defaultValue("ORDER_BY_PARTITION"))
+                        .add(
+                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                false,
+                                false,
+                                POSITIVE_INT,
+                                defaultValue("1"))
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
@@ -252,7 +272,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("false"))
                         .add(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, false, false, INT)
                         .add(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, false, false, INT)
-                        .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
@@ -421,6 +440,15 @@ public final class ConnectorConfig extends AbstractConfig {
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
         return RecordErrorHandlingStrategy.valueOf(
                 get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+    }
+
+    public final RecordConsumeWithOrderStrategy getRecordConsumeWithOrderStrategy() {
+        return RecordConsumeWithOrderStrategy.valueOf(
+                get(RECORD_CONSUME_WITH_ORDER_STRATEGY, ORDER_STRATEGY, false));
+    }
+
+    public final int getRecordConsumeWithNumThreads() {
+        return Integer.parseInt(getPositiveInt(RECORD_CONSUME_WITH_NUM_THREADS));
     }
 
     public boolean hasKeySchemaFile() {

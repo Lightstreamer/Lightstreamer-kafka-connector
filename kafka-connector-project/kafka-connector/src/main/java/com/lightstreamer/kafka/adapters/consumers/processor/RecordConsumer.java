@@ -17,7 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -26,19 +30,21 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 public interface RecordConsumer<K, V> {
 
     enum OrderStrategy {
         ORDER_BY_KEY(record -> Objects.toString(record.key(), null)),
         ORDER_BY_PARTITION(record -> String.valueOf(record.partition())),
-        UNORDERD(record -> null);
+        UNORDERED(record -> null);
 
         private Function<ConsumerRecord<?, ?>, String> sequence;
 
@@ -48,6 +54,14 @@ public interface RecordConsumer<K, V> {
 
         String getSequence(ConsumerRecord<?, ?> record) {
             return sequence.apply(record);
+        }
+
+        public static OrderStrategy from(RecordConsumeWithOrderStrategy strategy) {
+            return switch (strategy) {
+                case ORDER_BY_KEY -> ORDER_BY_KEY;
+                case ORDER_BY_PARTITION -> ORDER_BY_PARTITION;
+                case UNORDERED -> UNORDERED;
+            };
         }
     }
 
@@ -103,14 +117,23 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
-    default void consumeFilteredRecords(
-            ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {}
-
-    default void consumeRecords(ConsumerRecords<K, V> records) {
-        records.forEach(this::consumeSingleRecord);
+    static <K, V> ConsumerRecords<K, V> filter(
+            ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
+        return new ConsumerRecords<>(
+                StreamSupport.stream(records.spliterator(), false)
+                        .filter(predicate)
+                        .collect(
+                                groupingBy(
+                                        r -> new TopicPartition(r.topic(), r.partition()),
+                                        toList())));
     }
 
-    void consumeSingleRecord(ConsumerRecord<K, V> record);
+    default void consumeFilteredRecords(
+            ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
+        consumeRecords(filter(records, predicate));
+    }
+
+    void consumeRecords(ConsumerRecords<K, V> records);
 
     default void close() {}
 }

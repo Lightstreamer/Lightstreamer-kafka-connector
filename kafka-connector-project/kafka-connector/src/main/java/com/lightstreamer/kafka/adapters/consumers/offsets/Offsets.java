@@ -24,6 +24,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,6 +112,8 @@ public class Offsets {
 
         void commitSync();
 
+        void commitSyncAndIgnoreErrors();
+
         void commitAsync();
 
         void updateOffsets(ConsumerRecord<?, ?> record);
@@ -160,7 +163,7 @@ public class Offsets {
                 Map<TopicPartition, OffsetAndMetadata> committed) {
 
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
-            // In case of missing the commited offset for a partition, just put the the current
+            // In case of missing commited offset for a partition, just put the the current
             // offset
             for (TopicPartition partition : startOffsets.keySet()) {
                 OffsetAndMetadata offsetAndMetadata =
@@ -196,8 +199,26 @@ public class Offsets {
 
         @Override
         public void commitSync() {
-            consumer.commitSync(offsetStore.current());
-            log.atInfo().log("Offsets commited");
+            commitSync(false);
+        }
+
+        @Override
+        public void commitSyncAndIgnoreErrors() {
+            commitSync(true);
+        }
+
+        private void commitSync(boolean ignoreErrors) {
+            try {
+                log.atDebug().log("Start commiting offset synchronously");
+                consumer.commitSync(offsetStore.current());
+                log.atInfo().log("Offsets commited");
+            } catch (KafkaException e) {
+                log.atError().setCause(e).log("Unable to commit offsets");
+                if (!ignoreErrors) {
+                    log.atDebug().log("Rethrowing the error");
+                    throw e;
+                }
+            }
         }
 
         @Override
@@ -232,7 +253,7 @@ public class Offsets {
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
 
         OffsetStoreImpl(Map<TopicPartition, OffsetAndMetadata> committed) {
-            this.offsets = new HashMap<>(committed);
+            this.offsets = new ConcurrentHashMap<>(committed);
         }
 
         @Override

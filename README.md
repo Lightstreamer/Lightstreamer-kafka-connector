@@ -870,6 +870,34 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
+#### `record.consume.with.order.strategy`
+
+_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
+
+- `ORDER_BY_PARTITION`: 
+- `ORDER_BY_KEY`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection
+- `UNORDERED`
+
+Default value: `ORDER_BY_PARTITION`.
+
+Example:
+
+```xml
+<param name="record.consume.with.order.strategyy">ORDER_BY_KEY</param>
+```
+
+#### `record.consume.with.num.threads`
+
+_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
+
+Default value: `-1`.
+
+Example:
+
+```xml
+<param name="record.consume.with.num.threads">4</param>
+```
+
 #### `record.key.evaluator.type` and `record.value.evaluator.type`
 
 _Optional_. The format to be used to deserialize respectively the key and value of a Kafka record. Can be one of the following:

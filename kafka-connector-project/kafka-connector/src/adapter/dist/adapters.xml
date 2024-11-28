@@ -259,6 +259,23 @@
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
+        <!-- Optional.
+             - ORDER_BY_PARTITION
+             - ORDER_BY_KEY
+             - UNORDERED
+
+             Default value: ORDER_BY_PARTITION. -->
+        <!--
+        <param name="record.consume.with.order.strategy">ORDER_BY_KEY</param>
+        -->
+
+        <!-- Optional. 
+        
+             Default value: 1. -->
+        <!--
+        <param name="record.consume.with.num.threads">1</param>
+        -->
+
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
              Can be one of the following:
              - AVRO
@@ -321,7 +338,6 @@
         <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
         -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
-        <param name="map.stocks.to">item-template.stock</param>
 
         <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
              - one or more simple items

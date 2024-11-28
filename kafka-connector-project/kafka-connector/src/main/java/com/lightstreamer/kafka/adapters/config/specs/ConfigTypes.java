@@ -231,6 +231,16 @@ public interface ConfigTypes {
         }
     }
 
+    public enum RecordConsumeWithOrderStrategy {
+        ORDER_BY_KEY,
+        ORDER_BY_PARTITION,
+        UNORDERED;
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
     private static Set<String> enumNames(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
     }

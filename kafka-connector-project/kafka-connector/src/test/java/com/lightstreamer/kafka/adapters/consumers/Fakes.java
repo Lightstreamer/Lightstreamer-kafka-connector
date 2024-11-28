@@ -23,8 +23,8 @@ import com.lightstreamer.interfaces.data.ItemEvent;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService.OffsetStoreSupplier;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
@@ -96,6 +96,15 @@ public class Fakes {
 
     public static class FakeOffsetService implements OffsetService {
 
+        public static record ConsumedRecordInfo(String topic, int partition, Long offset) {
+            static ConsumedRecordInfo from(ConsumerRecord<?, ?> record) {
+                return new ConsumedRecordInfo(record.topic(), record.partition(), record.offset());
+            }
+        }
+
+        private List<ConsumedRecordInfo> records = Collections.synchronizedList(new ArrayList<>());
+        private volatile ValueException firstFailure;
+
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {}
 
@@ -106,17 +115,28 @@ public class Fakes {
         public void commitSync() {}
 
         @Override
+        public void commitSyncAndIgnoreErrors() {}
+
+        @Override
         public void commitAsync() {}
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {}
+        public void updateOffsets(ConsumerRecord<?, ?> record) {
+            System.out.println("Updating offset " + record);
+            records.add(
+                    new ConsumedRecordInfo(record.topic(), record.partition(), record.offset()));
+        }
 
         @Override
-        public void onAsyncFailure(ValueException ve) {}
+        public void onAsyncFailure(ValueException ve) {
+            if (firstFailure == null) {
+                firstFailure = ve; // any of the first exceptions got should be enough
+            }
+        }
 
         @Override
         public ValueException getFirstFailure() {
-            return null;
+            return firstFailure;
         }
 
         @Override
@@ -139,8 +159,11 @@ public class Fakes {
                 OffsetStoreSupplier storeSupplier,
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
-            // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'initStore'");
+        }
+
+        public List<ConsumedRecordInfo> getConsumedRecords() {
+            return records;
         }
     }
 
@@ -170,8 +193,29 @@ public class Fakes {
 
     public static class FakeRecordProcessor<K, V> implements RecordProcessor<K, V> {
 
+        private List<ConsumedRecordInfo> offsetTrriggeringExceptions;
+        private ValueException e;
+
+        public FakeRecordProcessor(
+                ValueException e, List<ConsumedRecordInfo> offsetTrriggeringExceptions) {
+            this.e = e;
+            this.offsetTrriggeringExceptions = offsetTrriggeringExceptions;
+        }
+
+        public FakeRecordProcessor() {
+            this(null, Collections.emptyList());
+        }
+
         @Override
-        public void process(ConsumerRecord<K, V> record) throws ValueException {}
+        public void process(ConsumerRecord<K, V> record) throws ValueException {
+            if (e == null) {
+                return;
+            }
+
+            if (offsetTrriggeringExceptions.contains(ConsumedRecordInfo.from(record))) {
+                throw e;
+            }
+        }
 
         @Override
         public void useLogger(Logger logger) {}

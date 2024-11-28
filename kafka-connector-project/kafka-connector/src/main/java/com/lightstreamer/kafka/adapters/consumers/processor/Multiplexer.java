@@ -17,16 +17,18 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Multiplexer {
+public class Multiplexer<S> implements TaskExecutor<S> {
 
     private final ExecutorService executor;
 
@@ -69,7 +71,7 @@ public class Multiplexer {
      *   Obviously, the second step terminates state MOD and enables new additions;
      *   but now, pending task additions will also readd the sequence.
      */
-    private final ConcurrentMap<String, LinkableTask> queues;
+    private final ConcurrentMap<S, LinkableTask> queues;
 
     private final MyCountDownLatch emptinessChecker;
 
@@ -101,21 +103,30 @@ public class Multiplexer {
         }
     }
 
+    @Override
     public void shutdown() {
         executor.shutdown();
         try {
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                    System.err.println("Executor did not terminate");
+                }
+            }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            // (Re-)Cancel if current thread also interrupted
+            executor.shutdownNow();
+            // Preserve interrupt status
+            Thread.currentThread().interrupt();
         }
     }
 
     private class LinkableTask implements Runnable {
-        private final String sequence;
+        private final S sequence;
         private final Runnable deferredTask;
         private final AtomicReference<LinkableTask> next;
 
-        public LinkableTask(String sequence, Runnable deferredTask) {
+        public LinkableTask(S sequence, Runnable deferredTask) {
             this.sequence = sequence;
             this.deferredTask = deferredTask;
             next = new AtomicReference<>(null);
@@ -222,7 +233,8 @@ public class Multiplexer {
         }
     }
 
-    public void execute(String sequence, Runnable task) {
+    @Override
+    public void execute(S sequence, Runnable task) {
         if (emptinessChecker != null) {
             emptinessChecker.increment();
         }
@@ -294,6 +306,7 @@ public class Multiplexer {
         }
     }
 
+    @Override
     public void waitBatch() {
         if (emptinessChecker == null) {
             throw new UnsupportedOperationException();
@@ -301,6 +314,54 @@ public class Multiplexer {
         synchronized (emptinessChecker) {
             emptinessChecker.waitEmpty();
         }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Multiplexer<String> processor = new Multiplexer<>(Executors.newFixedThreadPool(4), true);
+
+        // Invio eventi
+        List<String> events =
+                List.of(
+                        "event1.1",
+                        "event2.1",
+                        "event3.1",
+                        "event3.2",
+                        "event2.2",
+                        "event1.2",
+                        "event3.3");
+        try {
+            processor.execute("event1.1", "key1", Multiplexer::processEvent);
+            // processor.execute("key2", "event2.1", Multiplexer::processEvent);
+            // processor.execute("key3", "event3.1", Multiplexer::processEvent);
+            // processor.execute("event1.2", "key1", Multiplexer::processEvent);
+        } catch (Exception e) {
+            System.out.println("Caught error");
+        }
+        // processor.execute("key4", "event4.1", Multiplexer::processEvent);
+        // processor.execute("key3", "event3.2", Multiplexer::processEvent);
+        // processor.execute("key4", "event4.2", Multiplexer::processEvent);
+
+        // processor.executeBatch(
+        //         events,
+        //         e -> {
+        //             String key = e.split("\\.")[0];
+        //             System.out.println("Key = " + key);
+        //             return key;
+        //         },
+        //         Multiplexer::processEvent);
+
+        processor.waitBatch();
+        processor.shutdown();
+    }
+
+    private static void processEvent(String key, String event) {
+        System.out.println(Thread.currentThread().getName() + " processing " + event);
+        throw new RuntimeException("test error");
+        // try {
+        //     Thread.sleep(50); // Simula un'elaborazione lunga
+        // } catch (InterruptedException e) {
+        //     Thread.currentThread().interrupt();
+        // }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -325,100 +386,103 @@ public class Multiplexer {
             }
         }
 
-        public static void main(String[] args) {
-            Multiplexer multi1 =
-                    new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
-            Multiplexer multi2 =
-                    new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
+        // public static void main(String[] args) {
+        //     Multiplexer multi1 =
+        //             new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), false);
+        //     Multiplexer multi2 =
+        //             new Multiplexer(java.util.concurrent.Executors.newFixedThreadPool(4), true);
 
-            startMulti(multi1, "Test1");
-            startMulti(multi2, "Test2");
-        }
+        //     startMulti(multi1, "Test1");
+        //     startMulti(multi2, "Test2");
+        // }
 
-        private static void startMulti(Multiplexer multi, String name) {
+        // private static void startMulti(Multiplexer multi, String name) {
 
-            SequenceData[] sequenceData = new SequenceData[sequences];
-            for (int n = 0; n < sequences; n++) {
-                sequenceData[n] = new SequenceData(name + ".seq" + (n + 1));
-            }
+        //     SequenceData[] sequenceData = new SequenceData[sequences];
+        //     for (int n = 0; n < sequences; n++) {
+        //         sequenceData[n] = new SequenceData(name + ".seq" + (n + 1));
+        //     }
 
-            if (multi.supportsBatching()) {
-                while (true) {
-                    for (int i = 0; i < checkpoint * sequences / run; i++) {
-                        submitLoop(multi, sequenceData, false);
-                    }
-                    multi.waitBatch();
-                    long tot = 0;
-                    for (int i = 0; i < sequences; i++) {
-                        tot += sequenceData[i].count;
-                    }
-                    System.out.println(
-                            "Batch on " + name + " completed on count: " + (tot / sequences));
-                    try {
-                        Thread.sleep(pause);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
-                }
-            } else {
-                for (int i = 0; i < threads; i++) {
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            submitLoop(multi, sequenceData, true);
-                        }
-                    }.start();
-                }
-            }
-        }
+        //     if (multi.supportsBatching()) {
+        //         while (true) {
+        //             for (int i = 0; i < checkpoint * sequences / run; i++) {
+        //                 submitLoop(multi, sequenceData, false);
+        //             }
+        //             multi.waitBatch();
+        //             long tot = 0;
+        //             for (int i = 0; i < sequences; i++) {
+        //                 tot += sequenceData[i].count;
+        //             }
+        //             System.out.println(
+        //                     "Batch on " + name + " completed on count: " + (tot / sequences));
+        //             try {
+        //                 Thread.sleep(pause);
+        //             } catch (InterruptedException e) {
+        //                 break;
+        //             }
+        //         }
+        //     } else {
+        //         for (int i = 0; i < threads; i++) {
+        //             new Thread() {
+        //                 @Override
+        //                 public void run() {
+        //                     submitLoop(multi, sequenceData, true);
+        //                 }
+        //             }.start();
+        //         }
+        //     }
+        // }
 
-        private static void submitLoop(
-                Multiplexer multi, SequenceData[] sequenceData, boolean loop) {
-            java.util.Random rnd = new java.util.Random();
-            while (true) {
-                for (int i = 0; i < run; i++) {
-                    SequenceData currSequence = sequenceData[rnd.nextInt(sequences)];
-                    multi.execute(
-                            currSequence.name,
-                            () -> {
-                                try {
-                                    assert (!currSequence
-                                            .active); // this is what we are testing (enable asserts
-                                    // on launch)
-                                    currSequence.active = true;
-                                    double tot = 0;
-                                    for (int n = 0; n < work; n++) {
-                                        tot += rnd.nextDouble();
-                                    }
-                                    currSequence.data += tot;
-                                    currSequence.count++;
-                                    if (currSequence.count % checkpoint == 0) {
-                                        System.out.println(
-                                                currSequence.name
-                                                        + " currently at "
-                                                        + currSequence.count
-                                                        + " with "
-                                                        + currSequence.data);
-                                    }
-                                    assert (currSequence
-                                            .active); // this is what we are testing (enable asserts
-                                    // on launch)
-                                    currSequence.active = false;
-                                } catch (RuntimeException | Error e) {
-                                    System.out.println(
-                                            "Error on " + currSequence.name + ": " + e.toString());
-                                }
-                            });
-                }
-                if (!loop) {
-                    break;
-                }
-                try {
-                    Thread.sleep(pause);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }
+        // private static void submitLoop(
+        //         TaskExecutor multi, SequenceData[] sequenceData, boolean loop) {
+        //     java.util.Random rnd = new java.util.Random();
+        //     while (true) {
+        //         for (int i = 0; i < run; i++) {
+        //             SequenceData currSequence = sequenceData[rnd.nextInt(sequences)];
+        //             multi.execute(
+        //                     currSequence.name,
+        //                     () -> {
+        //                         try {
+        //                             assert (!currSequence
+        //                                     .active); // this is what we are testing (enable
+        // asserts
+        //                             // on launch)
+        //                             currSequence.active = true;
+        //                             double tot = 0;
+        //                             for (int n = 0; n < work; n++) {
+        //                                 tot += rnd.nextDouble();
+        //                             }
+        //                             currSequence.data += tot;
+        //                             currSequence.count++;
+        //                             if (currSequence.count % checkpoint == 0) {
+        //                                 System.out.println(
+        //                                         currSequence.name
+        //                                                 + " currently at "
+        //                                                 + currSequence.count
+        //                                                 + " with "
+        //                                                 + currSequence.data);
+        //                             }
+        //                             assert (currSequence
+        //                                     .active); // this is what we are testing (enable
+        // asserts
+        //                             // on launch)
+        //                             currSequence.active = false;
+        //                         } catch (RuntimeException | Error e) {
+        //                             System.out.println(
+        //                                     "Error on " + currSequence.name + ": " +
+        // e.toString());
+        //                         }
+        //                     });
+        //         }
+        //         if (!loop) {
+        //             break;
+        //         }
+        //         try {
+        //             Thread.sleep(pause);
+        //         } catch (InterruptedException e) {
+        //             break;
+        //         }
+        //     }
+        // }
     }
 }

@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeKafkaConsumer;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeMetadataListener;
@@ -78,23 +77,23 @@ class TestLoopConfig implements ConsumerTriggerConfig<String, String> {
     }
 
     @Override
-    public RecordErrorHandlingStrategy recordErrorHandlingStrategy() {
-        return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
-    }
-
-    @Override
     public String connectionName() {
         return "TestConnection";
     }
 
     @Override
-    public RecordConsumeFrom recordConsumeFrom() {
-        return RecordConsumeFrom.LATEST;
+    public KeyValueDeserializers<String, String> deserializers() {
+        return null;
     }
 
     @Override
-    public KeyValueDeserializers<String, String> deserializers() {
-        return null;
+    public Concurrency concurrency() {
+        throw new UnsupportedOperationException("Unimplemented method 'recordConsumption'");
+    }
+
+    @Override
+    public RecordErrorHandlingStrategy errorHandlingStrategy() {
+        return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
     }
 }
 

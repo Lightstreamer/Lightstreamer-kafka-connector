@@ -17,19 +17,22 @@
 
 package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
+
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -74,8 +77,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                         .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
-        String bootStrapServers =
-                config.consumerProperties().getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
+        String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
@@ -87,14 +89,23 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
+        Concurrency concurrency = config.concurrency();
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
                         .eventListener(eventListener)
                         .offsetService(offsetService)
-                        .errorStrategy(config.recordErrorHandlingStrategy())
+                        .errorStrategy(config.errorHandlingStrategy())
                         .logger(log)
+                        .threads(
+                                concurrency.threads(),
+                                OrderStrategy.from(concurrency.orderStrategy()))
+                        .preferSingleThread(true)
                         .build();
+    }
+
+    private String getProperty(String key) {
+        return config.consumerProperties().getProperty(key);
     }
 
     @Override
@@ -125,8 +136,12 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         }
     }
 
+    private boolean isFromLatest() {
+        return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
+    }
+
     void initStoreAndConsume(ConsumerRecords<K, V> records) {
-        offsetService.initStore(config.recordConsumeFrom().equals(RecordConsumeFrom.LATEST));
+        offsetService.initStore(isFromLatest());
         recordConsumer.consumeFilteredRecords(records, offsetService::isNotAlreadyConsumed);
     }
 
@@ -191,7 +206,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
     private void pollOnceWithConsumer(java.util.function.Consumer<ConsumerRecords<K, V>> c) {
         log.atInfo().log(
-                "Starting first poll to initialize the offset store and skipping the record already consumed");
+                "Starting first poll to initialize the offset store and skipping the records already consumed");
         poll(false, c);
         log.atInfo().log("First poll completed");
     }

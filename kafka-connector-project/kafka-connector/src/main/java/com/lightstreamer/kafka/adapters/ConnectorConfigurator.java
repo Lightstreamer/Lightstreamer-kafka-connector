@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
@@ -56,9 +56,15 @@ public class ConnectorConfigurator {
 
         KeyValueDeserializers<K, V> deserializers();
 
-        RecordErrorHandlingStrategy recordErrorHandlingStrategy();
+        RecordErrorHandlingStrategy errorHandlingStrategy();
 
-        RecordConsumeFrom recordConsumeFrom();
+        Concurrency concurrency();
+
+        interface Concurrency {
+            RecordConsumeWithOrderStrategy orderStrategy();
+
+            int threads();
+        }
     }
 
     private static record ConsumerTriggerConfigImpl<K, V>(
@@ -67,9 +73,13 @@ public class ConnectorConfigurator {
             ItemTemplates<K, V> itemTemplates,
             DataExtractor<K, V> fieldsExtractor,
             KeyValueDeserializers<K, V> deserializers,
-            RecordErrorHandlingStrategy recordErrorHandlingStrategy,
-            RecordConsumeFrom recordConsumeFrom)
+            RecordErrorHandlingStrategy errorHandlingStrategy,
+            Concurrency concurrency)
             implements ConsumerTriggerConfig<K, V> {}
+
+    private static record ConcurrencyConfig(
+            RecordConsumeWithOrderStrategy orderStrategy, int threads)
+            implements ConsumerTriggerConfig.Concurrency {}
 
     private final ConnectorConfig config;
     private final Logger log;
@@ -115,7 +125,9 @@ public class ConnectorConfigurator {
                 fieldsExtractor,
                 sSuppliers.deserializers(),
                 config.getRecordExtractionErrorHandlingStrategy(),
-                config.getRecordConsumeFrom());
+                new ConcurrencyConfig(
+                        config.getRecordConsumeWithOrderStrategy(),
+                        config.getRecordConsumeWithNumThreads()));
     }
 
     private static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(

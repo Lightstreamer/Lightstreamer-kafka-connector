@@ -27,8 +27,10 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -105,6 +107,11 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
         assertThat(consumerTriggerConfig.deserializers().valueDeserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
+
+        Concurrency concurrency = consumerTriggerConfig.concurrency();
+        assertThat(concurrency.threads()).isEqualTo(1);
+        assertThat(concurrency.orderStrategy())
+                .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
     }
 
     @Test
@@ -118,6 +125,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, "4");
+        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, "UNORDERED");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
@@ -145,6 +154,10 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo(KafkaJsonDeserializer.class);
         assertThat(config.deserializers().valueDeserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
+
+        Concurrency concurrency = config.concurrency();
+        assertThat(concurrency.threads()).isEqualTo(4);
+        assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
     }
 
     @Test
@@ -229,6 +242,17 @@ public class ConnectorConfiguratorTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [value] while evaluating [template]: <Invalid template expression>");
+    }
+
+    @Test
+    public void shouldNotCreateConfiguratorDueToOrderStrategy() {
+        Map<String, String> config =
+                minimalConfigWith(
+                        Map.of("record.consume.with.order.strategy", "invalidOrderStrategy"));
+        ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.consume.with.order.strategy]");
     }
 
     @ParameterizedTest

@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.config.specs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
@@ -84,6 +85,17 @@ public class ConfigsSpec {
             }
         },
 
+        POSITIVE_INT {
+            @Override
+            public boolean checkValidity(String param) {
+                try {
+                    return Integer.valueOf(param) > 0;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
         HOST {
             private static Pattern HOST = Pattern.compile("^([0-9a-zA-Z-.%_]+):([1-9]\\d*)$");
 
@@ -100,6 +112,8 @@ public class ConfigsSpec {
         CONSUME_FROM(Options.consumeEventsFrom()),
 
         ERROR_STRATEGY(Options.errorStrategies()),
+
+        ORDER_STRATEGY(Options.orderStrategies()),
 
         URL {
             @Override
@@ -353,6 +367,10 @@ public class ConfigsSpec {
 
         static Options errorStrategies() {
             return new Options(RecordErrorHandlingStrategy.names());
+        }
+
+        static Options orderStrategies() {
+            return new Options(RecordConsumeWithOrderStrategy.names());
         }
 
         static Options securityProtocols() {

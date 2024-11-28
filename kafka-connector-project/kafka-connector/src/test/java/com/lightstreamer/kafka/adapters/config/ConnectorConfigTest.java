@@ -25,13 +25,14 @@ import static com.lightstreamer.kafka.adapters.config.BrokerAuthenticationConfig
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.AUTHENTICATION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_CLIENT_ID;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MAX_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MAX_POLL_RECORDS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG;
@@ -45,6 +46,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
@@ -83,6 +86,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
@@ -142,22 +146,6 @@ public class ConnectorConfigTest {
     public void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
 
-        ConfParameter adapterDir = configSpec.getParameter(ADAPTER_DIR);
-        assertThat(adapterDir.name()).isEqualTo(ADAPTER_DIR);
-        assertThat(adapterDir.required()).isTrue();
-        assertThat(adapterDir.multiple()).isFalse();
-        assertThat(adapterDir.mutable()).isTrue();
-        assertThat(adapterDir.defaultValue()).isNull();
-        assertThat(adapterDir.type()).isEqualTo(ConfType.DIRECTORY);
-
-        ConfParameter enabled = configSpec.getParameter(ENABLE);
-        assertThat(enabled.name()).isEqualTo(ENABLE);
-        assertThat(enabled.required()).isFalse();
-        assertThat(enabled.multiple()).isFalse();
-        assertThat(enabled.mutable()).isTrue();
-        assertThat(enabled.defaultValue()).isEqualTo("true");
-        assertThat(enabled.type()).isEqualTo(ConfType.BOOL);
-
         ConfParameter adapterConfId = configSpec.getParameter(ADAPTERS_CONF_ID);
         assertThat(adapterConfId.name()).isEqualTo(ADAPTERS_CONF_ID);
         assertThat(adapterConfId.required()).isTrue();
@@ -166,6 +154,14 @@ public class ConnectorConfigTest {
         assertThat(adapterConfId.defaultValue()).isNull();
         assertThat(adapterConfId.type()).isEqualTo(ConfType.TEXT);
 
+        ConfParameter adapterDir = configSpec.getParameter(ADAPTER_DIR);
+        assertThat(adapterDir.name()).isEqualTo(ADAPTER_DIR);
+        assertThat(adapterDir.required()).isTrue();
+        assertThat(adapterDir.multiple()).isFalse();
+        assertThat(adapterDir.mutable()).isTrue();
+        assertThat(adapterDir.defaultValue()).isNull();
+        assertThat(adapterDir.type()).isEqualTo(ConfType.DIRECTORY);
+
         ConfParameter dataAdapterName = configSpec.getParameter(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.name()).isEqualTo(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.required()).isTrue();
@@ -173,6 +169,14 @@ public class ConnectorConfigTest {
         assertThat(dataAdapterName.mutable()).isTrue();
         assertThat(dataAdapterName.defaultValue()).isNull();
         assertThat(dataAdapterName.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter enabled = configSpec.getParameter(ENABLE);
+        assertThat(enabled.name()).isEqualTo(ENABLE);
+        assertThat(enabled.required()).isFalse();
+        assertThat(enabled.multiple()).isFalse();
+        assertThat(enabled.mutable()).isTrue();
+        assertThat(enabled.defaultValue()).isEqualTo("true");
+        assertThat(enabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter bootStrapServers = configSpec.getParameter(BOOTSTRAP_SERVERS);
         assertThat(bootStrapServers.name()).isEqualTo(BOOTSTRAP_SERVERS);
@@ -189,6 +193,34 @@ public class ConnectorConfigTest {
         assertThat(groupId.mutable()).isTrue();
         assertThat(groupId.defaultValue()).isNotNull();
         assertThat(groupId.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter itemTemplate = configSpec.getParameter(ITEM_TEMPLATE);
+        assertThat(itemTemplate.name()).isEqualTo(ITEM_TEMPLATE);
+        assertThat(itemTemplate.required()).isFalse();
+        assertThat(itemTemplate.multiple()).isTrue();
+        assertThat(itemTemplate.suffix()).isNull();
+        assertThat(itemTemplate.mutable()).isTrue();
+        ;
+        assertThat(itemTemplate.defaultValue()).isNull();
+        assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter topicMapping = configSpec.getParameter(TOPIC_MAPPING);
+        assertThat(topicMapping.name()).isEqualTo(TOPIC_MAPPING);
+        assertThat(topicMapping.required()).isTrue();
+        assertThat(topicMapping.multiple()).isTrue();
+        assertThat(topicMapping.suffix()).isEqualTo("to");
+        assertThat(topicMapping.mutable()).isTrue();
+        assertThat(topicMapping.defaultValue()).isNull();
+        assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
+
+        ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
+        assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
+        assertThat(fieldMapping.required()).isTrue();
+        assertThat(fieldMapping.multiple()).isTrue();
+        assertThat(fieldMapping.suffix()).isNull();
+        assertThat(fieldMapping.mutable()).isTrue();
+        assertThat(fieldMapping.defaultValue()).isNull();
+        assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
@@ -242,34 +274,6 @@ public class ConnectorConfigTest {
         assertThat(schemaRegistryEnabledForValue.defaultValue()).isEqualTo("false");
         assertThat(schemaRegistryEnabledForValue.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter itemTemplate = configSpec.getParameter(ITEM_TEMPLATE);
-        assertThat(itemTemplate.name()).isEqualTo(ITEM_TEMPLATE);
-        assertThat(itemTemplate.required()).isFalse();
-        assertThat(itemTemplate.multiple()).isTrue();
-        assertThat(itemTemplate.suffix()).isNull();
-        assertThat(itemTemplate.mutable()).isTrue();
-        ;
-        assertThat(itemTemplate.defaultValue()).isNull();
-        assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
-
-        ConfParameter topicMapping = configSpec.getParameter(TOPIC_MAPPING);
-        assertThat(topicMapping.name()).isEqualTo(TOPIC_MAPPING);
-        assertThat(topicMapping.required()).isTrue();
-        assertThat(topicMapping.multiple()).isTrue();
-        assertThat(topicMapping.suffix()).isEqualTo("to");
-        assertThat(topicMapping.mutable()).isTrue();
-        assertThat(topicMapping.defaultValue()).isNull();
-        assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
-
-        ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
-        assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
-        assertThat(fieldMapping.required()).isTrue();
-        assertThat(fieldMapping.multiple()).isTrue();
-        assertThat(fieldMapping.suffix()).isNull();
-        assertThat(fieldMapping.mutable()).isTrue();
-        assertThat(fieldMapping.defaultValue()).isNull();
-        assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
-
         ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
         assertThat(itemInfoName.required()).isFalse();
@@ -286,6 +290,36 @@ public class ConnectorConfigTest {
         assertThat(itemInfoField.defaultValue()).isEqualTo("MSG");
         assertThat(itemInfoField.type()).isEqualTo(ConfType.TEXT);
 
+        ConfParameter recordExtrationErrorHandling =
+                configSpec.getParameter(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
+        assertThat(recordExtrationErrorHandling.name())
+                .isEqualTo(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
+        assertThat(recordExtrationErrorHandling.required()).isFalse();
+        assertThat(recordExtrationErrorHandling.multiple()).isFalse();
+        assertThat(recordExtrationErrorHandling.mutable()).isTrue();
+        assertThat(recordExtrationErrorHandling.defaultValue()).isEqualTo("IGNORE_AND_CONTINUE");
+        assertThat(recordExtrationErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
+
+        ConfParameter recordConsumeWithOrderStrategy =
+                configSpec.getParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
+        assertThat(recordConsumeWithOrderStrategy.name())
+                .isEqualTo(RECORD_CONSUME_WITH_ORDER_STRATEGY);
+        assertThat(recordConsumeWithOrderStrategy.required()).isFalse();
+        assertThat(recordConsumeWithOrderStrategy.multiple()).isFalse();
+        assertThat(recordConsumeWithOrderStrategy.mutable()).isTrue();
+        assertThat(recordConsumeWithOrderStrategy.defaultValue()).isEqualTo("ORDER_BY_PARTITION");
+        assertThat(recordConsumeWithOrderStrategy.type()).isEqualTo(ConfType.ORDER_STRATEGY);
+
+        ConfParameter recordConsumeWithThreadsNumber =
+                configSpec.getParameter(RECORD_CONSUME_WITH_NUM_THREADS);
+        assertThat(recordConsumeWithThreadsNumber.name())
+                .isEqualTo(RECORD_CONSUME_WITH_NUM_THREADS);
+        assertThat(recordConsumeWithThreadsNumber.required()).isFalse();
+        assertThat(recordConsumeWithThreadsNumber.multiple()).isFalse();
+        assertThat(recordConsumeWithThreadsNumber.mutable()).isTrue();
+        assertThat(recordConsumeWithThreadsNumber.defaultValue()).isEqualTo("1");
+        assertThat(recordConsumeWithThreadsNumber.type()).isEqualTo(ConfType.POSITIVE_INT);
+
         ConfParameter enableAutoCommit =
                 configSpec.getParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
         assertThat(enableAutoCommit.name()).isEqualTo(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
@@ -294,22 +328,6 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.mutable()).isFalse();
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
-
-        ConfParameter clientId = configSpec.getParameter(CONSUMER_CLIENT_ID);
-        assertThat(clientId.name()).isEqualTo(CONSUMER_CLIENT_ID);
-        assertThat(clientId.required()).isFalse();
-        assertThat(clientId.multiple()).isFalse();
-        assertThat(clientId.mutable()).isFalse();
-        assertThat(clientId.defaultValue()).isEqualTo("");
-        assertThat(clientId.type()).isEqualTo(ConfType.TEXT);
-
-        ConfParameter consumeEventsFrom = configSpec.getParameter(RECORD_CONSUME_FROM);
-        assertThat(consumeEventsFrom.name()).isEqualTo(RECORD_CONSUME_FROM);
-        assertThat(consumeEventsFrom.required()).isFalse();
-        assertThat(consumeEventsFrom.multiple()).isFalse();
-        assertThat(consumeEventsFrom.mutable()).isTrue();
-        assertThat(consumeEventsFrom.defaultValue()).isEqualTo("LATEST");
-        assertThat(consumeEventsFrom.type()).isEqualTo(ConfType.CONSUME_FROM);
 
         ConfParameter encryptionEnabed = configSpec.getParameter(ENCYRPTION_ENABLE);
         assertThat(encryptionEnabed.name()).isEqualTo(ENCYRPTION_ENABLE);
@@ -326,6 +344,123 @@ public class ConnectorConfigTest {
         assertThat(authenticationEnabled.mutable()).isTrue();
         assertThat(authenticationEnabled.defaultValue()).isEqualTo("false");
         assertThat(authenticationEnabled.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter consumeEventsFrom = configSpec.getParameter(RECORD_CONSUME_FROM);
+        assertThat(consumeEventsFrom.name()).isEqualTo(RECORD_CONSUME_FROM);
+        assertThat(consumeEventsFrom.required()).isFalse();
+        assertThat(consumeEventsFrom.multiple()).isFalse();
+        assertThat(consumeEventsFrom.mutable()).isTrue();
+        assertThat(consumeEventsFrom.defaultValue()).isEqualTo("LATEST");
+        assertThat(consumeEventsFrom.type()).isEqualTo(ConfType.CONSUME_FROM);
+
+        ConfParameter clientId = configSpec.getParameter(CONSUMER_CLIENT_ID);
+        assertThat(clientId.name()).isEqualTo(CONSUMER_CLIENT_ID);
+        assertThat(clientId.required()).isFalse();
+        assertThat(clientId.multiple()).isFalse();
+        assertThat(clientId.mutable()).isFalse();
+        assertThat(clientId.defaultValue()).isEqualTo("");
+        assertThat(clientId.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter enableAutoCommitConfig =
+                configSpec.getParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+        assertThat(enableAutoCommitConfig.name()).isEqualTo(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+        assertThat(enableAutoCommitConfig.required()).isFalse();
+        assertThat(enableAutoCommitConfig.multiple()).isFalse();
+        assertThat(enableAutoCommitConfig.mutable()).isFalse();
+        assertThat(enableAutoCommitConfig.defaultValue()).isEqualTo("false");
+        assertThat(enableAutoCommitConfig.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter reconnectBackoffMaxMs =
+                configSpec.getParameter(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG);
+        assertThat(reconnectBackoffMaxMs.name())
+                .isEqualTo(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG);
+        assertThat(reconnectBackoffMaxMs.required()).isFalse();
+        assertThat(reconnectBackoffMaxMs.multiple()).isFalse();
+        assertThat(reconnectBackoffMaxMs.mutable()).isTrue();
+        assertThat(reconnectBackoffMaxMs.defaultValue()).isNull();
+        assertThat(reconnectBackoffMaxMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter reconnectBackoffMs =
+                configSpec.getParameter(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG);
+        assertThat(reconnectBackoffMs.name()).isEqualTo(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG);
+        assertThat(reconnectBackoffMs.required()).isFalse();
+        assertThat(reconnectBackoffMs.multiple()).isFalse();
+        assertThat(reconnectBackoffMs.mutable()).isTrue();
+        assertThat(reconnectBackoffMs.defaultValue()).isNull();
+        assertThat(reconnectBackoffMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter fetchMinBytes = configSpec.getParameter(CONSUMER_FETCH_MIN_BYTES_CONFIG);
+        assertThat(fetchMinBytes.name()).isEqualTo(CONSUMER_FETCH_MIN_BYTES_CONFIG);
+        assertThat(fetchMinBytes.required()).isFalse();
+        assertThat(fetchMinBytes.multiple()).isFalse();
+        assertThat(fetchMinBytes.mutable()).isTrue();
+        assertThat(fetchMinBytes.defaultValue()).isNull();
+        assertThat(fetchMinBytes.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter fetchMaxBytes = configSpec.getParameter(CONSUMER_FETCH_MAX_BYTES_CONFIG);
+        assertThat(fetchMaxBytes.name()).isEqualTo(CONSUMER_FETCH_MAX_BYTES_CONFIG);
+        assertThat(fetchMaxBytes.required()).isFalse();
+        assertThat(fetchMaxBytes.multiple()).isFalse();
+        assertThat(fetchMaxBytes.mutable()).isTrue();
+        assertThat(fetchMaxBytes.defaultValue()).isNull();
+        assertThat(fetchMaxBytes.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter fetchMaxWaitMs = configSpec.getParameter(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG);
+        assertThat(fetchMaxWaitMs.name()).isEqualTo(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG);
+        assertThat(fetchMaxWaitMs.required()).isFalse();
+        assertThat(fetchMaxWaitMs.multiple()).isFalse();
+        assertThat(fetchMaxWaitMs.mutable()).isTrue();
+        assertThat(fetchMaxWaitMs.defaultValue()).isNull();
+        assertThat(fetchMaxWaitMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter maxPollRecords = configSpec.getParameter(CONSUMER_MAX_POLL_RECORDS);
+        assertThat(maxPollRecords.name()).isEqualTo(CONSUMER_MAX_POLL_RECORDS);
+        assertThat(maxPollRecords.required()).isFalse();
+        assertThat(maxPollRecords.multiple()).isFalse();
+        assertThat(maxPollRecords.mutable()).isTrue();
+        assertThat(maxPollRecords.defaultValue()).isNull();
+        assertThat(maxPollRecords.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter heartBeatIntervalMs = configSpec.getParameter(CONSUMER_HEARTBEAT_INTERVAL_MS);
+        assertThat(heartBeatIntervalMs.name()).isEqualTo(CONSUMER_HEARTBEAT_INTERVAL_MS);
+        assertThat(heartBeatIntervalMs.required()).isFalse();
+        assertThat(heartBeatIntervalMs.multiple()).isFalse();
+        assertThat(heartBeatIntervalMs.mutable()).isTrue();
+        assertThat(heartBeatIntervalMs.defaultValue()).isNull();
+        assertThat(heartBeatIntervalMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter sessionTimeoutMs = configSpec.getParameter(CONSUMER_SESSION_TIMEOUT_MS);
+        assertThat(sessionTimeoutMs.name()).isEqualTo(CONSUMER_SESSION_TIMEOUT_MS);
+        assertThat(sessionTimeoutMs.required()).isFalse();
+        assertThat(sessionTimeoutMs.multiple()).isFalse();
+        assertThat(sessionTimeoutMs.mutable()).isTrue();
+        assertThat(sessionTimeoutMs.defaultValue()).isNull();
+        assertThat(sessionTimeoutMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter maxPollIntervalMs = configSpec.getParameter(CONSUMER_MAX_POLL_INTERVAL_MS);
+        assertThat(maxPollIntervalMs.name()).isEqualTo(CONSUMER_MAX_POLL_INTERVAL_MS);
+        assertThat(maxPollIntervalMs.required()).isFalse();
+        assertThat(maxPollIntervalMs.multiple()).isFalse();
+        assertThat(maxPollIntervalMs.mutable()).isFalse();
+        assertThat(maxPollIntervalMs.defaultValue()).isEqualTo("5000");
+        assertThat(maxPollIntervalMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter metadatMaxAge = configSpec.getParameter(CONSUMER_METADATA_MAX_AGE_CONFIG);
+        assertThat(metadatMaxAge.name()).isEqualTo(CONSUMER_METADATA_MAX_AGE_CONFIG);
+        assertThat(metadatMaxAge.required()).isFalse();
+        assertThat(metadatMaxAge.multiple()).isFalse();
+        assertThat(metadatMaxAge.mutable()).isFalse();
+        assertThat(metadatMaxAge.defaultValue()).isEqualTo("250");
+        assertThat(metadatMaxAge.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter requestTimeoutMs =
+                configSpec.getParameter(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
+        assertThat(requestTimeoutMs.name()).isEqualTo(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
+        assertThat(requestTimeoutMs.required()).isFalse();
+        assertThat(requestTimeoutMs.multiple()).isFalse();
+        assertThat(requestTimeoutMs.mutable()).isFalse();
+        assertThat(requestTimeoutMs.defaultValue()).isEqualTo("30000");
+        assertThat(requestTimeoutMs.type()).isEqualTo(ConfType.INT);
     }
 
     private Map<String, String> standardParameters() {
@@ -348,15 +483,14 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
-        standardParams.put(ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
+        standardParams.put(CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
         standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
-        standardParams.put(ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS, "800");
-        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
-        standardParams.put(ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
+        standardParams.put(CONSUMER_SESSION_TIMEOUT_MS, "800");
+        standardParams.put(CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
+        standardParams.put(CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
         standardParams.put(
                 ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
-        standardParams.put(
-                ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
+        standardParams.put(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG, "15000"); // Unmodifiable
         standardParams.put("item-template.template1", "template1-#{v=VALUE}");
         standardParams.put("item-template.template2", "template2-#{v=OFFSET}");
         standardParams.put("map.topic1.to", "template1");
@@ -544,7 +678,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @MethodSource("confluentCloudHostList")
-    public void shouldRetrieveLightstreamreClientIdWhenConnectedToConfluentClod(String hostList) {
+    public void shouldRetrieveLightstreamerClientIdWhenConnectedToConfluentClod(String hostList) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -637,7 +771,7 @@ public class ConnectorConfigTest {
                 "BYTE_ARRAY",
                 "BYTE_BUFFER"
             })
-    public void shouldGetEvaluator(String type) {
+    public void shouldGetRecordEvaluatorTypes(String type) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(RECORD_VALUE_EVALUATOR_TYPE, type);
@@ -867,7 +1001,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidErrorStragetyType() {
+    public void shouldFailDueToInvalidErrorStrategyType() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, "invalidType");
         ConfigException e =
@@ -879,6 +1013,47 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter ["
                                 + RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY
                                 + "]");
+    }
+
+    @Test
+    public void shouldGetRecordConsumeWithOrderStrategy() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getRecordConsumeWithOrderStrategy())
+                .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(
+                RECORD_CONSUME_WITH_ORDER_STRATEGY,
+                RecordConsumeWithOrderStrategy.ORDER_BY_KEY.toString());
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getRecordConsumeWithOrderStrategy())
+                .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_KEY);
+    }
+
+    @Test
+    public void shouldFaileDueToInvalidOrderStrategyType() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_CONSUME_WITH_ORDER_STRATEGY, "invalidType");
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter ["
+                                + RECORD_CONSUME_WITH_ORDER_STRATEGY
+                                + "]");
+    }
+
+    @Test
+    public void shouldGetRecordConsumeWithThreadsNumber() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getRecordConsumeWithNumThreads()).isEqualTo(1);
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, "10");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getRecordConsumeWithNumThreads()).isEqualTo(10);
     }
 
     @Test

@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import static java.util.concurrent.Executors.newFixedThreadPool;
+
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
@@ -40,16 +42,13 @@ import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
 class RecordConsumerSupport {
 
@@ -259,12 +258,7 @@ class RecordConsumerSupport {
 
         @Override
         public void close() {
-            offsetService.commitSync();
-        }
-
-        List<ConsumerRecord<K, V>> filter(
-                ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
-            return StreamSupport.stream(records.spliterator(), false).filter(predicate).toList();
+            offsetService.commitSyncAndIgnoreErrors();
         }
     }
 
@@ -276,12 +270,11 @@ class RecordConsumerSupport {
 
         @Override
         public void consumeRecords(ConsumerRecords<K, V> records) {
-            records.forEach(this::consumeSingleRecord);
+            records.forEach(this::consumeRecord);
             offsetService.commitAsync();
         }
 
-        @Override
-        public void consumeSingleRecord(ConsumerRecord<K, V> record) {
+        void consumeRecord(ConsumerRecord<K, V> record) {
             try {
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
@@ -308,7 +301,7 @@ class RecordConsumerSupport {
 
         protected final OrderStrategy orderStrategy;
         protected final int threads;
-        protected final Multiplexer multiplexer;
+        protected final TaskExecutor<String> taskExecutor;
 
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
@@ -316,75 +309,36 @@ class RecordConsumerSupport {
             this.threads = builder.threads;
 
             AtomicInteger threadCount = new AtomicInteger();
-            ExecutorService executor =
-                    Executors.newFixedThreadPool(
-                            builder.threads,
-                            r ->
-                                    new Thread(
-                                            r,
-                                            "ParallelConsumer-" + threadCount.getAndIncrement()));
-            boolean asyncProcessing = false; // TODO config.isAsyncProcessing();
-            boolean batchSupport = !asyncProcessing;
-            multiplexer = new Multiplexer(executor, batchSupport);
+            this.taskExecutor =
+                    TaskExecutor.newExecutor(
+                            newFixedThreadPool(threads, r -> newThread(r, threadCount)));
         }
 
-        @Override
-        public void consumeFilteredRecords(
-                ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
-            List<ConsumerRecord<K, V>> notAlreadyConsumed = filter(records, predicate);
-            for (ConsumerRecord<K, V> record : notAlreadyConsumed) {
-                consumeSingleRecord(record);
-            }
+        private Thread newThread(Runnable r, AtomicInteger threadCount) {
+            return new Thread(r, "ParallelConsumer-" + threadCount.getAndIncrement());
         }
 
         @Override
         public void consumeRecords(ConsumerRecords<K, V> records) {
-            records.forEach(this::consumeSingleRecord);
-            if (multiplexer.supportsBatching()) {
-                multiplexer.waitBatch();
-                // NOTE: this may be inefficient if, for instance, a single task
-                // should keep the executor engaged while all other threads are idle,
-                // but this is not expected when all tasks are short and cpu-bound
-                offsetService.commitAsync();
-                ValueException ve = offsetService.getFirstFailure();
-                if (ve != null) {
-                    logger.atWarn().log("Forcing unsubscription");
-                    throw new KafkaException(ve);
-                }
+            List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
+            records.partitions()
+                    .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
+            taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
+            // NOTE: this may be inefficient if, for instance, a single task
+            // should keep the executor engaged while all other threads are idle,
+            // but this is not expected when all tasks are short and cpu-bound
+            offsetService.commitAsync();
+            Exception failure = offsetService.getFirstFailure();
+            if (failure != null) {
+                logger.atWarn().log("Forcing unsubscription");
+                throw new KafkaException(failure);
             }
         }
 
-        @Override
-        public void consumeSingleRecord(ConsumerRecord<K, V> record) {
-            String sequenceKey = orderStrategy.getSequence(record);
-            multiplexer.execute(sequenceKey, () -> process(record));
-        }
-
-        // boolean ensureNotAlreadyConsumed(ConsumerRecord<?, ?> record) {
-        // if (skipMap.isEmpty()) {
-        //     return true;
-        // }
-        // TopicPartition key = new TopicPartition(record.topic(), record.partition());
-        // Set<Long> consumuedOffsets = skipMap.get(key);
-        // if (consumuedOffsets == null) {
-        //     return true;
-        // }
-
-        // if (consumuedOffsets.remove(record.offset())) {
-        //     // The offset was present, therefore it was already processed.
-        //     if (consumuedOffsets.isEmpty()) {
-        //         // No more consumed offset present in the map, so remove it.
-        //         skipMap.remove(key);
-        //     }
-        //     // The offset can't be processed twice
-        //     return false;
-        // }
-
-        //     return false;
-        // }
-
-        void process(ConsumerRecord<K, V> record) {
+        void consume(String sequence, ConsumerRecord<K, V> record) {
             try {
+                logger.atDebug().log(
+                        "Processing record with sequence {} [{}]", sequence, orderStrategy);
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
             } catch (ValueException ve) {
@@ -393,6 +347,7 @@ class RecordConsumerSupport {
                 handleError(record, ve);
             } catch (RuntimeException | Error e) {
                 // TODO uguale a ValueException ?
+                e.printStackTrace();
             }
         }
 
@@ -404,36 +359,22 @@ class RecordConsumerSupport {
                 }
 
                 case FORCE_UNSUBSCRIPTION -> {
-                    // Trying to emulate the behavior of the above synchronous
-                    // case,
-                    // whereas the first record which gets an error ends the
-                    // commits;
-                    // hence we will keep track of the first error found on each
-                    // partition;
-                    // then, when committing each partition after the
-                    // termination of the current poll,
-                    // we will end before the first failed record found;
-                    // this, obviously, is not possible in the fire-and-forget
-                    // policy, but requires the batching one.
+                    // Trying to emulate the behavior of the above synchronous case, whereas the
+                    // first record which gets an error ends the commits; hence we will keep track
+                    // of the first error found on each partition; then, when committing each
+                    // partition after the termination of the current poll, we will end before
+                    // the first failed record found; this, obviously, is not possible in the
+                    // fire-and-forget policy, but requires the batching one.
                     //
-                    // There is a difference, though:
-                    // in the synchronous case, the first error also stops the
-                    // elaboration on the whole topic
-                    // and all partitions are committed to the current point;
-                    // in this case, instead, the elaboration continues until
-                    // the end of the poll,
-                    // hence, partitions with errors are committed up to the
-                    // first error,
-                    // but subsequent records, though not committed, may have
-                    // been processed all the same
-                    // (even records with the same key of a previously failed
-                    // record)
-                    // and only then is the elaboration stopped;
-                    // on the other hand, partitions without errors are
-                    // processed and committed entirely,
-                    // which is good, although, then, the elaboration stops also
-                    // for them.
-                    assert (multiplexer.supportsBatching());
+                    // There is a difference, though: in the synchronous case, the first error also
+                    // stops the elaboration on the whole topic and all partitions are committed to
+                    // the current point; in this case, instead, the elaboration continues until
+                    // the end of the poll, hence, partitions with errors are committed up to
+                    // the first error, but subsequent records, though not committed, may have
+                    // been processed all the same (even records with the same key of a previously
+                    // failed  record) and only then is the elaboration stopped.
+                    // On the other hand, partitions without errors are  processed and committed
+                    // entirely, which is good, although, then, the elaboration stops also for them.
                     logger.atWarn().log("Will force unsubscription");
                     offsetService.onAsyncFailure(ve);
                 }
@@ -443,7 +384,7 @@ class RecordConsumerSupport {
         @Override
         public void close() {
             super.close();
-            multiplexer.shutdown();
+            taskExecutor.shutdown();
         }
     }
 }

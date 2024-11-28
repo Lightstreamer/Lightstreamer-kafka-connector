@@ -24,13 +24,16 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeOffsetService;
+import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.Fakes.FakteItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
@@ -40,10 +43,12 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +57,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -68,7 +74,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -101,8 +106,9 @@ public class RecordConsumerTest {
         overrideSettings.put("field.partition", "#{PARTITION}");
         overrideSettings.put("field.offset", "#{OFFSET}");
 
-        Map<String, String> params = ConnectorConfigProvider.minimalConfigWith(overrideSettings);
-        ConnectorConfigurator connectorConfigurator = new ConnectorConfigurator(params, adapterDir);
+        ConnectorConfigurator connectorConfigurator =
+                new ConnectorConfigurator(
+                        ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
 
         this.config = (ConsumerTriggerConfig<String, String>) connectorConfigurator.configure();
 
@@ -114,15 +120,15 @@ public class RecordConsumerTest {
     }
 
     private RecordConsumer<String, String> mkRecordConsumer(
-            ItemEventListener listener, int threads, OrderStrategy orederStrategy) {
+            ItemEventListener listener, int threads, OrderStrategy orderStrategy) {
 
         return RecordConsumer.<String, String>recordMapper(recordMapper)
                 .subscribedItems(subscriptions)
                 .eventListener(listener)
                 .offsetService(new FakeOffsetService())
-                .errorStrategy(config.recordErrorHandlingStrategy())
+                .errorStrategy(config.errorHandlingStrategy())
                 .logger(logger)
-                .threads(threads, orederStrategy)
+                .threads(threads, orderStrategy)
                 .build();
     }
 
@@ -183,7 +189,7 @@ public class RecordConsumerTest {
                         .collect(
                                 groupingBy(
                                         record -> new TopicPartition("topic", record.partition()),
-                                        mapping(Function.identity(), Collectors.toList())));
+                                        mapping(Function.identity(), toList())));
         return new ConsumerRecords<>(partionsToRecords);
     }
 
@@ -215,37 +221,18 @@ public class RecordConsumerTest {
                                         ConsumerRecord::key,
                                         mapping(
                                                 r -> extractNumberedSuffix(r.value()),
-                                                Collectors.toList())));
+                                                toList())));
         Collection<List<Integer>> keyOrdered = byKey.values();
         for (List<Integer> list : keyOrdered) {
             assertThat(list).isInOrder();
         }
     }
 
-    /**
-     * Method source for the test methods.
-     *
-     * @return the number of records to generate, the number of iteration for each record
-     *     collections, the number of threads to spin up
-     */
-    static Stream<Arguments> iterations() {
-        return Stream.of(
-                arguments(100, 1, 4),
-                arguments(200, 1, 4),
-                arguments(100, 1, 8),
-                arguments(200, 1, 8),
-                arguments(100, 10, 4),
-                arguments(200, 10, 4),
-                arguments(100, 10, 8),
-                arguments(100, 10, 8),
-                arguments(100, 100, 4),
-                arguments(200, 100, 4),
-                arguments(100, 100, 8),
-                arguments(100, 100, 8),
-                arguments(100, 1000, 4),
-                arguments(200, 1000, 4),
-                arguments(100, 1000, 8),
-                arguments(200, 1000, 8));
+    @ParameterizedTest
+    @EnumSource
+    public void shouldGetOrderStrategyFromConfig(RecordConsumeWithOrderStrategy orderStrategy) {
+        assertThat(OrderStrategy.from(orderStrategy).toString())
+                .isEqualTo(orderStrategy.toString());
     }
 
     @ParameterizedTest
@@ -317,7 +304,7 @@ public class RecordConsumerTest {
     static Stream<Arguments> parallelConsumerArgs() {
         return Stream.of(
                 arguments(2, OrderStrategy.ORDER_BY_PARTITION, true),
-                arguments(4, OrderStrategy.UNORDERD, true));
+                arguments(4, OrderStrategy.UNORDERED, true));
     }
 
     @ParameterizedTest
@@ -527,6 +514,32 @@ public class RecordConsumerTest {
         assertThat(ie.getMessage()).isEqualTo("Threads number must be greater than one");
     }
 
+    /**
+     * Method source for the test methods.
+     *
+     * @return the number of records to generate, the number of iteration for each record
+     *     collections, the number of threads to spin up
+     */
+    static Stream<Arguments> iterations() {
+        return Stream.of(
+                arguments(50, 1, 2),
+                arguments(100, 1, 2),
+                arguments(50, 1, 4),
+                arguments(100, 1, 4),
+                arguments(50, 10, 2),
+                arguments(100, 10, 2),
+                arguments(50, 10, 4),
+                arguments(50, 10, 4),
+                arguments(50, 100, 2),
+                arguments(100, 100, 2),
+                arguments(50, 100, 4),
+                arguments(50, 100, 4),
+                arguments(50, 1000, 2),
+                arguments(100, 1000, 2),
+                arguments(50, 1000, 4),
+                arguments(100, 1000, 4));
+    }
+
     @ParameterizedTest
     @MethodSource("iterations")
     public void shoudDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
@@ -534,25 +547,26 @@ public class RecordConsumerTest {
                 genRecords("topic", numOfRecords, List.of("a", "b", "c", "d"), new int[] {0, 1});
 
         // Make the RecordConsumer.
-        List<Event> events = Collections.synchronizedList(new ArrayList<>());
+        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
         recordConsumer =
                 mkRecordConsumer(
-                        new FakteItemEventListener(buildEvent(events)),
+                        new FakteItemEventListener(buildEvent(deliveredEvents)),
                         threads,
                         OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(records);
-            assertThat(events.size()).isEqualTo(numOfRecords);
-            // Group all the received events by record key
-            Map<String, List<Integer>> byKey = getByKey(events);
+            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            // Group all the delievered events by record key
+            Map<String, List<Number>> byKey = getByKey(deliveredEvents);
             // Ensure that events relative to the same key are in order
-            Collection<List<Integer>> orderedLists = byKey.values();
-            for (List<Integer> orderedList : orderedLists) {
+            Collection<List<Number>> orderedLists = byKey.values();
+            for (List<Number> orderedList : orderedLists) {
                 assertThat(orderedList).isInOrder();
             }
+
             // Reset the event list for next iteration
-            events.clear();
+            deliveredEvents.clear();
         }
     }
 
@@ -567,26 +581,26 @@ public class RecordConsumerTest {
                 genRecords("topic", numOfRecords, keys, partitions);
 
         // Make the RecordConsumer.
-        List<Event> events = Collections.synchronizedList(new ArrayList<>());
+        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
         recordConsumer =
                 mkRecordConsumer(
-                        new FakteItemEventListener(buildEvent(events)),
+                        new FakteItemEventListener(buildEvent(deliveredEvents)),
                         threads,
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(records);
-            assertThat(events.size()).isEqualTo(numOfRecords);
-            // Get the list of offsets per partition stored in all received events
-            Map<String, List<Long>> byPartition = getByPartition(events);
+            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            // Group the list of offsets by partition stored in all the delivered events
+            Map<String, List<Number>> byPartition = getByPartition(deliveredEvents);
 
             // Ensure that the offsets relative to the same partition are in order
-            Collection<List<Long>> orderedLists = byPartition.values();
-            for (List<Long> orderedList : orderedLists) {
+            Collection<List<Number>> orderedLists = byPartition.values();
+            for (List<Number> orderedList : orderedLists) {
                 assertThat(orderedList).isInOrder();
             }
             // Reset the event list for next iteration
-            events.clear();
+            deliveredEvents.clear();
         }
     }
 
@@ -612,11 +626,11 @@ public class RecordConsumerTest {
             recordConsumer.consumeRecords(records);
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
-            Map<String, List<Long>> byPartition = getByPartition(events);
+            Map<String, List<Number>> byPartition = getByPartition(events);
 
             // Ensure that the offsets relative to the same partition are in order
-            Collection<List<Long>> orderedLists = byPartition.values();
-            for (List<Long> orderedList : orderedLists) {
+            Collection<List<Number>> orderedLists = byPartition.values();
+            for (List<Number> orderedList : orderedLists) {
                 assertThat(orderedList).isInOrder();
             }
             // Reset the event list for next iteration
@@ -634,35 +648,122 @@ public class RecordConsumerTest {
                 genRecords("topic", numOfRecords, keys, partitions);
 
         // Make the RecordConsumer.
-        List<Event> events = Collections.synchronizedList(new ArrayList<>());
+        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
         recordConsumer =
                 mkRecordConsumer(
-                        new FakteItemEventListener(buildEvent(events)), 2, OrderStrategy.UNORDERD);
+                        new FakteItemEventListener(buildEvent(deliveredEvents)),
+                        2,
+                        OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(records);
-            assertThat(events.size()).isEqualTo(numOfRecords);
-            // Reset the event list for next iteration
-            events.clear();
+            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            // Reset the delivered events list for next iteration
+            deliveredEvents.clear();
         }
     }
 
-    private static Map<String, List<Integer>> getByKey(List<Event> events) {
-        return events.stream()
-                .collect(groupingBy(Event::key, mapping(Event::position, Collectors.toList())));
+    @ParameterizedTest
+    @ValueSource(ints={1, 2})
+    public void shouldHandleErrors(int numOfThreads) {
+        List<String> keys = List.of("a", "b");
+        int[] partitions = IntStream.range(0, 2).toArray();
+
+        ConsumerRecords<String, String> records = genRecords("topic", 30, keys, partitions);
+
+        // Prepare the list of offsets that will trigger a ValueException upon processing
+        List<ConsumedRecordInfo> offsetsTriggeringException =
+                List.of(
+                        new ConsumedRecordInfo("topic", 0, 2l),
+                        new ConsumedRecordInfo("topic", 0, 4l),
+                        new ConsumedRecordInfo("topic", 1, 3l));
+
+        // Fake exception thrown by the above offsets.
+        ValueException fieldNotFound = ValueException.fieldNotFound("field");
+
+        FakeOffsetService offsetService = new FakeOffsetService();
+        RecordConsumer<String, String> recordConsumer =
+                RecordConsumer.<String, String>recordProcessor(
+                                new FakeRecordProcessor<String, String>(
+                                        fieldNotFound, offsetsTriggeringException))
+                        .offsetService(offsetService)
+                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                        .logger(logger)
+                        .threads(numOfThreads)
+                        // This enforse usage of the SingleThreadedConsume if numOfThreads is 1
+                        // .preferSingleThread(true)
+                        .build();
+
+        KafkaException ce =
+                assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
+        assertThat(ce.getCause().getMessage()).isEqualTo("Field [field] not found");
+
+        // Ensure that the commited offsets do not include the broken ones.
+        List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
+        assertThat(consumedRecords).hasSize(records.count() - offsetsTriggeringException.size());
+        assertThat(consumedRecords).containsNoneIn(offsetsTriggeringException);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints={1, 2})
+    public void shouldIgnoreErrors(int numOfThreads) {
+        List<String> keys = List.of("a", "b");
+        int[] partitions = IntStream.range(0, 2).toArray();
+
+        ConsumerRecords<String, String> records = genRecords("topic", 30, keys, partitions);
+
+        // Prepare the list of offsets that will trigger a ValueException upon processing
+        List<ConsumedRecordInfo> offsetsTriggeringException =
+                List.of(
+                        new ConsumedRecordInfo("topic", 0, 2l),
+                        new ConsumedRecordInfo("topic", 0, 4l),
+                        new ConsumedRecordInfo("topic", 1, 3l));
+
+        // Fake exception thrown by the above offsets.
+        ValueException fieldNotFound = ValueException.fieldNotFound("field");
+
+        FakeOffsetService offsetService = new FakeOffsetService();
+        RecordConsumer<String, String> recordConsumer =
+                RecordConsumer.<String, String>recordProcessor(
+                                new FakeRecordProcessor<String, String>(
+                                        fieldNotFound, offsetsTriggeringException))
+                        .offsetService(offsetService)
+                        // The following prevents the exception to be propagated
+                        .errorStrategy(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE)
+                        .logger(logger)
+                        .threads(numOfThreads)
+                        // This enforse usage of the SingleThreadedConsume if numOfThreads is 1
+                        .preferSingleThread(true)
+                        .build();
+
+        recordConsumer.consumeRecords(records);
+
+        // Ensure that all offsets are commited
+        List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
+        assertThat(consumedRecords).hasSize(records.count());
     }
 
     /**
-     * Groups all the event offsets per partition.
+     * Groups all the event offsets by key.
      *
-     * @return a map of offsets list per partition
+     * @return a map of offsets list by key
      */
-    private static Map<String, List<Long>> getByPartition(List<Event> events) {
+    private static Map<String, List<Number>> getByKey(List<Event> events) {
+        return events.stream()
+                .collect(groupingBy(Event::key, mapping(Event::offset, toList())));
+    }
+
+    /**
+     * Groups all the event offsets by partition.
+     *
+     * @return a map of offsets list by partition
+     */
+    private static Map<String, List<Number>> getByPartition(List<Event> events) {
         return events.stream()
                 .collect(
                         groupingBy(
                                 e -> String.valueOf(e.partition()),
-                                mapping(Event::offset, Collectors.toList())));
+                                mapping(Event::offset, toList())));
     }
 
     private static Consumer<Map<String, String>> buildEvent(List<Event> events) {
@@ -710,8 +811,8 @@ public class RecordConsumerTest {
             // dump(event);
         }
 
-        Map<String, List<Long>> byPartition = getByPartition(events);
-        List<Long> list = byPartition.get("1");
+        Map<String, List<Number>> byPartition = getByPartition(events);
+        List<Number> list = byPartition.get("1");
         assertThat(list).isInOrder();
     }
 
