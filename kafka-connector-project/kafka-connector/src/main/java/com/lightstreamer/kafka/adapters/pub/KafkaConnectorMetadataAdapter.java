@@ -173,10 +173,6 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             throw new CreditsException(
                     -1, "Connection [%s] not enabled".formatted(connection.name()));
         }
-        if (Mode.COMMAND.equals(table.getMode())) {
-            throw new CreditsException(
-                    -2, "Subscription mode [%s] not allowed".formatted(Mode.COMMAND));
-        }
 
         String[] items = table.getSubscribedItems();
         for (String item : items) {
