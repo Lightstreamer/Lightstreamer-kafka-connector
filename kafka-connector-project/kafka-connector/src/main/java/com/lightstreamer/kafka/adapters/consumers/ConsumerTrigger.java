@@ -19,13 +19,41 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 public interface ConsumerTrigger {
+
+    public interface ConsumerTriggerConfig<K, V> {
+
+        String connectionName();
+
+        Properties consumerProperties();
+
+        ItemTemplates<K, V> itemTemplates();
+
+        DataExtractor<K, V> fieldsExtractor();
+
+        KeyValueDeserializers<K, V> deserializers();
+
+        RecordErrorHandlingStrategy errorHandlingStrategy();
+
+        Concurrency concurrency();
+
+        interface Concurrency {
+            RecordConsumeWithOrderStrategy orderStrategy();
+
+            int threads();
+        }
+    }
 
     CompletableFuture<Void> subscribe(String item, Object itemHandle) throws SubscriptionException;
 

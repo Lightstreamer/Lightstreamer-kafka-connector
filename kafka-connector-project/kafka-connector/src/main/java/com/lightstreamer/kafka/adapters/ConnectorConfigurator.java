@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
@@ -43,29 +44,6 @@ import java.util.Map;
 import java.util.Properties;
 
 public class ConnectorConfigurator {
-
-    public interface ConsumerTriggerConfig<K, V> {
-
-        String connectionName();
-
-        Properties consumerProperties();
-
-        ItemTemplates<K, V> itemTemplates();
-
-        DataExtractor<K, V> fieldsExtractor();
-
-        KeyValueDeserializers<K, V> deserializers();
-
-        RecordErrorHandlingStrategy errorHandlingStrategy();
-
-        Concurrency concurrency();
-
-        interface Concurrency {
-            RecordConsumeWithOrderStrategy orderStrategy();
-
-            int threads();
-        }
-    }
 
     private static record ConsumerTriggerConfigImpl<K, V>(
             String connectionName,

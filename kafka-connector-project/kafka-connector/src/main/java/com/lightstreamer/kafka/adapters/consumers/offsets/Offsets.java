@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
-import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -118,16 +117,16 @@ public class Offsets {
 
         void updateOffsets(ConsumerRecord<?, ?> record);
 
-        void onAsyncFailure(ValueException ve);
+        void onAsyncFailure(Throwable th);
 
-        ValueException getFirstFailure();
+        Throwable getFirstFailure();
 
         Optional<OffsetStore> offsetStore();
     }
 
     private static class OffsetServiceImpl implements OffsetService {
 
-        private volatile ValueException firstFailure;
+        private volatile Throwable firstFailure;
         private final Consumer<?, ?> consumer;
         private final Logger log;
 
@@ -232,13 +231,13 @@ public class Offsets {
         }
 
         @Override
-        public void onAsyncFailure(ValueException ve) {
+        public void onAsyncFailure(Throwable th) {
             if (firstFailure == null) {
-                firstFailure = ve; // any of the first exceptions got should be enough
+                firstFailure = th; // any of the first exceptions got should be enough
             }
         }
 
-        public ValueException getFirstFailure() {
+        public Throwable getFirstFailure() {
             return firstFailure;
         }
 

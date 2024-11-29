@@ -23,11 +23,11 @@ import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.adapters.consumers.Fakes;
-import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeOffsetStore;
+import com.lightstreamer.kafka.adapters.Mocks;
+import com.lightstreamer.kafka.adapters.Mocks.MockOffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.MockConsumer;
@@ -141,7 +141,7 @@ public class OffsetServiceTest {
             Map<TopicPartition, Long> startOffset,
             Map<TopicPartition, OffsetAndMetadata> expected) {
         // Initialize the store
-        offsetService.initStore(Fakes.FakeOffsetStore::new, startOffset, committed);
+        offsetService.initStore(Mocks.MockOffsetStore::new, startOffset, committed);
 
         // The store should have the expected initial committed repo
         Map<TopicPartition, OffsetAndMetadata> map = offsetService.offsetStore().get().current();
@@ -151,15 +151,15 @@ public class OffsetServiceTest {
     @Test
     void shouldUpdateOffsets() {
         offsetService.initStore(
-                Fakes.FakeOffsetStore::new,
+                Mocks.MockOffsetStore::new,
                 Map.of(partition0, 0L, partition1, 0L),
                 Collections.emptyMap());
-        FakeOffsetStore store = (FakeOffsetStore) offsetService.offsetStore().get();
+        MockOffsetStore store = (MockOffsetStore) offsetService.offsetStore().get();
         assertThat(store.getRecords()).isEmpty();
 
-        ConsumerRecord<?, ?> record1 = ConsumerRecords.Record(TOPIC, 0, "0A");
+        ConsumerRecord<?, ?> record1 = Records.Record(TOPIC, 0, "0A");
         offsetService.updateOffsets(record1);
-        ConsumerRecord<?, ?> record2 = ConsumerRecords.Record(TOPIC, 0, "0B");
+        ConsumerRecord<?, ?> record2 = Records.Record(TOPIC, 0, "0B");
         offsetService.updateOffsets(record2);
         assertThat(store.getRecords()).containsExactly(record1, record2);
     }
@@ -221,8 +221,7 @@ public class OffsetServiceTest {
         mockConsumer.schedulePollTask(
                 () ->
                         mockConsumer.addRecord(
-                                (ConsumerRecord<String, String>)
-                                        ConsumerRecords.Record(TOPIC, 0, "10A")));
+                                (ConsumerRecord<String, String>) Records.Record(TOPIC, 0, "10A")));
         org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(1);
@@ -240,7 +239,7 @@ public class OffsetServiceTest {
     void shouldCommiytOnPartitionRevoked() {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         // Normally, the store is initialized only after the very firt poll invocation
-        offsetService.initStore(false, Fakes.FakeOffsetStore::new);
+        offsetService.initStore(false, Mocks.MockOffsetStore::new);
 
         // No committed offsets before invocation of onPartitionsRevoked
         Map<TopicPartition, OffsetAndMetadata> committed =
@@ -264,7 +263,7 @@ public class OffsetServiceTest {
     void shouldCommityAsync() {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         // Normally, the store is initialized only after the very firt poll invocation
-        offsetService.initStore(false, Fakes.FakeOffsetStore::new);
+        offsetService.initStore(false, Mocks.MockOffsetStore::new);
 
         // Commit and test the offsets
         offsetService.commitAsync();

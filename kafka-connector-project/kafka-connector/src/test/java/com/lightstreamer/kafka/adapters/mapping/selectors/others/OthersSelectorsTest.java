@@ -44,7 +44,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -151,7 +151,7 @@ public class OthersSelectorsTest {
                 othersSelectorSuppliers.makeValueSelectorSupplier();
         Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
 
-        KafkaRecord kafkaRecord = ConsumerRecords.fromValue(deserializedData);
+        KafkaRecord kafkaRecord = Records.fromValue(deserializedData);
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.Expression("VALUE"))
@@ -168,7 +168,7 @@ public class OthersSelectorsTest {
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
-        KafkaRecord kafkaRecord = ConsumerRecords.fromValue((Object) null);
+        KafkaRecord kafkaRecord = Records.fromValue((Object) null);
         String text =
                 valueSupplier
                         .newSelector("name", Expressions.Expression("VALUE"))
@@ -190,7 +190,7 @@ public class OthersSelectorsTest {
         byte[] bytes = serde.serializer().serialize("topic", data);
         Object deserializedData = keySupplier.deseralizer().deserialize("topic", bytes);
 
-        KafkaRecord kafkaRecord = ConsumerRecords.fromKey(deserializedData);
+        KafkaRecord kafkaRecord = Records.fromKey(deserializedData);
         String text =
                 keySupplier
                         .newSelector("name", Expressions.Expression("KEY"))
@@ -207,7 +207,7 @@ public class OthersSelectorsTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
-        KafkaRecord kafkaRecord = ConsumerRecords.fromKey((Object) null);
+        KafkaRecord kafkaRecord = Records.fromKey((Object) null);
         String text =
                 keySupplier
                         .newSelector("name", Expressions.Expression("KEY"))

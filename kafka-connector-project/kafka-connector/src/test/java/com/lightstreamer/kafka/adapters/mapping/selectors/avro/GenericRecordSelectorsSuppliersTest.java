@@ -23,9 +23,9 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromKey;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.fromValue;
 import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.RECORD;
+import static com.lightstreamer.kafka.test_utils.Records.fromKey;
+import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;

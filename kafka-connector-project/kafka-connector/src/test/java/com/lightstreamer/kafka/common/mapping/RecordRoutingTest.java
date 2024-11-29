@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subcribedFrom;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
+import static com.lightstreamer.kafka.test_utils.Records.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -34,10 +34,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -93,7 +93,7 @@ public class RecordRoutingTest {
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(ConsumerRecords.record(topic, "key", "value"));
+            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             List<SubscribedItem> all =
                     Stream.concat(routables.stream(), nonRoutables.stream()).toList();
 
@@ -168,7 +168,7 @@ public class RecordRoutingTest {
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(ConsumerRecords.record(topic, "key", "value"));
+            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             List<SubscribedItem> routablesForTopic = routables.get(topic);
             List<SubscribedItem> nonRoutableForTopic = nonRoutables.get(topic);
 
@@ -219,7 +219,7 @@ public class RecordRoutingTest {
 
         ObjectMapper om = new ObjectMapper();
         JsonNode jsonNode = om.readTree(jsonString);
-        MappedRecord mapped = mapper.map(ConsumerRecords.record(TEST_TOPIC_1, "key", jsonNode));
+        MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
         List<SubscribedItem> all =
                 Stream.concat(routables.stream(), nonRoutables.stream()).toList();
         Set<SubscribedItem> routed = mapped.route(all);

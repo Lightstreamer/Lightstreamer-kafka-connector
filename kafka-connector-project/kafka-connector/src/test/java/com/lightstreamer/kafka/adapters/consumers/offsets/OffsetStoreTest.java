@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.offsets;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -35,7 +35,7 @@ public class OffsetStoreTest {
     private static String TEST_TOPIC = "topic";
 
     static ConsumerRecord<?, ?> Record(int partition, String id) {
-        return ConsumerRecords.Record(TEST_TOPIC, partition, id);
+        return Records.Record(TEST_TOPIC, partition, id);
     }
 
     private OffsetStore repo;

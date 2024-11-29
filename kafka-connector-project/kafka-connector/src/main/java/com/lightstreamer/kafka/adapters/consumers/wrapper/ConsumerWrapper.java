@@ -18,7 +18,8 @@
 package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 
 import org.apache.kafka.clients.admin.Admin;
@@ -67,13 +68,15 @@ public interface ConsumerWrapper<K, V> extends Runnable {
         }
     }
 
-    static <K, V> ConsumerWrapper<K, V> newWrapper(
+    static <K, V> ConsumerWrapper<K, V> create(
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
+            MetadataListener metadataListener,
             Collection<SubscribedItem> subscribedItems) {
-        return new ConsumerWrapperImpl<>(
+        return create(
                 config,
                 eventListener,
+                metadataListener,
                 subscribedItems,
                 () ->
                         new KafkaConsumer<>(
@@ -83,22 +86,34 @@ public interface ConsumerWrapper<K, V> extends Runnable {
                 AdminInterface::newAdmin);
     }
 
-    static <K, V> ConsumerWrapper<K, V> newWrapper(
+    static <K, V> ConsumerWrapper<K, V> create(
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
+            MetadataListener metadataListener,
             Collection<SubscribedItem> subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier) {
-        return new ConsumerWrapperImpl<>(
-                config, eventListener, subscribedItems, consumerSupplier, AdminInterface::newAdmin);
+        return create(
+                config,
+                eventListener,
+                metadataListener,
+                subscribedItems,
+                consumerSupplier,
+                AdminInterface::newAdmin);
     }
 
-    static <K, V> ConsumerWrapper<K, V> newWrapper(
+    static <K, V> ConsumerWrapper<K, V> create(
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
+            MetadataListener metadataListener,
             Collection<SubscribedItem> subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier,
             Function<Properties, AdminInterface> adminFactory) {
         return new ConsumerWrapperImpl<>(
-                config, eventListener, subscribedItems, consumerSupplier, adminFactory);
+                config,
+                eventListener,
+                metadataListener,
+                subscribedItems,
+                consumerSupplier,
+                adminFactory);
     }
 }

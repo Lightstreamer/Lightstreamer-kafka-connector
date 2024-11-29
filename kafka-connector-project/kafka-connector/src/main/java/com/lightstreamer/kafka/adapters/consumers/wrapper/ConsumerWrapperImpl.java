@@ -21,9 +21,10 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
@@ -53,6 +54,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
 
     private final ConsumerTriggerConfig<K, V> config;
+    private final MetadataListener metadataListener;
     private final Logger log;
     private final RecordMapper<K, V> recordMapper;
     private final Consumer<K, V> consumer;
@@ -65,11 +67,13 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     ConsumerWrapperImpl(
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
+            MetadataListener metadataListener,
             Collection<SubscribedItem> subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier,
             Function<Properties, AdminInterface> admin)
             throws KafkaException {
         this.config = config;
+        this.metadataListener = metadataListener;
         this.log = LogFactory.getLogger(config.connectionName());
         this.adminFactory = admin;
         this.recordMapper =
@@ -115,8 +119,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atDebug().log("Set shutdown kook");
         try {
             if (subscribed()) {
-                pollOnceWithConsumer(this::initStoreAndConsume);
-                pollForEver();
+                pollOnce(this::initStoreAndConsume);
+                pollForEver(this::consumeRecords);
             }
         } catch (WakeupException e) {
             log.atDebug().log("Kafka Consumer woken up");
@@ -145,6 +149,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         recordConsumer.consumeFilteredRecords(records, offsetService::isNotAlreadyConsumed);
     }
 
+    // Only for testing purposes.
+    OffsetService getOffsetService() {
+        return offsetService;
+    }
+
     @Override
     public void consumeRecords(ConsumerRecords<K, V> records) {
         recordConsumer.consumeRecords(records);
@@ -162,7 +171,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         return hook;
     }
 
-    private boolean subscribed() {
+    protected boolean subscribed() {
         // Original requested topics.
         Set<String> topics = new HashSet<>(config.itemTemplates().topics());
         log.atInfo().log("Subscribing to requested topics [{}]", topics);
@@ -180,7 +189,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             // Can't subscribe at all. Force unsubscription and exit the loop.
             if (topics.isEmpty()) {
                 log.atWarn().log("Not found requested topics");
-                // metadataListener.forceUnsubscriptionAll();
+                metadataListener.forceUnsubscriptionAll();
                 return false;
             }
 
@@ -199,42 +208,42 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             return true;
         } catch (Exception e) {
             log.atError().setCause(e).log();
-            // metadataListener.forceUnsubscriptionAll();
+            metadataListener.forceUnsubscriptionAll();
             return false;
         }
     }
 
-    private void pollOnceWithConsumer(java.util.function.Consumer<ConsumerRecords<K, V>> c) {
+    void pollOnce(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
         log.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed");
-        poll(false, c);
+        doPoll(recordConsumer);
         log.atInfo().log("First poll completed");
     }
 
-    private void pollForEver() {
+    void pollForEver(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
         log.atInfo().log("Starting polling forever");
-        poll(true, this::consumeRecords);
+        for (; ; ) {
+            doPoll(recordConsumer);
+        }
     }
 
-    private void poll(
-            boolean infiniteLoop, java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer)
-            throws WakeupException {
-        do {
-            log.atInfo().log("Polling records");
-            try {
-                ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
-                log.atDebug().log("Received records");
-                recordConsumer.accept(records);
-                log.atInfo().log("Consumed {} records", records.count());
-            } catch (WakeupException we) {
-                // Catch and rethrow the Exception here because of the next KafkaException
-                throw we;
-            } catch (KafkaException ke) {
-                log.atError().setCause(ke).log("Unrecoverable exception");
-                // metadataListener.forceUnsubscriptionAll();
-                break;
-            }
-        } while (infiniteLoop);
+    private boolean doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
+        log.atInfo().log("Polling records");
+        try {
+            ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
+            log.atDebug().log("Received records");
+            recordConsumer.accept(records);
+            log.atInfo().log("Consumed {} records", records.count());
+            return true;
+        } catch (WakeupException we) {
+            // Catch and rethrow the exception here because of the next KafkaException
+            throw we;
+        } catch (KafkaException ke) {
+            log.atError().setCause(ke).log("Unrecoverable exception");
+            metadataListener.forceUnsubscriptionAll();
+            // return false;
+            throw ke;
+        }
     }
 
     private void shutdown() {

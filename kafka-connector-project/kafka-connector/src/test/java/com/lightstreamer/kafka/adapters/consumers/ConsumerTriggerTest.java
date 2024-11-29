@@ -23,79 +23,25 @@ import static com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMap
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.Mocks;
+import com.lightstreamer.kafka.adapters.Mocks.MockConsumerWrapper;
+import com.lightstreamer.kafka.adapters.Mocks.MockMetadataListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeKafkaConsumer;
-import com.lightstreamer.kafka.adapters.consumers.Fakes.FakeMetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-
-class TestLoopConfig implements ConsumerTriggerConfig<String, String> {
-
-    private final TopicConfigurations topicsConfig;
-
-    TestLoopConfig(TopicConfigurations topicsConfig) {
-        this.topicsConfig = topicsConfig;
-    }
-
-    @Override
-    public Properties consumerProperties() {
-        return new Properties();
-    }
-
-    @Override
-    public DataExtractor<String, String> fieldsExtractor() {
-        throw new UnsupportedOperationException("Unimplemented method 'fieldMappings'");
-    }
-
-    @Override
-    public ItemTemplates<String, String> itemTemplates() {
-        try {
-            return Items.templatesFrom(topicsConfig, OthersSelectorSuppliers.String());
-        } catch (ExtractionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String connectionName() {
-        return "TestConnection";
-    }
-
-    @Override
-    public KeyValueDeserializers<String, String> deserializers() {
-        return null;
-    }
-
-    @Override
-    public Concurrency concurrency() {
-        throw new UnsupportedOperationException("Unimplemented method 'recordConsumption'");
-    }
-
-    @Override
-    public RecordErrorHandlingStrategy errorHandlingStrategy() {
-        return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
-    }
-}
 
 public class ConsumerTriggerTest {
 
@@ -109,7 +55,7 @@ public class ConsumerTriggerTest {
                         List.of(
                                 fromDelimitedMappings(
                                         "aTopic", "anItemTemplate,anotherItemTemplate")));
-        ConsumerTriggerConfig<String, String> config = new TestLoopConfig(topicsConfig);
+        ConsumerTriggerConfig<String, String> config = new Mocks.MockTriggerConfig(topicsConfig);
 
         Function<Collection<SubscribedItem>, ConsumerWrapper<String, String>> consumerWrapper =
                 items -> {
@@ -122,16 +68,16 @@ public class ConsumerTriggerTest {
     }
 
     private ConsumerTriggerImpl<?, ?> consumerTrigger;
-    private FakeMetadataListener metadataListener;
-    private FakeKafkaConsumer<String, String> kafkaConsumer;
+    private MockMetadataListener metadataListener;
+    private MockConsumerWrapper<String, String> kafkaConsumer;
 
     void init() {
         init(false);
     }
 
     void init(boolean throwExceptionWhileConnectingToKafka) {
-        kafkaConsumer = new Fakes.FakeKafkaConsumer<>();
-        metadataListener = new Fakes.FakeMetadataListener();
+        kafkaConsumer = new Mocks.MockConsumerWrapper<>();
+        metadataListener = new Mocks.MockMetadataListener();
         consumerTrigger =
                 mkConsumerTrigger(
                         metadataListener, kafkaConsumer, throwExceptionWhileConnectingToKafka);

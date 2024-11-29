@@ -31,9 +31,9 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
+import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
 
 import org.apache.avro.generic.GenericRecord;
@@ -176,8 +176,7 @@ public class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
 
         // Record published to topic "topic": mapping
-        KafkaRecord<String, String> kafkaRecord1 =
-                ConsumerRecords.record(TEST_TOPIC_1, "aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord1 = Records.record(TEST_TOPIC_1, "aKey", "aValue");
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord1.expanded();
         assertThat(expandedFromTestsTopic)
@@ -191,7 +190,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, String> kafkaRecord2 =
-                ConsumerRecords.record(TEST_TOPIC_2, "anotherKey", "anotherValue");
+                Records.record(TEST_TOPIC_2, "anotherKey", "anotherValue");
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -201,7 +200,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, String> kafkaRecord3 =
-                ConsumerRecords.record("undefinedTopic", "anotherKey", "anotherValue");
+                Records.record("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -260,7 +259,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord =
-                ConsumerRecords.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
         assertThat(expandedFromTestsTopic)
@@ -275,7 +274,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord2 =
-                ConsumerRecords.record(TEST_TOPIC_2, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_2, "", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -288,7 +287,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, JsonNode> kafkaRecord3 =
-                ConsumerRecords.record("undefinedTopic", "", JsonNodeProvider.RECORD);
+                Records.record("undefinedTopic", "", JsonNodeProvider.RECORD);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -347,7 +346,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord =
-                ConsumerRecords.record(TEST_TOPIC_1, "", GenericRecordProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
         assertThat(expandedFromTestsTopic)
@@ -362,7 +361,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
-                ConsumerRecords.record(TEST_TOPIC_2, "", GenericRecordProvider.RECORD);
+                Records.record(TEST_TOPIC_2, "", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -375,7 +374,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
-                ConsumerRecords.record("undefinedTopic", "", GenericRecordProvider.RECORD);
+                Records.record("undefinedTopic", "", GenericRecordProvider.RECORD);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -432,7 +431,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<Object, Object> kafkaRecord =
-                ConsumerRecords.sinkFromValue(
+                Records.sinkFromValue(
                         TEST_TOPIC_1,
                         SchemaAndValueProvider.STRUCT.schema(),
                         SchemaAndValueProvider.STRUCT);
@@ -450,7 +449,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<Object, Object> kafkaRecord2 =
-                ConsumerRecords.sinkFromValue(
+                Records.sinkFromValue(
                         TEST_TOPIC_2,
                         SchemaAndValueProvider.STRUCT.schema(),
                         SchemaAndValueProvider.STRUCT);
@@ -466,7 +465,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<Object, Object> kafkaRecord3 =
-                ConsumerRecords.record(
+                Records.record(
                         "undefinedTopic",
                         SchemaAndValueProvider.STRUCT.schema(),
                         SchemaAndValueProvider.STRUCT);

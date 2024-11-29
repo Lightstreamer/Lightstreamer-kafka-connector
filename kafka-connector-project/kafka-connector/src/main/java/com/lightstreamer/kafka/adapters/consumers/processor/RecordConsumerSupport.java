@@ -183,16 +183,16 @@ class RecordConsumerSupport {
 
         @Override
         public RecordConsumer<K, V> build() {
-            Objects.requireNonNull(this.parentBuilder.errorStrategy);
-            Objects.requireNonNull(this.parentBuilder.logger);
-            Objects.requireNonNull(this.parentBuilder.orderStrategy);
-            if (this.parentBuilder.threads < 1) {
-                throw new IllegalArgumentException("Threads number must be greater than one");
+            Objects.requireNonNull(parentBuilder.errorStrategy);
+            Objects.requireNonNull(parentBuilder.logger);
+            Objects.requireNonNull(parentBuilder.orderStrategy);
+            if (parentBuilder.threads < 1) {
+                throw new IllegalArgumentException("Threads number must be greater than zero");
             }
-            if (this.parentBuilder.threads == 1 && this.parentBuilder.prefereSingleThread) {
-                return new SingleThreadedRecordConsumer<>(this.parentBuilder);
+            if (parentBuilder.threads == 1 && parentBuilder.prefereSingleThread) {
+                return new SingleThreadedRecordConsumer<>(parentBuilder);
             }
-            return new ParallelRecordConsumer<>(this.parentBuilder);
+            return new ParallelRecordConsumer<>(parentBuilder);
         }
     }
 
@@ -328,7 +328,7 @@ class RecordConsumerSupport {
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
             offsetService.commitAsync();
-            Exception failure = offsetService.getFirstFailure();
+            Throwable failure = offsetService.getFirstFailure();
             if (failure != null) {
                 logger.atWarn().log("Forcing unsubscription");
                 throw new KafkaException(failure);
@@ -345,9 +345,9 @@ class RecordConsumerSupport {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
                 logger.atWarn().log("Applying the {} strategy", errorStrategy);
                 handleError(record, ve);
-            } catch (RuntimeException | Error e) {
-                // TODO uguale a ValueException ?
-                e.printStackTrace();
+            } catch (Throwable t) {
+                logger.atError().log("Serious error while processing record!");
+                offsetService.onAsyncFailure(t);
             }
         }
 
@@ -387,4 +387,6 @@ class RecordConsumerSupport {
             taskExecutor.shutdown();
         }
     }
+
+    private RecordConsumerSupport() {}
 }

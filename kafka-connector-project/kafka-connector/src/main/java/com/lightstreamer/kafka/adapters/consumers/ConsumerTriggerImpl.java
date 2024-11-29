@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
@@ -60,7 +59,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         this(
                 config,
                 metadataListener,
-                items -> ConsumerWrapper.newWrapper(config, eventListener, items));
+                items -> ConsumerWrapper.create(config, eventListener, metadataListener, items));
     }
 
     ConsumerTriggerImpl(

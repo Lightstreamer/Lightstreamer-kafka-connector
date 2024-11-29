@@ -18,8 +18,8 @@
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.sinkFromKey;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.sinkFromValue;
+import static com.lightstreamer.kafka.test_utils.Records.sinkFromKey;
+import static com.lightstreamer.kafka.test_utils.Records.sinkFromValue;
 import static com.lightstreamer.kafka.test_utils.SchemaAndValueProvider.STRUCT;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;

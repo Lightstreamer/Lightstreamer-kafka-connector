@@ -30,7 +30,7 @@ import static java.util.Collections.EMPTY_MAP;
 
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
-import com.lightstreamer.kafka.test_utils.ConsumerRecords;
+import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
@@ -101,7 +101,7 @@ public class DataExtractorTest {
         DataExtractor<String, String> extractor = extractor(String(), schemaName, expressions);
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
-        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
@@ -148,7 +148,7 @@ public class DataExtractorTest {
                 extractor(String(), schemaName, param, expression);
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
-        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
@@ -185,7 +185,7 @@ public class DataExtractorTest {
         DataExtractor<String, String> extractor = extractor(String(), expression);
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
-        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
@@ -196,7 +196,7 @@ public class DataExtractorTest {
         DataExtractor<String, String> extractor = extractor(String(), TEST_SCHEMA);
         assertThat(extractor.schema()).isEqualTo(Schema.empty(TEST_SCHEMA));
 
-        KafkaRecord<String, String> kafkaRecord = ConsumerRecords.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEmpty();

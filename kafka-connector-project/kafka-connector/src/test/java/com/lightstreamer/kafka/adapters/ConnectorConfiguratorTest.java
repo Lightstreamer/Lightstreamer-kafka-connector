@@ -26,11 +26,11 @@ import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimal
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;

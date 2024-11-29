@@ -22,11 +22,11 @@ import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SmartDataProvider;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
