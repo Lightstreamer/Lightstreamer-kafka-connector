@@ -116,6 +116,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
+    public static final String RECORD_COMMAND_ENABLE = "record.command.enable";
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
     public static final String CONSUMER_CLIENT_ID =
             CONNECTOR_PREFIX + CommonClientConfigs.CLIENT_ID_CONFIG;
@@ -216,6 +217,13 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("IGNORE_AND_CONTINUE"))
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
+                        .add(
+                                RECORD_COMMAND_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                false,
+                                defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_FROM,
                                 false,
@@ -412,6 +420,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final EvaluatorType getEvaluator(String configKey) {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
+    public boolean isCommandEnforceEnabled() {
+        return getBoolean(RECORD_COMMAND_ENABLE);
     }
 
     public final RecordComsumeFrom getRecordConsumeFrom() {

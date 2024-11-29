@@ -59,6 +59,8 @@ public class ConnectorConfigurator {
         Deserializer<V> valueDeserializer();
 
         RecordErrorHandlingStrategy recordErrorHandlingStrategy();
+
+        boolean isCommandEnforceEnabled();
     }
 
     private static record ConsumerLoopConfigImpl<K, V>(
@@ -68,7 +70,8 @@ public class ConnectorConfigurator {
             DataExtractor<K, V> fieldsExtractor,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer,
-            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
+            RecordErrorHandlingStrategy recordErrorHandlingStrategy,
+            boolean isCommandEnforceEnabled)
             implements ConsumerLoopConfig<K, V> {}
 
     private final ConnectorConfig config;
@@ -111,7 +114,8 @@ public class ConnectorConfigurator {
                     fieldsExtractor,
                     sSuppliers.keySelectorSupplier().deseralizer(),
                     sSuppliers.valueSelectorSupplier().deseralizer(),
-                    config.getRecordExtractionErrorHandlingStrategy());
+                    config.getRecordExtractionErrorHandlingStrategy(),
+                    config.isCommandEnforceEnabled());
         } catch (Exception e) {
             log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());

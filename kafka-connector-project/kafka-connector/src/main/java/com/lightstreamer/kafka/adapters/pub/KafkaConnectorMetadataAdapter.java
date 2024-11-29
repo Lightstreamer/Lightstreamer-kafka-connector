@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.adapters.pub;
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
-import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;

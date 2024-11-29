@@ -161,25 +161,6 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldDenyCommandSubscription() throws Exception {
-        doInit();
-
-        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
-        connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
-
-        TableInfo[] tables = mkTable("CONNECTOR", Mode.COMMAND);
-        CreditsException ce =
-                assertThrows(
-                        CreditsException.class,
-                        () ->
-                                connectorMetadataAdapter.notifyNewTables(
-                                        "user", "sessionId", tables));
-        assertThat(ce.getClientErrorCode()).isEqualTo(-2);
-        assertThat(ce.getMessage()).isEqualTo("Subscription mode [COMMAND] not allowed");
-    }
-
-    @Test
     void shouldHandleCustomAdapter() throws Exception {
         record NotifyedNewTables(String user, String sessionId, TableInfo[] tables) {}
 

@@ -271,7 +271,31 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 log.atInfo().log("Routing record to {} items", routables.size());
                 for (SubscribedItem sub : routables) {
                     log.atDebug().log("Sending updates: {}", updates);
-                    eventListener.smartUpdate(sub.itemHandle(), updates, false);
+
+                    if (config.isCommandEnforceEnabled() ) {
+                        if (checkCommand(updates)) {
+                            if (updates.get("key").equals("snapshot")) {
+                                switch (updates.get("command")) {
+                                    case "CS":
+                                        eventListener.smartClearSnapshot(sub.itemHandle());
+                                    case "EOS":
+                                        eventListener.smartEndOfSnapshot(sub.itemHandle());
+                                    default:
+                                    log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));    
+                                }
+                            } else {
+                                if (checkCommandField(updates.get("command"))) {
+                                    eventListener.smartUpdate(sub.itemHandle(), updates, false);
+                                } else {
+                                    log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));
+                                }
+                            }
+                        } else {
+                            log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));
+                        }
+                    } else {
+                        eventListener.smartUpdate(sub.itemHandle(), updates, false);
+                    }
                 }
 
                 offsetManager.updateOffsets(record);
@@ -311,6 +335,40 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 // Ignore
             }
             log.atInfo().log("Shut down Kafka consumer");
+        }
+
+        private static boolean checkCommand(Map<String, String> input) {
+            if (input == null) {
+                return false;
+            }
+
+            if (!input.containsKey("key") || input.get("key") == null) {
+                return false;
+            }
+
+            if (!input.containsKey("command")) {
+                return false;
+            }
+
+            String command = input.get("command");
+            if (command == null) {
+                return false;
+            }
+
+            switch (command) {
+                case "ADD":
+                case "DELETE":
+                case "UPDATE":
+                case "CS":
+                case "EOS":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static boolean checkCommandField(String command) {
+            return command.equals("ADD") || command.equals("DELETE") || command.equals("UPDATE");
         }
     }
 
