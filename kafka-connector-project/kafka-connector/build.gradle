@@ -37,7 +37,6 @@ dependencies {
 	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
 }
 
-
 ext {
 	connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
 }
