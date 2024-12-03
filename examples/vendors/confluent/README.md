@@ -926,7 +926,7 @@ Example:
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
 
-Default value: `-1`.
+Default value: `1`.
 
 Example:
 
