@@ -237,7 +237,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L419) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L446) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -878,7 +878,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L432) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L460) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -920,6 +920,34 @@ Example:
 
 ```xml
 <param name="record.consume.from">EARLIEST</param>
+```
+
+#### `record.consume.with.num.threads`
+
+_Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
+
+Default value: `-1`.
+
+Example:
+
+```xml
+<param name="record.consume.with.num.threads">4</param>
+```
+
+#### `record.consume.with.order.strategy`
+
+_Optional_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+
+- `ORDER_BY_PARTITION`: processe records from multiple partitions concurrently, maintaining the order of records within each partition
+- `ORDER_BY_KEY`: process records from multiple partitions concurrently, maintaining the order of records with the same key. This may result in slower processing speeds compared to `ORDER_BY_PARTITION`.
+- `UNORDERED`: process records from multiple partitions concurrently, without any guarantee of order. This offers the highest processing speed but may result in out-of-order delivery to consumers.
+
+Default value: `ORDER_BY_PARTITION`.
+
+Example:
+
+```xml
+<param name="record.consume.with.order.strategyy">ORDER_BY_KEY</param>
 ```
 
 #### `record.key.evaluator.type` and `record.value.evaluator.type`
@@ -1118,7 +1146,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L448) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L475) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...

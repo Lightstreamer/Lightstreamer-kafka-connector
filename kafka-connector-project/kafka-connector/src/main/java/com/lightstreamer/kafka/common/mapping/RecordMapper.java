@@ -54,10 +54,6 @@ public interface RecordMapper<K, V> {
 
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
-    MappedRecord map_old(KafkaRecord<K, V> record) throws ValueException;
-
-    MappedRecord map2_0(KafkaRecord<K, V> record) throws ValueException;
-
     boolean hasExtractors();
 
     boolean hasFieldExtractor();
@@ -159,27 +155,6 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
         SchemaAndValues mappedFields = fieldExtractor.extractData(record);
         return new DefaultMappedRecord(set, mappedFields);
-    }
-
-    @Override
-    public MappedRecord map2_0(KafkaRecord<K, V> record) throws ValueException {
-        Set<SchemaAndValues> set = new HashSet<>();
-        // for (DataExtractor<K, V> dataExtractor : extractors) {
-        //     SchemaAndValues data = dataExtractor.extractData2_0(record);
-        //     set.add(data);
-        // }
-
-        SchemaAndValues mappedFields = fieldExtractor.extractData(record);
-        return new DefaultMappedRecord(set, mappedFields);
-    }
-
-    @Override
-    public MappedRecord map_old(KafkaRecord<K, V> record) throws ValueException {
-        // return new DefaultMappedRecord(
-        //         record.topic(),
-        //         extractors.stream().map(ve ->
-        // ve.extractData(record)).collect(Collectors.toSet()));
-        return null;
     }
 }
 

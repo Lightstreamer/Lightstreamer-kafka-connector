@@ -23,9 +23,6 @@ import static com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMap
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.Mocks;
-import com.lightstreamer.kafka.adapters.Mocks.MockConsumerWrapper;
-import com.lightstreamer.kafka.adapters.Mocks.MockMetadataListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
@@ -34,6 +31,9 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateCon
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumerWrapper;
+import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Test;

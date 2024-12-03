@@ -71,7 +71,7 @@ class RecordConsumerSupport {
 
         // Optional and defaulted fields
         protected int threads = 1;
-        protected OrderStrategy orderStrategy = OrderStrategy.ORDER_BY_KEY;
+        protected OrderStrategy orderStrategy = OrderStrategy.ORDER_BY_PARTITION;
         protected boolean prefereSingleThread = false;
 
         StartBuildingConsumerImpl(RecordProcessor<K, V> processor) {
@@ -164,15 +164,15 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WithOptionals<K, V> threads(int threads, OrderStrategy orderStrategy) {
-            this.parentBuilder.orderStrategy = orderStrategy;
+        public WithOptionals<K, V> threads(int threads) {
             this.parentBuilder.threads = threads;
             return this;
         }
 
         @Override
-        public WithOptionals<K, V> threads(int threads) {
-            return threads(threads, OrderStrategy.ORDER_BY_KEY);
+        public WithOptionals<K, V> ordering(OrderStrategy orderStrategy) {
+            this.parentBuilder.orderStrategy = orderStrategy;
+            return this;
         }
 
         @Override
@@ -186,7 +186,7 @@ class RecordConsumerSupport {
             Objects.requireNonNull(parentBuilder.errorStrategy);
             Objects.requireNonNull(parentBuilder.logger);
             Objects.requireNonNull(parentBuilder.orderStrategy);
-            if (parentBuilder.threads < 1) {
+            if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
             }
             if (parentBuilder.threads == 1 && parentBuilder.prefereSingleThread) {
@@ -300,18 +300,27 @@ class RecordConsumerSupport {
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
         protected final OrderStrategy orderStrategy;
-        protected final int threads;
+        protected final int configuredThreads;
         protected final TaskExecutor<String> taskExecutor;
+        protected final int actualThreads;
 
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
             this.orderStrategy = builder.orderStrategy;
-            this.threads = builder.threads;
+            this.configuredThreads = builder.threads;
+            this.actualThreads = getActualThreadsNumber(configuredThreads);
 
             AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
                     TaskExecutor.newExecutor(
-                            newFixedThreadPool(threads, r -> newThread(r, threadCount)));
+                            newFixedThreadPool(actualThreads, r -> newThread(r, threadCount)));
+        }
+
+        private static int getActualThreadsNumber(int configuredThreads) {
+            if (configuredThreads == -1) {
+                return Runtime.getRuntime().availableProcessors();
+            }
+            return configuredThreads;
         }
 
         private Thread newThread(Runnable r, AtomicInteger threadCount) {

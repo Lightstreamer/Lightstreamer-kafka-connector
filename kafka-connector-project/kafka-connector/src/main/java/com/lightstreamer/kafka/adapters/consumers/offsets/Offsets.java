@@ -102,12 +102,18 @@ public class Offsets {
 
         void initStore(boolean flag, OffsetStoreSupplier storeSupplier);
 
+        default void initStore(
+                Map<TopicPartition, Long> startOffsets,
+                Map<TopicPartition, OffsetAndMetadata> committed) {
+            initStore(Offsets.OffsetStoreImpl::new, startOffsets, committed);
+        }
+
         void initStore(
                 OffsetStoreSupplier storeSupplier,
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed);
 
-        boolean isNotAlreadyConsumed(ConsumerRecord<?, ?> record);
+        boolean notHasPendingOffset(ConsumerRecord<?, ?> record);
 
         void commitSync();
 
@@ -133,7 +139,7 @@ public class Offsets {
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
 
-        private Map<TopicPartition, Collection<Long>> skipMap = new ConcurrentHashMap<>();
+        private Map<TopicPartition, Collection<Long>> pendingOffsetsMap = new ConcurrentHashMap<>();
 
         OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
             this.consumer = consumer;
@@ -160,29 +166,28 @@ public class Offsets {
                 OffsetStoreSupplier storeSupplier,
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
-
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
-            // In case of missing commited offset for a partition, just put the the current
-            // offset
+            // If a partition misses a commited offset for a partition, just put the
+            // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
                 OffsetAndMetadata offsetAndMetadata =
                         offsetRepo.computeIfAbsent(
                                 partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
-                Collection<Long> alreadyConsumedOffset = decode(offsetAndMetadata.metadata());
-                if (!alreadyConsumedOffset.isEmpty()) {
-                    skipMap.put(partition, alreadyConsumedOffset);
-                }
+                // Store the offsets that have been already delivered to clients,
+                // bot not yet committed (most likely due to an exception while processing in
+                // parallel).
+                pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
             }
             offsetStore = storeSupplier.newOffsetStore(offsetRepo);
         }
 
         @Override
-        public boolean isNotAlreadyConsumed(ConsumerRecord<?, ?> record) {
-            Collection<Long> alreadyConsumedOffsets =
-                    skipMap.getOrDefault(
+        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+            Collection<Long> pendingOffsetsList =
+                    pendingOffsetsMap.getOrDefault(
                             new TopicPartition(record.topic(), record.partition()),
                             Collections.emptyList());
-            return !alreadyConsumedOffsets.contains(record.offset());
+            return !pendingOffsetsList.contains(record.offset());
         }
 
         @Override
@@ -293,4 +298,6 @@ public class Offsets {
             return new OffsetAndMetadata(lastOffset, newMetadata);
         }
     }
+
+    private Offsets() {}
 }

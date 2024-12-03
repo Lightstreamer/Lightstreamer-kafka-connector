@@ -318,7 +318,7 @@ public class ConnectorConfigTest {
         assertThat(recordConsumeWithThreadsNumber.multiple()).isFalse();
         assertThat(recordConsumeWithThreadsNumber.mutable()).isTrue();
         assertThat(recordConsumeWithThreadsNumber.defaultValue()).isEqualTo("1");
-        assertThat(recordConsumeWithThreadsNumber.type()).isEqualTo(ConfType.POSITIVE_INT);
+        assertThat(recordConsumeWithThreadsNumber.type()).isEqualTo(ConfType.THREADS);
 
         ConfParameter enableAutoCommit =
                 configSpec.getParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
@@ -1054,6 +1054,22 @@ public class ConnectorConfigTest {
         updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, "10");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getRecordConsumeWithNumThreads()).isEqualTo(10);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -2})
+    public void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(int invalidThreadsNumber) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(invalidThreadsNumber));
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter ["
+                                + RECORD_CONSUME_WITH_NUM_THREADS
+                                + "]");
     }
 
     @Test

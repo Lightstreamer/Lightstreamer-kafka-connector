@@ -29,10 +29,6 @@ import static java.util.stream.Collectors.toList;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
-import com.lightstreamer.kafka.adapters.Mocks.MockItemEventListener;
-import com.lightstreamer.kafka.adapters.Mocks.MockOffsetService;
-import com.lightstreamer.kafka.adapters.Mocks.MockOffsetService.ConsumedRecordInfo;
-import com.lightstreamer.kafka.adapters.Mocks.MockRecordProcessor;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
@@ -46,6 +42,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
+import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
+import com.lightstreamer.kafka.test_utils.Mocks.MockRecordProcessor;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -124,7 +124,8 @@ public class RecordConsumerTest {
                 .offsetService(new MockOffsetService())
                 .errorStrategy(config.errorHandlingStrategy())
                 .logger(logger)
-                .threads(threads, orderStrategy)
+                .threads(threads)
+                .ordering(orderStrategy)
                 .build();
     }
 
@@ -203,8 +204,11 @@ public class RecordConsumerTest {
         assertThat(parallelRecordConsumer.recordProcessor)
                 .isInstanceOf(DefaultRecordProcessor.class);
         // Default values
-        assertThat(parallelRecordConsumer.orderStrategy).isEqualTo(OrderStrategy.ORDER_BY_KEY);
-        assertThat(parallelRecordConsumer.threads).isEqualTo(1);
+        assertThat(parallelRecordConsumer.orderStrategy)
+                .isEqualTo(OrderStrategy.ORDER_BY_PARTITION);
+        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
+        assertThat(parallelRecordConsumer.actualThreads)
+                .isEqualTo(parallelRecordConsumer.configuredThreads);
 
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
@@ -238,12 +242,16 @@ public class RecordConsumerTest {
         assertThat(parallelRecordConsumer.errorStrategy).isEqualTo(error);
         assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
         // Default values
-        assertThat(parallelRecordConsumer.orderStrategy).isEqualTo(OrderStrategy.ORDER_BY_KEY);
-        assertThat(parallelRecordConsumer.threads).isEqualTo(1);
+        assertThat(parallelRecordConsumer.orderStrategy)
+                .isEqualTo(OrderStrategy.ORDER_BY_PARTITION);
+        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
+        assertThat(parallelRecordConsumer.actualThreads)
+                .isEqualTo(parallelRecordConsumer.configuredThreads);
     }
 
     static Stream<Arguments> parallelConsumerArgs() {
         return Stream.of(
+                arguments(-1, OrderStrategy.ORDER_BY_KEY, true),
                 arguments(2, OrderStrategy.ORDER_BY_PARTITION, true),
                 arguments(4, OrderStrategy.UNORDERED, true));
     }
@@ -262,7 +270,8 @@ public class RecordConsumerTest {
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
-                        .threads(threads, order)
+                        .threads(threads)
+                        .ordering(order)
                         .preferSingleThread(preferSingleThread) // Pointless due to threads > 1
                         .build();
 
@@ -279,7 +288,13 @@ public class RecordConsumerTest {
                 .isInstanceOf(DefaultRecordProcessor.class);
         // Nond-default values
         assertThat(parallelRecordConsumer.orderStrategy).isEqualTo(order);
-        assertThat(parallelRecordConsumer.threads).isEqualTo(threads);
+        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
+        if (threads == -1) {
+            assertThat(parallelRecordConsumer.actualThreads).isGreaterThan(1);
+        } else {
+            assertThat(parallelRecordConsumer.actualThreads)
+                    .isEqualTo(parallelRecordConsumer.configuredThreads);
+        }
 
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
@@ -301,7 +316,8 @@ public class RecordConsumerTest {
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
-                        .threads(threads, order)
+                        .threads(threads)
+                        .ordering(order)
                         .preferSingleThread(preferSingleThread) // Pointless due to threads > 1
                         .build();
 
@@ -317,7 +333,13 @@ public class RecordConsumerTest {
         assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
         // Non-default values
         assertThat(parallelRecordConsumer.orderStrategy).isEqualTo(order);
-        assertThat(parallelRecordConsumer.threads).isEqualTo(threads);
+        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
+        if (threads == -1) {
+            assertThat(parallelRecordConsumer.actualThreads).isGreaterThan(1);
+        } else {
+            assertThat(parallelRecordConsumer.actualThreads)
+                    .isEqualTo(parallelRecordConsumer.configuredThreads);
+        }
     }
 
     @Test
@@ -332,8 +354,9 @@ public class RecordConsumerTest {
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
-                        .preferSingleThread(
-                                true) // This should trigger a SingleThreadedRecordConsumer instance
+                        .threads(1)
+                        // The following should trigger a SingleThreadedRecordConsumer instance
+                        .preferSingleThread(true)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
@@ -365,6 +388,7 @@ public class RecordConsumerTest {
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
+                        .threads(1)
                         .preferSingleThread(
                                 true) // This should trigger a SingleThreadedRecordConsumer instance
                         .build();
@@ -603,6 +627,27 @@ public class RecordConsumerTest {
             // Reset the delivered events list for next iteration
             deliveredEvents.clear();
         }
+    }
+
+    @Test
+    public void shouldConsumeFiltered() {
+        // Generate records distribuited into three partitions
+        List<String> keys = Collections.emptyList();
+        int[] partitions = IntStream.range(0, 3).toArray();
+        ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, partitions);
+
+        // Make the RecordConsumer.
+        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        recordConsumer =
+                mkRecordConsumer(
+                        new MockItemEventListener(buildEvent(deliveredEvents)),
+                        2,
+                        OrderStrategy.UNORDERED);
+
+        // Consume only the records published to partion 0
+        recordConsumer.consumeFilteredRecords(records, c -> c.partition() == 0);
+        // Verify that only 1/3 of total published record have been consumed
+        assertThat(deliveredEvents.size()).isEqualTo(records.count() / 3);
     }
 
     static Stream<Arguments> handleErrors() {

@@ -99,9 +99,9 @@ public interface RecordConsumer<K, V> {
 
     interface WithOptionals<K, V> {
 
-        WithOptionals<K, V> threads(int threads, OrderStrategy orderStrategy);
-
         WithOptionals<K, V> threads(int threads);
+
+        WithOptionals<K, V> ordering(OrderStrategy orderStrategy);
 
         WithOptionals<K, V> preferSingleThread(boolean singleThread);
 
@@ -128,9 +128,11 @@ public interface RecordConsumer<K, V> {
                                         toList())));
     }
 
-    default void consumeFilteredRecords(
+    default ConsumerRecords<K, V> consumeFilteredRecords(
             ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
-        consumeRecords(filter(records, predicate));
+        ConsumerRecords<K, V> filtered = filter(records, predicate);
+        consumeRecords(filtered);
+        return filtered;
     }
 
     void consumeRecords(ConsumerRecords<K, V> records);

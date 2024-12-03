@@ -259,21 +259,31 @@
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
-        <!-- Optional.
-             - ORDER_BY_PARTITION
-             - ORDER_BY_KEY
-             - UNORDERED
+        <!-- Optional. The number of threads to be used for concurrent processing of the
+             incoming deserialized records. If set to `-1`, the number of threads will be automatically
+             determined based on the number of available CPU cores.
+
+             Default value: 1. -->
+        <!--
+        <param name="record.consume.with.num.threads">4</param>
+        -->
+
+        <!-- Optional but only effective if "record.consume.with.num.threads" is set to a value greater than 1 (which includes hte default value).
+             The order strategy to be used for concurrent processing of the incoming
+             deserialized records. Can be one of the following:
+
+             - ORDER_BY_PARTITION: processe records from multiple partitions concurrently,
+                                   maintaining the order of records within each partition
+             - ORDER_BY_KEY: process records from multiple partitions concurrently, maintaining
+                             the order of records with the same key. This may result in slower
+                             processing speeds compared to `ORDER_BY_PARTITION`.
+             - UNORDERED: process records from multiple partitions concurrently, without any
+                          guarantee of order. This offers the highest processing speed but may
+                          result in out-of-order delivery to consumers.
 
              Default value: ORDER_BY_PARTITION. -->
         <!--
         <param name="record.consume.with.order.strategy">ORDER_BY_KEY</param>
-        -->
-
-        <!-- Optional. 
-        
-             Default value: 1. -->
-        <!--
-        <param name="record.consume.with.num.threads">1</param>
         -->
 
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
@@ -481,6 +491,6 @@
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
 
-    </data_provider>    
+    </data_provider>
 
 </adapters_conf>

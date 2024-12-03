@@ -85,11 +85,12 @@ public class ConfigsSpec {
             }
         },
 
-        POSITIVE_INT {
+        THREADS {
             @Override
             public boolean checkValidity(String param) {
                 try {
-                    return Integer.valueOf(param) > 0;
+                    Integer threads = Integer.valueOf(param);
+                    return threads == -1 || threads > 0;
                 } catch (NumberFormatException e) {
                     return false;
                 }

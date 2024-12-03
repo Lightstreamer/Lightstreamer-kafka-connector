@@ -822,7 +822,7 @@ Example of configuration with the use of a ticket cache:
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L460) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start Redpanda Serverless Example
 
@@ -870,13 +870,25 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
+#### `record.consume.with.num.threads`
+
+_Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
+
+Default value: `1`.
+
+Example:
+
+```xml
+<param name="record.consume.with.num.threads">4</param>
+```
+
 #### `record.consume.with.order.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
+_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes hte default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
-- `ORDER_BY_PARTITION`: 
-- `ORDER_BY_KEY`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection
-- `UNORDERED`
+- `ORDER_BY_PARTITION`: processe records from multiple partitions concurrently, maintaining the order of records within each partition
+- `ORDER_BY_KEY`: process records from multiple partitions concurrently, maintaining the order of records with the same key. This may result in slower processing speeds compared to `ORDER_BY_PARTITION`.
+- `UNORDERED`: process records from multiple partitions concurrently, without any guarantee of order. This offers the highest processing speed but may result in out-of-order delivery to consumers.
 
 Default value: `ORDER_BY_PARTITION`.
 
@@ -884,18 +896,6 @@ Example:
 
 ```xml
 <param name="record.consume.with.order.strategyy">ORDER_BY_KEY</param>
-```
-
-#### `record.consume.with.num.threads`
-
-_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
-
-Default value: `-1`.
-
-Example:
-
-```xml
-<param name="record.consume.with.num.threads">4</param>
 ```
 
 #### `record.key.evaluator.type` and `record.value.evaluator.type`
@@ -1094,7 +1094,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L352) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L379) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...

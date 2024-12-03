@@ -24,9 +24,9 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
@@ -223,17 +223,17 @@ public final class ConnectorConfig extends AbstractConfig {
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
                         .add(
+                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                false,
+                                false,
+                                THREADS,
+                                defaultValue("1"))
+                        .add(
                                 RECORD_CONSUME_WITH_ORDER_STRATEGY,
                                 false,
                                 false,
                                 ORDER_STRATEGY,
                                 defaultValue("ORDER_BY_PARTITION"))
-                        .add(
-                                RECORD_CONSUME_WITH_NUM_THREADS,
-                                false,
-                                false,
-                                POSITIVE_INT,
-                                defaultValue("1"))
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
@@ -448,7 +448,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public final int getRecordConsumeWithNumThreads() {
-        return Integer.parseInt(getPositiveInt(RECORD_CONSUME_WITH_NUM_THREADS));
+        return Integer.parseInt(getThreads(RECORD_CONSUME_WITH_NUM_THREADS));
     }
 
     public boolean hasKeySchemaFile() {

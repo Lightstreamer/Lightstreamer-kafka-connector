@@ -101,9 +101,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
                         .logger(log)
-                        .threads(
-                                concurrency.threads(),
-                                OrderStrategy.from(concurrency.orderStrategy()))
+                        .threads(concurrency.threads())
+                        .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
                         .build();
     }
@@ -121,6 +120,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             if (subscribed()) {
                 pollOnce(this::initStoreAndConsume);
                 pollForEver(this::consumeRecords);
+            } else {
+                log.atWarn().log("No subcriptons happended");
             }
         } catch (WakeupException e) {
             log.atDebug().log("Kafka Consumer woken up");
@@ -144,9 +145,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    void initStoreAndConsume(ConsumerRecords<K, V> records) {
+    ConsumerRecords<K, V> initStoreAndConsume(ConsumerRecords<K, V> records) {
         offsetService.initStore(isFromLatest());
-        recordConsumer.consumeFilteredRecords(records, offsetService::isNotAlreadyConsumed);
+        // Consume all the records that don't have a pending offset, which have therefore
+        // already delivered to the clients.
+        return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
     }
 
     // Only for testing purposes.

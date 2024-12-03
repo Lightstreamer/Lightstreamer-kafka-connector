@@ -76,12 +76,12 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "0A"));
+        repo.save(Record(0, "A-0"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o1.offset()).isEqualTo(1);
         assertThat(o1.metadata()).isEqualTo("");
 
-        repo.save(Record(0, "1B"));
+        repo.save(Record(0, "B-1"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o2.offset()).isEqualTo(2);
         assertThat(o2.metadata()).isEqualTo("");
@@ -95,18 +95,18 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "2A"));
+        repo.save(Record(0, "A-2"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
         assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("2");
 
-        repo.save(Record(0, "4B"));
+        repo.save(Record(0, "B-4"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o2.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o2.metadata()).isEqualTo("2,4");
 
-        repo.save(Record(0, "6B"));
+        repo.save(Record(0, "B-6"));
         OffsetAndMetadata o3 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o3.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o3.metadata()).isEqualTo("2,4,6");
@@ -120,15 +120,16 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "1A"));
+        repo.save(Record(0, "A-1"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
         assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("1");
 
-        repo.save(Record(0, "0A"));
+        // Save the record whose offset matched the LAST_COMMITED_OFFSET
+        repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
-        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        // Sanitization happened
         assertThat(o2.offset()).isEqualTo(2);
         assertThat(o2.metadata()).isEqualTo("");
     }
@@ -141,15 +142,15 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "1A"));
-        repo.save(Record(0, "2A"));
-        repo.save(Record(0, "3A"));
+        repo.save(Record(0, "A-1"));
+        repo.save(Record(0, "A-2"));
+        repo.save(Record(0, "A-3"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
         assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("1,2,3");
 
-        repo.save(Record(0, "0A"));
+        repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
         assertThat(o2.offset()).isEqualTo(4);
@@ -164,15 +165,15 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "300A"));
-        repo.save(Record(0, "100A"));
-        repo.save(Record(0, "200A"));
+        repo.save(Record(0, "A-300"));
+        repo.save(Record(0, "A-100"));
+        repo.save(Record(0, "A-200"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
         assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("300,100,200");
 
-        repo.save(Record(0, "0A"));
+        repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
         // the consumed list
@@ -188,23 +189,23 @@ public class OffsetStoreTest {
 
         repo = Offsets.OffsetStore(offsets);
 
-        repo.save(Record(0, "5A"));
-        repo.save(Record(0, "1A"));
-        repo.save(Record(0, "2A"));
-        repo.save(Record(0, "3A"));
-        repo.save(Record(0, "6A"));
+        repo.save(Record(0, "A-5"));
+        repo.save(Record(0, "A-1"));
+        repo.save(Record(0, "A-2"));
+        repo.save(Record(0, "A-3"));
+        repo.save(Record(0, "A-6"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
         assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("5,1,2,3,6");
 
-        repo.save(Record(0, "0A"));
+        repo.save(Record(0, "A-0"));
         // Now the consumed list has been sanitized from 0 to 3, the next offet is 4
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o2.offset()).isEqualTo(4);
         assertThat(o2.metadata()).isEqualTo("5,6");
 
-        repo.save(Record(0, "4A"));
+        repo.save(Record(0, "A-4"));
         // Sanitization complete
         OffsetAndMetadata o3 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o3.offset()).isEqualTo(7);
@@ -220,46 +221,46 @@ public class OffsetStoreTest {
         Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.current();
         assertThat(offsetsMap).isEqualTo(offsets);
 
-        repo.save(Record(0, "1A"));
+        repo.save(Record(0, "A-1"));
         OffsetAndMetadata o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(0);
         assertThat(o1.metadata()).isEqualTo("1");
 
-        repo.save(Record(0, "0A"));
+        repo.save(Record(0, "A-0"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(2);
         assertThat(o1.metadata()).isEqualTo("");
 
-        repo.save(Record(0, "2A"));
+        repo.save(Record(0, "A-2"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("");
 
-        repo.save(Record(0, "4A"));
+        repo.save(Record(0, "A-4"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("4");
-        repo.save(Record(0, "5A"));
+        repo.save(Record(0, "A-5"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("4,5");
 
-        repo.save(Record(0, "3A"));
+        repo.save(Record(0, "A-3"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("");
 
-        repo.save(Record(0, "8A"));
+        repo.save(Record(0, "A-8"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("8");
 
-        repo.save(Record(0, "9A"));
+        repo.save(Record(0, "A-9"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("8,9");
 
-        repo.save(Record(0, "6A"));
+        repo.save(Record(0, "A-6"));
         o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(7);
         assertThat(o1.metadata()).isEqualTo("8,9");
