@@ -312,7 +312,7 @@ class RecordConsumerSupport {
 
             AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
-                    TaskExecutor.newExecutor(
+                    TaskExecutor.create(
                             newFixedThreadPool(actualThreads, r -> newThread(r, threadCount)));
         }
 

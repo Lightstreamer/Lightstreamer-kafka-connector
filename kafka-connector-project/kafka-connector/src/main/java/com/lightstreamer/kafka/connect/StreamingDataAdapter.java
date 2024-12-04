@@ -206,37 +206,37 @@ public final class StreamingDataAdapter implements RecordSender {
         }
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     ErrantRecordReporter getErrantRercordReporter() {
         return reporter;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     Item getSubscribedItem(String item) {
         return subscribedItems.get(item);
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     int getCurrentItemsCount() {
         return itemsCounter.get();
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     DownstreamUpdater getUpdater() {
         return updater;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     ItemEventListener getItemEventListener() {
         return listener;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     Map<TopicPartition, OffsetAndMetadata> getCurrentOffsets() {
         return currentOffsets;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     Map<String, String> getInitParameters() {
         return initParameters;
     }

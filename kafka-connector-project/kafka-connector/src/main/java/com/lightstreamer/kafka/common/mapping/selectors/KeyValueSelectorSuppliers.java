@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 /**
  * The interface for wrapping a key selector supplier and a value selector supplier for the given
- * data type.
+ * data types.
  */
 public interface KeyValueSelectorSuppliers<K, V> {
 

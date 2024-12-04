@@ -21,6 +21,7 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
@@ -33,8 +34,6 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,24 +109,14 @@ public class ConnectorConfigurator {
 
     private static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(
             ConnectorConfig config) {
-        OthersSelectorSuppliers or = new OthersSelectorSuppliers(config);
-        GenericRecordSelectorsSuppliers gr = new GenericRecordSelectorsSuppliers(config);
-        JsonNodeSelectorsSuppliers jr = new JsonNodeSelectorsSuppliers(config);
-
-        KeySelectorSupplier<?> keySelectorSupplier =
+        KeyValueSelectorSuppliersMaker<?> maker =
                 switch (config.getKeyEvaluator()) {
-                    case AVRO -> gr.makeKeySelectorSupplier();
-                    case JSON -> jr.makeKeySelectorSupplier();
-                    default -> or.makeKeySelectorSupplier();
+                    case AVRO -> new GenericRecordSelectorsSuppliers(config);
+                    case JSON -> new JsonNodeSelectorsSuppliers(config);
+                    default -> new OthersSelectorSuppliers(config);
                 };
 
-        ValueSelectorSupplier<?> valueSelectorSupplier =
-                switch (config.getValueEvaluator()) {
-                    case AVRO -> gr.makeValueSelectorSupplier();
-                    case JSON -> jr.makeValueSelectorSupplier();
-                    default -> or.makeValueSelectorSupplier();
-                };
-
-        return new WrapperKeyValueSelectorSuppliers<>(keySelectorSupplier, valueSelectorSupplier);
+        return new WrapperKeyValueSelectorSuppliers<>(
+                maker.makeKeySelectorSupplier(), maker.makeValueSelectorSupplier());
     }
 }

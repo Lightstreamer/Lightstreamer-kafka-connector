@@ -152,7 +152,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     OffsetService getOffsetService() {
         return offsetService;
     }
