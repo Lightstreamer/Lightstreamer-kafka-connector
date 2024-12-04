@@ -222,7 +222,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 false,
                                 BOOL,
-                                false,
                                 defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_FROM,

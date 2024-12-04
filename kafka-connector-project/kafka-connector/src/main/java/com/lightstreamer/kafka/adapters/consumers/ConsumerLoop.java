@@ -272,14 +272,19 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 for (SubscribedItem sub : routables) {
                     log.atDebug().log("Sending updates: {}", updates);
 
+                    log.atInfo().log("Enforce COMMAND mode semantic of records read: {}", config.isCommandEnforceEnabled());
                     if (config.isCommandEnforceEnabled() ) {
                         if (checkCommand(updates)) {
                             if (updates.get("key").equals("snapshot")) {
                                 switch (updates.get("command")) {
                                     case "CS":
                                         eventListener.smartClearSnapshot(sub.itemHandle());
+
+                                        break;
                                     case "EOS":
                                         eventListener.smartEndOfSnapshot(sub.itemHandle());
+
+                                        break;
                                     default:
                                     log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));    
                                 }
@@ -355,16 +360,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 return false;
             }
 
-            switch (command) {
-                case "ADD":
-                case "DELETE":
-                case "UPDATE":
-                case "CS":
-                case "EOS":
-                    return true;
-                default:
-                    return false;
-            }
+            return switch(command) {
+                case "ADD", "DELETE", "UPDATE", "CS", "EOS" -> true;
+                default -> false; 
+            };
         }
 
         private static boolean checkCommandField(String command) {
