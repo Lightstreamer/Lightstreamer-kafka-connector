@@ -259,7 +259,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             latch.await();
             log.atTrace().log("Completed thread");
         } catch (InterruptedException e) {
-            // Ignore
+            Thread.currentThread().interrupt();
         }
         log.atInfo().log("Shut down Kafka consumer");
     }
