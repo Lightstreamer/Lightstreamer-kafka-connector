@@ -77,8 +77,9 @@ public interface RecordMapper<K, V> {
 
     static class Builder<K, V> {
 
-        Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName = new HashMap<>();
         static final DataExtractor<?, ?> NOP = new NOPDataExtractor<>();
+
+        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         DataExtractor<K, V> fieldExtractor = (DataExtractor<K, V>) NOP;
