@@ -112,6 +112,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
             metadataListener.forceUnsubscriptionAll();
+            itemsCounter.set(0);
             return CompletableFuture.failedFuture(ke);
         } finally {
             log.atTrace().log("Releasing consumer lock...");
@@ -143,6 +144,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
             if (consumer != null) {
                 log.atDebug().log("Stopping consumer...");
                 consumer.close();
+                consumer = null;
                 log.atDebug().log("Stopped consumer");
             } else {
                 log.atDebug().log("Consumer not yet started");
