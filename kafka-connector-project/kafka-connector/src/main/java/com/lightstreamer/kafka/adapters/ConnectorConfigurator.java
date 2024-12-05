@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
@@ -39,8 +40,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 
 public class ConnectorConfigurator {
 
@@ -107,16 +110,23 @@ public class ConnectorConfigurator {
                         config.getRecordConsumeWithNumThreads()));
     }
 
-    private static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(
+    static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(
             ConnectorConfig config) {
-        KeyValueSelectorSuppliersMaker<?> maker =
-                switch (config.getKeyEvaluator()) {
-                    case AVRO -> new GenericRecordSelectorsSuppliers(config);
-                    case JSON -> new JsonNodeSelectorsSuppliers(config);
-                    default -> new OthersSelectorSuppliers(config);
+        Map<EvaluatorType, KeyValueSelectorSuppliersMaker<?>> t = new HashMap<>();
+        Function<? super EvaluatorType, ? extends KeyValueSelectorSuppliersMaker<?>> getMaker =
+                type -> {
+                    return switch (type) {
+                        case JSON -> new JsonNodeSelectorsSuppliers(config);
+                        case AVRO -> new GenericRecordSelectorsSuppliers(config);
+                        default -> new OthersSelectorSuppliers(config);
+                    };
                 };
+        KeyValueSelectorSuppliersMaker<?> keyMaker =
+                t.computeIfAbsent(config.getKeyEvaluator(), getMaker);
+        KeyValueSelectorSuppliersMaker<?> valueMaker =
+                t.computeIfAbsent(config.getValueEvaluator(), getMaker);
 
         return new WrapperKeyValueSelectorSuppliers<>(
-                maker.makeKeySelectorSupplier(), maker.makeValueSelectorSupplier());
+                keyMaker.makeKeySelectorSupplier(), valueMaker.makeValueSelectorSupplier());
     }
 }
