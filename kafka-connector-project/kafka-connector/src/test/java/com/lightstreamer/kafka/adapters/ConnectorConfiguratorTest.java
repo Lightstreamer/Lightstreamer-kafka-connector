@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -40,6 +41,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.BooleanDeserializer;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,6 +76,59 @@ public class ConnectorConfiguratorTest {
         adapterParams.put("map.topic1.to", "item-template.template1");
         adapterParams.put("field.fieldName1", "#{VALUE}");
         return adapterParams;
+    }
+
+    static Stream<Arguments> getMakersArguments() {
+        return Stream.of(
+                Arguments.of(
+                        "LONG",
+                        Serdes.Long().deserializer().getClass(),
+                        "STRING",
+                        Serdes.String().deserializer().getClass()),
+                Arguments.of(
+                        "INTEGER",
+                        Serdes.Integer().deserializer().getClass(),
+                        "JSON",
+                        KafkaJsonDeserializer.class),
+                Arguments.of(
+                        "FLOAT",
+                        Serdes.Float().deserializer().getClass(),
+                        "BOOLEAN",
+                        BooleanDeserializer.class),
+                Arguments.of(
+                        "SHORT",
+                        Serdes.Short().deserializer().getClass(),
+                        "UUID",
+                        Serdes.UUID().deserializer().getClass()),
+                Arguments.of(
+                        "DOUBLE",
+                        Serdes.Double().deserializer().getClass(),
+                        "BYTE_ARRAY",
+                        Serdes.ByteArray().deserializer().getClass()),
+                Arguments.of(
+                        "BYTES",
+                        Serdes.Bytes().deserializer().getClass(),
+                        "BYTE_BUFFER",
+                        Serdes.ByteBuffer().deserializer().getClass()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMakersArguments")
+    public void shouldGetMakers(
+            String keyType,
+            Class<?> expectedKeyDeserializer,
+            String valueType,
+            Class<?> expectedValueDeserializer) {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, keyType);
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, valueType);
+        ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
+        WrapperKeyValueSelectorSuppliers<?, ?> wrapper =
+                ConnectorConfigurator.mkKeyValueSelectorSuppliers(config);
+        KeyValueDeserializers<?, ?> deserializers = wrapper.deserializers();
+        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(expectedKeyDeserializer);
+        assertThat(deserializers.valueDeserializer().getClass())
+                .isEqualTo(expectedValueDeserializer);
     }
 
     @Test
@@ -117,11 +173,11 @@ public class ConnectorConfiguratorTest {
     @Test
     public void shouldConfigureWithComplexParameters() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
-        updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
+        updatedConfigs.put("item-template.template2", "item2-#{key=KEY}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
         updatedConfigs.put("map.topic2.to", "item-template.template1");
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
-        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "JSON");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
@@ -150,8 +206,7 @@ public class ConnectorConfiguratorTest {
                 .containsExactly("simple-item1", "simple-item2");
 
         KeyValueDeserializers<?, ?> deserializers = config.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass())
-                .isEqualTo(KafkaJsonDeserializer.class);
+        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
         assertThat(config.deserializers().valueDeserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
 

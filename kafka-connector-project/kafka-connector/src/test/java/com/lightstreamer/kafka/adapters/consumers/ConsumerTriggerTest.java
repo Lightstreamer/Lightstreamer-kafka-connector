@@ -132,7 +132,7 @@ public class ConsumerTriggerTest {
     }
 
     @Test
-    public void shouldFailSubscription() throws SubscriptionException {
+    public void shouldFailSubscriptionDueToKafkaException() throws SubscriptionException {
         init(true);
         Object itemHandle = new Object();
 
@@ -141,9 +141,13 @@ public class ConsumerTriggerTest {
 
         assertThat(item).isEqualTo(Items.subcribedFrom("anItemTemplate", itemHandle));
         assertThat(consuming.isCompletedExceptionally());
-        assertThat(consumerTrigger.getItemsCounter()).isEqualTo(1);
+        assertThat(consumerTrigger.getItemsCounter()).isEqualTo(0);
         assertThat(kafkaConsumer.hasRan()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
+
+        // Since the exception might be temporary, tt is still possbile to try a new subscription.
+        consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);
+        assertThat(consuming.isCompletedExceptionally());
     }
 
     @Test
