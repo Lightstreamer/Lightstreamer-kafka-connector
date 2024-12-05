@@ -63,7 +63,7 @@ public class Items {
         Set<String> topics();
     }
 
-    public static class DefaultItem implements Item {
+    private static class DefaultItem implements Item {
 
         private final Map<String, String> valuesMap;
         private final Schema schema;
