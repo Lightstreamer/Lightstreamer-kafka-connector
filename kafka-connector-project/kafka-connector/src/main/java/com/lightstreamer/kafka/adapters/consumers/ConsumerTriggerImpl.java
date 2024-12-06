@@ -70,7 +70,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         this.metadataListener = metadataListener;
         this.consumerWrapper = consumerWrapper;
         this.log = LogFactory.getLogger(config.connectionName());
-        this.pool = Executors.newFixedThreadPool(2);
+        this.pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "ConsumerTrigger"));
         this.subscribedItems = new ConcurrentHashMap<>();
         this.itemsCounter = new AtomicInteger(0);
         this.consumerLock = new ReentrantLock();
@@ -92,7 +92,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
 
             log.atInfo().log("Subscribed to item [{}]", item);
             subscribedItems.put(item, newItem);
-            if (itemsCounter.addAndGet(1) == 1) {
+            if (itemsCounter.incrementAndGet() == 1) {
                 consuming = startConsuming();
             }
             return consuming;
