@@ -37,25 +37,25 @@ public interface TaskExecutor<S> {
             List<? extends E> events,
             Function<? super E, ? extends S> sequence,
             BiConsumer<? super S, ? super E> task) {
-        CountDownLatch l = new CountDownLatch(events.size());
+        CountDownLatch latch = new CountDownLatch(events.size());
         for (E event : events) {
             S seq = sequence.apply(event);
-            execute(event, seq, wrapTask(task, l, seq));
+            execute(event, seq, wrapTask(task, latch, seq));
         }
         try {
-            l.await();
+            latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
     default <E> BiConsumer<? super S, ? super E> wrapTask(
-            BiConsumer<? super S, ? super E> task, CountDownLatch l, S seq) {
+            BiConsumer<? super S, ? super E> task, CountDownLatch latch, S seq) {
         return (s, e) -> {
             try {
                 task.accept(seq, e);
             } finally {
-                l.countDown();
+                latch.countDown();
             }
         };
     }

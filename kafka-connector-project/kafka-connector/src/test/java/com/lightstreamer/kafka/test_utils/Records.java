@@ -111,7 +111,7 @@ public class Records {
                         Optional.empty()));
     }
 
-    public static ConsumerRecord<?, ?> Record(String topic, int partition, String id) {
+    public static ConsumerRecord<String, String> Record(String topic, int partition, String id) {
         String[] tokens = id.split("-");
         String key = tokens[0];
         long offset = Long.parseLong(tokens[1]);
