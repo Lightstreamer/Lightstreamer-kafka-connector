@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
@@ -33,7 +34,9 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-public class JsonNodeSelectorsSuppliers {
+import java.util.Optional;
+
+public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
     private static class JsonNodeNode implements Node<JsonNodeNode> {
 
@@ -86,10 +89,14 @@ public class JsonNodeSelectorsSuppliers {
 
     private static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
 
-        private final JsonNodeDeserializer deseralizer;
+        private final Deserializer<JsonNode> deseralizer;
 
         JsonNodeKeySelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = new JsonNodeDeserializer(config, true);
+            this.deseralizer = JsonNodeDeserializers.KeyDeserializer(config);
+        }
+
+        JsonNodeKeySelectorSupplier() {
+            this.deseralizer = JsonNodeDeserializers.KeyDeserializer();
         }
 
         @Override
@@ -121,10 +128,14 @@ public class JsonNodeSelectorsSuppliers {
 
     private static class JsonNodeValueSelectorSupplier implements ValueSelectorSupplier<JsonNode> {
 
-        private final JsonNodeDeserializer deseralizer;
+        private final Deserializer<JsonNode> deseralizer;
 
         JsonNodeValueSelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = new JsonNodeDeserializer(config, false);
+            this.deseralizer = JsonNodeDeserializers.ValueDeserializer(config);
+        }
+
+        JsonNodeValueSelectorSupplier() {
+            this.deseralizer = JsonNodeDeserializers.ValueDeserializer();
         }
 
         @Override
@@ -154,13 +165,25 @@ public class JsonNodeSelectorsSuppliers {
         }
     }
 
-    public static KeySelectorSupplier<JsonNode> keySelectorSupplier(ConnectorConfig config) {
-        return new JsonNodeKeySelectorSupplier(config);
+    private final Optional<ConnectorConfig> config;
+
+    public JsonNodeSelectorsSuppliers(ConnectorConfig config) {
+        this.config = Optional.of(config);
     }
 
-    public static ValueSelectorSupplier<JsonNode> valueSelectorSupplier(ConnectorConfig config) {
-        return new JsonNodeValueSelectorSupplier(config);
+    public JsonNodeSelectorsSuppliers() {
+        this.config = Optional.empty();
     }
 
-    private JsonNodeSelectorsSuppliers() {}
+    @Override
+    public KeySelectorSupplier<JsonNode> makeKeySelectorSupplier() {
+        return config.map(JsonNodeKeySelectorSupplier::new)
+                .orElseGet(() -> new JsonNodeKeySelectorSupplier());
+    }
+
+    @Override
+    public ValueSelectorSupplier<JsonNode> makeValueSelectorSupplier() {
+        return config.map(JsonNodeValueSelectorSupplier::new)
+                .orElseGet(() -> new JsonNodeValueSelectorSupplier());
+    }
 }

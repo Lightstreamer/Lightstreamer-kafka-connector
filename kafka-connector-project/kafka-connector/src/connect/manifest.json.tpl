@@ -24,7 +24,7 @@
     "kafka_connect_api": true
   },
   "logo": "assets/lightstreamer.png",
-  "documentation_url": "https://github.com/Lightstreamer/Lightstreamer-kafka-connector",
+  "documentation_url": "https://lightstreamer.com/confluent-docs",
   "source_url" : "https://github.com/Lightstreamer/Lightstreamer-kafka-connector",  
   "docker_image" : {
     "name" : "lightstreamer"

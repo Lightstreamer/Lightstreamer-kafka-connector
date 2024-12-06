@@ -40,7 +40,7 @@ public class RecordMappingValidator extends ListValidator {
                                                         "[fieldName]:[extractionExpression]")));
         try {
             // Validates <field-expression>
-            Expressions.wrapped(pair.value());
+            Expressions.Wrapped(pair.value());
             return pair.key();
         } catch (ExpressionException ee) {
             throw new ConfigException(

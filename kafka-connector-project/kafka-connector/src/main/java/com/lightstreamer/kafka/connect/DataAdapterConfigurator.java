@@ -24,7 +24,7 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
@@ -56,12 +56,9 @@ public class DataAdapterConfigurator {
     static DataAdapterConfig configure(LightstreamerConnectorConfig config) throws ConfigException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
-        SelectorSuppliers<Object, Object> sSuppliers =
-                SelectorSuppliers.of(
-                        ConnectSelectorsSuppliers.keySelectorSupplier(),
-                        ConnectSelectorsSuppliers.valueSelectorSupplier());
+        KeyValueSelectorSuppliers<Object, Object> sSuppliers = new ConnectSelectorsSuppliers();
         try {
-            ItemTemplates<Object, Object> templates = Items.from(topicsConfig, sSuppliers);
+            ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
             logger.info("Constructed item templates: {}", templates);
 
             FieldConfigs fieldConfigs = config.getFieldConfigs();

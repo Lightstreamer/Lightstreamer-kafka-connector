@@ -42,9 +42,19 @@ public class JsonNodeProvider {
 
         Value value = new Value("joe", joeChildren);
         value.signature = new byte[] {97, 98, 99, 100};
+        value.family =
+                new Value[][] {
+                    {new Value("bro00"), new Value("bro01")},
+                    {new Value("bro10"), new Value("bro11")}
+                };
 
         ObjectNode node = new ObjectMapper().valueToTree(value);
         return node;
+    }
+
+    public static void main(String[] args) {
+        // System.out.println(new JsonNodeProvider().newNode());
+
     }
 }
 
@@ -72,5 +82,42 @@ class Value {
     public Value(String name, Value[][] family) {
         this(name);
         this.family = family;
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("\"name\":\"").append(this.name).append("\",");
+        if (this.children != null) {
+            sb.append("\"children\":");
+            sb.append("[");
+            for (int i = 0; i < this.children.size(); i++) {
+                sb.append(this.children.get(i));
+                if (i < this.children.size() - 1) {
+                    sb.append(",");
+                }
+            }
+            sb.append("]");
+        }
+        if (this.family != null) {
+            sb.append("\"family\":");
+            sb.append("[");
+            for (int i = 0; i < this.family.length; i++) {
+                sb.append("[");
+                for (int j = 0; j < this.family[i].length; j++) {
+                    sb.append(this.family[i][j]);
+                    if (j < this.family[i].length - 1) {
+                        sb.append(",");
+                    }
+                }
+                sb.append("]");
+                if (i < this.family.length - 1) {
+                    sb.append(",");
+                }
+            }
+            sb.append("]");
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }

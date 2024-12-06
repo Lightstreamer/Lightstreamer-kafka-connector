@@ -59,16 +59,16 @@ public class ItemReferenceTest {
         ItemReference i1 =
                 ItemReference.template(
                         new TemplateExpression(
-                                "template-prefix", Map.of("a", Expressions.expression("VALUE"))));
+                                "template-prefix", Map.of("a", Expressions.Expression("VALUE"))));
         assertThat(i1.isTemplate()).isTrue();
         assertThat(i1.template().prefix()).isEqualTo("template-prefix");
-        assertThat(i1.template().params()).containsExactly("a", Expressions.expression("VALUE"));
+        assertThat(i1.template().params()).containsExactly("a", Expressions.Expression("VALUE"));
         assertThrows(RuntimeException.class, () -> i1.itemName());
 
         ItemReference i2 =
                 ItemReference.template(
                         new TemplateExpression(
-                                "template-prefix", Map.of("a", Expressions.expression("VALUE"))));
+                                "template-prefix", Map.of("a", Expressions.Expression("VALUE"))));
         assertThat(i1.equals(i2)).isTrue();
         assertThat(i1.hashCode() == i2.hashCode()).isTrue();
     }
@@ -89,7 +89,7 @@ public class ItemReferenceTest {
         assertThat(i1.isTemplate()).isTrue();
         TemplateExpression te = i1.template();
         assertThat(te.prefix()).isEqualTo("template");
-        assertThat(te.params()).containsAtLeast("a", Expressions.expression("VALUE"));
+        assertThat(te.params()).containsAtLeast("a", Expressions.Expression("VALUE"));
     }
 
     @Test

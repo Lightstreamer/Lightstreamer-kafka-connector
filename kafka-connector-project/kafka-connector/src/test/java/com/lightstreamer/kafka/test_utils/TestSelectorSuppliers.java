@@ -17,70 +17,93 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import static com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers.of;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
 
+import java.util.Map;
+
 public interface TestSelectorSuppliers {
 
-    @SuppressWarnings("unchecked")
-    public static SelectorSuppliers<String, String> string() {
-        return of(
-                (KeySelectorSupplier<String>)
-                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
-                (ValueSelectorSupplier<String>)
-                        OthersSelectorSuppliers.valueSelectorSupplier(EvaluatorType.STRING));
+    public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> Avro() {
+        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(avroAvroConfig());
+        return new WrapperKeyValueSelectorSuppliers<>(
+                g.makeKeySelectorSupplier(), g.makeValueSelectorSupplier());
     }
 
-    public static SelectorSuppliers<GenericRecord, GenericRecord> avro(ConnectorConfig config) {
-        return of(
-                GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
-                GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
+    public static KeyValueSelectorSuppliers<String, GenericRecord> AvroValue() {
+        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(avroAvroConfig());
+        return new WrapperKeyValueSelectorSuppliers<>(
+                OthersSelectorSuppliers.StringKey(), g.makeValueSelectorSupplier());
     }
 
-    @SuppressWarnings("unchecked")
-    public static SelectorSuppliers<String, GenericRecord> avroValue(ConnectorConfig config) {
-        return of(
-                (KeySelectorSupplier<String>)
-                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
-                GenericRecordSelectorsSuppliers.valueSelectorSupplier(config));
+    public static KeyValueSelectorSuppliers<GenericRecord, JsonNode> AvroKeyJsonValue() {
+        ConnectorConfig config = avroJsonConfig();
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
+        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
+        return new WrapperKeyValueSelectorSuppliers<>(
+                g.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static SelectorSuppliers<GenericRecord, JsonNode> avroKeyJsonValue(
-            ConnectorConfig config) {
-        return of(
-                GenericRecordSelectorsSuppliers.keySelectorSupplier(config),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
+    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> Json(ConnectorConfig config) {
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
+        return new WrapperKeyValueSelectorSuppliers<>(
+                j.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static SelectorSuppliers<JsonNode, JsonNode> json(ConnectorConfig config) {
-        return of(
-                JsonNodeSelectorsSuppliers.keySelectorSupplier(config),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
+    public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue(ConnectorConfig config) {
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
+        return new WrapperKeyValueSelectorSuppliers<>(
+                OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
-    @SuppressWarnings("unchecked")
-    public static SelectorSuppliers<String, JsonNode> jsonValue(ConnectorConfig config) {
-        return of(
-                (KeySelectorSupplier<String>)
-                        OthersSelectorSuppliers.keySelectorSupplier(EvaluatorType.STRING),
-                JsonNodeSelectorsSuppliers.valueSelectorSupplier(config));
+    public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue() {
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
+        return new WrapperKeyValueSelectorSuppliers<>(
+                OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
-    public static SelectorSuppliers<Object, Object> object() {
-        return of(
-                ConnectSelectorsSuppliers.keySelectorSupplier(),
-                ConnectSelectorsSuppliers.valueSelectorSupplier());
+    public static KeyValueSelectorSuppliers<Object, Object> Object() {
+        return new ConnectSelectorsSuppliers();
+    }
+
+    private static ConnectorConfig avroJsonConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                "src/test/resources",
+                Map.of(
+                        RECORD_KEY_EVALUATOR_TYPE,
+                        AVRO.toString(),
+                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                        "value.avsc",
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        JSON.toString()));
+    }
+
+    private static ConnectorConfig avroAvroConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                "src/test/resources",
+                Map.of(
+                        RECORD_KEY_EVALUATOR_TYPE,
+                        AVRO.toString(),
+                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                        "value.avsc",
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        AVRO.toString(),
+                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                        "value.avsc"));
     }
 }

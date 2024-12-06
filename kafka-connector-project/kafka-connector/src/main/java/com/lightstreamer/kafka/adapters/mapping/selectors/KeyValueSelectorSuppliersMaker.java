@@ -15,22 +15,14 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.mapping.selectors;
+package com.lightstreamer.kafka.adapters.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
-import org.apache.kafka.common.serialization.Deserializer;
+public interface KeyValueSelectorSuppliersMaker<T> {
 
-public interface ConnectKeySelectorSupplier extends KeySelectorSupplier<Object> {
+    KeySelectorSupplier<T> makeKeySelectorSupplier();
 
-    @Override
-    ConnectKeySelector newSelector(String name, ExtractionExpression expression)
-            throws ExtractionException;
-
-    @Override
-    public default Deserializer<Object> deseralizer() {
-        throw new UnsupportedOperationException();
-    }
+    ValueSelectorSupplier<T> makeValueSelectorSupplier();
 }

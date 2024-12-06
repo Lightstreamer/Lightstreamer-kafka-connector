@@ -23,9 +23,13 @@ import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -37,7 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class ConnectSelectorsSuppliers {
+public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Object, Object> {
 
     private static class SchemaAndValueNode implements Node<SchemaAndValueNode> {
 
@@ -141,21 +145,22 @@ public class ConnectSelectorsSuppliers {
         }
     }
 
-    private static class ConnectKeySelectorSupplierImpl implements ConnectKeySelectorSupplier {
+    private static class ConnectKeySelectorSupplier
+            implements SelectorSupplier<KeySelector<Object>> {
 
-        ConnectKeySelectorSupplierImpl() {}
+        ConnectKeySelectorSupplier() {}
 
         @Override
-        public ConnectKeySelector newSelector(String name, ExtractionExpression expression)
+        public KeySelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return new ConnectKeySelectorImpl(name, expression);
+            return new ConnectKeySelector(name, expression);
         }
     }
 
-    private static class ConnectKeySelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
-            implements ConnectKeySelector {
+    private static class ConnectKeySelector extends StructuredBaseSelector<SchemaAndValueNode>
+            implements KeySelector<Object> {
 
-        ConnectKeySelectorImpl(String name, ExtractionExpression expression)
+        ConnectKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             super(name, expression, Constant.KEY, false);
         }
@@ -171,19 +176,20 @@ public class ConnectSelectorsSuppliers {
         }
     }
 
-    private static class ConnectValueSelectorSupplierImpl implements ConnectValueSelectorSupplier {
+    private static class ConnectValueSelectorSupplier
+            implements SelectorSupplier<ValueSelector<Object>> {
 
         @Override
-        public ConnectValueSelector newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return new ConnectValueSelectorImpl(name, expression);
+            return new ConnectValueSelector(name, expression);
         }
     }
 
-    private static class ConnectValueSelectorImpl extends StructuredBaseSelector<SchemaAndValueNode>
-            implements ConnectValueSelector {
+    private static class ConnectValueSelector extends StructuredBaseSelector<SchemaAndValueNode>
+            implements ValueSelector<Object> {
 
-        ConnectValueSelectorImpl(String name, ExtractionExpression expression)
+        ConnectValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             super(name, expression, Constant.VALUE, false);
         }
@@ -199,11 +205,17 @@ public class ConnectSelectorsSuppliers {
         }
     }
 
-    public static ConnectKeySelectorSupplier keySelectorSupplier() {
-        return new ConnectKeySelectorSupplierImpl();
+    private final ConnectKeySelectorSupplier keySelectorSupplier = new ConnectKeySelectorSupplier();
+    private final ConnectValueSelectorSupplier valueSelectorSupplier =
+            new ConnectValueSelectorSupplier();
+
+    @Override
+    public SelectorSupplier<KeySelector<Object>> keySelectorSupplier() {
+        return keySelectorSupplier;
     }
 
-    public static ConnectValueSelectorSupplier valueSelectorSupplier() {
-        return new ConnectValueSelectorSupplierImpl();
+    @Override
+    public SelectorSupplier<ValueSelector<Object>> valueSelectorSupplier() {
+        return valueSelectorSupplier;
     }
 }

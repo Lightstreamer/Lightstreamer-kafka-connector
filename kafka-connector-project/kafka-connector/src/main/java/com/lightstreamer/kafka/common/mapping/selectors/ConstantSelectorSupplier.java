@@ -30,13 +30,15 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
 
     private static class ConstantSelectorImpl extends BaseSelector implements ConstantSelector {
 
-        ConstantSelectorImpl(String name, Constant constant) {
-            super(name, constant);
+        private final Constant constant;
+
+        ConstantSelectorImpl(String name, Constant expression) {
+            super(name, expression);
+            this.constant = expression;
         }
 
         @Override
         public Data extract(KafkaRecord<?, ?> record) {
-            Constant constant = expression().constant();
             Object data =
                     switch (constant) {
                         case TIMESTAMP -> String.valueOf(record.timestamp());
@@ -48,45 +50,25 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                     };
             return new SimpleData(name(), Objects.toString(data, null));
         }
-    }
-
-    private static class ConstantKeyValueSelector
-            implements KeySelector<Object>, ValueSelector<Object> {
-
-        private ConstantSelectorImpl name;
-
-        protected ConstantKeyValueSelector(ConstantSelectorImpl name) {
-            this.name = name;
-        }
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record) throws ValueException {
-            return name.extract(record);
+            return new SimpleData(name(), Objects.toString(record.key(), null));
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, Object> record) throws ValueException {
-            return name.extract(record);
-        }
-
-        @Override
-        public String name() {
-            return name.name();
-        }
-
-        @Override
-        public ExtractionExpression expression() {
-            return name.expression();
+            return new SimpleData(name(), Objects.toString(record.value(), null));
         }
     }
 
     private final Set<Constant> allowedConstants;
 
-    public ConstantSelectorSupplier(Constant... constant) {
+    ConstantSelectorSupplier(Constant... constant) {
         this.allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
     }
 
-    public ConstantSelectorSupplier() {
+    ConstantSelectorSupplier() {
         this(Constant.values());
     }
 
@@ -94,16 +76,6 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
     public ConstantSelector newSelector(String name, ExtractionExpression expression)
             throws ExtractionException {
         return mkSelector(name, expression);
-    }
-
-    public KeySelector<Object> newKeySelector(String name, ExtractionExpression expression)
-            throws ExtractionException {
-        return new ConstantKeyValueSelector(mkSelector(name, expression));
-    }
-
-    public ValueSelector<Object> newValueSelector(String name, ExtractionExpression expression)
-            throws ExtractionException {
-        return new ConstantKeyValueSelector(mkSelector(name, expression));
     }
 
     String expectedConstantStr() {
@@ -119,5 +91,13 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
             throw ExtractionException.notAllowedAttributes(name, expression.expression());
         }
         return new ConstantSelectorImpl(name, expression.constant());
+    }
+
+    public static ConstantSelectorSupplier KeySelector() {
+        return new ConstantSelectorSupplier(Constant.KEY);
+    }
+
+    public static ConstantSelectorSupplier ValueSelector() {
+        return new ConstantSelectorSupplier(Constant.VALUE);
     }
 }

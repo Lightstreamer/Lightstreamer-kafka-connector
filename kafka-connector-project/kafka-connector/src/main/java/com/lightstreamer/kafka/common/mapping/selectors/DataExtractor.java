@@ -17,28 +17,47 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+
+import java.util.Collections;
 import java.util.Map;
 
 public interface DataExtractor<K, V> {
 
-    DataContainer extractData(KafkaRecord<K, V> record);
+    SchemaAndValues extractData(KafkaRecord<K, V> record);
 
     Schema schema();
 
-    public static <K, V> Builder<K, V> builder() {
-        return new DataExtractorSupport.DataExtractorBuilder<>();
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            String schemaName,
+            Map<String, ExtractionExpression> expressions)
+            throws ExtractionException {
+        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions);
     }
 
-    public interface Builder<K, V> {
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression expression)
+            throws ExtractionException {
+        return extractor(sSuppliers, expression.prefix(), expression.params());
+    }
 
-        Builder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers);
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers, String schemaName)
+            throws ExtractionException {
+        return extractor(sSuppliers, schemaName, Collections.emptyMap());
+    }
 
-        Builder<K, V> withExpressions(Map<String, ExtractionExpression> expressions);
-
-        Builder<K, V> withSchemaName(String schema);
-
-        DataExtractor<K, V> build() throws ExtractionException;
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            String schema,
+            String parameter,
+            String expression)
+            throws ExpressionException, ExtractionException {
+        return extractor(sSuppliers, schema, Map.of(parameter, Expression(expression)));
     }
 }

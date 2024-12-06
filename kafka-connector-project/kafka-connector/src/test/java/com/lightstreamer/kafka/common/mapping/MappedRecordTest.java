@@ -18,105 +18,121 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.DataContainer;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
+import static java.util.Collections.emptyMap;
 
-import org.junit.jupiter.api.BeforeEach;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 public class MappedRecordTest {
 
-    DataExtractor<String, String> extractor1;
-    DataExtractor<String, String> extractor2;
-    Set<DataContainer> dataContainers;
-
-    @BeforeEach
-    void creaValuesContainer() throws ExtractionException {
-        extractor1 =
-                DataExtractor.<String, String>builder()
-                        .withSuppliers(TestSelectorSuppliers.string())
-                        .withSchemaName("schema1")
-                        .withExpressions(
-                                Map.of(
-                                        "partition",
-                                        Expressions.expression("PARTITION"),
-                                        "topic",
-                                        Expressions.expression("TOPIC")))
-                        .build();
-
-        DataContainer container1 =
-                DataContainer.from(
-                        extractor1,
-                        Set.of(
-                                Data.from("partition", "partitionValue"),
-                                Data.from("topic", "topicValue")));
-
-        extractor2 =
-                DataExtractor.<String, String>builder()
-                        .withSchemaName("schema1")
-                        .withSuppliers(TestSelectorSuppliers.string())
-                        .withExpressions(
-                                Map.of(
-                                        "partition2",
-                                        Expressions.expression("PARTITION"),
-                                        "topic2",
-                                        Expressions.expression("TOPIC")))
-                        .build();
-
-        DataContainer container2 =
-                DataContainer.from(
-                        extractor2,
-                        Set.of(
-                                Data.from("partition2", "partitionValue2"),
-                                Data.from("topic2", "topicValue2")));
-        dataContainers = Set.of(container1, container2);
+    @Test
+    public void shouldCreateSimpleMappedRecord() {
+        SchemaAndValues expandedTemplate = SchemaAndValues.from("schema", Map.of("key", "aKey"));
+        SchemaAndValues fieldsMap = SchemaAndValues.from("fields", Map.of("field1", "value1"));
+        DefaultMappedRecord record = new DefaultMappedRecord(Set.of(expandedTemplate), fieldsMap);
+        assertThat(record.expanded()).containsExactly(expandedTemplate);
+        assertThat(record.fieldsMap()).containsExactly("field1", "value1");
+        assertThat(record.toString())
+                .isEqualTo(
+                        "MappedRecord [expandedTemplates=[{key=aKey}], fieldsMap=(fields-<{field1=value1}>)]");
     }
 
     @Test
-    void shouldHaveExpectedTopic() {
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", Collections.emptySet());
-        assertThat(mp.topic()).isEqualTo("topic");
+    public void shouldCreateMappedRecord() {
+        Map<String, String> map1 = new LinkedHashMap<>();
+        map1.put("key", "aKey");
+        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("schema1", map1);
+        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("schema2", emptyMap());
+
+        Map<String, String> map2 = new LinkedHashMap<>();
+        map2.put("value", "aValue");
+        map2.put("partition", "aPartition");
+        SchemaAndValues expandedTemplate3 = SchemaAndValues.from("schema3", map2);
+
+        Set<SchemaAndValues> expandedTemplates = new LinkedHashSet<>();
+        expandedTemplates.add(expandedTemplate1);
+        expandedTemplates.add(expandedTemplate2);
+        expandedTemplates.add(expandedTemplate3);
+
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("field1", "value1");
+        fields.put("field2", "value2");
+        fields.put("field3", null);
+        SchemaAndValues fieldsMap = SchemaAndValues.from("fields", fields);
+
+        DefaultMappedRecord record = new DefaultMappedRecord(expandedTemplates, fieldsMap);
+        assertThat(record.expanded())
+                .containsExactly(expandedTemplate1, expandedTemplate2, expandedTemplate3);
+        assertThat(record.fieldsMap())
+                .containsExactly("field1", "value1", "field2", "value2", "field3", null);
+        assertThat(record.toString())
+                .isEqualTo(
+                        "MappedRecord [expandedTemplates=[{key=aKey}, {}, {value=aValue, partition=aPartition}], fieldsMap=(fields-<{field1=value1, field2=value2, field3=null}>)]");
     }
 
     @Test
-    void shouldFilter() {
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dataContainers);
-        Map<String, String> map1 = mp.filter(extractor1);
-        assertThat(map1).containsExactly("partition", "partitionValue", "topic", "topicValue");
-
-        Map<String, String> map2 = mp.filter(extractor2);
-        assertThat(map2).containsExactly("partition2", "partitionValue2", "topic2", "topicValue2");
+    public void shouldNotHaveExpandedTemplatesAndFieldsMapIfNOP() {
+        assertThat(DefaultMappedRecord.NOPRecord.expanded()).isEmpty();
+        assertThat(DefaultMappedRecord.NOPRecord.fieldsMap()).isEmpty();
+        assertThat(DefaultMappedRecord.NOPRecord.toString())
+                .isEqualTo("MappedRecord [expandedTemplates=[], fieldsMap=(NOSCHEMA-<{}>)]");
     }
 
     @Test
-    void shouldFilterWithNullValue() {
-        Set<DataContainer> dc =
-                Set.of(DataContainer.from(extractor1, Set.of(Data.from("partition", null))));
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dc);
-        Map<String, String> map1 = mp.filter(extractor1);
-        assertThat(map1).containsExactly("partition", null);
+    public void shouldRouteMatchingParameterizedItems() {
+        SchemaAndValues expandedTemplate1 =
+                SchemaAndValues.from(
+                        "schema1", Map.of("topic", "aTopic", "partition", "aPartition"));
+        SchemaAndValues expandedTemplate2 =
+                SchemaAndValues.from("schema2", Map.of("key", "aKey", "value", "aValue"));
+        Set<SchemaAndValues> expandedTemplates = Set.of(expandedTemplate1, expandedTemplate2);
+        DefaultMappedRecord record =
+                new DefaultMappedRecord(expandedTemplates, SchemaAndValues.nop());
+
+        // This item should match the expandedTemplate 1: routable
+        SubscribedItem matchingItem1 =
+                subscribedFrom("schema1-[topic=aTopic,partition=aPartition]");
+        // This item should match the expandedTemplate 2: routable
+        SubscribedItem matchingItem2 = subscribedFrom("schema2-[key=aKey,value=aValue]");
+        // The following items shuld match no templates: non-routable
+        SubscribedItem notMatchingBindParameters =
+                subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
+        SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
+
+        assertThat(
+                        record.route(
+                                Set.of(
+                                        matchingItem1,
+                                        matchingItem2,
+                                        notMatchingBindParameters,
+                                        notMatchingSchema)))
+                .containsExactly(matchingItem1, matchingItem2);
+        assertThat(record.route(Set.of(notMatchingBindParameters, notMatchingSchema))).isEmpty();
     }
 
     @Test
-    void shouldHaveExpectedMappedValueSize() {
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dataContainers);
-        assertThat(mp.mappedValuesSize()).isEqualTo(4);
-    }
+    public void shouldRouteMatchingSimpleItems() {
+        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
+        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
+        DefaultMappedRecord record =
+                new DefaultMappedRecord(
+                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
+        assertThat(record.expanded()).containsExactly(expandedTemplate1, expandedTemplate2);
+        assertThat(record.fieldsMap()).isEmpty();
 
-    @Test
-    void shouldHaveExpectedMappedValueSizeWithNullValue() {
-        Set<DataContainer> dc =
-                Set.of(DataContainer.from(extractor1, Set.of(Data.from("partition", null))));
-        DefaultMappedRecord mp = new DefaultMappedRecord("topic", dc);
-        assertThat(mp.mappedValuesSize()).isEqualTo(1);
+        SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
+        SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
+        SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
+        assertThat((record.route(Set.of(matchingItem1, matchingItem2, notMatchingItem))))
+                .containsExactly(matchingItem1, matchingItem2);
     }
 }

@@ -236,16 +236,16 @@ public class LightstreamerConnectorConfigTest {
         TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
         assertThat(stockExpression.params())
-                .containsExactly("index", Expressions.expression("KEY"));
+                .containsExactly("index", Expressions.Expression("KEY"));
 
         TemplateExpression productExpression = itemTemplate.getExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
                 .containsExactly(
                         "id",
-                        Expressions.expression("KEY"),
+                        Expressions.Expression("KEY"),
                         "price",
-                        Expressions.expression("VALUE.price"));
+                        Expressions.Expression("VALUE.price"));
     }
 
     @Test
@@ -307,41 +307,41 @@ public class LightstreamerConnectorConfigTest {
         assertThat(fieldMappings.expressions())
                 .containsExactly(
                         "timestamp",
-                        Expressions.expression("VALUE.timestamp"),
+                        Expressions.Expression("VALUE.timestamp"),
                         "time",
-                        Expressions.expression("VALUE.time"),
+                        Expressions.Expression("VALUE.time"),
                         "stock_name",
-                        Expressions.expression("VALUE.name"),
+                        Expressions.Expression("VALUE.name"),
                         "last_price",
-                        Expressions.expression("VALUE.last_price"),
+                        Expressions.Expression("VALUE.last_price"),
                         "ask",
-                        Expressions.expression("VALUE.ask"),
+                        Expressions.Expression("VALUE.ask"),
                         "ask_quantity",
-                        Expressions.expression("VALUE.ask_quantity"),
+                        Expressions.Expression("VALUE.ask_quantity"),
                         "bid",
-                        Expressions.expression("VALUE.bid"),
+                        Expressions.Expression("VALUE.bid"),
                         "bid_quantity",
-                        Expressions.expression("VALUE.bid_quantity"),
+                        Expressions.Expression("VALUE.bid_quantity"),
                         "pct_change",
-                        Expressions.expression("VALUE.pct_change"),
+                        Expressions.Expression("VALUE.pct_change"),
                         "min",
-                        Expressions.expression("VALUE.min"),
+                        Expressions.Expression("VALUE.min"),
                         "max",
-                        Expressions.expression("VALUE.max"),
+                        Expressions.Expression("VALUE.max"),
                         "ref_price",
-                        Expressions.expression("VALUE.ref_price"),
+                        Expressions.Expression("VALUE.ref_price"),
                         "open_price",
-                        Expressions.expression("VALUE.open_price"),
+                        Expressions.Expression("VALUE.open_price"),
                         "item_status",
-                        Expressions.expression("VALUE.item_status"),
+                        Expressions.Expression("VALUE.item_status"),
                         "ts",
-                        Expressions.expression("TIMESTAMP"),
+                        Expressions.Expression("TIMESTAMP"),
                         "topic",
-                        Expressions.expression("TOPIC"),
+                        Expressions.Expression("TOPIC"),
                         "offset",
-                        Expressions.expression("OFFSET"),
+                        Expressions.Expression("OFFSET"),
                         "partition",
-                        Expressions.expression("PARTITION"));
+                        Expressions.Expression("PARTITION"));
     }
 
     @ParameterizedTest

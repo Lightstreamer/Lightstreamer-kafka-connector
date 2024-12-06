@@ -17,6 +17,9 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors;
 
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
@@ -24,22 +27,43 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer<T> {
 
-    protected final File schemaFile;
+    private String keySchemaFileName;
+    private String valueShemaFileName;
 
-    protected AbstractLocalSchemaDeserializer(ConnectorConfig config, boolean isKey) {
-        String schemaFileKey =
-                isKey
-                        ? ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH
-                        : ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
-        String schemaFileName = config.getFile(schemaFileKey);
-        if (schemaFileName == null) {
-            // Never happens
-            throw new ConfigException(schemaFileKey + " setting is mandatory");
+    public void preConfigure(ConnectorConfig config) {
+        keySchemaFileName = config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        valueShemaFileName = config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+    }
+
+    public final File getSchemaFile(boolean isKey) {
+        if (isKey) {
+            return keySchemaFile().orElseThrow(getException(RECORD_KEY_EVALUATOR_SCHEMA_PATH));
         }
-        Path path = Path.of(schemaFileName);
-        schemaFile = path.toFile();
+        return valueSchemaFile().orElseThrow(getException(RECORD_VALUE_EVALUATOR_SCHEMA_PATH));
+    }
+
+    private Supplier<ConfigException> getException(String messagePrefix) {
+        return () -> new ConfigException(messagePrefix + " setting is mandatory");
+    }
+
+    private Optional<File> keySchemaFile() {
+        return schemaFile(keySchemaFileName);
+    }
+
+    private Optional<File> valueSchemaFile() {
+        return schemaFile(valueShemaFileName);
+    }
+
+    private Optional<File> schemaFile(String schemaFile) {
+        if (schemaFile == null) { // Actually never happens
+            return Optional.empty();
+        }
+
+        return Optional.of(Path.of(schemaFile).toFile());
     }
 }
