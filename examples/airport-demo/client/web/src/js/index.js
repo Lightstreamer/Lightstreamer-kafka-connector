@@ -13,8 +13,8 @@
 
 let stocksGrid= null;
 let lsClient= null;
-let itemsList = ["flights-[key=10]", "flights-[key=1]", "flights-[key=2]", "flights-[key=3]", "flights-[key=4]", "flights-[key=5]", "flights-[key=6]", "flights-[key=7]", "flights-[key=8]", "flights-[key=9]" ];
-let fieldsList = ["key", "destination", "departure", "flightNo", "terminal", "status", "airline", "currentTime"];
+let itemsList = [ "flights-board" ];
+let fieldsList = ["key", "command", "destination", "departure", "flightNo", "terminal", "status", "airline", "currentTime"];
 
 
 function main() {
@@ -49,8 +49,9 @@ function main() {
       }
       });
     
-    let subMonitor = new Ls.Subscription("MERGE",itemsList,fieldsList);
+    let subMonitor = new Ls.Subscription("COMMAND",itemsList,fieldsList);
     subMonitor.setDataAdapter("AirpotDemo");
+	subMonitor.set
     
     subMonitor.addListener(dynaGrid);
     
@@ -64,7 +65,13 @@ function main() {
         airline:updateInfo.getValue("airline"),terminal:updateInfo.getValue("terminal"),status:updateInfo.getValue("status")});
         */
         watch.updateRow("time", {currentTime:updateInfo.getValue("currentTime")})
-      }
+      },
+	  onClearSnapshot: function(itemName, itemPos) {
+		console.log("Clear snapshot for " + itemName);
+	  },
+	  onEndOfSnapshot: function(itemName, itemPos) {
+		console.log("End of snapshot for " + itemName);
+	  }
     });
     
     lsClient.subscribe(subMonitor);
