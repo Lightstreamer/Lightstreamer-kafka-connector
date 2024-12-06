@@ -63,6 +63,10 @@ public interface TaskExecutor<S> {
     default void waitBatch() {}
 
     static <S> TaskExecutor<S> create(ExecutorService pool) {
-        return new Multiplexer<>(pool, true);
+        return new Multiplexer<>(pool, false);
+    }
+
+    static <S> TaskExecutor<S> create(int threads) {
+        return new HashedKeyedEventProcessor<>(threads);
     }
 }
