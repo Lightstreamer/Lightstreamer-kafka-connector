@@ -11,7 +11,7 @@ public class FlightInfo {
     public String departure;
 
     @JsonProperty
-    public String flightNo;
+    public String key;
 
     @JsonProperty
     public int terminal;
@@ -25,6 +25,9 @@ public class FlightInfo {
     @JsonProperty
     public String currentTime;
 
+    @JsonProperty
+    public String command;
+
     public FlightInfo() {
     }
 
@@ -32,11 +35,13 @@ public class FlightInfo {
             String airline) {
         this.destination = destination;
         this.departure = departure;
-        this.flightNo = flightNo;
+        this.key = flightNo;
         this.terminal = terminal;
         this.status = status;
         this.airline = airline;
 
         this.currentTime = "";
+        this.command = "UPDTAE";
     }
+
 }
