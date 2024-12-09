@@ -22,6 +22,8 @@ import com.lightstreamer.kafka.common.mapping.Items.Item;
 
 public interface Loop {
 
+    boolean isSnapshotAvailable(String item);
+    
     Item subscribe(String item, Object itemHandle) throws SubscriptionException;
 
     Item unsubscribe(String topic) throws SubscriptionException;

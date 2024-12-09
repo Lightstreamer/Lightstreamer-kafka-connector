@@ -50,6 +50,11 @@ public abstract class AbstractConsumerLoop<K, V> implements Loop {
     }
 
     @Override
+    public boolean isSnapshotAvailable(String item) {
+        return config.isCommandEnforceEnabled();
+    }
+
+    @Override
     public final Item subscribe(String item, Object itemHandle) throws SubscriptionException {
         try {
             SubscribedItem newItem = Items.susbcribedFrom(item, itemHandle);

@@ -63,7 +63,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
-        return false;
+        return loop.isSnapshotAvailable(itemName);
     }
 
     private <K, V> Loop loop(ConsumerLoopConfig<K, V> config, ItemEventListener eventListener) {

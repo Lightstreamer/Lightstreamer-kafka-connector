@@ -272,7 +272,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
                 for (SubscribedItem sub : routables) {
                     
                     log.atDebug().log("Enforce COMMAND mode semantic of records read: {}", config.isCommandEnforceEnabled());
-                    if (config.isCommandEnforceEnabled() ) {
+                    if ( config.isCommandEnforceEnabled() ) {
                         if (checkCommand(updates)) {
                             if (updates.get("key").equals("snapshot")) {
                                 switch (updates.get("command")) {
@@ -291,7 +291,7 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                                         break;
                                     default:
-                                    log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));    
+                                    log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));    
                                 }
                             } else {
                                 if (checkCommandField(updates.get("command"))) {
@@ -299,11 +299,11 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                                     eventListener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
                                 } else {
-                                    log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));
+                                    log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));
                                 }
                             }
                         } else {
-                            log.atWarn().log("Discarding record due to command mode field not properly valued: {}", updates.get("key"));
+                            log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));
                         }
                     } else {
                         eventListener.smartUpdate(sub.itemHandle(), updates, false);
