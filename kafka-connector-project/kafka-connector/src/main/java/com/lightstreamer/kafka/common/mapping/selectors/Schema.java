@@ -19,7 +19,10 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static java.util.Collections.emptySet;
 
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public interface Schema {
 
@@ -42,19 +45,49 @@ public interface Schema {
     }
 }
 
-final record DefaultSchema(String name, Set<String> keys) implements Schema {
+final class DefaultSchema implements Schema {
 
     static Schema NOP = Schema.empty("NOSCHEMA");
 
-    DefaultSchema {
+    private final String name;
+    private final String[] keys;
+
+    DefaultSchema(String name, Set<String> keys) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Schema name must be a non empty string");
         }
+        this.name = name;
+        this.keys = keys.stream().sorted().toArray(String[]::new);
+    }
+
+    @Override
+    public Set<String> keys() {
+        return Arrays.stream(keys).collect(Collectors.toSet());
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override
     public boolean matches(Schema other) {
         return this.equals(other);
+    }
+
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+
+        return obj instanceof DefaultSchema other
+                && Objects.equals(name, other.name)
+                && Arrays.equals(keys, other.keys);
+    }
+
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (keys != null ? Arrays.hashCode(keys) : 0);
+        return result;
     }
 
     public String toString() {

@@ -57,6 +57,7 @@ public class SchemaTest {
         Schema schema2 = Schema.from("test", Set.of("a", "b"));
 
         assertThat(schema1.matches(schema2)).isTrue();
+        assertThat(schema1.hashCode()).isEqualTo(schema2.hashCode());
     }
 
     @Test

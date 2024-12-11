@@ -207,13 +207,13 @@ public class ItemTemplatesTest {
                         Schema.from("simple-item-1", emptySet()),
                         Schema.from("simple-item-2", emptySet()));
 
-        SubscribedItem item1 = Items.subcribedFrom("simple-item-1", "itemHandle1");
+        SubscribedItem item1 = Items.subscribedFrom("simple-item-1", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
 
-        SubscribedItem item2 = Items.subcribedFrom("simple-item-2", "itemHandle2");
+        SubscribedItem item2 = Items.subscribedFrom("simple-item-2", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
 
-        SubscribedItem item3 = Items.subcribedFrom("simple-item-3", "itemHandle2");
+        SubscribedItem item3 = Items.subscribedFrom("simple-item-3", "itemHandle2");
         assertThat(templates.matches(item3)).isFalse();
     }
 
@@ -243,12 +243,12 @@ public class ItemTemplatesTest {
                         Schema.from("template-relatives", Set.of("topic", "info1")));
 
         SubscribedItem item1 =
-                Items.subcribedFrom(
+                Items.subscribedFrom(
                         "template-family-[topic=" + TEST_TOPIC_1 + ",info=150]", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
 
         SubscribedItem item2 =
-                Items.subcribedFrom(
+                Items.subscribedFrom(
                         "template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
     }
@@ -277,7 +277,7 @@ public class ItemTemplatesTest {
         assertThat(templates.extractorsByTopicName().get(newOrdersTopic)).hasSize(1);
         assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem subcribingItem = Items.subcribedFrom("orders", "");
+        SubscribedItem subcribingItem = Items.subscribedFrom("orders", "");
         assertThat(templates.matches(subcribingItem)).isTrue();
     }
 
@@ -309,11 +309,11 @@ public class ItemTemplatesTest {
         assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
 
         SubscribedItem itemFilteringTopic1 =
-                Items.subcribedFrom("template-orders-[topic=new_orders]", "");
+                Items.subscribedFrom("template-orders-[topic=new_orders]", "");
         assertThat(templates.matches(itemFilteringTopic1)).isTrue();
 
         SubscribedItem itemFilteringTopic2 =
-                Items.subcribedFrom("template-orders-[topic=past_orders]", "");
+                Items.subscribedFrom("template-orders-[topic=past_orders]", "");
         assertThat(templates.matches(itemFilteringTopic2)).isTrue();
     }
 }

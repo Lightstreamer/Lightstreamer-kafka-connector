@@ -84,7 +84,7 @@ public class RecordProcessorTest {
     @Test
     public void shouldProcess() {
         // Subscribe to "item1" and process the record
-        subscribedItems.add(Items.subcribedFrom("item1", new Object()));
+        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
         processor.process(record);
         // Verify that the real-time update has been routed
         assertThat(counter.get()).isEqualTo(1);
@@ -92,7 +92,7 @@ public class RecordProcessorTest {
         counter.set(0);
 
         // Add subscription "item2"
-        subscribedItems.add(Items.subcribedFrom("item2", new Object()));
+        subscribedItems.add(Items.subscribedFrom("item2", new Object()));
         processor.process(record);
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
         assertThat(counter.get()).isEqualTo(2);
@@ -101,7 +101,7 @@ public class RecordProcessorTest {
     @Test
     public void shouldNotProcess() {
         // Subscribe to the unexpected "item3" and process the record
-        subscribedItems.add(Items.subcribedFrom("item3", new Object()));
+        subscribedItems.add(Items.subscribedFrom("item3", new Object()));
         processor.process(record);
         // Verify that the update has NOT been routed
         assertThat(counter.get()).isEqualTo(0);

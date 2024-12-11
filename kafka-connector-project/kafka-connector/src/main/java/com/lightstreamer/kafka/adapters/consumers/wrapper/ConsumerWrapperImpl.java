@@ -230,21 +230,19 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         }
     }
 
-    private boolean doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
+    private void doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
         log.atInfo().log("Polling records");
         try {
             ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
             log.atDebug().log("Received records");
             recordConsumer.accept(records);
             log.atInfo().log("Consumed {} records", records.count());
-            return true;
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unrecoverable exception");
             metadataListener.forceUnsubscriptionAll();
-            // return false;
             throw ke;
         }
     }

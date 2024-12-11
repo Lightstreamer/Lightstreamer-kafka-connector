@@ -219,22 +219,22 @@ class RecordConsumerSupport {
 
         @Override
         public void process(ConsumerRecord<K, V> record) throws ValueException {
-            log.atDebug().log("Mapping incoming Kafka record");
-            log.atTrace().log("Kafka record: {}", record.toString());
+            log.atDebug().log(() -> "Mapping incoming Kafka record");
+            log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
             // As logging the mapped record is expensive, log lazly it only at trace level.
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log("Mapped Kafka record");
+            log.atDebug().log(() -> "Mapped Kafka record");
 
             Set<SubscribedItem> routables = mappedRecord.route(subscribedItems);
 
-            log.atDebug().log("Filtering updates");
+            log.atDebug().log(() -> "Filtering updates");
             Map<String, String> updates = mappedRecord.fieldsMap();
 
             for (SubscribedItem sub : routables) {
-                log.atDebug().log("Sending updates: {}", updates);
+                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 listener.smartUpdate(sub.itemHandle(), updates, false);
             }
         }
@@ -329,9 +329,7 @@ class RecordConsumerSupport {
 
         @Override
         public void consumeRecords(ConsumerRecords<K, V> records) {
-            List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
-            records.partitions()
-                    .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
+            List<ConsumerRecord<K, V>> allRecords = flatRecords(records);
             taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
@@ -347,7 +345,9 @@ class RecordConsumerSupport {
         void consume(String sequence, ConsumerRecord<K, V> record) {
             try {
                 logger.atDebug().log(
-                        "Processing record with sequence {} [{}]", sequence, orderStrategy);
+                        () ->
+                                "Processing record with sequence %s [%s]"
+                                        .formatted(sequence, orderStrategy));
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
             } catch (ValueException ve) {
@@ -382,7 +382,7 @@ class RecordConsumerSupport {
                     // the first error, but subsequent records, though not committed, may have
                     // been processed all the same (even records with the same key of a previously
                     // failed  record) and only then is the elaboration stopped.
-                    // On the other hand, partitions without errors are  processed and committed
+                    // On the other hand, partitions without errors are processed and committed
                     // entirely, which is good, although, then, the elaboration stops also for them.
                     logger.atWarn().log("Will force unsubscription");
                     offsetService.onAsyncFailure(ve);
@@ -395,6 +395,13 @@ class RecordConsumerSupport {
             super.close();
             taskExecutor.shutdown();
         }
+    }
+
+    public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
+        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
+        records.partitions()
+                .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
+        return allRecords;
     }
 
     private RecordConsumerSupport() {}

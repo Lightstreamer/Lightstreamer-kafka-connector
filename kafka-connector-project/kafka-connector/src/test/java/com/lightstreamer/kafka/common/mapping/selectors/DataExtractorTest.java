@@ -99,7 +99,8 @@ public class DataExtractorTest {
             Map<String, String> expectedValues)
             throws ExtractionException {
         DataExtractor<String, String> extractor = extractor(String(), schemaName, expressions);
-        assertThat(extractor.schema()).isEqualTo(expectedSchema);
+        Schema schema = extractor.schema();
+        assertThat(schema).isEqualTo(expectedSchema);
 
         KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);

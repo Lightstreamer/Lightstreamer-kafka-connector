@@ -243,7 +243,6 @@ public class Multiplexer<S> implements TaskExecutor<S> {
             } else {
                 executor.execute(task);
             }
-
         } else {
             // Create the task and attach it to the task queue for the sequence;
             // this will also take care of ensuring that the task will be dequeued

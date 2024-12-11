@@ -40,7 +40,7 @@ public interface TaskExecutor<S> {
         CountDownLatch latch = new CountDownLatch(events.size());
         for (E event : events) {
             S seq = sequence.apply(event);
-            execute(event, seq, wrapTask(task, latch, seq));
+            execute(event, seq, wrapTask(task, latch));
         }
         try {
             latch.await();
@@ -50,10 +50,10 @@ public interface TaskExecutor<S> {
     }
 
     default <E> BiConsumer<? super S, ? super E> wrapTask(
-            BiConsumer<? super S, ? super E> task, CountDownLatch latch, S seq) {
+            BiConsumer<? super S, ? super E> task, CountDownLatch latch) {
         return (s, e) -> {
             try {
-                task.accept(seq, e);
+                task.accept(s, e);
             } finally {
                 latch.countDown();
             }

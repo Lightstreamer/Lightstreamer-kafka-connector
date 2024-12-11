@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.Items.subcribedFrom;
+import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 import static com.lightstreamer.kafka.test_utils.Records.record;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
@@ -63,17 +63,17 @@ public class RecordRoutingTest {
                         List.of(TEST_TOPIC_1),
                         "item",
                         // Routeable item
-                        List.of(subcribedFrom("item", "handle1")),
+                        List.of(subscribedFrom("item", "handle1")),
                         // Non-routeable item
-                        List.of(subcribedFrom("otherItem", "handle2"))),
+                        List.of(subscribedFrom("otherItem", "handle2"))),
                 // Many-to-One
                 arguments(
                         List.of(TEST_TOPIC_1, TEST_TOPIC_2),
                         "item",
                         // Routeable item
-                        List.of(subcribedFrom("item", "handle1")),
+                        List.of(subscribedFrom("item", "handle1")),
                         // Non-routeable item
-                        List.of(subcribedFrom("otherItem", "handle2"))));
+                        List.of(subscribedFrom("otherItem", "handle2"))));
     }
 
     @ParameterizedTest
@@ -111,44 +111,44 @@ public class RecordRoutingTest {
                                 // Routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[key=key,value=value,topic=topic]",
                                                 "handle1"),
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[value=value,topic=topic,key=key]",
                                                 "handle2")),
                                 // Routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[key=key,value=value,topic=anotherTopic]",
                                                 "handle1"),
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[topic=anotherTopic,value=value,key=key]",
                                                 "handle2"))),
                         Map.of(
                                 // Non-routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[key=key,value=value,topic=anotherTopic]",
                                                 "handle1"),
-                                        subcribedFrom("item", "handle3"),
-                                        subcribedFrom("item-[key=key]", "handle4"),
-                                        subcribedFrom("item-[key=anotherKey]", "handle5"),
-                                        subcribedFrom("item-[value=anotherValue]", "handle6"),
-                                        subcribedFrom("nonRoutable", new Object())),
+                                        subscribedFrom("item", "handle3"),
+                                        subscribedFrom("item-[key=key]", "handle4"),
+                                        subscribedFrom("item-[key=anotherKey]", "handle5"),
+                                        subscribedFrom("item-[value=anotherValue]", "handle6"),
+                                        subscribedFrom("nonRoutable", new Object())),
                                 // Non-routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        subcribedFrom(
+                                        subscribedFrom(
                                                 "item-[key=key,value=value,topic=topic]",
                                                 "handle1"),
-                                        subcribedFrom("item", "handle3"),
-                                        subcribedFrom("item-[key=key]", "handle4"),
-                                        subcribedFrom("item-[key=anotherKey]", "handle5"),
-                                        subcribedFrom("item-[value=anotherValue]", "handle6"),
-                                        subcribedFrom("nonRoutable", new Object())))));
+                                        subscribedFrom("item", "handle3"),
+                                        subscribedFrom("item-[key=key]", "handle4"),
+                                        subscribedFrom("item-[key=anotherKey]", "handle5"),
+                                        subscribedFrom("item-[value=anotherValue]", "handle6"),
+                                        subscribedFrom("nonRoutable", new Object())))));
     }
 
     @ParameterizedTest
@@ -192,14 +192,14 @@ public class RecordRoutingTest {
                             """,
                         List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
                         List.of(
-                                subcribedFrom(
+                                subscribedFrom(
                                         "user-[firstName=James,lastName=Kirk]", new Object())),
                         List.of(
-                                subcribedFrom("item", new Object()),
-                                subcribedFrom("item-[key=key]", new Object()),
-                                subcribedFrom("item-[key=anotherKey]", new Object()),
-                                subcribedFrom("item-[value=anotherValue]", new Object()),
-                                subcribedFrom("nonRoutable", new Object()))));
+                                subscribedFrom("item", new Object()),
+                                subscribedFrom("item-[key=key]", new Object()),
+                                subscribedFrom("item-[key=anotherKey]", new Object()),
+                                subscribedFrom("item-[value=anotherValue]", new Object()),
+                                subscribedFrom("nonRoutable", new Object()))));
     }
 
     @ParameterizedTest
@@ -244,7 +244,7 @@ public class RecordRoutingTest {
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
                 record(TEST_TOPIC_1, GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subcribedFrom(subscribingItem, new Object());
+        SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
         Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
@@ -273,7 +273,7 @@ public class RecordRoutingTest {
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
                 record(TEST_TOPIC_1, GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subcribedFrom(subscribingItem, new Object());
+        SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
         Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));

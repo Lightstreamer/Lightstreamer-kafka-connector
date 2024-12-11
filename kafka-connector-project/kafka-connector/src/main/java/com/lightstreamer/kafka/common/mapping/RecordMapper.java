@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static java.util.Collections.emptySet;
-import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -31,6 +30,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -159,31 +159,42 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 }
 
-class DefaultMappedRecord implements MappedRecord {
+final class DefaultMappedRecord implements MappedRecord {
 
     static final DefaultMappedRecord NOPRecord = new DefaultMappedRecord();
 
-    private final Set<SchemaAndValues> expandedTemplates;
     private final SchemaAndValues fieldsMap;
+    private final SchemaAndValues[] indexedTemplates;
 
     DefaultMappedRecord() {
         this(emptySet(), SchemaAndValues.nop());
     }
 
     DefaultMappedRecord(Set<SchemaAndValues> expandedTemplates, SchemaAndValues fieldsMap) {
-        this.expandedTemplates = expandedTemplates;
+        this.indexedTemplates = expandedTemplates.toArray(new SchemaAndValues[] {});
         this.fieldsMap = fieldsMap;
     }
 
     @Override
     public Set<SchemaAndValues> expanded() {
-        return Collections.unmodifiableSet(expandedTemplates);
+        return Set.of(indexedTemplates);
     }
 
+    @Override
     public Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribedItems) {
-        return subscribedItems.stream()
-                .filter(item -> expandedTemplates.stream().anyMatch(t -> t.matches(item)))
-                .collect(toSet());
+        Set<SubscribedItem> result = new HashSet<>();
+
+        // The following seems the most performant loop way
+        // to popoulate the set of routable subscriptions.
+        for (SubscribedItem item : subscribedItems) {
+            for (SchemaAndValues e : indexedTemplates) {
+                if (e.matches(item)) {
+                    result.add(item);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -194,7 +205,7 @@ class DefaultMappedRecord implements MappedRecord {
     @Override
     public String toString() {
         String data =
-                expandedTemplates.stream()
+                Arrays.stream(indexedTemplates)
                         .map(v -> v.values().toString())
                         .collect(Collectors.joining(", "));
         return String.format(

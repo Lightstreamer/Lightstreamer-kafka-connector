@@ -99,10 +99,10 @@ public class ConsumerTriggerTest {
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(2);
 
         Item item1 = consumerTrigger.getSubscribeditem("anItemTemplate");
-        assertThat(item1).isEqualTo(Items.subcribedFrom("anItemTemplate", itemHandle1));
+        assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
         Item item2 = consumerTrigger.getSubscribeditem("anotherItemTemplate");
-        assertThat(item2).isEqualTo(Items.subcribedFrom("anotherItemTemplate", itemHandle2));
+        assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
 
         assertThat(consuming1).isSameInstanceAs(consuming2);
 
@@ -139,7 +139,7 @@ public class ConsumerTriggerTest {
         CompletableFuture<Void> consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);
         Item item = consumerTrigger.getSubscribeditem("anItemTemplate");
 
-        assertThat(item).isEqualTo(Items.subcribedFrom("anItemTemplate", itemHandle));
+        assertThat(item).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle));
         assertThat(consuming.isCompletedExceptionally());
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(0);
         assertThat(kafkaConsumer.hasRan()).isFalse();
