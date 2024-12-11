@@ -61,7 +61,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te = itemReference.template();
         assertThat(te.prefix()).isEqualTo("template1");
-        assertThat(te.params()).containsExactly("a", Expressions.expression("PARTITION"));
+        assertThat(te.params()).containsExactly("a", Expressions.Expression("PARTITION"));
     }
 
     @Test
@@ -117,12 +117,12 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference1.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.expression("VALUE"));
+        assertThat(te1.params()).containsExactly("a", Expressions.Expression("VALUE"));
 
         ItemReference itemReference2 = itemReferences.get(1);
         TemplateExpression te2 = itemReference2.template();
         assertThat(te2.prefix()).isEqualTo("template2");
-        assertThat(te2.params()).containsExactly("c", Expressions.expression("OFFSET"));
+        assertThat(te2.params()).containsExactly("c", Expressions.Expression("OFFSET"));
     }
 
     @Test
@@ -176,7 +176,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.expression("KEY"));
+        assertThat(te1.params()).containsExactly("a", Expressions.Expression("KEY"));
     }
 
     @Test

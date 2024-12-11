@@ -38,8 +38,8 @@ public class ParsersTest {
 
     static Stream<Arguments> args() {
         return Stream.of(
-                arguments("name", Expressions.expression("VALUE"), Constant.VALUE),
-                arguments("name", Expressions.expression("KEY.attrib"), Constant.KEY));
+                arguments("name", Expressions.Expression("VALUE"), Constant.VALUE),
+                arguments("name", Expressions.Expression("KEY.attrib"), Constant.KEY));
     }
 
     @ParameterizedTest
@@ -62,7 +62,7 @@ public class ParsersTest {
     @Test
     void shouldMatchRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext("name", Expressions.expression("VALUE"), Constant.VALUE);
+                new Parsers.ParsingContext("name", Expressions.Expression("VALUE"), Constant.VALUE);
         assertDoesNotThrow(() -> p.matchRoot());
     }
 
@@ -70,7 +70,7 @@ public class ParsersTest {
     void shouldNotMatchRoot() {
         Parsers.ParsingContext p =
                 new Parsers.ParsingContext(
-                        "name", Expressions.expression("KEY.attrib"), Constant.VALUE);
+                        "name", Expressions.Expression("KEY.attrib"), Constant.VALUE);
         ExtractionException ee = assertThrows(ExtractionException.class, () -> p.matchRoot());
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
@@ -80,7 +80,7 @@ public class ParsersTest {
     void shouldOneTokenFollowingRoot() throws ExtractionException {
         Parsers.ParsingContext p =
                 new Parsers.ParsingContext(
-                        "name", Expressions.expression("VALUE.a"), Constant.VALUE);
+                        "name", Expressions.Expression("VALUE.a"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
@@ -91,7 +91,7 @@ public class ParsersTest {
     void shouldMoreTokensFollowingRoot() throws ExtractionException {
         Parsers.ParsingContext p =
                 new Parsers.ParsingContext(
-                        "name", Expressions.expression("VALUE.a.b"), Constant.VALUE);
+                        "name", Expressions.Expression("VALUE.a.b"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
