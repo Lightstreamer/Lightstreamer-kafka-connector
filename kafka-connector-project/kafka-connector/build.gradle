@@ -24,6 +24,20 @@ publishing {
 	}
 }
 
+sourceSets {
+	jmh {
+		java {
+			srcDir 'src/jmh'
+		}
+		compileClasspath += sourceSets.main.runtimeClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath
+	}
+}
+
+configurations {
+	jmh
+}
+
 dependencies {
 	api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
 
@@ -35,6 +49,9 @@ dependencies {
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
 	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
+
+	jmhImplementation group: 'org.openjdk.jmh', name:'jmh-core', version:'1.37'
+	jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
 }
 
 ext {
@@ -126,6 +143,11 @@ distributions {
 			}
 		}
 	}
+}
+
+task jmh(type: JavaExec, description: 'Execute JMH benchmarks') {
+	classpath = sourceSets.jmh.runtimeClasspath
+	main = 'org.openjdk.jmh.Main'
 }
 
 build.dependsOn javadoc
