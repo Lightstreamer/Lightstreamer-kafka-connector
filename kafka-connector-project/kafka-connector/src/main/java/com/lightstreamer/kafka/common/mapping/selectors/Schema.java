@@ -17,8 +17,12 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import java.util.Collections;
+import static java.util.Collections.emptySet;
+
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public interface Schema {
 
@@ -26,26 +30,67 @@ public interface Schema {
 
     String name();
 
-    public boolean matches(Schema other);
+    boolean matches(Schema other);
 
     static Schema from(String name, Set<String> keys) {
         return new DefaultSchema(name, keys);
     }
 
     static Schema empty(String name) {
-        return from(name, Collections.emptySet());
+        return from(name, emptySet());
+    }
+
+    static Schema nop() {
+        return DefaultSchema.NOP;
     }
 }
 
-final record DefaultSchema(String name, Set<String> keys) implements Schema {
-    DefaultSchema {
+final class DefaultSchema implements Schema {
+
+    static Schema NOP = Schema.empty("NOSCHEMA");
+
+    private final String name;
+    private final String[] keys;
+
+    DefaultSchema(String name, Set<String> keys) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Schema name must be a non empty string");
         }
+        this.name = name;
+        this.keys = keys.stream().sorted().toArray(String[]::new);
+    }
+
+    @Override
+    public Set<String> keys() {
+        return Arrays.stream(keys).collect(Collectors.toSet());
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override
     public boolean matches(Schema other) {
         return this.equals(other);
+    }
+
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+
+        return obj instanceof DefaultSchema other
+                && Objects.equals(name, other.name)
+                && Arrays.equals(keys, other.keys);
+    }
+
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (keys != null ? Arrays.hashCode(keys) : 0);
+        return result;
+    }
+
+    public String toString() {
+        return String.format("(%s-%s)", name(), keys());
     }
 }

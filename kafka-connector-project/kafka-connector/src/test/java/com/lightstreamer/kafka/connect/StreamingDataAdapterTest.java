@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 
 import static org.junit.Assert.assertThrows;
 
@@ -255,9 +256,7 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the IGNORE_AND_CONTINUE error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY,
-                "IGNORE_AND_CONTINUE");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "IGNORE_AND_CONTINUE");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
         otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
 
@@ -295,8 +294,7 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the FORWARD_TO_DLQ error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
         otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
 
@@ -336,8 +334,7 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the FORWARD_TO_DLQ error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
         otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
 
@@ -370,8 +367,7 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the TERMINATE_TASK error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "TERMINATE_TASK");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "TERMINATE_TASK");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
         otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
 

@@ -17,13 +17,19 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 
+import static com.lightstreamer.kafka.common.expressions.Constant.KEY;
+
+import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -42,58 +48,54 @@ import org.apache.kafka.common.serialization.UUIDDeserializer;
 
 import java.util.EnumMap;
 
-public class OthersSelectorSuppliers {
+public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
-    private static class BaseOthersSelectorSupplier {
-        private final Deserializer<?> deseralizer;
-        private final ConstantSelectorSupplier constantSelectorSupplier;
+    private static class BaseOthersSelectorSupplier<T> {
+        protected final Deserializer<T> deseralizer;
 
-        BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
-            this.deseralizer = DESERIALIAZERS.get(type);
-            this.constantSelectorSupplier = new ConstantSelectorSupplier(constant);
+        @SuppressWarnings("unchecked")
+        BaseOthersSelectorSupplier(EvaluatorType type, Class<T> klass, Constant constant) {
+            this.deseralizer = (Deserializer<T>) DESERIALIAZERS.get(type);
         }
 
-        public KeySelector<Object> newKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            return constantSelectorSupplier.newKeySelector(name, expression);
+        public Deserializer<T> deseralizer() {
+            return deseralizer;
         }
+    }
 
-        public ValueSelector<Object> newValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            return constantSelectorSupplier.newValueSelector(name, expression);
+    private static class OthersKeySelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
+            implements KeySelectorSupplier<T> {
+
+        private final ConstantSelectorSupplier constantSelectorSupplier =
+                ConstantSelectorSupplier.KeySelector();
+
+        OthersKeySelectorSupplier(EvaluatorType type, Class<T> klass) {
+            super(type, klass, KEY);
         }
 
         @SuppressWarnings("unchecked")
-        public Deserializer<Object> deseralizer() {
-            return (Deserializer<Object>) deseralizer;
+        @Override
+        public KeySelector<T> newSelector(String name, ExtractionExpression expression)
+                throws ExtractionException {
+            return (KeySelector<T>) constantSelectorSupplier.newSelector(name, expression);
         }
     }
 
-    private static class OthersKeySelectorSupplier extends BaseOthersSelectorSupplier
-            implements KeySelectorSupplier<Object> {
+    private static class OthersValueSelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
+            implements ValueSelectorSupplier<T> {
 
-        OthersKeySelectorSupplier(EvaluatorType type) {
-            super(type, Constant.KEY);
+        private final ConstantSelectorSupplier selectorSupplier =
+                ConstantSelectorSupplier.ValueSelector();
+
+        OthersValueSelectorSupplier(EvaluatorType type, Class<T> klass) {
+            super(type, klass, Constant.VALUE);
         }
 
+        @SuppressWarnings("unchecked")
         @Override
-        public KeySelector<Object> newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<T> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return newKeySelector(name, expression);
-        }
-    }
-
-    private static class OthersValueSelectorSupplier extends BaseOthersSelectorSupplier
-            implements ValueSelectorSupplier<Object> {
-
-        OthersValueSelectorSupplier(EvaluatorType type) {
-            super(type, Constant.VALUE);
-        }
-
-        @Override
-        public ValueSelector<Object> newSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            return newValueSelector(name, expression);
+            return (ValueSelector<T>) selectorSupplier.newSelector(name, expression);
         }
     }
 
@@ -102,7 +104,6 @@ public class OthersSelectorSuppliers {
 
     static {
         DESERIALIAZERS.put(EvaluatorType.STRING, new StringDeserializer());
-        DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
         DESERIALIAZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
         DESERIALIAZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
         DESERIALIAZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
@@ -115,13 +116,57 @@ public class OthersSelectorSuppliers {
         DESERIALIAZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
     }
 
-    public static ValueSelectorSupplier<?> valueSelectorSupplier(EvaluatorType type) {
-        return new OthersValueSelectorSupplier(type);
+    private final EvaluatorType keyEvaluatorType;
+    private final EvaluatorType valueEvaluatorType;
+
+    public OthersSelectorSuppliers(ConnectorConfig config) {
+        this(config.getKeyEvaluator(), config.getValueEvaluator());
     }
 
-    public static KeySelectorSupplier<?> keySelectorSupplier(EvaluatorType type) {
-        return new OthersKeySelectorSupplier(type);
+    public OthersSelectorSuppliers(EvaluatorType keyValueType) {
+        this(keyValueType, keyValueType);
     }
 
-    private OthersSelectorSuppliers() {}
+    public OthersSelectorSuppliers(EvaluatorType keyType, EvaluatorType valueType) {
+        this.keyEvaluatorType = keyType;
+        this.valueEvaluatorType = valueType;
+    }
+
+    public EvaluatorType keyEvaluatorType() {
+        return keyEvaluatorType;
+    }
+
+    public EvaluatorType valueEvaluatorType() {
+        return valueEvaluatorType;
+    }
+
+    @Override
+    public KeySelectorSupplier<Object> makeKeySelectorSupplier() {
+        return new OthersKeySelectorSupplier<>(keyEvaluatorType, Object.class);
+    }
+
+    @Override
+    public ValueSelectorSupplier<Object> makeValueSelectorSupplier() {
+        return new OthersValueSelectorSupplier<>(valueEvaluatorType, Object.class);
+    }
+
+    public static <K> KeySelectorSupplier<K> KeySelectorSupplier(Class<K> klass) {
+        return new OthersKeySelectorSupplier<>(EvaluatorType.fromClass(klass), klass);
+    }
+
+    public static <V> ValueSelectorSupplier<V> ValueSelectorSupplier(Class<V> klass) {
+        return new OthersValueSelectorSupplier<>(EvaluatorType.fromClass(klass), klass);
+    }
+
+    public static KeySelectorSupplier<String> StringKey() {
+        return KeySelectorSupplier(String.class);
+    }
+
+    public static ValueSelectorSupplier<String> StringValue() {
+        return ValueSelectorSupplier(String.class);
+    }
+
+    public static KeyValueSelectorSuppliers<String, String> String() {
+        return new WrapperKeyValueSelectorSuppliers<>(StringKey(), StringValue());
+    }
 }
