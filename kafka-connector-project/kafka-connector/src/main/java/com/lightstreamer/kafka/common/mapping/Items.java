@@ -97,7 +97,7 @@ public class Items {
 
         @Override
         public Map<String, String> values() {
-            return Map.copyOf(valuesMap);
+            return valuesMap;
         }
 
         @Override
@@ -112,7 +112,7 @@ public class Items {
         private final DefaultItem wrappedItem;
 
         DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
-            wrappedItem = new DefaultItem(prefix, values);
+            this.wrappedItem = new DefaultItem(prefix, values);
             this.itemHandle = itemHandle;
         }
 
@@ -142,6 +142,11 @@ public class Items {
         @Override
         public Object itemHandle() {
             return itemHandle;
+        }
+
+        @Override
+        public String toString() {
+            return wrappedItem.toString();
         }
     }
 
@@ -211,10 +216,10 @@ public class Items {
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return subcribedFrom(input, input);
+        return subscribedFrom(input, input);
     }
 
-    public static SubscribedItem subcribedFrom(String input, Object itemHandle)
+    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
             throws ExpressionException {
         SubscriptionExpression result = Expressions.Subscription(input);
         return subscribedFrom(itemHandle, result.prefix(), result.params());
