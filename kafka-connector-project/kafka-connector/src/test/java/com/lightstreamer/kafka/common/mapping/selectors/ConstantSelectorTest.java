@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.test_utils.ConsumerRecords.record;
+import static com.lightstreamer.kafka.test_utils.Records.record;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -45,7 +45,7 @@ public class ConstantSelectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"VALUE.a", "KEY.b", "OFFSET.a"})
     void shouldNotCreateSelectorDueToNotAllowedAttributes(String expressionStr) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> selector(expression));
         assertThat(ee.getMessage())
@@ -70,7 +70,7 @@ public class ConstantSelectorTest {
                     """)
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
-        ExtractionExpression ee = Expressions.expression(expression);
+        ExtractionExpression ee = Expressions.Expression(expression);
         Data data = selector(ee).extract(record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo(expectedValue);
@@ -94,7 +94,7 @@ public class ConstantSelectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
     public void shouldNotCreateDueToNotAllowedConstant(String expressionStr) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
@@ -108,22 +108,22 @@ public class ConstantSelectorTest {
 
     @Test
     public void shouldCreateKeySelectorAndExtractData() throws ExtractionException {
-        ExtractionExpression expression = Expressions.expression("KEY");
+        ExtractionExpression expression = Expressions.Expression("KEY");
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
-        KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
-        Data data = newKeySelector.extractKey(record("record-key", "record-value"));
+        ConstantSelector selector = cs.newSelector("field_name", expression);
+        Data data = selector.extractKey(record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-key");
     }
 
     @Test
     public void shouldCreateValueSelectorAndExtractData() throws ExtractionException {
-        ExtractionExpression expression = Expressions.expression("VALUE");
+        ExtractionExpression expression = Expressions.Expression("VALUE");
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
-        KeySelector<Object> newKeySelector = cs.newKeySelector("field_name", expression);
-        Data data = newKeySelector.extractKey(record("record-key", "record-value"));
+        ConstantSelector selector = cs.newSelector("field_name", expression);
+        Data data = selector.extractValue(record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-value");
     }
@@ -131,14 +131,14 @@ public class ConstantSelectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
     public void shouldNotCreateKeySelector(String expressionStr) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
         ExtractionException ee1 =
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            cs.newKeySelector("field_name", expression);
+                            cs.newSelector("field_name", expression);
                         });
         assertThat(ee1.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [field_name]");
@@ -147,16 +147,55 @@ public class ConstantSelectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
     public void shouldNotCreatValueSelector(String expressionStr) {
-        ExtractionExpression expression = Expressions.expression(expressionStr);
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            cs.newValueSelector("field_name", expression);
+                            cs.newSelector("field_name", expression);
                         });
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [field_name]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
+    public void shouldCreateEqualSelectors(String expressionStr) throws ExtractionException {
+        ConstantSelector selector1 = selector(Expressions.Expression(expressionStr));
+        assertThat(selector1.equals(selector1)).isTrue();
+
+        ConstantSelector selector2 = selector(Expressions.Expression(expressionStr));
+        assertThat(selector1.hashCode()).isEqualTo(selector2.hashCode());
+        assertThat(selector1.equals(selector2)).isTrue();
+    }
+
+    @Test
+    public void shouldCreateEqualKeySelectors() throws ExtractionException {
+        KeySelector<Object> keySelector1 =
+                ConstantSelectorSupplier.KeySelector()
+                        .newSelector("field_name", Expressions.Expression("KEY"));
+        assertThat(keySelector1.equals(keySelector1)).isTrue();
+
+        KeySelector<Object> keySelector2 =
+                ConstantSelectorSupplier.KeySelector()
+                        .newSelector("field_name", Expressions.Expression("KEY"));
+        assertThat(keySelector1.hashCode()).isEqualTo(keySelector2.hashCode());
+        assertThat(keySelector1.equals(keySelector2)).isTrue();
+    }
+
+    @Test
+    public void shouldCreateEqualValueSelectors() throws ExtractionException {
+        KeySelector<Object> valueSelector1 =
+                ConstantSelectorSupplier.ValueSelector()
+                        .newSelector("field_name", Expressions.Expression("VALUE"));
+        assertThat(valueSelector1.equals(valueSelector1)).isTrue();
+
+        KeySelector<Object> valueSelector2 =
+                ConstantSelectorSupplier.ValueSelector()
+                        .newSelector("field_name", Expressions.Expression("VALUE"));
+        assertThat(valueSelector1.hashCode()).isEqualTo(valueSelector2.hashCode());
+        assertThat(valueSelector1.equals(valueSelector2)).isTrue();
     }
 }

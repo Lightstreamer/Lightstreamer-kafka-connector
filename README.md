@@ -43,6 +43,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
     - [Encryption Parameters](#encryption-parameters-1)
     - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+- [Client Side Error Handling](#client-side-error-handling)
 - [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
 - [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
@@ -822,7 +823,7 @@ Example of configuration with the use of a ticket cache:
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L22) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L454) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start Redpanda Serverless Example
 
@@ -868,6 +869,42 @@ Example:
 
 ```xml
 <param name="record.consume.from">EARLIEST</param>
+```
+
+#### `record.consume.with.num.threads`
+
+_Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
+
+Default value: `1`.
+
+Example:
+
+```xml
+<param name="record.consume.with.num.threads">4</param>
+```
+
+#### `record.consume.with.order.strategy`
+
+_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes hte default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+
+- `ORDER_BY_PARTITION`: maintain the order of records within each partition.
+
+   If you have multiple partitions, records from different partitions can be processed concurrently by different threads, but the order of records from a single partition will always be preserved. This is the default and generally a good balance between performance and order.
+
+- `ORDER_BY_KEY`: maintain the order among the records sharing the same key.
+
+  Different keys can be processed concurrently by different threads. So, while all records with key "A" are processed in order, and all records with key "B" are processed in order, the processing of "A" and "B" records can happen concurrently and interleaved in time. There's no guaranteed order between records of different keys.
+
+- `UNORDERED`: provide no ordering guarantees.
+
+  Records from any partition and with any key can be processed by any thread at any time. This offers the highest throughput when an high number of subscriptions is involved, but the order in which records are delivered to Lightstreamer clients might not match the order they were written to Kafka. This is suitable for use cases where message order is not important.
+
+Default value: `ORDER_BY_PARTITION`.
+
+Example:
+
+```xml
+<param name="record.consume.with.order.strategyy">ORDER_BY_KEY</param>
 ```
 
 #### `record.key.evaluator.type` and `record.value.evaluator.type`
@@ -925,10 +962,10 @@ Examples:
 
 #### `record.extraction.error.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#record-mapping-fieldfieldname) from incoming deserialized records. Can be one of the following:
+_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
 - `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection
+- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section)
 
 Default value: `IGNORE_AND_CONTINUE`.
 
@@ -1066,7 +1103,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L352) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L374) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1155,8 +1192,8 @@ which specifies how to route records published from the topic `user` to the item
 Let's suppose we have three different Lightstreamer clients:
 
 1. _Client A_ subscribes to the following parameterized items:
-   - _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`
-   - _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user
+   - _SA1_ `user-[firstName=James,lastName=Kirk]` for receiving real-time updates relative to the user `James Kirk`.
+   - _SA2_ `user-[age=45]` for receiving real-time updates relative to any 45 year-old user.
 2. _Client B_ subscribes to the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`.
 3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]` for receiving real-time updates relative to any 37 year-old user.
 
@@ -1308,6 +1345,28 @@ Example:
 #### Quick Start Schema Registry Example
 
 Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+
+# Client Side Error Handling
+
+When a client sends a subscription to the Kafka Connector, several error conditions can occur:
+
+- Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopicto) configurations exist in the broker.
+- Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
+
+In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
+
+```java
+subscription.addSubscriptionListener(new SubscriptionListener() {
+  ...
+  public void onUnsubscription() {
+      // Manage the unscription event.
+  }
+  ...
+
+});
+
+```
 
 # Customize the Kafka Connector Metadata Adapter Class
 

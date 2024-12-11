@@ -19,36 +19,14 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
-
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-import java.util.Set;
-
-public class DataContainerTest {
+public class DataTest {
 
     @Test
     public void shouldCreateValue() {
         Data data = Data.from("name", "value");
-
         assertThat(data.text()).isEqualTo("value");
         assertThat(data.name()).isEqualTo("name");
-    }
-
-    @Test
-    public void shouldCreateValuesContainer() throws ExtractionException {
-        DataExtractor<String, String> extractor =
-                DataExtractor.<String, String>builder()
-                        .withSuppliers(TestSelectorSuppliers.string())
-                        .withSchemaName("schema")
-                        .withExpressions(Map.of("name", Expressions.expression("VALUE")))
-                        .build();
-        DataContainer container =
-                DataContainer.from(extractor, Set.of(Data.from("name", "aValue")));
-
-        assertThat(container.extractor()).isSameInstanceAs(extractor);
-        assertThat(container.data()).containsExactly(Data.from("name", "aValue"));
     }
 }
