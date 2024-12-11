@@ -63,6 +63,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return get(configKey, ConfType.INT, false);
     }
 
+    public final String getThreads(String configKey) {
+        return get(configKey, ConfType.THREADS, false);
+    }
+
     public final String getText(String configKey) {
         return get(configKey, TEXT, false);
     }

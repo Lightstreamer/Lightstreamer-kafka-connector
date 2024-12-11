@@ -101,19 +101,19 @@ public class Expressions {
 
     private static final Expressions EXPRESSIONS = new Expressions();
 
-    public static TemplateExpression template(String templateExpression) {
+    public static TemplateExpression Template(String templateExpression) {
         return EXPRESSIONS.newTemplateExpression(templateExpression);
     }
 
-    public static ExtractionExpression wrapped(String wrappedExpression) {
+    public static ExtractionExpression Wrapped(String wrappedExpression) {
         return EXPRESSIONS.fromWrapped(wrappedExpression);
     }
 
-    public static SubscriptionExpression subscription(String subscriptionExpression) {
+    public static SubscriptionExpression Subscription(String subscriptionExpression) {
         return EXPRESSIONS.newSubscriptionExpression(subscriptionExpression);
     }
 
-    public static ExtractionExpression expression(String expression) {
+    public static ExtractionExpression Expression(String expression) {
         return EXPRESSIONS.newExpression(expression);
     }
 
