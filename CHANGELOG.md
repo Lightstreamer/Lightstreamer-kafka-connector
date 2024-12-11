@@ -1,12 +1,14 @@
 # Changelog
 
-## [1.1.0] (Unreleased)
+## [1.1.0] (2024-12-11)
 
-**Documentation**
+**Improvements**
 
 - Added support for concurrent processing, along with deep refactoring of the code base for better performance. ([#29](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/29))
 
 - Upgraded _Gradle_ to version 8.11.1. ([#29](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/29))
+
+**Documentation**
 
 - Added some style changes to the [README.md](README.md) and factory [adapters.xml](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files. ([#28](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/28))
 
