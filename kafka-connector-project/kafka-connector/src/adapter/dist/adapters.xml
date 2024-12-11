@@ -272,14 +272,9 @@
              The order strategy to be used for concurrent processing of the incoming
              deserialized records. Can be one of the following:
 
-             - ORDER_BY_PARTITION: processe records from multiple partitions concurrently,
-                                   maintaining the order of records within each partition
-             - ORDER_BY_KEY: process records from multiple partitions concurrently, maintaining
-                             the order of records with the same key. This may result in slower
-                             processing speeds compared to `ORDER_BY_PARTITION`.
-             - UNORDERED: process records from multiple partitions concurrently, without any
-                          guarantee of order. This offers the highest processing speed but may
-                          result in out-of-order delivery to consumers.
+             - ORDER_BY_PARTITION: maintain the order of records within each partition
+             - ORDER_BY_KEY: maintain the order among the records sharing the same key
+             - UNORDERED: provide no ordering guarantees
 
              Default value: ORDER_BY_PARTITION. -->
         <!--

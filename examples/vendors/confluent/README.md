@@ -237,7 +237,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L446) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L441) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -878,7 +878,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L460) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L454) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -936,11 +936,19 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes hte default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
-- `ORDER_BY_PARTITION`: processe records from multiple partitions concurrently, maintaining the order of records within each partition
-- `ORDER_BY_KEY`: process records from multiple partitions concurrently, maintaining the order of records with the same key. This may result in slower processing speeds compared to `ORDER_BY_PARTITION`.
-- `UNORDERED`: process records from multiple partitions concurrently, without any guarantee of order. This offers the highest processing speed but may result in out-of-order delivery to consumers.
+- `ORDER_BY_PARTITION`: maintain the order of records within each partition.
+
+   If you have multiple partitions, records from different partitions can be processed concurrently by different threads, but the order of records from a single partition will always be preserved. This is the default and generally a good balance between performance and order.
+
+- `ORDER_BY_KEY`: maintain the order among the records sharing the same key.
+
+  Different keys can be processed concurrently by different threads. So, while all records with key "A" are processed in order, and all records with key "B" are processed in order, the processing of "A" and "B" records can happen concurrently and interleaved in time. There's no guaranteed order between records of different keys.
+
+- `UNORDERED`: provide no ordering guarantees.
+
+  Records from any partition and with any key can be processed by any thread at any time. This offers the highest throughput when an high number of subscriptions is involved, but the order in which records are delivered to Lightstreamer clients might not match the order they were written to Kafka. This is suitable for use cases where message order is not important.
 
 Default value: `ORDER_BY_PARTITION`.
 
@@ -1146,7 +1154,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L475) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L469) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
