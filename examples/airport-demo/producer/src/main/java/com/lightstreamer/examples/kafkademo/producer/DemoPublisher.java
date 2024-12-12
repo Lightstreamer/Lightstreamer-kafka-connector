@@ -3,11 +3,13 @@ package com.lightstreamer.examples.kafkademo.producer;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -123,6 +125,19 @@ public class DemoPublisher {
                     if ( countdown_to_end_of_day-- == 0 ) {
                         
                         if (!fisrt) {
+                            // Cleanup all the keys
+                            for (String fno : flight_momentum.keySet()) {
+                                System.out.println("Key: " + fno + ". Value: " + flight_momentum.get(fno));
+
+                                FlightInfo endup = new FlightInfo("", "", fno,  0, "", "");
+                                endup.command = "DELETE";
+
+                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, fno, endup));
+
+                                rmtdta = futurek.get();
+                            }
+
+
                             logger.info("Send CS messasge.");
 
                             FlightInfo cs = new FlightInfo("", "", "",  0, "", "");
@@ -187,13 +202,9 @@ public class DemoPublisher {
 
                             key = "LS" + tmp;
                             command = "ADD";
-                        } else {
-                            int fd = random.nextInt(10);
-                            Iterator<String> itr = flight_momentum.keySet().iterator();
-                            for (int k = 0; k < fd; k++) {
-                                itr.next();
-                            }
-                            key = itr.next();
+                        } else {                           
+                            key = getRandomKey(flight_momentum);
+
                             command = "UPDATE";
                         }
 
@@ -201,8 +212,7 @@ public class DemoPublisher {
                         if (to_delete.size() > 0 ) {
                             command = "DELETE";
                             to_delete.clear();
-                        }
-                        
+                        }                         
                         logger.info("Key : " + key + ", new Message : " + flightinfo.departure);
 
                         flightinfo.currentTime = sdf.format(calendar.getTime());
@@ -313,10 +323,21 @@ public class DemoPublisher {
         }
 
         flightinfo = new FlightInfo(status_icon.get(inds) + ' ' + destinations.get(indx), departure, key, trmnl,
-                status_desc.get(inds), "Lightstreamer Airlines");
+            status_desc.get(inds), "Lightstreamer Airlines");
 
         return flightinfo;
     }
+
+    private static String getRandomKey(Map<String, Integer> map) {
+        Set<String> keys = map.keySet();
+        String[] keyArray = keys.toArray(new String[0]);
+
+        Random random = new Random();
+        int randomIndex = random.nextInt(keyArray.length);
+
+        return keyArray[randomIndex];
+    }
+
     public static void main(String[] args) {
         
         logger.info("Start Kafka demo producer: " + args.length);

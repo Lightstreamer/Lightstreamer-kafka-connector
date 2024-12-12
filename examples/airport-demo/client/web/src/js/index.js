@@ -64,7 +64,12 @@ function main() {
         departure:updateInfo.getValue("departure"),flightno:updateInfo.getValue("flightNo"),
         airline:updateInfo.getValue("airline"),terminal:updateInfo.getValue("terminal"),status:updateInfo.getValue("status")});
         */
-        watch.updateRow("time", {currentTime:updateInfo.getValue("currentTime")})
+
+        const value = updateInfo.getValue("currentTime");
+        if (value) {
+          watch.updateRow("time", {currentTime:updateInfo.getValue("currentTime")});
+        } 
+        
       },
 	  onClearSnapshot: function(itemName, itemPos) {
 		console.log("Clear snapshot for " + itemName);
