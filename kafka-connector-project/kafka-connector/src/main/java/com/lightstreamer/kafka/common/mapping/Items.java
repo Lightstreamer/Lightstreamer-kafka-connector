@@ -189,7 +189,7 @@ public class Items {
             return snapshotFlag;
         }
 
-        @Override 
+        @Override
         public void setSnapshot(boolean flag) {
             this.snapshotFlag = flag;
         }

@@ -217,12 +217,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("IGNORE_AND_CONTINUE"))
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
-                        .add(
-                                RECORD_COMMAND_ENABLE,
-                                false,
-                                false,
-                                BOOL,
-                                defaultValue("false"))
+                        .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_FROM,
                                 false,

@@ -75,6 +75,11 @@ class TestLoopConfig implements ConsumerLoopConfig<String, String> {
     }
 
     @Override
+    public boolean isCommandEnforceEnabled() {
+        return false;
+    }
+
+    @Override
     public Properties consumerProperties() {
         return new Properties();
     }

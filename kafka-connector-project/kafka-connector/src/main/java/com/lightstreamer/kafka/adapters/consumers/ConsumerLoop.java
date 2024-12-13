@@ -270,9 +270,10 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                 log.atInfo().log("Routing record to {} items", routables.size());
                 for (SubscribedItem sub : routables) {
-                    
-                    log.atDebug().log("Enforce COMMAND mode semantic of records read: {}", config.isCommandEnforceEnabled());
-                    if ( config.isCommandEnforceEnabled() ) {
+                    log.atDebug().log(
+                            "Enforce·COMMAND·mode·semantic·of·records·read:·{}",
+                            config.isCommandEnforceEnabled());
+                    if (config.isCommandEnforceEnabled()) {
                         if (checkCommand(updates)) {
                             if (updates.get("key").equals("snapshot")) {
                                 switch (updates.get("command")) {
@@ -291,19 +292,29 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
 
                                         break;
                                     default:
-                                    log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));    
+                                        log.atWarn()
+                                                .log(
+                                                        "Discarding record due to command mode fields not properly valued: {}",
+                                                        updates.get("key"));
                                 }
                             } else {
                                 if (checkCommandField(updates.get("command"))) {
                                     log.atDebug().log("Sending updates: {}", updates);
 
-                                    eventListener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
+                                    eventListener.smartUpdate(
+                                            sub.itemHandle(), updates, sub.isSnapshot());
                                 } else {
-                                    log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));
+                                    log.atWarn()
+                                            .log(
+                                                    "Discarding record due to command mode fields not properly valued: {}",
+                                                    updates.get("key"));
                                 }
                             }
                         } else {
-                            log.atWarn().log("Discarding record due to command mode fields not properly valued: {}", updates.get("key"));
+                            log.atWarn()
+                                    .log(
+                                            "Discarding record due to command mode fields not properly valued: {}",
+                                            updates.get("key"));
                         }
                     } else {
                         eventListener.smartUpdate(sub.itemHandle(), updates, false);
@@ -368,9 +379,9 @@ public class ConsumerLoop<K, V> extends AbstractConsumerLoop<K, V> {
             }
 
             log.atDebug().log("key {} - command {}", input.get("key"), input.get("command"));
-            return switch(command) {
+            return switch (command) {
                 case "ADD", "DELETE", "UPDATE", "CS", "EOS" -> true;
-                default -> false; 
+                default -> false;
             };
         }
 
