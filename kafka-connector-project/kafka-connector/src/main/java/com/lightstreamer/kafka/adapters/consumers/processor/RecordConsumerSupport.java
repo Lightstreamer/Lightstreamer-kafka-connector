@@ -229,13 +229,17 @@ class RecordConsumerSupport {
             log.atDebug().log(() -> "Mapped Kafka record");
 
             Set<SubscribedItem> routables = mappedRecord.route(subscribedItems);
+            if (routables.size() > 0) {
+                log.atDebug().log(() -> "Filtering updates");
+                Map<String, String> updates = mappedRecord.fieldsMap();
 
-            log.atDebug().log(() -> "Filtering updates");
-            Map<String, String> updates = mappedRecord.fieldsMap();
-
-            for (SubscribedItem sub : routables) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                listener.smartUpdate(sub.itemHandle(), updates, false);
+                log.atInfo().log("Routing record to {} items", routables.size());
+                for (SubscribedItem sub : routables) {
+                    log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                    listener.smartUpdate(sub.itemHandle(), updates, false);
+                }
+            } else {
+                log.atInfo().log("No routable items found");
             }
         }
     }
