@@ -654,6 +654,7 @@ public class RecordConsumerTest {
         return Stream.of(
                 Arguments.of(1, ValueException.fieldNotFound("field")),
                 Arguments.of(2, ValueException.fieldNotFound("field")),
+                Arguments.of(1, new RuntimeException("Serious issue")),
                 Arguments.of(2, new RuntimeException("Serious issue")));
     }
 
@@ -666,7 +667,7 @@ public class RecordConsumerTest {
         ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, partitions);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
-        List<ConsumedRecordInfo> offsetsTriggeringException =
+        List<ConsumedRecordInfo> offendingOffsets =
                 List.of(
                         new ConsumedRecordInfo("topic", 0, 2l),
                         new ConsumedRecordInfo("topic", 0, 4l),
@@ -676,21 +677,26 @@ public class RecordConsumerTest {
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordProcessor(
                                 new MockRecordProcessor<String, String>(
-                                        exception, offsetsTriggeringException))
+                                        exception, offendingOffsets))
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
                         .threads(numOfThreads)
-                        // This enforse usage of the SingleThreadedConsume if numOfThreads is 1
-                        // .preferSingleThread(true)
+                        // This enforces usage of the SingleThreadedConsumer if numOfThreads is 1
+                        .preferSingleThread(true)
                         .build();
 
         assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
 
-        // Ensure that the commited offsets do not include the broken ones.
         List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
-        assertThat(consumedRecords).hasSize(records.count() - offsetsTriggeringException.size());
-        assertThat(consumedRecords).containsNoneIn(offsetsTriggeringException);
+        // For single-threaded processing, processing will stop upon first failure, therefore only
+        // the first two records (offsets 0l and 1l) will be procesed.
+        // For concurrent processing, processing won't stop upon first faulire, therefore we expect
+        // to find only the "good" offsets.
+        int expectedNumOfProcessedRecords =
+                numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
+        assertThat(consumedRecords).hasSize(expectedNumOfProcessedRecords);
+        assertThat(consumedRecords).containsNoneIn(offendingOffsets);
     }
 
     @ParameterizedTest
@@ -703,7 +709,7 @@ public class RecordConsumerTest {
         ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, partitions);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
-        List<ConsumedRecordInfo> offsetsTriggeringException =
+        List<ConsumedRecordInfo> offendingOffsets =
                 List.of(
                         new ConsumedRecordInfo("topic", 0, 2l),
                         new ConsumedRecordInfo("topic", 0, 4l),
@@ -713,27 +719,28 @@ public class RecordConsumerTest {
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordProcessor(
                                 new MockRecordProcessor<String, String>(
-                                        exception, offsetsTriggeringException))
+                                        exception, offendingOffsets))
                         .offsetService(offsetService)
                         // The following prevents the exception to be propagated
                         .errorStrategy(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE)
                         .logger(logger)
                         .threads(numOfThreads)
-                        // This enforse usage of the SingleThreadedConsume if numOfThreads is 1
+                        // This enforces usage of the SingleThreadedConsume if numOfThreads is 1
                         .preferSingleThread(true)
                         .build();
 
         if (exception instanceof ValueException) {
             recordConsumer.consumeRecords(records);
-            // Ensure that all offsets are commited
+            // Ensure that all offsets are commited (even the offending ones)
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             assertThat(consumedRecords).hasSize(records.count());
         } else {
             assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
-            assertThat(consumedRecords)
-                    .hasSize(records.count() - offsetsTriggeringException.size());
-            assertThat(consumedRecords).containsNoneIn(offsetsTriggeringException);
+            int expectedNumOfProcessedRecords =
+                    numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
+            assertThat(consumedRecords).hasSize(expectedNumOfProcessedRecords);
+            assertThat(consumedRecords).containsNoneIn(offendingOffsets);
         }
     }
 
