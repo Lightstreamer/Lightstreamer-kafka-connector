@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<!--
+  LIGHTSTREAMER - www.lightstreamer.com
+  Basic Stock-List Demo
+
+  Copyright (c) Lightstreamer Srl
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+  <title>Lightstreamer Kafka Connector | Basic Stock-List Demo</title>
+  <link rel="stylesheet" type="text/css" href="css/table.css" />
+  <script src="https://unpkg.com/lightstreamer-client-web/lightstreamer.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('The page has loaded!');
+      subsribeToKafkaConnector();
+    });
+
+    function subsribeToKafkaConnector() {
+      var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
+
+      lsClient.addListener(new StatusWidget("left", "0px", true));
+      lsClient.connect();
+
+      var stocksGrid = new StaticGrid("stocks", true);
+      stocksGrid.setAutoCleanBehavior(true, false);
+      stocksGrid.addListener({
+          onVisualUpdate: function (key, info, pos) {
+              if (info == null) {
+                  //cleaning
+                  return;
+              }
+              var stockIndex = key.substring(13, key.indexOf(']'))
+              var cold = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
+              info.setAttribute("#fff7d5", cold, "backgroundColor");
+          }
+      });
+
+      var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
+      stockSubscription.addListener(stocksGrid);
+      stockSubscription.setDataAdapter("prices");
+
+      lsClient.subscribe(stockSubscription);
+    }
+  </script>
+</head>
+
+<body>
+  <div class="ribbon">
+    <a href="https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/compose-templates/web" target="_bòank">Fork me on GitHub</a>
+  </div>
+  <div id="wrap">
+      <div class="banner">
+          <a href="https://www.lightstreamer.com"><img src="images/logo.png" alt="Logo" class="logo"></a>
+		      <div class="title">Kafka Connector</div>
+          <div class="subtitle">Basic Stock-List Demo</div>
+      </div>
+
+    <!-- stock table -->
+    <div class="tableContainer">
+      <table cellspacing="0" cellpadding="4" border="0" style="width: 100%;" >
+        <tr class="tableTitle">
+          <td style="text-align: left">SYMBOL</td>
+          <td style="text-align: left">QCHARTTOT</td>
+          <td >TRow</td>
+          <td style="text-align: center">TMSTMP</td>
+          <td >QCHART</td>
+          <td >VTOT</td>
+          <td >QTOT</td>
+          <td >QA</td>
+          <td >Q</td>
+          <td >PA</td>
+          <td >PCHART</td>
+          <td >NTRAD</td>
+          <td >PLIM_MIN</td>
+          <td >PLIM_MAX</td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1010]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1020]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1030]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1040]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1050]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1060]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1070]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1080]" data-field="PLIM_MAX">-</div></td>
+        </tr>
+
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="SYMBOL">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: left"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="QCHARTTOT">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="TRow">-</div></td>
+          <td nowrap="nowrap"><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="TMSTMP">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="QCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="VTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="QTOT">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="QA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="Q">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="PA">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="PCHART">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="NTRAD">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="PLIM_MIN">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="stocks" data-item="quote-[topic=MPDF.SIT.DATA.QUOTE.SAMA.1090]" data-field="PLIM_MAX">-</div></td>
+        </tr>        
+
+      </table>
+    </div>
+    <div class="disc">Simulated market data.</div>
+
+  </div>
+</body>
+
+</html>

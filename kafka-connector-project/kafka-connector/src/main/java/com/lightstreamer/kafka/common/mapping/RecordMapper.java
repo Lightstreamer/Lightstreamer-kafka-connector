@@ -144,7 +144,14 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     @Override
     public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
-        var extractors = templateExtractors.getOrDefault(record.topic(), emptySet());
+        String topic = record.topic();
+        // templateExtractors.keySet().stream().filter(t->topic.matches(t));
+        var extractors =
+                templateExtractors.entrySet().stream()
+                        .filter(e -> topic.matches(e.getKey()))
+                        .flatMap(e -> e.getValue().stream())
+                        .collect(Collectors.toSet());
+        // var extractors = templateExtractors.getOrDefault(topic, emptySet());
         if (extractors.isEmpty()) {
             return DefaultMappedRecord.NOPRecord;
         }

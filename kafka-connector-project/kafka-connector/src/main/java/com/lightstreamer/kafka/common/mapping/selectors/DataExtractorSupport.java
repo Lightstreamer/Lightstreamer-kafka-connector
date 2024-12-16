@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,24 +35,28 @@ class DataExtractorSupport {
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> suppliers,
             String schema,
-            Map<String, ExtractionExpression> expressions)
+            Map<String, ExtractionExpression> expressions,
+            boolean skipOnFailure)
             throws ExtractionException {
-        return new DataExtractorImpl<>(suppliers, schema, expressions);
+        return new DataExtractorImpl<>(suppliers, schema, expressions, skipOnFailure);
     }
 
     private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
 
         private final Schema schema;
         private final WrapperSelectors<K, V> wrapperSelectors;
+        private final boolean skipOnFailure;
 
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
                 String schemaName,
-                Map<String, ExtractionExpression> expressions)
+                Map<String, ExtractionExpression> expressions,
+                boolean skipOnFailure)
                 throws ExtractionException {
 
             this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
             this.schema = mkSchema(schemaName);
+            this.skipOnFailure = skipOnFailure;
         }
 
         @Override
@@ -62,19 +67,27 @@ class DataExtractorSupport {
         public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
             Map<String, String> values = new HashMap<>();
             for (KeySelector<K> selector : wrapperSelectors.keySelectors()) {
-                Data data = selector.extractKey(record);
-                values.put(data.name(), data.text());
+                tryFill(() -> selector.extractKey(record), values);
             }
             for (ValueSelector<V> selector : wrapperSelectors.valueSelectors()) {
-                Data data = selector.extractValue(record);
-                values.put(data.name(), data.text());
+                tryFill(() -> selector.extractValue(record), values);
             }
             for (ConstantSelector selector : wrapperSelectors.metaSelectors()) {
-                Data data = selector.extract(record);
-                values.put(data.name(), data.text());
+                tryFill(() -> selector.extract(record), values);
             }
 
             return new DefaultSchemaAndValues(schema, values);
+        }
+
+        private void tryFill(Supplier<Data> supplier, Map<String, String> values) {
+            try {
+                Data data = supplier.get();
+                values.put(data.name(), data.text());
+            } catch (ValueException ve) {
+                if (!skipOnFailure) {
+                    throw ve;
+                }
+            }
         }
 
         @Override

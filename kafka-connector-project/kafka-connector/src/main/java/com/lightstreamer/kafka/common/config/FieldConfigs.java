@@ -65,6 +65,12 @@ public class FieldConfigs {
 
     public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions);
+        return extractor(selectorSuppliers, false);
+    }
+
+    public <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> selectorSuppliers, boolean skipOnFailure)
+            throws ExtractionException {
+        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure);
     }
 }

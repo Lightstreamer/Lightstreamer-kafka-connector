@@ -759,6 +759,7 @@ public class ConnectorConfigTest {
             strings = {
                 "AVRO",
                 "STRING",
+                "KVP",
                 "JSON",
                 "INTEGER",
                 "SHORT",

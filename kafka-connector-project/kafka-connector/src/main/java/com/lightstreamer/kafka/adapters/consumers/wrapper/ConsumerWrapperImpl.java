@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
@@ -186,28 +187,30 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             options.timeoutMs(30000);
 
             // Retain from the original requestes topics the available ones.
-            Set<String> existingTopics = admin.listTopics(options);
-            boolean notAllPresent = topics.retainAll(existingTopics);
+            // Set<String> existingTopics = admin.listTopics(options);
+            // boolean notAllPresent = topics.retainAll(existingTopics);
 
-            // Can't subscribe at all. Force unsubscription and exit the loop.
-            if (topics.isEmpty()) {
-                log.atWarn().log("Not found requested topics");
-                metadataListener.forceUnsubscriptionAll();
-                return false;
-            }
+            // // Can't subscribe at all. Force unsubscription and exit the loop.
+            // if (topics.isEmpty()) {
+            //     log.atWarn().log("Not found requested topics");
+            //     metadataListener.forceUnsubscriptionAll();
+            //     return false;
+            // }
 
-            // Just warn that not all requested topics can be subscribed.
-            if (notAllPresent) {
-                String loggableTopics =
-                        topics.stream()
-                                .map(s -> "\"%s\"".formatted(s))
-                                .collect(Collectors.joining(","));
-                log.atWarn()
-                        .log(
-                                "Actually subscribing to the following existing topics [{}]",
-                                loggableTopics);
-            }
-            consumer.subscribe(topics, offsetService);
+            // // Just warn that not all requested topics can be subscribed.
+            // if (notAllPresent) {
+            //     String loggableTopics =
+            //             topics.stream()
+            //                     .map(s -> "\"%s\"".formatted(s))
+            //                     .collect(Collectors.joining(","));
+            //     log.atWarn()
+            //             .log(
+            //                     "Actually subscribing to the following existing topics [{}]",
+            //                     loggableTopics);
+            // }
+            String regex = topics.stream().collect(Collectors.joining("|"));
+            log.debug("Subscribing to {}", regex);
+            consumer.subscribe(Pattern.compile(regex), offsetService);
             return true;
         } catch (Exception e) {
             log.atError().setCause(e).log();

@@ -35,21 +35,30 @@ public interface DataExtractor<K, V> {
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             String schemaName,
+            Map<String, ExtractionExpression> expressions,
+            boolean skipOnFailure)
+            throws ExtractionException {
+        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, skipOnFailure);
+    }
+
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            String schemaName,
             Map<String, ExtractionExpression> expressions)
             throws ExtractionException {
-        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions);
+        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression expression)
             throws ExtractionException {
-        return extractor(sSuppliers, expression.prefix(), expression.params());
+        return extractor(sSuppliers, expression.prefix(), expression.params(), false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, String schemaName)
             throws ExtractionException {
-        return extractor(sSuppliers, schemaName, Collections.emptyMap());
+        return extractor(sSuppliers, schemaName, Collections.emptyMap(), false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
@@ -58,6 +67,6 @@ public interface DataExtractor<K, V> {
             String parameter,
             String expression)
             throws ExpressionException, ExtractionException {
-        return extractor(sSuppliers, schema, Map.of(parameter, Expression(expression)));
+        return extractor(sSuppliers, schema, Map.of(parameter, Expression(expression)), false);
     }
 }

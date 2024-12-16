@@ -28,6 +28,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -40,6 +42,7 @@ import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
@@ -178,6 +181,34 @@ public class RecordRoutingTest {
             Set<SubscribedItem> routed = mapped.route(all);
             assertThat(routed).containsExactlyElementsIn(routablesForTopic);
         }
+    }
+
+    @Test
+    public void shimpleTest() throws ExtractionException {
+        // quote-[symbol=MPDF.SIT.DATA.QUOTE.SAMA.1010]
+        KvpSelectorsSuppliers kvpSelectorsSuppliers = new KvpSelectorsSuppliers();
+        ItemTemplates<String, String> templates =
+                ItemTemplatesUtils.ItemTemplates(
+                        new WrapperKeyValueSelectorSuppliers<>(
+                                kvpSelectorsSuppliers.makeKeySelectorSupplier(),
+                                kvpSelectorsSuppliers.makeValueSelectorSupplier()),
+                        List.of("MPDF.SIT.DATA.QUOTE.SAMA.1010*"),
+                        List.of("quote-#{symbol=TOPIC}"));
+
+        RecordMapper<String, String> mapper =
+                RecordMapper.<String, String>builder()
+                        .withTemplateExtractors(templates.extractorsByTopicName())
+                        .build();
+
+        MappedRecord mapped =
+                mapper.map(Records.record("MPDF.SIT.DATA.QUOTE.SAMA.1010", "key", "test"));
+        Set<SubscribedItem> route =
+                mapped.route(
+                        Set.of(
+                                Items.subscribedFrom(
+                                        "quote-[symbol=MPDF.SIT.DATA.QUOTE.SAMA.1010]",
+                                        new Object())));
+        assertThat(route.isEmpty()).isFalse();
     }
 
     static Stream<Arguments> templateArgsJson() {

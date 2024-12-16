@@ -174,7 +174,7 @@ public class Offsets {
                         offsetRepo.computeIfAbsent(
                                 partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
                 // Store the offsets that have been already delivered to clients,
-                // bot not yet committed (most likely due to an exception while processing in
+                // but not yet committed (most likely due to an exception while processing in
                 // parallel).
                 pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
             }
