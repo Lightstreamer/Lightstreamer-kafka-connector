@@ -294,7 +294,8 @@ class RecordConsumerSupport {
                     }
 
                     case FORCE_UNSUBSCRIPTION -> {
-                        // Do not log the error here because it will fully logged from the consuming loop
+                        // Do not log the error here because it will fully logged from
+                        // the consuming loop
                         logger.atWarn().log("Forcing unsubscription");
                         throw new KafkaException(ve);
                     }
