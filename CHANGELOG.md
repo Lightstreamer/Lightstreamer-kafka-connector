@@ -6,7 +6,6 @@
 
 - Updated the Airport demo to use COMMAND mode.
 
-**Improvements and Documentation**
 
 ## [1.0.7] (2024-11-06)
 
