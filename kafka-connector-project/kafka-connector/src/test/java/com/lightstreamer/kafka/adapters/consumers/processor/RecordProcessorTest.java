@@ -59,9 +59,11 @@ public class RecordProcessorTest {
         this.mapper =
                 builder()
                         .withTemplateExtractor(
-                                TEST_TOPIC, extractor(String(), "item1", Collections.emptyMap()))
+                                TEST_TOPIC,
+                                extractor(String(), "item1", Collections.emptyMap(), false))
                         .withTemplateExtractor(
-                                TEST_TOPIC, extractor(String(), "item2", Collections.emptyMap()))
+                                TEST_TOPIC,
+                                extractor(String(), "item2", Collections.emptyMap(), false))
                         .build();
         // Counts the listener invocations to deliver the real-time updates
         this.counter = new AtomicInteger();

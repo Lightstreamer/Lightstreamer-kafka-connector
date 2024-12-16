@@ -43,11 +43,25 @@ public class FieldConfigsTest {
     void shoudCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
+
+        boolean[] skipOnFailures = {false, true};
+        for (boolean skip : skipOnFailures) {
+            DataExtractor<String, String> extractor =
+                    configs.extractor(OthersSelectorSuppliers.String(), skip);
+            Schema schema = extractor.schema();
+            assertThat(schema.name()).isEqualTo("fields");
+            assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+            assertThat(extractor.skipOnFailure()).isEqualTo(skip);
+        }
+    }
+
+    @Test
+    void shouldCreateNoSkipOnFailureExtractor() throws ExtractionException {
+        Map<String, String> fieldMappings = Map.of("field1", "#{VALUE}");
+        FieldConfigs configs = FieldConfigs.from(fieldMappings);
         DataExtractor<String, String> extractor =
                 configs.extractor(OthersSelectorSuppliers.String());
-        Schema schema = extractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+        assertThat(extractor.skipOnFailure()).isFalse();
     }
 
     @Test
@@ -57,7 +71,7 @@ public class FieldConfigsTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> configs.extractor(OthersSelectorSuppliers.String()));
+                        () -> configs.extractor(OthersSelectorSuppliers.String(), false));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values while evaluating [field1]");
@@ -77,7 +91,8 @@ public class FieldConfigsTest {
             throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<Object, Object> extractor = configs.extractor(TestSelectorSuppliers.Object());
+        DataExtractor<Object, Object> extractor =
+                configs.extractor(TestSelectorSuppliers.Object(), false);
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());

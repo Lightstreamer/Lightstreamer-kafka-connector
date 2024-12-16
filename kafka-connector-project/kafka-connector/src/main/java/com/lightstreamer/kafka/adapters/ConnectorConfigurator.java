@@ -96,7 +96,7 @@ public class ConnectorConfigurator {
                 TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
 
         ItemTemplates<K, V> itemTemplates = Items.templatesFrom(topicsConfig, sSuppliers);
-        DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+        DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers, false);
 
         return new ConsumerTriggerConfigImpl<>(
                 config.getAdapterName(),
