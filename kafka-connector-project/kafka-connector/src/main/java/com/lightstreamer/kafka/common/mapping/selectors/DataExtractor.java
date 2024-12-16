@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
-
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
@@ -32,32 +29,28 @@ public interface DataExtractor<K, V> {
 
     Schema schema();
 
+    default boolean skipOnFailure() {
+        return false;
+    }
+
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             String schemaName,
-            Map<String, ExtractionExpression> expressions)
+            Map<String, ExtractionExpression> expressions,
+            boolean skipOnFailure)
             throws ExtractionException {
-        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions);
+        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, skipOnFailure);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression expression)
             throws ExtractionException {
-        return extractor(sSuppliers, expression.prefix(), expression.params());
+        return extractor(sSuppliers, expression.prefix(), expression.params(), false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, String schemaName)
             throws ExtractionException {
-        return extractor(sSuppliers, schemaName, Collections.emptyMap());
-    }
-
-    public static <K, V> DataExtractor<K, V> extractor(
-            KeyValueSelectorSuppliers<K, V> sSuppliers,
-            String schema,
-            String parameter,
-            String expression)
-            throws ExpressionException, ExtractionException {
-        return extractor(sSuppliers, schema, Map.of(parameter, Expression(expression)));
+        return extractor(sSuppliers, schemaName, Collections.emptyMap(), false);
     }
 }

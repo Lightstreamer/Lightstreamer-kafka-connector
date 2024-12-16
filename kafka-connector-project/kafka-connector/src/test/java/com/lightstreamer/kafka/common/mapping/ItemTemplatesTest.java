@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
@@ -102,14 +103,24 @@ public class ItemTemplatesTest {
                 .hasSize(1);
         assertWithMessage("The extractor associated with TEST_TOPIC_1 is as expected")
                 .that(extractors.get(TEST_TOPIC_1))
-                .containsExactly(extractor(Object(), "stock", "index", "KEY.attrib"));
+                .containsExactly(
+                        extractor(
+                                Object(),
+                                "stock",
+                                Map.of("index", Expression("KEY.attrib")),
+                                false));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
                 .that(extractors.get(TEST_TOPIC_2))
                 .hasSize(1);
         assertWithMessage("The extractor associated with TEST_TOPIC_2 is as expected")
                 .that(extractors.get(TEST_TOPIC_2))
-                .containsExactly(extractor(Object(), "stock", "index", "KEY.attrib"));
+                .containsExactly(
+                        extractor(
+                                Object(),
+                                "stock",
+                                Map.of("index", Expression("KEY.attrib")),
+                                false));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 

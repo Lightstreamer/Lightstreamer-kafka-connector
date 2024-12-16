@@ -84,7 +84,7 @@ public class Mocks {
         @Override
         public DataExtractor<String, String> fieldsExtractor() {
             try {
-                return FieldConfigs.from(Map.of("field", "#{VALUE}")).extractor(String());
+                return FieldConfigs.from(Map.of("field", "#{VALUE}")).extractor(String(), false);
             } catch (ExtractionException e) {
                 throw new RuntimeException(e);
             }

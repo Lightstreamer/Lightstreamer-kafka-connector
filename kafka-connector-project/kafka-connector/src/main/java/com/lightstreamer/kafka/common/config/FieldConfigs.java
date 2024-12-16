@@ -55,16 +55,18 @@ public class FieldConfigs {
         return new HashMap<>(expressions);
     }
 
-    public boolean contains(String fieldName) {
-        return expressions.containsKey(fieldName);
-    }
-
     public ExtractionExpression getExression(String fieldName) {
         return expressions.get(fieldName);
     }
 
+    public <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> selectorSuppliers, boolean skipOnFailure)
+            throws ExtractionException {
+        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure);
+    }
+
     public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions);
+        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, false);
     }
 }
