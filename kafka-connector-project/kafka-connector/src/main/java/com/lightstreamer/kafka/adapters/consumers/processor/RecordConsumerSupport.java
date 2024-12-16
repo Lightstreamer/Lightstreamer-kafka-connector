@@ -288,13 +288,13 @@ class RecordConsumerSupport {
 
                 switch (errorStrategy) {
                     case IGNORE_AND_CONTINUE -> {
-                        // We we log the error to catch the stack trace
+                        // Log the error here to catch the stack trace
                         logger.atWarn().setCause(ve).log("Ignoring error");
                         offsetService.updateOffsets(record);
                     }
 
                     case FORCE_UNSUBSCRIPTION -> {
-                        // Do not log the error, which will fully logged from the consuming loop
+                        // Do not log the error here because it will fully logged from the consuming loop
                         logger.atWarn().log("Forcing unsubscription");
                         throw new KafkaException(ve);
                     }
