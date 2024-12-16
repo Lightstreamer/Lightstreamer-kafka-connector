@@ -288,15 +288,20 @@ class RecordConsumerSupport {
 
                 switch (errorStrategy) {
                     case IGNORE_AND_CONTINUE -> {
-                        logger.atWarn().log("Ignoring error");
+                        // We we log the error to catch the stack trace
+                        logger.atWarn().setCause(ve).log("Ignoring error");
                         offsetService.updateOffsets(record);
                     }
 
                     case FORCE_UNSUBSCRIPTION -> {
+                        // Do not log the error, which will fully logged from the consuming loop
                         logger.atWarn().log("Forcing unsubscription");
                         throw new KafkaException(ve);
                     }
                 }
+            } catch (Throwable t) {
+                logger.atError().log("Serious error while processing record!");
+                throw new KafkaException(t);
             }
         }
     }
