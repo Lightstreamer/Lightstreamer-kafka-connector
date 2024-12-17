@@ -28,8 +28,11 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.EMPTY_MAP;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -179,6 +182,44 @@ public class DataExtractorTest {
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEmpty();
+    }
+
+    @Test
+    public void shouldFailExtraction() throws ExtractionException {
+        DataExtractor<String, JsonNode> extractor =
+                extractor(
+                        TestSelectorSuppliers.JsonValue(),
+                        "fields",
+                        Map.of(
+                                "undefined",
+                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                "name",
+                                Expressions.Wrapped("#{VALUE.name}")),
+                        false);
+
+        // We expect that the whole extraction fails
+        assertThrows(
+                ValueException.class,
+                () -> extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD)));
+    }
+
+    @Test
+    public void shouldSkipFailurelExtraction() throws ExtractionException {
+        DataExtractor<String, JsonNode> extractor =
+                extractor(
+                        TestSelectorSuppliers.JsonValue(),
+                        "fields",
+                        Map.of(
+                                "undefined",
+                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                "name",
+                                Expressions.Wrapped("#{VALUE.name}")),
+                        true);
+
+        // We expect that only the extraction related to the VALUE.undefined_attrib fails
+        SchemaAndValues tryExtractData =
+                extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD));
+        assertThat(tryExtractData.values()).containsAtLeast("name", "joe");
     }
 
     @ParameterizedTest
