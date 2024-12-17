@@ -29,14 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTrigge
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.apache.kafka.clients.admin.ListTopicsOptions;
@@ -349,17 +342,6 @@ public class BenchmarksUtils {
                         value,
                         new RecordHeaders(),
                         Optional.empty()));
-    }
-
-    public static DataExtractor<String, JsonNode> jsonExtractor(
-            String schemaName, Map<String, ExtractionExpression> expressions)
-            throws ExtractionException {
-
-        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
-        KeyValueSelectorSuppliers<String, JsonNode> ss =
-                new WrapperKeyValueSelectorSuppliers<>(
-                        OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
-        return DataExtractor.extractor(ss, schemaName, expressions);
     }
 
     public static class FakeAdminInterface implements AdminInterface {
