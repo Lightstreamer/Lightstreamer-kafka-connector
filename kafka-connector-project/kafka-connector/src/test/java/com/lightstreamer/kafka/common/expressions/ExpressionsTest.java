@@ -115,7 +115,11 @@ public class ExpressionsTest {
                 arguments(
                         "template-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}",
                         "template",
-                        Map.of("param1", "OFFSET", "param2", "PARTITION", "param3", "TIMESTAMP")));
+                        Map.of("param1", "OFFSET", "param2", "PARTITION", "param3", "TIMESTAMP")),
+                arguments(
+                        "template-#{param1=VALUE.complex_attrib_name.child_1_}",
+                        "template",
+                        Map.of("param1", "VALUE.complex_attrib_name.child_1_")));
     }
 
     @ParameterizedTest
