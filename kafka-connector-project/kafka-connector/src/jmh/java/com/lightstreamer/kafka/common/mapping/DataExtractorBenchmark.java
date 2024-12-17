@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Warmup(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 10, time = 10, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 10, time = 5, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 public class DataExtractorBenchmark {
 
@@ -64,7 +64,7 @@ public class DataExtractorBenchmark {
     DataExtractor<String, JsonNode> extractor;
     private List<KafkaRecord<String, JsonNode>> records;
 
-    @Param({"1", "100", "1000"})
+    @Param({"500"})
     public int numOfRecords;
 
     @Param({"10"})
@@ -81,36 +81,12 @@ public class DataExtractorBenchmark {
     }
 
     @Benchmark
-    public void misureExtract(Blackhole bh) {
+    public void misureExtractData(Blackhole bh) {
         for (int i = 0; i < numOfRecords; i++) {
             SchemaAndValues data = extractor.extractData(records.get(i));
             bh.consume(data);
         }
     }
-
-    // @Benchmark
-    // public void misureExtract1_0(Blackhole bh) {
-    //     for (int i = 0; i < size; i++) {
-    //         SchemaAndValues data = extractor.extractDataOld1_0(records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
-
-    // @Benchmark
-    // public void misureExtract1_1(Blackhole bh) {
-    //     for (int i = 0; i < size; i++) {
-    //         SchemaAndValues data = extractor.extractDataOld1_1(records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
-
-    // @Benchmark
-    // public void misureExtract2_0(Blackhole bh) {
-    //     for (int i = 0; i < size; i++) {
-    //         SchemaAndValues data = extractor.extractData2_0(records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
 
     public static void main(String[] args) throws Exception {
         jmh();
@@ -124,7 +100,7 @@ public class DataExtractorBenchmark {
         DataExtractorBenchmark benchmark = new DataExtractorBenchmark();
         benchmark.numOfRecords = 100;
         benchmark.setUp();
-        benchmark.misureExtract(bh);
+        benchmark.misureExtractData(bh);
     }
 
     private static void jmh() throws RunnerException {
