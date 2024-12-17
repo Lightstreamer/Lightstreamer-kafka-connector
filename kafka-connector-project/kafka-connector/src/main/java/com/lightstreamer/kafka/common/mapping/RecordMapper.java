@@ -184,7 +184,7 @@ final class DefaultMappedRecord implements MappedRecord {
     public Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribedItems) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        // The following seems the most performant loop way
+        // The following seems the most performant way
         // to popoulate the set of routable subscriptions.
         for (SubscribedItem item : subscribedItems) {
             for (SchemaAndValues e : indexedTemplates) {
