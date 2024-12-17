@@ -20,13 +20,14 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,6 +47,7 @@ class DataExtractorSupport {
         private final Schema schema;
         private final WrapperSelectors<K, V> wrapperSelectors;
         private final boolean skipOnFailure;
+        private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
 
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
@@ -57,6 +59,15 @@ class DataExtractorSupport {
             this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
             this.schema = mkSchema(schemaName);
             this.skipOnFailure = skipOnFailure;
+            for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
+                this.extractors.add(record -> keySelector.extractKey(record));
+            }
+            for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
+                this.extractors.add(record -> valueSelector.extractValue(record));
+            }
+            for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
+                this.extractors.add(record -> constantSelector.extract(record));
+            }
         }
 
         @Override
@@ -69,30 +80,20 @@ class DataExtractorSupport {
             return skipOnFailure;
         }
 
+        @Override
         public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
             Map<String, String> values = new HashMap<>();
-            for (KeySelector<K> selector : wrapperSelectors.keySelectors()) {
-                tryFill(() -> selector.extractKey(record), values);
-            }
-            for (ValueSelector<V> selector : wrapperSelectors.valueSelectors()) {
-                tryFill(() -> selector.extractValue(record), values);
-            }
-            for (ConstantSelector selector : wrapperSelectors.metaSelectors()) {
-                tryFill(() -> selector.extract(record), values);
-            }
-
-            return new DefaultSchemaAndValues(schema, values);
-        }
-
-        private void tryFill(Supplier<Data> supplier, Map<String, String> values) {
-            try {
-                Data data = supplier.get();
-                values.put(data.name(), data.text());
-            } catch (ValueException ve) {
-                if (!skipOnFailure) {
-                    throw ve;
+            for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
+                try {
+                    Data data = extractor.apply(record);
+                    values.put(data.name(), data.text());
+                } catch (ValueException ve) {
+                    if (!skipOnFailure) {
+                        throw ve;
+                    }
                 }
             }
+            return new DefaultSchemaAndValues(schema, values);
         }
 
         @Override
