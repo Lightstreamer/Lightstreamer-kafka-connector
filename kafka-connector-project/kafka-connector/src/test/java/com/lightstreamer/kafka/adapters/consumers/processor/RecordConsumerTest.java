@@ -81,7 +81,7 @@ public class RecordConsumerTest {
     private static RecordMapper<String, String> newRecordMapper(
             ConsumerTriggerConfig<String, String> config) {
         return RecordMapper.<String, String>builder()
-                .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
