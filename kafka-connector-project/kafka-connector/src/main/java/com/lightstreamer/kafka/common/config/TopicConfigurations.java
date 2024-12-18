@@ -17,8 +17,9 @@
 
 package com.lightstreamer.kafka.common.config;
 
+import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
+
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.utils.Either;
 import com.lightstreamer.kafka.common.utils.Split;
@@ -108,8 +109,7 @@ public class TopicConfigurations {
                 String templateName = entry.getKey();
                 String templateExpression = entry.getValue();
                 try {
-                    TemplateExpression te = Expressions.Template(templateExpression);
-                    expressions.put(templateName, te);
+                    expressions.put(templateName, Template(templateExpression));
                 } catch (ExpressionException e) {
                     String msg =
                             "Found the invalid expression [%s] while evaluating [%s]: <%s>"

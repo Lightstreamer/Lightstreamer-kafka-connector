@@ -92,6 +92,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
 
+    public static final String MAP_REG_EX_ENABLE = "map.reg_ex.enable";
+
     public static final String FIELD_MAPPING = "field";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
@@ -187,6 +189,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
@@ -807,6 +810,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public List<TopicMappingConfig> getTopicMappings() {
         return topicMappings;
+    }
+
+    public boolean isMapRegExEnabled() {
+        return getBoolean(MAP_REG_EX_ENABLE);
     }
 
     public FieldConfigs getFieldConfigs() {

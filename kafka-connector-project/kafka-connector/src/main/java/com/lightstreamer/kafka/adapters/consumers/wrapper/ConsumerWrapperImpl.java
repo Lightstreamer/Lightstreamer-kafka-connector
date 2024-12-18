@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
@@ -78,7 +80,9 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                        .withTemplateExtractors(
+                                config.itemTemplates().groupExtractors(),
+                                config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
@@ -175,44 +179,52 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     protected boolean subscribed() {
-        // Original requested topics.
-        Set<String> topics = new HashSet<>(config.itemTemplates().topics());
-        log.atInfo().log("Subscribing to requested topics [{}]", topics);
-        log.atDebug().log("Checking existing topics on Kafka");
+        ItemTemplates<K, V> templates = config.itemTemplates();
+        if (templates.isRegexEnabled()) {
+            String regex = templates.topics().stream().collect(Collectors.joining("|"));
+            log.debug("Subscribing to the requested pattern {}", regex);
+            consumer.subscribe(Pattern.compile(regex), offsetService);
+            return true;
+        } else {
+            // Original requested topics.
+            Set<String> topics = new HashSet<>(templates.topics());
+            log.atInfo().log("Subscribing to requested topics [{}]", topics);
+            log.atDebug().log("Checking existing topics on Kafka");
 
-        // Check the actual available topics on Kafka.
-        try (AdminInterface admin = adminFactory.apply(config.consumerProperties())) {
-            ListTopicsOptions options = new ListTopicsOptions();
-            options.timeoutMs(30000);
+            // Check the actual available topics on Kafka.
+            try (AdminInterface admin = adminFactory.apply(config.consumerProperties())) {
+                ListTopicsOptions options = new ListTopicsOptions();
+                options.timeoutMs(30000);
 
-            // Retain from the original requestes topics the available ones.
-            Set<String> existingTopics = admin.listTopics(options);
-            boolean notAllPresent = topics.retainAll(existingTopics);
+                // Retain from the original requestes topics the available ones.
+                Set<String> existingTopics = admin.listTopics(options);
+                boolean notAllPresent = topics.retainAll(existingTopics);
 
-            // Can't subscribe at all. Force unsubscription and exit the loop.
-            if (topics.isEmpty()) {
-                log.atWarn().log("Not found requested topics");
+                // Can't subscribe at all. Force unsubscription and exit the loop.
+                if (topics.isEmpty()) {
+                    log.atWarn().log("Not found requested topics");
+                    metadataListener.forceUnsubscriptionAll();
+                    return false;
+                }
+
+                // Just warn that not all requested topics can be subscribed.
+                if (notAllPresent) {
+                    String loggableTopics =
+                            topics.stream()
+                                    .map(s -> "\"%s\"".formatted(s))
+                                    .collect(Collectors.joining(","));
+                    log.atWarn()
+                            .log(
+                                    "Actually subscribing to the following existing topics [{}]",
+                                    loggableTopics);
+                }
+                consumer.subscribe(topics, offsetService);
+                return true;
+            } catch (Exception e) {
+                log.atError().setCause(e).log();
                 metadataListener.forceUnsubscriptionAll();
                 return false;
             }
-
-            // Just warn that not all requested topics can be subscribed.
-            if (notAllPresent) {
-                String loggableTopics =
-                        topics.stream()
-                                .map(s -> "\"%s\"".formatted(s))
-                                .collect(Collectors.joining(","));
-                log.atWarn()
-                        .log(
-                                "Actually subscribing to the following existing topics [{}]",
-                                loggableTopics);
-            }
-            consumer.subscribe(topics, offsetService);
-            return true;
-        } catch (Exception e) {
-            log.atError().setCause(e).log();
-            metadataListener.forceUnsubscriptionAll();
-            return false;
         }
     }
 

@@ -94,8 +94,7 @@ public class ItemTemplatesTest {
                 .that(templates.topics())
                 .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
-        Map<String, Set<DataExtractor<Object, Object>>> extractors =
-                templates.extractorsByTopicName();
+        Map<String, Set<DataExtractor<Object, Object>>> extractors = templates.groupExtractors();
         assertThat(extractors).hasSize(2);
         assertWithMessage("Only one extractor associated with TEST_TOPIC_1")
                 .that(extractors.get(TEST_TOPIC_1))
@@ -136,8 +135,8 @@ public class ItemTemplatesTest {
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.groupExtractors()).hasSize(1);
+        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("stock", Set.of("index")),
@@ -160,9 +159,9 @@ public class ItemTemplatesTest {
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1))
+        assertThat(templates.groupExtractors()).hasSize(1);
+        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(1);
+        assertThat(templates.groupExtractors().get(TEST_TOPIC_1))
                 .containsExactly(extractor(Object(), "simple-item-1"));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
@@ -180,8 +179,8 @@ public class ItemTemplatesTest {
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
         assertThat(templates.topics()).containsExactly("stocks");
-        assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get("stocks")).hasSize(1);
+        assertThat(templates.groupExtractors()).hasSize(1);
+        assertThat(templates.groupExtractors().get("stocks")).hasSize(1);
         assertThat(templates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
@@ -200,8 +199,8 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.groupExtractors()).hasSize(1);
+        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("simple-item-1", emptySet()),
@@ -235,8 +234,8 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.extractorsByTopicName()).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(templates.groupExtractors()).hasSize(1);
+        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("template-family", Set.of("topic", "info")),
@@ -273,9 +272,9 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
-        assertThat(templates.extractorsByTopicName()).hasSize(2);
-        assertThat(templates.extractorsByTopicName().get(newOrdersTopic)).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
+        assertThat(templates.groupExtractors()).hasSize(2);
+        assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
+        assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
         SubscribedItem subcribingItem = Items.subscribedFrom("orders", "");
         assertThat(templates.matches(subcribingItem)).isTrue();
@@ -304,9 +303,9 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
-        assertThat(templates.extractorsByTopicName()).hasSize(2);
-        assertThat(templates.extractorsByTopicName().get(newOrdersTopic)).hasSize(1);
-        assertThat(templates.extractorsByTopicName().get(pastOrderTopic)).hasSize(1);
+        assertThat(templates.groupExtractors()).hasSize(2);
+        assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
+        assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
         SubscribedItem itemFilteringTopic1 =
                 Items.subscribedFrom("template-orders-[topic=new_orders]", "");
