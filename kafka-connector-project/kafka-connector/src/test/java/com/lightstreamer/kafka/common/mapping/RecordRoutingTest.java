@@ -184,7 +184,7 @@ public class RecordRoutingTest {
     }
 
     @Test
-    public void shimpleTest() throws ExtractionException {
+    public void simpleTest() throws ExtractionException {
         // quote-[symbol=MPDF.SIT.DATA.QUOTE.SAMA.1010]
         KvpSelectorsSuppliers kvpSelectorsSuppliers = new KvpSelectorsSuppliers();
         ItemTemplates<String, String> templates =
