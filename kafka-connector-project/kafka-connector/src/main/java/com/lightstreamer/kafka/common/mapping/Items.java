@@ -56,11 +56,15 @@ public class Items {
 
         boolean matches(Item item);
 
-        Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName();
+        Map<String, Set<DataExtractor<K, V>>> groupExtractors();
 
         Set<Schema> getExtractorSchemasByTopicName(String topic);
 
         Set<String> topics();
+
+        default boolean isRegexEnabled() {
+            return false;
+        }
     }
 
     private static class DefaultItem implements Item {
@@ -178,9 +182,15 @@ public class Items {
     private static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
 
         private final List<ItemTemplate<K, V>> templates;
+        private final boolean regexEnabled;
 
         DefaultItemTemplates(List<ItemTemplate<K, V>> templates) {
+            this(Collections.unmodifiableList(templates), false);
+        }
+
+        DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
+            this.regexEnabled = regexEnabled;
         }
 
         @Override
@@ -189,7 +199,7 @@ public class Items {
         }
 
         @Override
-        public Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName() {
+        public Map<String, Set<DataExtractor<K, V>>> groupExtractors() {
             return templates.stream()
                     .collect(
                             groupingBy(
@@ -204,9 +214,14 @@ public class Items {
 
         @Override
         public Set<Schema> getExtractorSchemasByTopicName(String topic) {
-            return extractorsByTopicName().getOrDefault(topic, Collections.emptySet()).stream()
+            return groupExtractors().getOrDefault(topic, Collections.emptySet()).stream()
                     .map(DataExtractor::schema)
                     .collect(toSet());
+        }
+
+        @Override
+        public boolean isRegexEnabled() {
+            return this.regexEnabled;
         }
 
         @Override
