@@ -124,7 +124,7 @@ public class RecordConsumerBenchmark {
     private static RecordMapper<String, JsonNode> newRecordMapper(
             ConsumerTriggerConfig<String, JsonNode> config) {
         return RecordMapper.<String, JsonNode>builder()
-                .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
