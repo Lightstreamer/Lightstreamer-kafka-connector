@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -129,52 +128,56 @@ public interface RecordMapper<K, V> {
     }
 }
 
-class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
+final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
-    private final DataExtractor<K, V> fieldExtractor;
-    private final Collection<PatternAndExtractors<K, V>> patterns;
+    interface ExtractorsSupplier<K, V> {
 
-    private Function<String, Collection<DataExtractor<K, V>>> matchingExtractors;
+        Collection<DataExtractor<K, V>> getExtractors(String topic);
+    }
 
     static record PatternAndExtractors<K, V>(
             Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
 
+    private final DataExtractor<K, V> fieldExtractor;
+    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
+    private final Collection<PatternAndExtractors<K, V>> patterns;
+    private final ExtractorsSupplier<K, V> extractorsSupplier;
+
     DefaultRecordMapper(Builder<K, V> builder) {
-        this.templateExtractors = Collections.unmodifiableMap(builder.extractorsByTopicName);
         this.fieldExtractor = builder.fieldExtractor;
-        this.patterns = new ArrayList<>();
-        this.matchingExtractors = getMatchingExtractor(builder);
+        this.templateExtractors = Collections.unmodifiableMap(builder.extractorsByTopicName);
+        this.patterns = mayFillPatternsList(builder.regex);
+        this.extractorsSupplier =
+                builder.regex ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
-    private Function<String, Collection<DataExtractor<K, V>>> getMatchingExtractor(
-            Builder<K, V> builder) {
-        if (builder.regex) {
-            Set<String> topics = templateExtractors.keySet();
-            for (String topicRegEx : topics) {
-                Pattern topicPattern = Pattern.compile(topicRegEx);
-                patterns.add(
-                        new PatternAndExtractors<>(
-                                topicPattern, templateExtractors.get(topicRegEx)));
-            }
-            return this::matchByPattern;
-        } else {
-            return this::matchByTopicName;
+    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList(boolean regex) {
+        if (!regex) {
+            return Collections.emptyList();
         }
+
+        Collection<PatternAndExtractors<K, V>> pe = new ArrayList<>();
+        Set<String> topics = templateExtractors.keySet();
+        for (String topicRegEx : topics) {
+            pe.add(
+                    new PatternAndExtractors<>(
+                            Pattern.compile(topicRegEx), templateExtractors.get(topicRegEx)));
+        }
+        return pe;
     }
 
-    Collection<DataExtractor<K, V>> matchByTopicName(String topic) {
+    private Collection<DataExtractor<K, V>> getAssociatedExtractors(String topic) {
         return templateExtractors.getOrDefault(topic, emptySet());
     }
 
-    Collection<DataExtractor<K, V>> matchByPattern(String regex) {
+    private Collection<DataExtractor<K, V>> getMatchingExtractors(String topic) {
         Collection<DataExtractor<K, V>> extractors = new ArrayList<>();
-        for (PatternAndExtractors<K, V> topicPattern : patterns) {
-            Matcher matcher = topicPattern.pattern().matcher(regex);
+        for (PatternAndExtractors<K, V> p : patterns) {
+            Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
-                extractors.addAll(topicPattern.extractors());
+                extractors.addAll(p.extractors());
             }
         }
         return extractors;
@@ -195,8 +198,7 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     @Override
     public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
-        String topic = record.topic();
-        var extractors = matchingExtractors.apply(topic);
+        var extractors = extractorsSupplier.getExtractors(record.topic());
 
         if (extractors.isEmpty()) {
             return DefaultMappedRecord.NOPRecord;
@@ -210,6 +212,7 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         SchemaAndValues mappedFields = fieldExtractor.extractData(record);
         return new DefaultMappedRecord(set, mappedFields);
     }
+
 }
 
 final class DefaultMappedRecord implements MappedRecord {
