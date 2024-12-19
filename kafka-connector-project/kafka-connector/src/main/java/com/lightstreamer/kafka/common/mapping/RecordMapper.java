@@ -212,7 +212,6 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         SchemaAndValues mappedFields = fieldExtractor.extractData(record);
         return new DefaultMappedRecord(set, mappedFields);
     }
-
 }
 
 final class DefaultMappedRecord implements MappedRecord {
