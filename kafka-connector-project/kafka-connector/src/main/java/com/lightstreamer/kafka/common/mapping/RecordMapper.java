@@ -57,8 +57,6 @@ public interface RecordMapper<K, V> {
 
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
-    MappedRecord mapOriginal(KafkaRecord<K, V> record) throws ValueException;
-
     boolean hasExtractors();
 
     boolean hasFieldExtractor();
