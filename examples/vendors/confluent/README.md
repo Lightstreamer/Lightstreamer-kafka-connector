@@ -1140,7 +1140,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
 ##### Enable Regular Exression (`map.regex.enable`)
 
-_Optional_. Enable the `TOPIC_NAME` part of the `map.TOPIC_NAME.to` parameter to be treated as a regular expression rather than of a literal topic name.
+_Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
 Can be one of the following:
 - `true`
