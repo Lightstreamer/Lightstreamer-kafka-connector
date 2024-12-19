@@ -114,7 +114,8 @@ public final class StreamingDataAdapter implements RecordSender {
         this.itemTemplates = config.itemTemplates();
         this.recordMapper =
                 RecordMapper.builder()
-                        .withTemplateExtractors(itemTemplates.groupExtractors(), itemTemplates.isRegexEnabled())
+                        .withTemplateExtractors(
+                                itemTemplates.groupExtractors(), itemTemplates.isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
 
