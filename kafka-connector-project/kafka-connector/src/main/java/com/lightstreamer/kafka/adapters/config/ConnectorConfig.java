@@ -92,7 +92,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
 
-    public static final String MAP_REG_EX_ENABLE = "map.reg_ex.enable";
+    public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
     public static final String FIELD_MAPPING = "field";
 

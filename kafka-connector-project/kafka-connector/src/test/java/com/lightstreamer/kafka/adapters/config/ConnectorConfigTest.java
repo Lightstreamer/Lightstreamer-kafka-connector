@@ -938,7 +938,7 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
         assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [map.reg_ex.enable]");
+                .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
     }
 
     @Test
