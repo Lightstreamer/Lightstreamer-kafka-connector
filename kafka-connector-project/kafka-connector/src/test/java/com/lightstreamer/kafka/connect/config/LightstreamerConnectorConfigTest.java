@@ -276,6 +276,28 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetTopicMappingRegex() {
+        Map<String, String> props = basicConfig();
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRegexEnabled()).isFalse();
+
+        props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "true");
+        config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRegexEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldNotValidateInvalidTopicMappingRegex() {
+        Map<String, String> props = basicConfig();
+        props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "INVALID");
+        ConfigException ce =
+                assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value INVALID for configuration topic.mappings.regex_enable: Expected value to be either true or false");
+    }
+
+    @Test
     void shouldGetFieldMappings() {
         String fieldMappingConfig =
                 """

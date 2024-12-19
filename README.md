@@ -1087,9 +1087,13 @@ This configuration enables the implementation of various routing scenarios, as s
 
 ##### Enable Regular Exression (`map.regex.enable`)
 
-_Optional_. Enable the `TOPIC_NAME` part of the `map.TOPIC_NAME.to` parameter to be treated as a regular expression rather than of a literal topic name.
-
+_Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
 
 Example:
 
@@ -1097,8 +1101,6 @@ Example:
 <param name="map.topic_\\d+.to">item</param>
 <param name="map.regex.enable">true</param>
 ```
-
-Default value: `false`.  
 
 #### Record Mapping (`field.FIELD_NAME`)
 
@@ -1750,6 +1752,21 @@ The configuration above specifes:
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
 
+### `topic.mappings.regex.enable`
+
+The (optional) flag to enable the `topicName` parts of the [`topic.mappings`](#topicmappings) parameter to be treated as a regular expression rather than of a literal topic name.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+topic.mappings.regex.enable=true
+```
+
+
 ### `record.mappings`
 
 > [!IMPORTANT]
@@ -1787,7 +1804,7 @@ The configuration above specifies the following mappings:
 ### `item.templates`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Filtered Record Routing](#filtered-record-routing-item-templatetemplate-name) section.
+> This configuration implements the same concepts already presented in the [Filtered Record Routing](#filtered-record-routing-item-templatetemplate_name) section.
 
 Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
 

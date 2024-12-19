@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPING;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE;
 
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
@@ -99,6 +100,7 @@ public class LightstreamerSinkConnectorTest {
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
                         TOPIC_MAPPINGS,
+                        TOPIC_MAPPINGS_REGEX_ENABLE,
                         ITEM_TEMPLATES,
                         RECORD_MAPPING,
                         RECORD_EXTRACTION_ERROR_STRATEGY);

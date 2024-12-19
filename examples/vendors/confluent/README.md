@@ -391,7 +391,7 @@ Download the provided [sample web client](web-client), based on HTML and JavaScr
 
 As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
-1. **Establishing a Connection:**  
+1. **Establishing a Connection:**
    To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
 
    ```js
@@ -400,7 +400,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
    lsClient.connect();
    ```
 
-2. **Setting up the Data Grid:**  
+2. **Setting up the Data Grid:**
    To visualize real-time updates, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows. This is a simple widget provided by the Lightstreamer client library for demonstration purposes. You are free to use any existing JavaScript framework or library to display the data.
 
    ```js
@@ -416,7 +416,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
    });
    ```
 
-3. **Subscribing to Live Data:**  
+3. **Subscribing to Live Data:**
    To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
    The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
@@ -1140,9 +1140,13 @@ This configuration enables the implementation of various routing scenarios, as s
 
 ##### Enable Regular Exression (`map.regex.enable`)
 
-_Optional_. Enable the `TOPIC_NAME` part of the `map.TOPIC_NAME.to` parameter to be treated as a regular expression rather than of a literal topic name.
-
+_Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
 
 Example:
 
@@ -1150,8 +1154,6 @@ Example:
 <param name="map.topic_\\d+.to">item</param>
 <param name="map.regex.enable">true</param>
 ```
-
-Default value: `false`.  
 
 #### Record Mapping (`field.FIELD_NAME`)
 
@@ -1802,6 +1804,21 @@ The configuration above specifes:
 - A _One-to-many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
+
+### `topic.mappings.regex.enable`
+
+The (optional) flag to enable the `topicName` parts of the [`topic.mappings`](#topicmappings) parameter to be treated as a regular expression rather than of a literal topic name.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+topic.mappings.regex.enable=true
+```
+
 
 ### `record.mappings`
 
