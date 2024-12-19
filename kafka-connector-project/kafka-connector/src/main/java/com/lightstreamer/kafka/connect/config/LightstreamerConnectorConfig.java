@@ -130,6 +130,11 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                     + "where every specified topic ([topicNameX]) is mapped to the item names or item templates specified as "
                     + " comma-separated list ([mappingListX]).";
 
+    public static final String TOPIC_MAPPINGS_REGEX_ENABLE = "topic.mappings.regex_enable";
+    public static final String TOPIC_MAPPINGS_REGEX_ENABLE_DOC =
+            "The (optional) flag to enable the topicName parts of the \"topic.mappings\" parameter to be treated as a regular expression "
+                    + "rather than of a literal topic name.";
+
     public static final String RECORD_MAPPING = "record.mapping";
     public static final String RECORD_MAPPINGS_DOC =
             "The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of "
@@ -230,6 +235,14 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
+                                .name(TOPIC_MAPPINGS_REGEX_ENABLE)
+                                .type(Type.BOOLEAN)
+                                .defaultValue(false)
+                                .importance(Importance.MEDIUM)
+                                .documentation(TOPIC_MAPPINGS_REGEX_ENABLE_DOC)
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
                                 .name(RECORD_MAPPING)
                                 .type(Type.LIST)
                                 .defaultValue(ConfigDef.NO_DEFAULT_VALUE)
@@ -313,6 +326,10 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public RecordErrorHandlingStrategy getErrRecordErrorHandlingStrategy() {
         return RecordErrorHandlingStrategy.valueOf(getString(RECORD_EXTRACTION_ERROR_STRATEGY));
+    }
+
+    public boolean isRegexEnabled() {
+        return getBoolean(TOPIC_MAPPINGS_REGEX_ENABLE);
     }
 
     private Pair getProxyAdapterAddress() {
