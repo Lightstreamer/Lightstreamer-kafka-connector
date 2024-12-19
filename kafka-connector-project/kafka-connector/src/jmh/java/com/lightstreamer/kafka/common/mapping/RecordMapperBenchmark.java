@@ -71,6 +71,10 @@ public class RecordMapperBenchmark {
     @Param({"10"})
     int numOfKeys = 10;
 
+    // @Param({"true", "false"})
+    @Param({"false"})
+    boolean regex;
+
     int numOfSubscriptions = 5000;
     private Collection<SubscribedItem> subscribedItems = subscriptions(numOfSubscriptions);
     private MappedRecord mappedRecord;
@@ -78,16 +82,16 @@ public class RecordMapperBenchmark {
     @Setup(Level.Iteration)
     public void setUp() throws Exception {
         ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPIC);
-        this.mapper = newRecordMapper(config);
+        this.mapper = newRecordMapper(config, regex);
         this.records =
                 BenchmarksUtils.Records.kafkaRecords(TOPIC, partitions, numOfRecords, numOfKeys);
         this.mappedRecord = mapper.map(records.get(0));
     }
 
     private static RecordMapper<String, JsonNode> newRecordMapper(
-            ConsumerTriggerConfig<String, JsonNode> config) {
+            ConsumerTriggerConfig<String, JsonNode> config, boolean regex) {
         return RecordMapper.<String, JsonNode>builder()
-                .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                .withTemplateExtractors(config.itemTemplates().groupExtractors(), regex)
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
@@ -116,6 +120,15 @@ public class RecordMapperBenchmark {
     }
 
     @Benchmark
+    public void misureMapOriginal(Blackhole bh) throws ExtractionException {
+        for (int i = 0; i < numOfRecords; i++) {
+            MappedRecord map = mapper.mapOriginal(records.get(i));
+            bh.consume(map);
+            // System.out.println(map);
+        }
+    }
+
+    // @Benchmark
     public void misureMapAndFilter(Blackhole bh) throws ExtractionException {
         for (int i = 0; i < numOfRecords; i++) {
             MappedRecord map = mapper.map(records.get(i));
@@ -130,59 +143,6 @@ public class RecordMapperBenchmark {
         bh.consume(routed);
     }
 
-    // @Benchmark
-    // public void misureMap2_0(Blackhole bh) throws ExtractionException {
-    //     for (int i = 0; i < size; i++) {
-    //         MappedRecord map = mapper.map2_0(records.get(i));
-    //         bh.consume(map);
-    //     }
-    // }
-
-    // @Benchmark
-    // public void misureMapAndFilter2_0(RecordMapperState state, Blackhole bh)
-    //         throws ExtractionException {
-    //     for (int i = 0; i < state.size; i++) {
-    //         MappedRecord map = state.mapper.map2_0(state.records.get(i));
-    //         Map<String, String> filtered = map.filter2_0(state.extractor);
-    //         bh.consume(filtered);
-    //     }
-    // }
-
-    // @Benchmark
-    // public void misureMapOld(Blackhole bh) throws ExtractionException {
-    //     // state.count++;
-    //     for (int i = 0; i < size; i++) {
-    //         MappedRecord map_old = mapper.map_old(records.get(i));
-    //         bh.consume(map_old);
-    //     }
-    // }
-
-    // // @Benchmark
-    // public void misureExtract1_0(DataExtractorState state, Blackhole bh) {
-    //     for (int i = 0; i < state.size; i++) {
-    //         SchemaAndValues data = state.extractor.extractDataOld1_0(state.records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
-
-    // // @Benchmark
-    // @Measurement(iterations = 10)
-    // public void misureExtract1_1(DataExtractorState state, Blackhole bh) {
-    //     for (int i = 0; i < state.size; i++) {
-    //         SchemaAndValues data = state.extractor.extractDataOld1_1(state.records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
-
-    // // @Benchmark
-    // @Measurement(iterations = 10)
-    // public void misureExtract2_0(DataExtractorState state, Blackhole bh) {
-    //     for (int i = 0; i < state.size; i++) {
-    //         SchemaAndValues data = state.extractor.extractData2_0(state.records.get(0));
-    //         bh.consume(data);
-    //     }
-    // }
-
     public static void test() throws Exception {
         Console console = System.console();
         console.readLine("Hit cr to start the test...");
@@ -195,11 +155,11 @@ public class RecordMapperBenchmark {
         //                 "Today's password is swordfish. I understand instantiating Blackholes
         benchmark.numOfRecords = 1000;
         benchmark.setUp();
-        // benchmark.misureMap(bh);
-        // benchmark.misureMapAndFilter(bh);
-        for (int i = 0; i < 1_000; i++) {
-            benchmark.route(bh);
-        }
+        benchmark.misureMap(bh);
+        // // benchmark.misureMapAndFilter(bh);
+        // for (int i = 0; i < 1_000; i++) {
+        //     benchmark.route(bh);
+        // }
         console.readLine("Hit cr to close the test...");
     }
 
