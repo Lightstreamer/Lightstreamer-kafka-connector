@@ -215,23 +215,6 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         return new DefaultMappedRecord(set, mappedFields);
     }
 
-    @Override
-    public MappedRecord mapOriginal(KafkaRecord<K, V> record) throws ValueException {
-        String topic = record.topic();
-        var extractors = templateExtractors.getOrDefault(topic, emptySet());
-
-        if (extractors.isEmpty()) {
-            return DefaultMappedRecord.NOPRecord;
-        }
-
-        Set<SchemaAndValues> set = new HashSet<>();
-        for (DataExtractor<K, V> dataExtractor : extractors) {
-            set.add(dataExtractor.extractData(record));
-        }
-
-        SchemaAndValues mappedFields = fieldExtractor.extractData(record);
-        return new DefaultMappedRecord(set, mappedFields);
-    }
 }
 
 final class DefaultMappedRecord implements MappedRecord {
