@@ -119,14 +119,14 @@ public class RecordMapperBenchmark {
         }
     }
 
-    @Benchmark
-    public void misureMapOriginal(Blackhole bh) throws ExtractionException {
-        for (int i = 0; i < numOfRecords; i++) {
-            MappedRecord map = mapper.mapOriginal(records.get(i));
-            bh.consume(map);
-            // System.out.println(map);
-        }
-    }
+    // @Benchmark
+    // public void misureMapOriginal(Blackhole bh) throws ExtractionException {
+    //     for (int i = 0; i < numOfRecords; i++) {
+    //         MappedRecord map = mapper.mapOriginal(records.get(i));
+    //         bh.consume(map);
+    //         // System.out.println(map);
+    //     }
+    // }
 
     // @Benchmark
     public void misureMapAndFilter(Blackhole bh) throws ExtractionException {
