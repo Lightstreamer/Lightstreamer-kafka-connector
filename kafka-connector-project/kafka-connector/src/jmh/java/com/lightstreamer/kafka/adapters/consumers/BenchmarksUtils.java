@@ -60,7 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,7 +73,6 @@ public class BenchmarksUtils {
         public List<Map<String, ?>> events = new ArrayList<>();
         private Blackhole blackHole;
         private AtomicInteger counter;
-        private Map<String, AtomicInteger> threads = new ConcurrentHashMap<>();
 
         public FakeItemEventListener(Blackhole bh) {
             this.blackHole = bh;
@@ -123,16 +121,7 @@ public class BenchmarksUtils {
         @Override
         public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
             blackHole.consume(event);
-            counter.incrementAndGet();
-            threads.compute(
-                    Thread.currentThread().getName(),
-                    (k, v) -> {
-                        if (v == null) {
-                            v = new AtomicInteger();
-                        }
-                        v.incrementAndGet();
-                        return v;
-                    });
+            // counter.incrementAndGet();
         }
 
         @Override
@@ -181,16 +170,7 @@ public class BenchmarksUtils {
             throw new UnsupportedOperationException("Unimplemented method 'failure'");
         }
 
-        public void show() {
-            System.out.println();
-            threads.entrySet()
-                    .forEach(
-                            e -> {
-                                System.out.println(
-                                        e.getKey() + " Invoked " + e.getValue().get() + " times");
-                            });
-            System.out.println(this + " Invoked " + counter.get() + " times");
-        }
+        public void show() {}
     }
 
     public static class FakeOffsetService implements OffsetService {
