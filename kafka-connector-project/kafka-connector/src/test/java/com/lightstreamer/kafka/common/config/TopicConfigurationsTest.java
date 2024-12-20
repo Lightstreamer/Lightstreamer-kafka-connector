@@ -40,7 +40,7 @@ import java.util.Set;
 public class TopicConfigurationsTest {
 
     @Test
-    void shouldHaveRegexFlagDisabledByDefault() {
+    void shouldConfigWithRegexDisabledByDefault() {
         TopicConfigurations topicConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
         assertThat(topicConfig.isRegexEnabled()).isFalse();
@@ -48,7 +48,7 @@ public class TopicConfigurationsTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void shouldRetrieveRegexFlag(boolean regex) {
+    void shouldConfigRegexEnablement(boolean regex) {
         TopicConfigurations topicConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
         assertThat(topicConfig.isRegexEnabled()).isEqualTo(regex);
