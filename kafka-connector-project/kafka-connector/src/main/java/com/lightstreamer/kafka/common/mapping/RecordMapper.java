@@ -53,13 +53,15 @@ public interface RecordMapper<K, V> {
         Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribed);
     }
 
-    Set<DataExtractor<K, V>> getExtractorsByTopicName(String topicName);
+    Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
 
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
     boolean hasExtractors();
 
     boolean hasFieldExtractor();
+
+    boolean isRegexEnabled();
 
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
@@ -82,31 +84,25 @@ public interface RecordMapper<K, V> {
 
         static final DataExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
-        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName = new HashMap<>();
+        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicSubscription = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         DataExtractor<K, V> fieldExtractor = (DataExtractor<K, V>) NOP;
 
-        boolean regex = false;
+        boolean regexEnabled = false;
 
         private Builder() {}
 
         public Builder<K, V> withTemplateExtractors(
                 Map<String, Set<DataExtractor<K, V>>> templateExtractors) {
-            return withTemplateExtractors(templateExtractors, false);
-        }
-
-        public Builder<K, V> withTemplateExtractors(
-                Map<String, Set<DataExtractor<K, V>>> templateExtractors, boolean regex) {
-            this.extractorsByTopicName.putAll(templateExtractors);
-            this.regex = regex;
+            this.extractorsByTopicSubscription.putAll(templateExtractors);
             return this;
         }
 
         public final Builder<K, V> withTemplateExtractor(
-                String topic, DataExtractor<K, V> templateExtractor) {
-            this.extractorsByTopicName.compute(
-                    topic,
+                String subsscription, DataExtractor<K, V> templateExtractor) {
+            this.extractorsByTopicSubscription.compute(
+                    subsscription,
                     (t, extractors) -> {
                         if (extractors == null) {
                             extractors = new HashSet<>();
@@ -114,6 +110,11 @@ public interface RecordMapper<K, V> {
                         extractors.add(templateExtractor);
                         return extractors;
                     });
+            return this;
+        }
+
+        public final Builder<K, V> enableRegex(boolean enable) {
+            this.regexEnabled = enable;
             return this;
         }
 
@@ -144,13 +145,16 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
+    private final boolean regexEnabled;
 
     DefaultRecordMapper(Builder<K, V> builder) {
         this.fieldExtractor = builder.fieldExtractor;
-        this.templateExtractors = Collections.unmodifiableMap(builder.extractorsByTopicName);
-        this.patterns = mayFillPatternsList(builder.regex);
+        this.templateExtractors =
+                Collections.unmodifiableMap(builder.extractorsByTopicSubscription);
+        this.regexEnabled = builder.regexEnabled;
+        this.patterns = mayFillPatternsList(regexEnabled);
         this.extractorsSupplier =
-                builder.regex ? this::getMatchingExtractors : this::getAssociatedExtractors;
+                regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
     private Collection<PatternAndExtractors<K, V>> mayFillPatternsList(boolean regex) {
@@ -184,7 +188,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public Set<DataExtractor<K, V>> getExtractorsByTopicName(String topicName) {
+    public Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
         return templateExtractors.get(topicName);
     }
 
@@ -194,6 +198,11 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     public boolean hasFieldExtractor() {
         return fieldExtractor != Builder.NOP;
+    }
+
+    @Override
+    public boolean isRegexEnabled() {
+        return this.regexEnabled;
     }
 
     @Override
