@@ -48,15 +48,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Thread)
 // @Warmup(iterations =  5, time = 10, timeUnit = TimeUnit.SECONDS)
 // @Measurement(iterations = 15, time = 20, timeUnit = TimeUnit.SECONDS)
-@Warmup(iterations = 4, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 10, time = 10, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 public class RecordConsumerBenchmark {
 
@@ -66,11 +67,10 @@ public class RecordConsumerBenchmark {
 
     static Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
 
-    @Param({"2", "4", "8"})
-    // @Param({"4", "16"})
+    @Param({"1", "2", "4"})
     int threads = 4;
 
-    int partitions = 2;
+    int partitions = 1;
 
     // @Param({"true", "false"})
     boolean prefereSingleThread = false;
@@ -79,14 +79,14 @@ public class RecordConsumerBenchmark {
     @Param({"500"})
     int numOfRecords = 40;
 
-    @Param({"2", "4"})
-    int numOfKeys = 2;
+    // @Param({"2", "4"})
+    int numOfKeys = 500;
 
     // @Param({"20", "200", "2000"})
-    int susbcriptions = 5000;
+    int susbcriptions = 500;
 
-    @Param({"ORDER_BY_PARTITION", "ORDER_BY_KEY"})
-    // @Param({"UNORDERED"})
+    // @Param({"ORDER_BY_PARTITION", "ORDER_BY_KEY"})
+    @Param({"UNORDERED"})
     String ordering;
 
     ConsumerRecords<String, JsonNode> consumerRecords;
@@ -94,6 +94,8 @@ public class RecordConsumerBenchmark {
     RecordConsumer<String, JsonNode> recordConsumer;
 
     AtomicInteger iterations = new AtomicInteger();
+
+    private Collection<SubscribedItem> subscribedItem;
 
     @Setup(Level.Iteration)
     public void setUp(Blackhole bh) {
@@ -105,9 +107,10 @@ public class RecordConsumerBenchmark {
         RecordMapper<String, JsonNode> recordMapper = newRecordMapper(config);
 
         // Make the RecordConsumer.
+        subscribedItem = subscriptions(susbcriptions);
         this.recordConsumer =
                 RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
-                        .subscribedItems(subscriptions(susbcriptions))
+                        .subscribedItems(subscribedItem)
                         .eventListener(listener)
                         .offsetService(new FakeOffsetService())
                         .errorStrategy(config.errorHandlingStrategy())
@@ -137,10 +140,10 @@ public class RecordConsumerBenchmark {
     }
 
     private Collection<SubscribedItem> subscriptions(int subscriptions) {
-        ConcurrentHashMap<String, SubscribedItem> items = new ConcurrentHashMap<>();
+        Map<String, SubscribedItem> items = new HashMap<>();
         for (int i = 0; i < subscriptions; i++) {
-            // String key = String.valueOf(new SecureRandom().nextInt(0, keySize));
-            String key = i == 0 ? String.valueOf(i) : "-" + i;
+            // String key = i == 0 ? String.valueOf(i) : "-" + i;
+            String key = String.valueOf(i);
             String input = newItem(key, key, key + "-son");
             items.put(input, Items.subscribedFrom(input, new Object()));
         }
@@ -164,12 +167,12 @@ public class RecordConsumerBenchmark {
 
     public static void test() throws RunnerException, InterruptedException {
         RecordConsumerBenchmark benchMark = new RecordConsumerBenchmark();
-        benchMark.threads = 4;
-        benchMark.partitions = 2;
+        benchMark.threads = 16;
+        benchMark.partitions = 1;
         benchMark.ordering = "UNORDERED";
         benchMark.numOfRecords = 500;
-        benchMark.susbcriptions = 5000;
-        benchMark.numOfKeys = 2;
+        benchMark.susbcriptions = 500;
+        benchMark.numOfKeys = 500;
         benchMark.setUp(
                 new Blackhole(
                         "Today's password is swordfish. I understand instantiating Blackholes directly is dangerous."));
