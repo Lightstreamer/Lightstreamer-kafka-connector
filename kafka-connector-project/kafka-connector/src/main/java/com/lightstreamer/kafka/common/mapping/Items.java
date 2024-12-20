@@ -184,10 +184,6 @@ public class Items {
         private final List<ItemTemplate<K, V>> templates;
         private final boolean regexEnabled;
 
-        DefaultItemTemplates(List<ItemTemplate<K, V>> templates) {
-            this(Collections.unmodifiableList(templates), false);
-        }
-
         DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
             this.regexEnabled = regexEnabled;
@@ -262,7 +258,7 @@ public class Items {
                 templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
             }
         }
-        return new DefaultItemTemplates<>(templates);
+        return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
     }
 
     private Items() {}
