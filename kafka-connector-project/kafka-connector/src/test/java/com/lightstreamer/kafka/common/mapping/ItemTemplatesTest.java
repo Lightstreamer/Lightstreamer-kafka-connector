@@ -37,7 +37,10 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSupplier
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,6 +97,10 @@ public class ItemTemplatesTest {
                 .that(templates.topics())
                 .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
+        assertWithMessage("Templates object has not regex enabled by default")
+                .that(templates.isRegexEnabled())
+                .isFalse();
+
         Map<String, Set<DataExtractor<Object, Object>>> extractors = templates.groupExtractors();
         assertThat(extractors).hasSize(2);
         assertWithMessage("Only one extractor associated with TEST_TOPIC_1")
@@ -112,7 +119,7 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        assertWithMessage("The item matche at least a template")
+        assertWithMessage("The item matches at least a template")
                 .that(templates.matches(Items.subscribedFrom("stock-[index=1]")))
                 .isTrue();
         assertWithMessage("The item matches at least a template")
@@ -314,5 +321,22 @@ public class ItemTemplatesTest {
         SubscribedItem itemFilteringTopic2 =
                 Items.subscribedFrom("template-orders-[topic=past_orders]", "");
         assertThat(templates.matches(itemFilteringTopic2)).isTrue();
+    }
+
+    @Test
+    public void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(templates.isRegexEnabled()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(templates.isRegexEnabled()).isEqualTo(regex);
     }
 }
