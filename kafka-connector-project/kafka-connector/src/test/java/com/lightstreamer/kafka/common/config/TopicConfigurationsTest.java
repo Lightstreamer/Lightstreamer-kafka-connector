@@ -27,7 +27,10 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,15 +40,30 @@ import java.util.Set;
 public class TopicConfigurationsTest {
 
     @Test
+    void shouldHaveRegexFlagDisabledByDefault() {
+        TopicConfigurations topicConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
+        assertThat(topicConfig.isRegexEnabled()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldRetrieveRegexFlag(boolean regex) {
+        TopicConfigurations topicConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
+        assertThat(topicConfig.isRegexEnabled()).isEqualTo(regex);
+    }
+
+    @Test
     void shouldConfigOneToOneTemplate() {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=PARTITION}"));
-        var topicMappingCofnigs =
+        var topicMappingConfigs =
                 List.of(
                         TopicMappingConfig.fromDelimitedMappings(
                                 "topic", "item-template.template1"));
         TopicConfigurations topicConfig =
-                TopicConfigurations.of(templateConfigs, topicMappingCofnigs);
+                TopicConfigurations.of(templateConfigs, topicMappingConfigs);
 
         Set<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
