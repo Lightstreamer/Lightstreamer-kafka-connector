@@ -19,12 +19,13 @@
 
         <param name="item-template.quotes">quote-#{topic=TOPIC}</param>
 
-        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.(\d+).to">item-template.quotes</param>
+        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.\d+.to">item-template.quotes</param>
         <!--
-        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.(\d+)_15m.to">quotes_15m</param>
-        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.(\d+)_SABE.to">quotes_sabe</param>
-        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.(\d+)_SABE_15m.to">quotes_sabe_15m</param>
+        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.\d+_15m.to">quotes_15m</param>
+        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.\d+_SABE.to">quotes_sabe</param>
+        <param name="map.MPDF.SIT.DATA.QUOTE.SAMA.\d+_SABE_15m.to">quotes_sabe_15m</param>
         -->
+        <param name="map.regex.enable">true</param>
 
         <param name="field.SYMBOL">#{VALUE.NAME}</param>
         <param name="field.QCHARTTOT">#{VALUE.QCHARTTOT}</param>
