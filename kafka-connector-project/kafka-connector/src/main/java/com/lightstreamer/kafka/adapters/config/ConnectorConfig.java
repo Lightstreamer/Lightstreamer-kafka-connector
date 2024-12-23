@@ -73,6 +73,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
@@ -91,6 +93,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
+
+    public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
     public static final String FIELD_MAPPING = "field";
 
@@ -187,6 +191,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
@@ -329,6 +334,7 @@ public final class ConnectorConfig extends AbstractConfig {
         itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
         topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
         fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
+        postValidate();
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -339,6 +345,7 @@ public final class ConnectorConfig extends AbstractConfig {
     protected final void postValidate() throws ConfigException {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
+        checkTopicMappingRegex();
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
@@ -360,6 +367,25 @@ public final class ConnectorConfig extends AbstractConfig {
                 }
             }
         }
+    }
+
+    private void checkTopicMappingRegex() throws ConfigException {
+        if (!isMapRegExEnabled()) {
+            return;
+        }
+
+        topicMappings.stream()
+                .map(TopicMappingConfig::topic)
+                .forEach(
+                        t -> {
+                            try {
+                                Pattern.compile(t);
+                            } catch (PatternSyntaxException pe) {
+                                throw new ConfigException(
+                                        "Specify a valid regular expression for parameter [map.%s.to]"
+                                                .formatted(t));
+                            }
+                        });
     }
 
     private Properties initProps() {
@@ -807,6 +833,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public List<TopicMappingConfig> getTopicMappings() {
         return topicMappings;
+    }
+
+    public boolean isMapRegExEnabled() {
+        return getBoolean(MAP_REG_EX_ENABLE);
     }
 
     public FieldConfigs getFieldConfigs() {

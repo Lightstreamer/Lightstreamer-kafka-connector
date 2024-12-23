@@ -238,7 +238,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L441) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L448) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -391,7 +391,7 @@ Download the provided [sample web client](web-client), based on HTML and JavaScr
 
 As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
-1. **Establishing a Connection:**  
+1. **Establishing a Connection:**
    To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
 
    ```js
@@ -400,7 +400,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
    lsClient.connect();
    ```
 
-2. **Setting up the Data Grid:**  
+2. **Setting up the Data Grid:**
    To visualize real-time updates, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows. This is a simple widget provided by the Lightstreamer client library for demonstration purposes. You are free to use any existing JavaScript framework or library to display the data.
 
    ```js
@@ -416,7 +416,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
    });
    ```
 
-3. **Subscribing to Live Data:**  
+3. **Subscribing to Live Data:**
    To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
    The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
@@ -879,7 +879,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L454) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L461) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -1137,6 +1137,24 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
+
+##### Enable Regular Exression (`map.regex.enable`)
+
+_Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
+This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="map.topic_\\d+.to">item</param>
+<param name="map.regex.enable">true</param>
+```
+
 #### Record Mapping (`field.FIELD_NAME`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
@@ -1155,7 +1173,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L469) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L477) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1786,6 +1804,21 @@ The configuration above specifes:
 - A _One-to-many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
 - A _One-to-one_ mapping between the topic `order-topic` and the Lightstreamer item `order-item`
+
+### `topic.mappings.regex.enable`
+
+The (optional) flag to enable the `topicName` parts of the [`topic.mappings`](#topicmappings) parameter to be treated as a regular expression rather than of a literal topic name.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+topic.mappings.regex.enable=true
+```
+
 
 ### `record.mappings`
 
