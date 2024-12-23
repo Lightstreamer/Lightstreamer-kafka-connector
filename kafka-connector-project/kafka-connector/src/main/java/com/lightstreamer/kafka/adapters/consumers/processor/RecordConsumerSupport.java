@@ -282,7 +282,7 @@ class RecordConsumerSupport {
             try {
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
-            } catch (Throwable ve) {
+            } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
                 logger.atWarn().log("Applying the {} strategy", errorStrategy);
 
