@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
@@ -79,7 +80,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(config.itemTemplates().extractorsByTopicName())
+                        .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                        .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
@@ -176,8 +178,15 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     protected boolean subscribed() {
+        ItemTemplates<K, V> templates = config.itemTemplates();
+        if (templates.isRegexEnabled()) {
+            Pattern pattern = templates.subscriptionPattern().get();
+            log.debug("Subscribing to the requested pattern {}", pattern.pattern());
+            consumer.subscribe(pattern, offsetService);
+            return true;
+        }
         // Original requested topics.
-        Set<String> topics = new HashSet<>(config.itemTemplates().topics());
+        Set<String> topics = new HashSet<>(templates.topics());
         log.atInfo().log("Subscribing to requested topics [{}]", topics);
         log.atDebug().log("Checking existing topics on Kafka");
 

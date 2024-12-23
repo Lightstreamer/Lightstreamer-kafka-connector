@@ -57,6 +57,7 @@ public class RecordMapperTest {
         assertThat(mapper).isNotNull();
         assertThat(mapper.hasExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isFalse();
+        assertThat(mapper.isRegexEnabled()).isFalse();
     }
 
     @Test
@@ -76,8 +77,9 @@ public class RecordMapperTest {
         assertThat(mapper).isNotNull();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_1)).hasSize(1);
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_1))
+        assertThat(mapper.isRegexEnabled()).isFalse();
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
                 .containsExactly(
                         extractor(String(), "test", Map.of("aKey", Expression("PARTITION"))));
     }
@@ -106,14 +108,56 @@ public class RecordMapperTest {
         assertThat(mapper).isNotNull();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
-
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_1)).hasSize(2);
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_1))
+        assertThat(mapper.isRegexEnabled()).isFalse();
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
                 .containsExactly(
                         extractor(String(), "prefix1", Map.of("aKey", Expression("KEY"))),
                         extractor(String(), "prefix2", Map.of("aValue", Expression("PARTITION"))));
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_2)).hasSize(1);
-        assertThat(mapper.getExtractorsByTopicName(TEST_TOPIC_2))
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
+                .containsExactly(
+                        extractor(
+                                String(),
+                                "anotherPrefix",
+                                Map.of("aKey", Expression("PARTITION"))));
+    }
+
+    @Test
+    public void shouldBuildMapperWithTemplateExtractors() throws ExtractionException {
+        RecordMapper<String, String> mapper =
+                builder()
+                        .withTemplateExtractors(
+                                Map.of(
+                                        TEST_TOPIC_1,
+                                        Set.of(
+                                                extractor(
+                                                        String(),
+                                                        "prefix1",
+                                                        Map.of("aKey", Expression("KEY"))),
+                                                extractor(
+                                                        String(),
+                                                        "prefix2",
+                                                        Map.of("aValue", Expression("PARTITION")))),
+                                        TEST_TOPIC_2,
+                                        Set.of(
+                                                extractor(
+                                                        String(),
+                                                        "anotherPrefix",
+                                                        Map.of("aKey", Expression("PARTITION"))))))
+                        .build();
+
+        assertThat(mapper).isNotNull();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isFalse();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
+                .containsExactly(
+                        extractor(String(), "prefix1", Map.of("aKey", Expression("KEY"))),
+                        extractor(String(), "prefix2", Map.of("aValue", Expression("PARTITION"))));
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
                 .containsExactly(
                         extractor(
                                 String(),
@@ -207,6 +251,90 @@ public class RecordMapperTest {
     }
 
     @Test
+    public void shouldMapRecordWithMatchingPattern() throws ExtractionException {
+        RecordMapper<String, String> mapper =
+                builder()
+                        .withTemplateExtractor(
+                                "topic[0-9]+",
+                                extractor(
+                                        String(),
+                                        "prefix1",
+                                        Map.of(
+                                                "partition",
+                                                Expression("PARTITION"),
+                                                "value",
+                                                Expression("VALUE"))))
+                        .withTemplateExtractor(
+                                "topic[0-9]+",
+                                extractor(
+                                        String(), "prefix2", Map.of("topic", Expression("TOPIC"))))
+                        .withTemplateExtractor(
+                                "topic[0-9]+",
+                                extractor(String(), "prefix3", Map.of("key", Expression("KEY"))))
+                        .withTemplateExtractor(
+                                "anotherTopic[A-C]",
+                                extractor(
+                                        String(), "prefix3", Map.of("value", Expression("VALUE"))))
+                        .enableRegex(true)
+                        .withFieldExtractor(
+                                extractor(
+                                        String(),
+                                        "fields",
+                                        Map.of(
+                                                "keyField",
+                                                Expression("KEY"),
+                                                "valueField",
+                                                Expression("VALUE"))))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isTrue();
+
+        // Record published to topic "topic0": mapping
+        KafkaRecord<String, String> kafkaRecord1 = Records.record("topic0", "aKey", "aValue");
+        MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
+        Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord1.expanded();
+        assertThat(expandedFromTestsTopic)
+                .containsExactly(
+                        SchemaAndValues.from(
+                                "prefix1", Map.of("partition", "150", "value", "aValue")),
+                        SchemaAndValues.from("prefix2", Map.of("topic", "topic0")),
+                        SchemaAndValues.from("prefix3", Map.of("key", "aKey")));
+        assertThat(mappedRecord1.fieldsMap())
+                .containsExactly("keyField", "aKey", "valueField", "aValue");
+
+        // Record published to topic "topic1": mapping
+        KafkaRecord<String, String> kafkaRecord2 = Records.record("topic1", "aKey2", "aValue2");
+        MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
+        Set<SchemaAndValues> expandedFromTopic1 = mappedRecord2.expanded();
+        assertThat(expandedFromTopic1)
+                .containsExactly(
+                        SchemaAndValues.from(
+                                "prefix1", Map.of("partition", "150", "value", "aValue2")),
+                        SchemaAndValues.from("prefix2", Map.of("topic", "topic1")),
+                        SchemaAndValues.from("prefix3", Map.of("key", "aKey2")));
+        assertThat(mappedRecord2.fieldsMap())
+                .containsExactly("keyField", "aKey2", "valueField", "aValue2");
+
+        // Record published to topic "anotherTopicA": mapping
+        KafkaRecord<String, String> kafkaRecord3 =
+                Records.record("anotherTopicA", "anotherKey", "anotherValue");
+        MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
+        Set<SchemaAndValues> expandedFromAntoherTopicA = mappedRecord3.expanded();
+        assertThat(expandedFromAntoherTopicA)
+                .containsExactly(SchemaAndValues.from("prefix3", Map.of("value", "anotherValue")));
+        assertThat(mappedRecord3.fieldsMap())
+                .containsExactly("keyField", "anotherKey", "valueField", "anotherValue");
+
+        // Record published to topic "undefinedTopic": no mapping
+        KafkaRecord<String, String> kafkaRecord4 =
+                Records.record("undefinedTopic", "anotherKey", "anotherValue");
+        MappedRecord mappedRecord4 = mapper.map(kafkaRecord4);
+        assertThat(mappedRecord4.expanded()).isEmpty();
+        assertThat(mappedRecord4.fieldsMap()).isEmpty();
+    }
+
+    @Test
     public void shouldMapJsonRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
@@ -256,6 +384,7 @@ public class RecordMapperTest {
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord =
@@ -343,6 +472,7 @@ public class RecordMapperTest {
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord =
@@ -428,6 +558,7 @@ public class RecordMapperTest {
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
 
         // Record published to topic "topic": mapping
         KafkaRecord<Object, Object> kafkaRecord =
