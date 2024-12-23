@@ -197,7 +197,8 @@ public class RecordRoutingTest {
 
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
-                        .withTemplateExtractors(templates.extractorsByTopicName())
+                        .withTemplateExtractors(templates.groupExtractors())
+                        .enableRegex(true)
                         .build();
 
         MappedRecord mapped =
