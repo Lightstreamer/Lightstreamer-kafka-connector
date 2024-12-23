@@ -152,13 +152,13 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         this.templateExtractors =
                 Collections.unmodifiableMap(builder.extractorsByTopicSubscription);
         this.regexEnabled = builder.regexEnabled;
-        this.patterns = mayFillPatternsList(regexEnabled);
+        this.patterns = mayFillPatternsList();
         this.extractorsSupplier =
                 regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
-    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList(boolean regex) {
-        if (!regex) {
+    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList() {
+        if (!regexEnabled) {
             return Collections.emptyList();
         }
 
