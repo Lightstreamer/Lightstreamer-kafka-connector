@@ -1151,7 +1151,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="map.topic_\\d+.to">item</param>
+<param name="map.topic_\d+.to">item</param>
 <param name="map.regex.enable">true</param>
 ```
 
