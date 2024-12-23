@@ -930,7 +930,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvaludMapRegEx() {
+    public void shouldFailDueToInvalidMapRegExFlag() {
         Map<String, String> configs = new HashMap<>();
         configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "t");
 
@@ -939,6 +939,20 @@ public class ConnectorConfigTest {
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
+    }
+
+    @Test
+    public void shouldFailDueToInvalidRegularExpressionInTopicMapping() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        configs.put("map.topic_\\d.to", "item"); // Valid regular expression
+        configs.put("map.\\k.to", "item"); // Invalid regular expression
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid regular expression for parameter [map.\\k.to]");
     }
 
     @Test
