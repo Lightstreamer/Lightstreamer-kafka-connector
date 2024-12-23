@@ -43,7 +43,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -338,5 +341,40 @@ public class ItemTemplatesTest {
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
         assertThat(templates.isRegexEnabled()).isEqualTo(regex);
+        if (regex) {
+            assertThat(templates.subscriptionPattern()).isPresent();
+        } else {
+            assertThat(templates.subscriptionPattern()).isEmpty();
+        }
+    }
+
+    @Test
+    public void shouldReturnSubscriptionPatternFromSingleRegex() throws ExtractionException {
+        TopicMappingConfig topicMapping =
+                TopicMappingConfig.fromDelimitedMappings("topic_\\d+", "item1");
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(topicMapping), true);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+        Optional<Pattern> subscriptionPattern = templates.subscriptionPattern();
+        assertThat(subscriptionPattern.get().pattern()).isEqualTo("(?:topic_\\d+)");
+    }
+
+    @Test
+    public void shouldReturnSubscriptionPatternFromMultipleRegex() throws ExtractionException {
+        TopicMappingConfig topicMapping1 =
+                TopicMappingConfig.fromDelimitedMappings("topicA_\\d+", "item1,item2");
+        TopicMappingConfig topicMapping2 =
+                TopicMappingConfig.fromDelimitedMappings("topicB_\\d+", "item1,item2");
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(
+                        ItemTemplateConfigs.empty(), List.of(topicMapping1, topicMapping2), true);
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+        Optional<Pattern> subscriptionPattern = templates.subscriptionPattern();
+        Pattern pattern = subscriptionPattern.get();
+        assertThat(pattern.pattern()).isEqualTo("(?:topicA_\\d+)|(?:topicB_\\d+)");
+
+        Matcher matcher = pattern.matcher("topicA_123");
+        assertThat(matcher.matches());
+        assertThat(matcher.groupCount()).isEqualTo(0);
     }
 }
