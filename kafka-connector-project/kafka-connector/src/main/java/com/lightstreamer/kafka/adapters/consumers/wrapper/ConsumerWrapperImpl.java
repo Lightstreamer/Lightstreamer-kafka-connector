@@ -80,9 +80,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(
-                                config.itemTemplates().groupExtractors(),
-                                config.itemTemplates().isRegexEnabled())
+                        .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                        .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
@@ -181,15 +180,15 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     protected boolean subscribed() {
         ItemTemplates<K, V> templates = config.itemTemplates();
         if (templates.isRegexEnabled()) {
-            String regex = templates.topics().stream().collect(Collectors.joining("|"));
-            log.debug("Subscribing to the requested pattern {}", regex);
-            consumer.subscribe(Pattern.compile(regex), offsetService);
+            Pattern pattern = templates.subscriptionPattern().get();
+            log.debug("Subscribing to the requested pattern {}", pattern.pattern());
+            consumer.subscribe(pattern, offsetService);
             return true;
-        } else {
-            // Original requested topics.
-            Set<String> topics = new HashSet<>(templates.topics());
-            log.atInfo().log("Subscribing to requested topics [{}]", topics);
-            log.atDebug().log("Checking existing topics on Kafka");
+        }
+        // Original requested topics.
+        Set<String> topics = new HashSet<>(templates.topics());
+        log.atInfo().log("Subscribing to requested topics [{}]", topics);
+        log.atDebug().log("Checking existing topics on Kafka");
 
             // Check the actual available topics on Kafka.
             try (AdminInterface admin = adminFactory.apply(config.consumerProperties())) {
@@ -225,7 +224,6 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                 metadataListener.forceUnsubscriptionAll();
                 return false;
             }
-        }
     }
 
     void pollOnce(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {

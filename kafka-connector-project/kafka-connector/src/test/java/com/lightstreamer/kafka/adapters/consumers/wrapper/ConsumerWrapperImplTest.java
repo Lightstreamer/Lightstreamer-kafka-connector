@@ -31,7 +31,6 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
-import com.lightstreamer.kafka.test_utils.Mocks.MockTriggerConfig;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -66,7 +65,6 @@ public class ConsumerWrapperImplTest {
 
     private MockMetadataListener metadataListener;
     private MockItemEventListener itemEventListener;
-    private MockTriggerConfig config;
     private Collection<SubscribedItem> subscribedItems = Collections.emptyList();
     private MockConsumer<String, String> mockConsumer;
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
@@ -75,27 +73,36 @@ public class ConsumerWrapperImplTest {
     public void setUp() {
         metadataListener = new Mocks.MockMetadataListener();
         itemEventListener = new Mocks.MockItemEventListener();
-
-        TopicConfigurations topicsConfig =
-                TopicConfigurations.of(
-                        ItemTemplateConfigs.empty(),
-                        List.of(
-                                TopicMappingConfig.fromDelimitedMappings("topic", "item"),
-                                TopicMappingConfig.fromDelimitedMappings("topic2", "item")));
-
         mockConsumer = new MockConsumer<>(resetStrategy);
+    }
 
+    private Properties makeProperties() {
         Properties properties = new Properties();
         properties.setProperty(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
                 resetStrategy.equals(EARLIEST) ? "earliest" : "latest");
-        config = new Mocks.MockTriggerConfig(topicsConfig, properties);
+        return properties;
+    }
+
+    private TopicConfigurations makeTopicsConfig(boolean enableSubscriptionPattern) {
+        return TopicConfigurations.of(
+                ItemTemplateConfigs.empty(),
+                List.of(
+                        TopicMappingConfig.fromDelimitedMappings("topic", "item"),
+                        TopicMappingConfig.fromDelimitedMappings("topic2", "item")),
+                enableSubscriptionPattern);
     }
 
     ConsumerWrapperImpl<String, String> mkConsumerWrapper(AdminInterface admin) {
+        return mkConsumerWrapper(admin, false);
+    }
+
+    ConsumerWrapperImpl<String, String> mkConsumerWrapper(
+            AdminInterface admin, boolean enableSubscriptionPattern) {
         return (ConsumerWrapperImpl<String, String>)
                 ConsumerWrapper.create(
-                        config,
+                        new Mocks.MockTriggerConfig(
+                                makeTopicsConfig(enableSubscriptionPattern), makeProperties()),
                         itemEventListener,
                         metadataListener,
                         subscribedItems,
@@ -106,7 +113,8 @@ public class ConsumerWrapperImplTest {
     @Test
     public void shouldNotSubscribeDueToNotExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface("anotherTopic"));
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
         assertThat(consumer.subscribed()).isFalse();
         assertThat(mockConsumer.subscription()).isEmpty();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
@@ -115,31 +123,28 @@ public class ConsumerWrapperImplTest {
     @Test
     public void shouldNotSubscribeDueToExceptionWhileCheckintExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface("topic", true));
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.singleton("topic"), true));
         assertThat(consumer.subscribed()).isFalse();
         assertThat(mockConsumer.subscription()).isEmpty();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
     @Test
-    public void shouldSubscribe() {
+    public void shouldSubscribeToTopic() {
         String topic = "topic";
-        TopicPartition partition0 = new TopicPartition(topic, 0);
-        TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
-
-        // Set the start offset for each partition
-        HashMap<TopicPartition, Long> offsets = new HashMap<>();
-        offsets.put(partition0, 0L);
-        offsets.put(partition1, 0L);
-        mockConsumer.updateBeginningOffsets(offsets);
-
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
         assertThat(consumer.subscribed()).isTrue();
         assertThat(mockConsumer.subscription()).containsExactly(topic);
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
+    }
+
+    @Test
+    public void shouldSubscribeToPattern() {
+        ConsumerWrapperImpl<String, String> consumer =
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.emptySet()), true);
+        assertThat(consumer.subscribed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
@@ -149,7 +154,7 @@ public class ConsumerWrapperImplTest {
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -171,8 +176,8 @@ public class ConsumerWrapperImplTest {
         ConsumerRecords<String, String> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), new int[] {0, 1});
 
-        // Invoke the method and verify that task has been actuallyinvoked with the expected
-        // simulated records
+        // Invoke the method and verify that task has been actuallyinvoked with the
+        // expected simulated records
         ConsumerRecords<String, String> filtered = consumer.initStoreAndConsume(records);
         assertThat(filtered.count()).isEqualTo(records.count() - 2);
     }
@@ -191,7 +196,7 @@ public class ConsumerWrapperImplTest {
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -243,7 +248,7 @@ public class ConsumerWrapperImplTest {
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -306,7 +311,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
@@ -378,7 +383,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // Generate the simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
@@ -451,7 +456,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
@@ -492,7 +497,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
@@ -538,7 +543,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(topic));
+                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
@@ -570,7 +575,8 @@ public class ConsumerWrapperImplTest {
     @Test
     public void shouldRunWithNoSubscriptioneDueToNotExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface("anotherTopic"));
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
 
         consumer.run();
 
@@ -582,7 +588,8 @@ public class ConsumerWrapperImplTest {
     @Test
     public void shouldRunWithNoSubscriptioneDueToExceptionWhileCheckintExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface("anotherTopic", true));
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic"), true));
 
         consumer.run();
 

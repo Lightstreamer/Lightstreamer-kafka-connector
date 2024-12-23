@@ -91,7 +91,7 @@ public class RecordMapperBenchmark {
     private static RecordMapper<String, JsonNode> newRecordMapper(
             ConsumerTriggerConfig<String, JsonNode> config, boolean regex) {
         return RecordMapper.<String, JsonNode>builder()
-                .withTemplateExtractors(config.itemTemplates().groupExtractors(), regex)
+                .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }

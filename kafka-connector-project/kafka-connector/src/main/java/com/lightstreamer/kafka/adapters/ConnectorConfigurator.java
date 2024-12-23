@@ -93,7 +93,10 @@ public class ConnectorConfigurator {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
 
         TopicConfigurations topicsConfig =
-                TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
+                TopicConfigurations.of(
+                        config.getItemTemplateConfigs(),
+                        config.getTopicMappings(),
+                        config.isMapRegExEnabled());
 
         ItemTemplates<K, V> itemTemplates = Items.templatesFrom(topicsConfig, sSuppliers);
         DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers, false);
