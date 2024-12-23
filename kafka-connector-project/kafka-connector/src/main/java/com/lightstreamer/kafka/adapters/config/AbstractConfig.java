@@ -50,7 +50,6 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     AbstractConfig(ConfigsSpec spec, Map<String, String> configs) {
         this.configSpec = spec;
         this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
-        postValidate();
     }
 
     protected void postValidate() throws ConfigException {}

@@ -19,7 +19,9 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
@@ -40,8 +42,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 public class Items {
 
@@ -56,11 +59,18 @@ public class Items {
 
         boolean matches(Item item);
 
-        Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName();
+        Map<String, Set<DataExtractor<K, V>>> groupExtractors();
 
+        // Only for testing purposes
         Set<Schema> getExtractorSchemasByTopicName(String topic);
 
         Set<String> topics();
+
+        default boolean isRegexEnabled() {
+            return false;
+        }
+
+        Optional<Pattern> subscriptionPattern();
     }
 
     private static class DefaultItem implements Item {
@@ -178,9 +188,26 @@ public class Items {
     private static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
 
         private final List<ItemTemplate<K, V>> templates;
+        private final boolean regexEnabled;
+        private final Optional<Pattern> pattern;
 
-        DefaultItemTemplates(List<ItemTemplate<K, V>> templates) {
+        DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
+            this.regexEnabled = regexEnabled;
+            this.pattern = makeOptionalPattern();
+        }
+
+        private Optional<Pattern> makeOptionalPattern() {
+            if (regexEnabled) {
+                return Optional.of(
+                        Pattern.compile(
+                                templates.stream()
+                                        .map(t -> "(?:%s)".formatted(t.topic()))
+                                        .distinct()
+                                        .sorted() // Only helps to simplify unit tests
+                                        .collect(joining("|"))));
+            }
+            return Optional.empty();
         }
 
         @Override
@@ -189,7 +216,7 @@ public class Items {
         }
 
         @Override
-        public Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName() {
+        public Map<String, Set<DataExtractor<K, V>>> groupExtractors() {
             return templates.stream()
                     .collect(
                             groupingBy(
@@ -204,14 +231,24 @@ public class Items {
 
         @Override
         public Set<Schema> getExtractorSchemasByTopicName(String topic) {
-            return extractorsByTopicName().getOrDefault(topic, Collections.emptySet()).stream()
+            return groupExtractors().getOrDefault(topic, emptySet()).stream()
                     .map(DataExtractor::schema)
                     .collect(toSet());
         }
 
         @Override
+        public boolean isRegexEnabled() {
+            return regexEnabled;
+        }
+
+        @Override
+        public Optional<Pattern> subscriptionPattern() {
+            return pattern;
+        }
+
+        @Override
         public String toString() {
-            return templates.stream().map(Object::toString).collect(Collectors.joining(","));
+            return templates.stream().map(Object::toString).collect(joining(","));
         }
     }
 
@@ -247,7 +284,7 @@ public class Items {
                 templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
             }
         }
-        return new DefaultItemTemplates<>(templates);
+        return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
     }
 
     private Items() {}

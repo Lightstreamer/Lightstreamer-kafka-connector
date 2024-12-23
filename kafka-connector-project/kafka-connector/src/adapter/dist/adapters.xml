@@ -361,6 +361,13 @@
         -->
         <param name="map.stocks.to">item-template.stock</param>
 
+        <!-- Optional. Enable the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be treated as a regular expression
+             rather than of a literal topic name.
+        --> 
+        <!--
+        <parm name="map.regex.enable">true</param>
+        -->
+
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
         <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to

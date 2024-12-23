@@ -55,7 +55,10 @@ public class DataAdapterConfigurator {
 
     static DataAdapterConfig configure(LightstreamerConnectorConfig config) throws ConfigException {
         TopicConfigurations topicsConfig =
-                TopicConfigurations.of(config.getItemTemplateConfigs(), config.getTopicMappings());
+                TopicConfigurations.of(
+                        config.getItemTemplateConfigs(),
+                        config.getTopicMappings(),
+                        config.isRegexEnabled());
         KeyValueSelectorSuppliers<Object, Object> sSuppliers = new ConnectSelectorsSuppliers();
         try {
             ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);

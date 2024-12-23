@@ -30,6 +30,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +38,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public interface RecordMapper<K, V> {
@@ -50,13 +53,15 @@ public interface RecordMapper<K, V> {
         Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribed);
     }
 
-    Set<DataExtractor<K, V>> getExtractorsByTopicName(String topicName);
+    Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
 
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
     boolean hasExtractors();
 
     boolean hasFieldExtractor();
+
+    boolean isRegexEnabled();
 
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
@@ -79,23 +84,25 @@ public interface RecordMapper<K, V> {
 
         static final DataExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
-        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicName = new HashMap<>();
+        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicSubscription = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         DataExtractor<K, V> fieldExtractor = (DataExtractor<K, V>) NOP;
+
+        boolean regexEnabled = false;
 
         private Builder() {}
 
         public Builder<K, V> withTemplateExtractors(
                 Map<String, Set<DataExtractor<K, V>>> templateExtractors) {
-            this.extractorsByTopicName.putAll(templateExtractors);
+            this.extractorsByTopicSubscription.putAll(templateExtractors);
             return this;
         }
 
         public final Builder<K, V> withTemplateExtractor(
-                String topic, DataExtractor<K, V> templateExtractor) {
-            this.extractorsByTopicName.compute(
-                    topic,
+                String subsscription, DataExtractor<K, V> templateExtractor) {
+            this.extractorsByTopicSubscription.compute(
+                    subsscription,
                     (t, extractors) -> {
                         if (extractors == null) {
                             extractors = new HashSet<>();
@@ -103,6 +110,11 @@ public interface RecordMapper<K, V> {
                         extractors.add(templateExtractor);
                         return extractors;
                     });
+            return this;
+        }
+
+        public final Builder<K, V> enableRegex(boolean enable) {
+            this.regexEnabled = enable;
             return this;
         }
 
@@ -117,20 +129,66 @@ public interface RecordMapper<K, V> {
     }
 }
 
-class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
+final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
 
-    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
+    interface ExtractorsSupplier<K, V> {
+
+        Collection<DataExtractor<K, V>> getExtractors(String topic);
+    }
+
+    static record PatternAndExtractors<K, V>(
+            Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
+
     private final DataExtractor<K, V> fieldExtractor;
+    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
+    private final Collection<PatternAndExtractors<K, V>> patterns;
+    private final ExtractorsSupplier<K, V> extractorsSupplier;
+    private final boolean regexEnabled;
 
     DefaultRecordMapper(Builder<K, V> builder) {
-        this.templateExtractors = Collections.unmodifiableMap(builder.extractorsByTopicName);
         this.fieldExtractor = builder.fieldExtractor;
+        this.templateExtractors =
+                Collections.unmodifiableMap(builder.extractorsByTopicSubscription);
+        this.regexEnabled = builder.regexEnabled;
+        this.patterns = mayFillPatternsList();
+        this.extractorsSupplier =
+                regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
+    }
+
+    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList() {
+        if (!regexEnabled) {
+            return Collections.emptyList();
+        }
+
+        Collection<PatternAndExtractors<K, V>> pe = new ArrayList<>();
+        Set<String> topics = templateExtractors.keySet();
+        for (String topicRegEx : topics) {
+            pe.add(
+                    new PatternAndExtractors<>(
+                            Pattern.compile(topicRegEx), templateExtractors.get(topicRegEx)));
+        }
+        return pe;
+    }
+
+    private Collection<DataExtractor<K, V>> getAssociatedExtractors(String topic) {
+        return templateExtractors.getOrDefault(topic, emptySet());
+    }
+
+    private Collection<DataExtractor<K, V>> getMatchingExtractors(String topic) {
+        Collection<DataExtractor<K, V>> extractors = new ArrayList<>();
+        for (PatternAndExtractors<K, V> p : patterns) {
+            Matcher matcher = p.pattern().matcher(topic);
+            if (matcher.matches()) {
+                extractors.addAll(p.extractors());
+            }
+        }
+        return extractors;
     }
 
     @Override
-    public Set<DataExtractor<K, V>> getExtractorsByTopicName(String topicName) {
+    public Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
         return templateExtractors.get(topicName);
     }
 
@@ -143,8 +201,14 @@ class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
+    public boolean isRegexEnabled() {
+        return this.regexEnabled;
+    }
+
+    @Override
     public MappedRecord map(KafkaRecord<K, V> record) throws ValueException {
-        var extractors = templateExtractors.getOrDefault(record.topic(), emptySet());
+        var extractors = extractorsSupplier.getExtractors(record.topic());
+
         if (extractors.isEmpty()) {
             return DefaultMappedRecord.NOPRecord;
         }
