@@ -26,12 +26,15 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroValue
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -300,7 +303,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        true))
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -343,6 +346,101 @@ public class RecordMapperTest {
     }
 
     @Test
+    public void shoulSkipFieldMappingFailure() throws ExtractionException {
+        // This flag will let field mapping alway success by omitting not mapped fields
+        boolean skipOnFailure = true;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which will be
+                                                // omitted
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        // The childSignature filed has been skipped
+        assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
+    }
+
+    @Test
+    public void shoulNotMapDueToFieldMappingFailure() throws ExtractionException {
+        boolean skipOnFailure = false;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which leads to make
+                                                // mapping fail
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
+    public void shoulNotMapDueToTemplateFailure() throws ExtractionException {
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                // This leads a ValueException, which leads to make mapping fail
+                                extractor(
+                                        JsonValue(),
+                                        Template("test-#{name=VALUE.not_valid_attrib}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
     public void shouldMapAvroRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, GenericRecord> mapper =
                 RecordMapper.<String, GenericRecord>builder()
@@ -375,7 +473,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        true))
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
