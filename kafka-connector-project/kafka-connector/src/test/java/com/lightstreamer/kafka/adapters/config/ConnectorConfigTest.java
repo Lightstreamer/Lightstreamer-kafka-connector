@@ -200,7 +200,6 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.multiple()).isTrue();
         assertThat(itemTemplate.suffix()).isNull();
         assertThat(itemTemplate.mutable()).isTrue();
-        ;
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
@@ -212,6 +211,15 @@ public class ConnectorConfigTest {
         assertThat(topicMapping.mutable()).isTrue();
         assertThat(topicMapping.defaultValue()).isNull();
         assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
+
+        ConfParameter mapRegExEnable = configSpec.getParameter(ConnectorConfig.MAP_REG_EX_ENABLE);
+        assertThat(mapRegExEnable.name()).isEqualTo(ConnectorConfig.MAP_REG_EX_ENABLE);
+        assertThat(mapRegExEnable.required()).isFalse();
+        assertThat(mapRegExEnable.multiple()).isFalse();
+        assertThat(mapRegExEnable.suffix()).isNull();
+        assertThat(mapRegExEnable.mutable()).isTrue();
+        assertThat(mapRegExEnable.defaultValue()).isEqualTo("false");
+        assertThat(mapRegExEnable.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
         assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
@@ -908,6 +916,43 @@ public class ConnectorConfigTest {
         TemplateExpression te2 = templateConfigs.getExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
         assertThat(te2.params()).containsExactly("param2", Expressions.Expression("VALUE.value2"));
+    }
+
+    @Test
+    public void shouldGetMapRegEx() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.isMapRegExEnabled()).isFalse();
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isMapRegExEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldFailDueToInvalidMapRegExFlag() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "t");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
+    }
+
+    @Test
+    public void shouldFailDueToInvalidRegularExpressionInTopicMapping() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        configs.put("map.topic_\\d.to", "item"); // Valid regular expression
+        configs.put("map.\\k.to", "item"); // Invalid regular expression
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid regular expression for parameter [map.\\k.to]");
     }
 
     @Test

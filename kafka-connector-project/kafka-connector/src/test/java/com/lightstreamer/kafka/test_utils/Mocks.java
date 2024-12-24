@@ -164,16 +164,16 @@ public class Mocks {
 
     public static class MockAdminInterface implements AdminInterface {
 
-        private final String topic;
+        private final Set<String> topics;
         private final boolean throwException;
 
-        public MockAdminInterface(String topic, boolean throwException) {
-            this.topic = topic;
+        public MockAdminInterface(Set<String> topics, boolean throwException) {
+            this.topics = topics;
             this.throwException = throwException;
         }
 
-        public MockAdminInterface(String topic) {
-            this(topic, false);
+        public MockAdminInterface(Set<String> topics) {
+            this(topics, false);
         }
 
         @Override
@@ -184,7 +184,7 @@ public class Mocks {
             if (throwException) {
                 throw new RuntimeException("Fake Exception");
             }
-            return Collections.singleton(topic);
+            return topics;
         }
     }
 
