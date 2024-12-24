@@ -294,7 +294,7 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value INVALID for configuration topic.mappings.regex_enable: Expected value to be either true or false");
+                        "Invalid value INVALID for configuration topic.mappings.regex.enable: Expected value to be either true or false");
     }
 
     @Test
