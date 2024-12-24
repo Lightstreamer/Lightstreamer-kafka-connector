@@ -100,7 +100,8 @@ public class ConnectorConfigurator {
                         config.isMapRegExEnabled());
 
         ItemTemplates<K, V> itemTemplates = Items.templatesFrom(topicsConfig, sSuppliers);
-        DataExtractor<K, V> fieldsExtractor = fieldConfigs.extractor(sSuppliers, true);
+        DataExtractor<K, V> fieldsExtractor =
+                fieldConfigs.extractor(sSuppliers, config.isFieldsSkipFailedMappingEnabled());
 
         return new ConsumerTriggerConfigImpl<>(
                 config.getAdapterName(),

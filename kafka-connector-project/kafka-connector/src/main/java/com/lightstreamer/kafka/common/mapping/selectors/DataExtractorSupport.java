@@ -20,8 +20,10 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -46,6 +48,7 @@ class DataExtractorSupport {
         private final Schema schema;
         private final WrapperSelectors<K, V> wrapperSelectors;
         private final boolean skipOnFailure;
+        private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
 
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
@@ -64,35 +67,30 @@ class DataExtractorSupport {
             return schema;
         }
 
-        public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
-            Map<String, String> values = new HashMap<>();
-            for (KeySelector<K> selector : wrapperSelectors.keySelectors()) {
-                tryFill(() -> selector.extractKey(record), values);
-            }
-            for (ValueSelector<V> selector : wrapperSelectors.valueSelectors()) {
-                tryFill(() -> selector.extractValue(record), values);
-            }
-            for (ConstantSelector selector : wrapperSelectors.metaSelectors()) {
-                tryFill(() -> selector.extract(record), values);
-            }
-
-            return new DefaultSchemaAndValues(schema, values);
+        @Override
+        public boolean skipOnFailure() {
+            return skipOnFailure;
         }
 
-        private void tryFill(Supplier<Data> supplier, Map<String, String> values) {
-            try {
-                Data data = supplier.get();
-                values.put(data.name(), data.text());
-            } catch (ValueException ve) {
-                if (!skipOnFailure) {
-                    throw ve;
+        @Override
+        public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
+            Map<String, String> values = new HashMap<>();
+            for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
+                try {
+                    Data data = extractor.apply(record);
+                    values.put(data.name(), data.text());
+                } catch (ValueException ve) {
+                    if (!skipOnFailure) {
+                        throw ve;
+                    }
                 }
             }
+            return new DefaultSchemaAndValues(schema, values);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(wrapperSelectors, schema);
+            return Objects.hash(wrapperSelectors, schema, skipOnFailure);
         }
 
         @Override
@@ -101,7 +99,8 @@ class DataExtractorSupport {
 
             return obj instanceof DataExtractorImpl<?, ?> other
                     && Objects.equals(wrapperSelectors, other.wrapperSelectors)
-                    && Objects.equals(schema, other.schema);
+                    && Objects.equals(schema, other.schema)
+                    && Objects.equals(skipOnFailure, other.skipOnFailure);
         }
 
         private Schema mkSchema(String schemaName) {

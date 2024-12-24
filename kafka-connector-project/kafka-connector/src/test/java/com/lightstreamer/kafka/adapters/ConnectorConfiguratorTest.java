@@ -154,6 +154,7 @@ public class ConnectorConfiguratorTest {
                 .startsWith("KAFKA-CONNECTOR-");
 
         DataExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
+        assertThat(fieldExtractor.skipOnFailure()).isFalse();
         Schema schema = fieldExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1");
@@ -188,11 +189,13 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, "4");
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, "UNORDERED");
+        updatedConfigs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
         DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");

@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
-
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
@@ -32,6 +29,10 @@ public interface DataExtractor<K, V> {
 
     Schema schema();
 
+    default boolean skipOnFailure() {
+        return false;
+    }
+
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             String schemaName,
@@ -39,14 +40,6 @@ public interface DataExtractor<K, V> {
             boolean skipOnFailure)
             throws ExtractionException {
         return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, skipOnFailure);
-    }
-
-    public static <K, V> DataExtractor<K, V> extractor(
-            KeyValueSelectorSuppliers<K, V> sSuppliers,
-            String schemaName,
-            Map<String, ExtractionExpression> expressions)
-            throws ExtractionException {
-        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
@@ -59,14 +52,5 @@ public interface DataExtractor<K, V> {
             KeyValueSelectorSuppliers<K, V> sSuppliers, String schemaName)
             throws ExtractionException {
         return extractor(sSuppliers, schemaName, Collections.emptyMap(), false);
-    }
-
-    public static <K, V> DataExtractor<K, V> extractor(
-            KeyValueSelectorSuppliers<K, V> sSuppliers,
-            String schema,
-            String parameter,
-            String expression)
-            throws ExpressionException, ExtractionException {
-        return extractor(sSuppliers, schema, Map.of(parameter, Expression(expression)), false);
     }
 }

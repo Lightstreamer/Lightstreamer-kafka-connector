@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPING;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,41 +48,41 @@ public class RecordMappingsValidatorTest {
                 // Null record.mapping
                 arguments(
                         null,
-                        "Invalid value for configuration \"record.mapping\": Must be non-null"),
+                        "Invalid value for configuration \"record.mappings\": Must be non-null"),
                 // Non List
                 arguments(
                         new Object(),
-                        "Invalid value for configuration \"record.mapping\": Must be a list"),
+                        "Invalid value for configuration \"record.mappings\": Must be a list"),
                 arguments(
                         List.of(1, 2, 3),
-                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mappings\": Must be a list of non-empty strings"),
 
                 // Empty record.mapping
                 arguments(
                         Collections.emptyList(),
-                        "Invalid value for configuration \"record.mapping\": Must be a non-empty list"),
+                        "Invalid value for configuration \"record.mappings\": Must be a non-empty list"),
                 // List of empty record.mapping
                 arguments(
                         List.of(""),
-                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mappings\": Must be a list of non-empty strings"),
                 arguments(
                         List.of("", ""),
-                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mappings\": Must be a list of non-empty strings"),
                 arguments(
                         List.of(" ", ""),
-                        "Invalid value for configuration \"record.mapping\": Must be a list of non-empty strings"),
+                        "Invalid value for configuration \"record.mappings\": Must be a list of non-empty strings"),
                 // List of mixed non-empty/empty-strings
                 arguments(
                         List.of("field1"),
-                        "Invalid value for configuration \"record.mapping\": Each entry must be in the form [fieldName]:[extractionExpression]"),
+                        "Invalid value for configuration \"record.mappings\": Each entry must be in the form [fieldName]:[extractionExpression]"),
                 // Invalid expression
                 arguments(
                         List.of("field:VALUE"),
-                        "Invalid value for configuration \"record.mapping\": Extraction expression must be in the form #{...}"),
+                        "Invalid value for configuration \"record.mappings\": Extraction expression must be in the form #{...}"),
                 // List of duplicate entry
                 arguments(
                         List.of("field1:#{VALUE}", "field1:#{KEY}"),
-                        "Invalid value for configuration \"record.mapping\": Duplicate key \"field1\""));
+                        "Invalid value for configuration \"record.mappings\": Duplicate key \"field1\""));
     }
 
     @ParameterizedTest
@@ -90,7 +90,7 @@ public class RecordMappingsValidatorTest {
     public void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> validator.ensureValid(RECORD_MAPPING, value));
+                        ConfigException.class, () -> validator.ensureValid(RECORD_MAPPINGS, value));
         assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -104,6 +104,6 @@ public class RecordMappingsValidatorTest {
     @ParameterizedTest
     @MethodSource("values")
     public void shouldValidate(Object value) {
-        assertDoesNotThrow(() -> validator.ensureValid(RECORD_MAPPING, value));
+        assertDoesNotThrow(() -> validator.ensureValid(RECORD_MAPPINGS, value));
     }
 }
