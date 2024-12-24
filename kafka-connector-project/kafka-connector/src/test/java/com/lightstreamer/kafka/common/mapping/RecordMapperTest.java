@@ -94,8 +94,7 @@ public class RecordMapperTest {
                                 extractor(String(), Template("prefix2-#{aValue=PARTITION}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
-                                        String(), Template("anotherPrefix-#{aKey=PARTITION}")))
+                                extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -109,10 +108,7 @@ public class RecordMapperTest {
                         extractor(String(), Template("prefix2-#{aValue=PARTITION}")));
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(
-                        extractor(
-                                String(),
-                                Template("anotherPrefix-#{aKey=PARTITION}")));
+                .containsExactly(extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")));
     }
 
     @Test
@@ -191,22 +187,21 @@ public class RecordMapperTest {
                         .withTemplateExtractor(
                                 "topic[0-9]+",
                                 extractor(
-                                        String(), Template("prefix1-#{partition=PARTITION,value=VALUE}")))
+                                        String(),
+                                        Template("prefix1-#{partition=PARTITION,value=VALUE}")))
                         .withTemplateExtractor(
                                 "topic[0-9]+",
-                                extractor(
-                                        String(), Template("prefix2-#{topic=TOPIC}")))
+                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
                         .withTemplateExtractor(
-                                "topic[0-9]+",
-                                extractor(String(), Template("prefix3-#{key=KEY}")))
+                                "topic[0-9]+", extractor(String(), Template("prefix3-#{key=KEY}")))
                         .withTemplateExtractor(
                                 "anotherTopic[A-C]",
-                                extractor(
-                                        String(), Template("prefix3-#{value=VALUE}")))
+                                extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
                                 extractor(
-                                        String(), Template("fields-#{keyField=KEY,valueField=VALUE}")))
+                                        String(),
+                                        Template("fields-#{keyField=KEY,valueField=VALUE}")))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
