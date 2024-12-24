@@ -116,7 +116,11 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                extractor(String(), Template("fields-#{aKey=PARTITION}")))
+                                extractor(
+                                        String(),
+                                        "fields",
+                                        Map.of("aKey", Wrapped("#{PARTITION}")),
+                                        false))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -144,7 +148,13 @@ public class RecordMapperTest {
                         .withFieldExtractor(
                                 extractor(
                                         String(),
-                                        Template("fields-#{keyField=KEY,valueField=VALUE}")))
+                                        "fields",
+                                        Map.of(
+                                                "keyField",
+                                                Wrapped("#{KEY}"),
+                                                "valueField",
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -201,7 +211,13 @@ public class RecordMapperTest {
                         .withFieldExtractor(
                                 extractor(
                                         String(),
-                                        Template("fields-#{keyField=KEY,valueField=VALUE}")))
+                                        "fields",
+                                        Map.of(
+                                                "keyField",
+                                                Wrapped("#{KEY}"),
+                                                "valueField",
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
