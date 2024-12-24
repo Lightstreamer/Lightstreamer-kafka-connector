@@ -19,11 +19,14 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
@@ -31,6 +34,7 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -66,12 +70,10 @@ public class RecordMapperTest {
                 builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        String(), "test", Map.of("aKey", Expression("PARTITION"))))
+                                extractor(String(), Template("test-#{aKey=PARTITION}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        String(), "test", Map.of("aKey", Expression("PARTITION"))))
+                                extractor(String(), Template("test-#{aKey=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -80,8 +82,8 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
-                .containsExactly(
-                        extractor(String(), "test", Map.of("aKey", Expression("PARTITION"))));
+                .containsExactly(extractor(String(), Template("test-#{aKey=PARTITION}")));
+        // extractor(String(), "test", Map.of("aKey", Expression("PARTITION"))));
     }
 
     @Test
@@ -89,20 +91,13 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withTemplateExtractor(
-                                TEST_TOPIC_1,
-                                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY"))))
+                                TEST_TOPIC_1, extractor(String(), Template("prefix1-#{aKey=KEY}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        String(),
-                                        "prefix2",
-                                        Map.of("aValue", Expression("PARTITION"))))
+                                extractor(String(), Template("prefix2-#{aValue=PARTITION}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
-                                        String(),
-                                        "anotherPrefix",
-                                        Map.of("aKey", Expression("PARTITION"))))
+                                extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -112,57 +107,11 @@ public class RecordMapperTest {
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
                 .containsExactly(
-                        extractor(String(), "prefix1", Map.of("aKey", Expression("KEY"))),
-                        extractor(String(), "prefix2", Map.of("aValue", Expression("PARTITION"))));
+                        extractor(String(), Template("prefix1-#{aKey=KEY}")),
+                        extractor(String(), Template("prefix2-#{aValue=PARTITION}")));
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(
-                        extractor(
-                                String(),
-                                "anotherPrefix",
-                                Map.of("aKey", Expression("PARTITION"))));
-    }
-
-    @Test
-    public void shouldBuildMapperWithTemplateExtractors() throws ExtractionException {
-        RecordMapper<String, String> mapper =
-                builder()
-                        .withTemplateExtractors(
-                                Map.of(
-                                        TEST_TOPIC_1,
-                                        Set.of(
-                                                extractor(
-                                                        String(),
-                                                        "prefix1",
-                                                        Map.of("aKey", Expression("KEY"))),
-                                                extractor(
-                                                        String(),
-                                                        "prefix2",
-                                                        Map.of("aValue", Expression("PARTITION")))),
-                                        TEST_TOPIC_2,
-                                        Set.of(
-                                                extractor(
-                                                        String(),
-                                                        "anotherPrefix",
-                                                        Map.of("aKey", Expression("PARTITION"))))))
-                        .build();
-
-        assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isTrue();
-        assertThat(mapper.hasFieldExtractor()).isFalse();
-        assertThat(mapper.isRegexEnabled()).isFalse();
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
-                .containsExactly(
-                        extractor(String(), "prefix1", Map.of("aKey", Expression("KEY"))),
-                        extractor(String(), "prefix2", Map.of("aValue", Expression("PARTITION"))));
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(
-                        extractor(
-                                String(),
-                                "anotherPrefix",
-                                Map.of("aKey", Expression("PARTITION"))));
+                .containsExactly(extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")));
     }
 
     @Test
@@ -173,7 +122,8 @@ public class RecordMapperTest {
                                 extractor(
                                         String(),
                                         "fields",
-                                        Map.of("aKey", Expression("PARTITION"))))
+                                        Map.of("aKey", Wrapped("#{PARTITION}")),
+                                        false))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -189,32 +139,25 @@ public class RecordMapperTest {
                                 TEST_TOPIC_1,
                                 extractor(
                                         String(),
-                                        "prefix1",
-                                        Map.of(
-                                                "partition",
-                                                Expression("PARTITION"),
-                                                "value",
-                                                Expression("VALUE"))))
+                                        Template("prefix1-#{partition=PARTITION,value=VALUE}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        String(), "prefix2", Map.of("topic", Expression("TOPIC"))))
+                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
                         .withTemplateExtractor(
-                                TEST_TOPIC_1,
-                                extractor(String(), "prefix3", Map.of("key", Expression("KEY"))))
+                                TEST_TOPIC_1, extractor(String(), Template("prefix3-#{key=KEY}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
-                                        String(), "prefix3", Map.of("value", Expression("VALUE"))))
+                                extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .withFieldExtractor(
                                 extractor(
                                         String(),
                                         "fields",
                                         Map.of(
                                                 "keyField",
-                                                Expression("KEY"),
+                                                Wrapped("#{KEY}"),
                                                 "valueField",
-                                                Expression("VALUE"))))
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -258,23 +201,15 @@ public class RecordMapperTest {
                                 "topic[0-9]+",
                                 extractor(
                                         String(),
-                                        "prefix1",
-                                        Map.of(
-                                                "partition",
-                                                Expression("PARTITION"),
-                                                "value",
-                                                Expression("VALUE"))))
+                                        Template("prefix1-#{partition=PARTITION,value=VALUE}")))
                         .withTemplateExtractor(
                                 "topic[0-9]+",
-                                extractor(
-                                        String(), "prefix2", Map.of("topic", Expression("TOPIC"))))
+                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
                         .withTemplateExtractor(
-                                "topic[0-9]+",
-                                extractor(String(), "prefix3", Map.of("key", Expression("KEY"))))
+                                "topic[0-9]+", extractor(String(), Template("prefix3-#{key=KEY}")))
                         .withTemplateExtractor(
                                 "anotherTopic[A-C]",
-                                extractor(
-                                        String(), "prefix3", Map.of("value", Expression("VALUE"))))
+                                extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
                                 extractor(
@@ -282,9 +217,10 @@ public class RecordMapperTest {
                                         "fields",
                                         Map.of(
                                                 "keyField",
-                                                Expression("KEY"),
+                                                Wrapped("#{KEY}"),
                                                 "valueField",
-                                                Expression("VALUE"))))
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -340,47 +276,34 @@ public class RecordMapperTest {
                 RecordMapper.<String, JsonNode>builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        JsonValue(),
-                                        "test",
-                                        Map.of("name", Expression("VALUE.name"))))
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         JsonValue(),
-                                        "test",
-                                        Map.of(
-                                                "firstChildName",
-                                                Expression("VALUE.children[0].name"))))
+                                        Template("test-#{firstChildName=VALUE.children[0].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         JsonValue(),
-                                        "test",
-                                        Map.of(
-                                                "secondChildName",
-                                                Expression("VALUE.children[1].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[1].name"))))
+                                        Template(
+                                                "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
                                 extractor(
                                         JsonValue(),
-                                        "test",
-                                        Map.of(
-                                                "thirdChildName",
-                                                Expression("VALUE.children[2].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[0].name"))))
+                                        Template(
+                                                "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
                                 extractor(
                                         JsonValue(),
                                         "fields",
                                         Map.of(
                                                 "firstName",
-                                                Expression("VALUE.name"),
+                                                Wrapped("#{VALUE.name}"),
                                                 "childSignature",
-                                                Expression("VALUE.children[0].signature"))))
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -423,52 +346,134 @@ public class RecordMapperTest {
     }
 
     @Test
+    public void shoulSkipFieldMappingFailure() throws ExtractionException {
+        // This flag will let field mapping alway success by omitting not mapped fields
+        boolean skipOnFailure = true;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which will be
+                                                // omitted
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        // The childSignature filed has been skipped
+        assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
+    }
+
+    @Test
+    public void shoulNotMapDueToFieldMappingFailure() throws ExtractionException {
+        boolean skipOnFailure = false;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which leads to make
+                                                // mapping fail
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
+    public void shoulNotMapDueToTemplateFailure() throws ExtractionException {
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                // This leads a ValueException, which leads to make mapping fail
+                                extractor(
+                                        JsonValue(),
+                                        Template("test-#{name=VALUE.not_valid_attrib}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
     public void shouldMapAvroRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, GenericRecord> mapper =
                 RecordMapper.<String, GenericRecord>builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        AvroValue(),
-                                        "test",
-                                        Map.of("name", Expression("VALUE.name"))))
+                                extractor(AvroValue(), Template("test-#{name=VALUE.name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         AvroValue(),
-                                        "test",
-                                        Map.of(
-                                                "firstChildName",
-                                                Expression("VALUE.children[0].name"))))
+                                        Template("test-#{firstChildName=VALUE.children[0].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         AvroValue(),
-                                        "test",
-                                        Map.of(
-                                                "secondChildName",
-                                                Expression("VALUE.children[1].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[1].name"))))
+                                        Template(
+                                                "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
                                 extractor(
                                         AvroValue(),
-                                        "test",
-                                        Map.of(
-                                                "thirdChildName",
-                                                Expression("VALUE.children[2].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[0].name"))))
+                                        Template(
+                                                "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
                                 extractor(
                                         AvroValue(),
                                         "fields",
                                         Map.of(
                                                 "firstName",
-                                                Expression("VALUE.name"),
+                                                Wrapped("#{VALUE.name}"),
                                                 "childSignature",
-                                                Expression("VALUE.children[0].signature"))))
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -516,45 +521,34 @@ public class RecordMapperTest {
                 RecordMapper.<Object, Object>builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
-                                        Object(), "test", Map.of("name", Expression("VALUE.name"))))
+                                extractor(Object(), Template("test-#{name=VALUE.name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         Object(),
-                                        "test",
-                                        Map.of(
-                                                "firstChildName",
-                                                Expression("VALUE.children[0].name"))))
+                                        Template("test-#{firstChildName=VALUE.children[0].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_1,
                                 extractor(
                                         Object(),
-                                        "test",
-                                        Map.of(
-                                                "secondChildName",
-                                                Expression("VALUE.children[1].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[1].name"))))
+                                        Template(
+                                                "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
                                 extractor(
                                         Object(),
-                                        "test",
-                                        Map.of(
-                                                "thirdChildName",
-                                                Expression("VALUE.children[2].name"),
-                                                "grandChildName",
-                                                Expression("VALUE.children[1].children[0].name"))))
+                                        Template(
+                                                "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
                                 extractor(
                                         Object(),
                                         "fields",
                                         Map.of(
                                                 "firstName",
-                                                Expression("VALUE.name"),
+                                                Wrapped("#{VALUE.name}"),
                                                 "childSignature",
-                                                Expression("VALUE.children[0].signature"))))
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();

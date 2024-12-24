@@ -238,7 +238,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L448) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L458) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -879,7 +879,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L461) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -1173,7 +1173,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L477) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L486) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1192,6 +1192,22 @@ The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/
 <param name="field.open_price">#{VALUE.open_price}</param>
 <param name="field.item_status">#{VALUE.item_status}</param>
 ..
+```
+
+##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
+
+_Optional_. Normally, if a field mapping fails during the extraction from the Kafka record because of an issue with the data, it leads to the entire record being discarded or even cause the subscription to be terminated, depending on the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting. By enabling this parameter, the connector becomes more resilient to such errors. If a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. This allows for partial updates even in the presence of data inconsistencies or transient extraction issues.
+
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="fields.skip.failed.extraction.enable">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1852,6 +1868,17 @@ The configuration above specifies the following mappings:
 1. The record key to the Lightstreamer field `index`
 2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
+
+### `record.mappings.skip.failed.enable`
+
+By enabling this (optional) parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
 
 
 ### `item.templates`

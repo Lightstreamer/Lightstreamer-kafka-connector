@@ -230,6 +230,17 @@ public class ConnectorConfigTest {
         assertThat(fieldMapping.defaultValue()).isNull();
         assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
+        ConfParameter fieldsSkipFailedMappingEnable =
+                configSpec.getParameter(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+        assertThat(fieldsSkipFailedMappingEnable.name())
+                .isEqualTo(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+        assertThat(fieldsSkipFailedMappingEnable.required()).isFalse();
+        assertThat(fieldsSkipFailedMappingEnable.multiple()).isFalse();
+        assertThat(fieldsSkipFailedMappingEnable.suffix()).isNull();
+        assertThat(fieldsSkipFailedMappingEnable.mutable()).isTrue();
+        assertThat(fieldsSkipFailedMappingEnable.defaultValue()).isEqualTo("false");
+        assertThat(fieldsSkipFailedMappingEnable.type()).isEqualTo(ConfType.BOOL);
+
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
@@ -939,6 +950,30 @@ public class ConnectorConfigTest {
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
+    }
+
+    @Test
+    public void shouldGetFieldsSkipFailedMapping() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.isFieldsSkipFailedMappingEnabled()).isFalse();
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isFieldsSkipFailedMappingEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldFailDueToFieldsSkipFailedMapping() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [fields.skip.failed.mapping.enable]");
     }
 
     @Test
