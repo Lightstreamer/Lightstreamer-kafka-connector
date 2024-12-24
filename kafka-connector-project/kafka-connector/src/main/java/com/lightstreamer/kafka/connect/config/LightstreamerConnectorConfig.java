@@ -130,7 +130,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                     + "where every specified topic ([topicNameX]) is mapped to the item names or item templates specified as "
                     + " comma-separated list ([mappingListX]).";
 
-    public static final String TOPIC_MAPPINGS_REGEX_ENABLE = "topic.mappings.regex_enable";
+    public static final String TOPIC_MAPPINGS_REGEX_ENABLE = "topic.mappings.regex.enable";
     public static final String TOPIC_MAPPINGS_REGEX_ENABLE_DOC =
             "The (optional) flag to enable the topicName parts of the \"topic.mappings\" parameter to be treated as a regular expression "
                     + "rather than of a literal topic name.";
