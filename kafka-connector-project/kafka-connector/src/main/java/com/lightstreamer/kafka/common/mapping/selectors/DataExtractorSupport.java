@@ -20,8 +20,10 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -34,24 +36,38 @@ class DataExtractorSupport {
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> suppliers,
             String schema,
-            Map<String, ExtractionExpression> expressions)
+            Map<String, ExtractionExpression> expressions,
+            boolean skipOnFailure)
             throws ExtractionException {
-        return new DataExtractorImpl<>(suppliers, schema, expressions);
+        return new DataExtractorImpl<>(suppliers, schema, expressions, skipOnFailure);
     }
 
     private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
 
         private final Schema schema;
         private final WrapperSelectors<K, V> wrapperSelectors;
+        private final boolean skipOnFailure;
+        private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
 
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
                 String schemaName,
-                Map<String, ExtractionExpression> expressions)
+                Map<String, ExtractionExpression> expressions,
+                boolean skipOnFailure)
                 throws ExtractionException {
 
             this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
             this.schema = mkSchema(schemaName);
+            this.skipOnFailure = skipOnFailure;
+            for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
+                this.extractors.add(record -> keySelector.extractKey(record));
+            }
+            for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
+                this.extractors.add(record -> valueSelector.extractValue(record));
+            }
+            for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
+                this.extractors.add(record -> constantSelector.extract(record));
+            }
         }
 
         @Override
@@ -59,27 +75,30 @@ class DataExtractorSupport {
             return schema;
         }
 
+        @Override
+        public boolean skipOnFailure() {
+            return skipOnFailure;
+        }
+
+        @Override
         public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
             Map<String, String> values = new HashMap<>();
-            for (KeySelector<K> selector : wrapperSelectors.keySelectors()) {
-                Data data = selector.extractKey(record);
-                values.put(data.name(), data.text());
+            for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
+                try {
+                    Data data = extractor.apply(record);
+                    values.put(data.name(), data.text());
+                } catch (ValueException ve) {
+                    if (!skipOnFailure) {
+                        throw ve;
+                    }
+                }
             }
-            for (ValueSelector<V> selector : wrapperSelectors.valueSelectors()) {
-                Data data = selector.extractValue(record);
-                values.put(data.name(), data.text());
-            }
-            for (ConstantSelector selector : wrapperSelectors.metaSelectors()) {
-                Data data = selector.extract(record);
-                values.put(data.name(), data.text());
-            }
-
             return new DefaultSchemaAndValues(schema, values);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(wrapperSelectors, schema);
+            return Objects.hash(wrapperSelectors, schema, skipOnFailure);
         }
 
         @Override
@@ -88,7 +107,8 @@ class DataExtractorSupport {
 
             return obj instanceof DataExtractorImpl<?, ?> other
                     && Objects.equals(wrapperSelectors, other.wrapperSelectors)
-                    && Objects.equals(schema, other.schema);
+                    && Objects.equals(schema, other.schema)
+                    && Objects.equals(skipOnFailure, other.skipOnFailure);
         }
 
         private Schema mkSchema(String schemaName) {

@@ -823,7 +823,7 @@ Example of configuration with the use of a ticket cache:
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L461) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start Redpanda Serverless Example
 
@@ -1139,6 +1139,22 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 <param name="field.open_price">#{VALUE.open_price}</param>
 <param name="field.item_status">#{VALUE.item_status}</param>
 ..
+```
+
+##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
+
+_Optional_. Normally, if a field mapping fails during the extraction from the Kafka record because of an issue with the data, it leads to the entire record being discarded or even cause the subscription to be terminated, depending on the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting. By enabling this parameter, the connector becomes more resilient to such errors. If a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. This allows for partial updates even in the presence of data inconsistencies or transient extraction issues.
+
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="fields.skip.failed.extraction.enable">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1772,7 +1788,7 @@ topic.mappings.regex.enable=true
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
 
-The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
+The list of mappings between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
 
@@ -1799,6 +1815,17 @@ The configuration above specifies the following mappings:
 1. The record key to the Lightstreamer field `index`
 2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
+
+### `record.mappings.skip.failed.enable`
+
+By enabling this (optional) parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
 
 
 ### `item.templates`

@@ -97,6 +97,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
     public static final String FIELD_MAPPING = "field";
+    public static final String FIELDS_SKIP_FAILED_MAPPING_ENABLE =
+            "fields.skip.failed.mapping.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -193,6 +195,12 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
                         .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
+                        .add(
+                                FIELDS_SKIP_FAILED_MAPPING_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
                         .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 false,
@@ -837,6 +845,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isMapRegExEnabled() {
         return getBoolean(MAP_REG_EX_ENABLE);
+    }
+
+    public boolean isFieldsSkipFailedMappingEnabled() {
+        return getBoolean(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
     }
 
     public FieldConfigs getFieldConfigs() {

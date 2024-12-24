@@ -28,8 +28,11 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.EMPTY_MAP;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -50,31 +53,50 @@ public class DataExtractorTest {
     @Test
     public void shouldBuildEqualExtractors() throws ExtractionException {
         DataExtractor<String, String> extractor1 =
-                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")));
+                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")), false);
         assertThat(extractor1.equals(extractor1)).isTrue();
 
         DataExtractor<String, String> extractor2 =
-                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")));
+                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")), false);
         assertThat(extractor1.hashCode()).isEqualTo(extractor2.hashCode());
         assertThat(extractor1.equals(extractor2)).isTrue();
     }
 
+    @Test
+    public void shouldBuildNotEqualExtractors() throws ExtractionException {
+        DataExtractor<String, String> extractor1 =
+                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")), true);
+        assertThat(extractor1.equals(extractor1)).isTrue();
+
+        DataExtractor<String, String> extractor2 =
+                extractor(String(), "prefix1", Map.of("aKey", Expression("KEY")), false);
+        assertThat(extractor1.hashCode()).isNotEqualTo(extractor2.hashCode());
+        assertThat(extractor1.equals(extractor2)).isFalse();
+
+        extractor2 = extractor(String(), "prefix1", Map.of("aKey1", Expression("KEY")), true);
+        assertThat(extractor1.hashCode()).isNotEqualTo(extractor2.hashCode());
+        assertThat(extractor1.equals(extractor2)).isFalse();
+    }
+
     static Stream<Arguments> extractorFromExtractionExpressions() {
         return Stream.of(
-                arguments(TEST_SCHEMA, EMPTY_MAP, Schema.empty(TEST_SCHEMA), EMPTY_MAP),
+                arguments(TEST_SCHEMA, EMPTY_MAP, false, Schema.empty(TEST_SCHEMA), EMPTY_MAP),
                 arguments(
                         TEST_SCHEMA,
                         Map.of("name", Expression("VALUE")),
+                        true,
                         Schema.from(TEST_SCHEMA, Set.of("name")),
                         Map.of("name", "aValue")),
                 arguments(
                         "aSchemNAme",
                         Map.of("value", Expression("VALUE"), "key", Expression("KEY")),
+                        false,
                         Schema.from("aSchemNAme", Set.of("value", "key")),
                         Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         "anotherSchemaName",
                         Map.of("value1", Expression("VALUE"), "key1", Expression("KEY")),
+                        true,
                         Schema.from("anotherSchemaName", Set.of("value1", "key1")),
                         Map.of("key1", "aKey", "value1", "aValue")),
                 arguments(
@@ -86,6 +108,7 @@ public class DataExtractorTest {
                                 Expression("PARTITION"),
                                 "topic",
                                 Expression("TOPIC")),
+                        false,
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "topic")),
                         Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")));
     }
@@ -95,59 +118,15 @@ public class DataExtractorTest {
     public void shouldCreateAndExtractValuesExtractionExpressions(
             String schemaName,
             Map<String, ExtractionExpression> expressions,
-            Schema expectedSchema,
-            Map<String, String> expectedValues)
-            throws ExtractionException {
-        DataExtractor<String, String> extractor = extractor(String(), schemaName, expressions);
-        Schema schema = extractor.schema();
-        assertThat(schema).isEqualTo(expectedSchema);
-
-        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
-        SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
-        Map<String, String> values = schemaAndValues.values();
-        assertThat(values).isEqualTo(expectedValues);
-    }
-
-    static Stream<Arguments> extractorFromSimpleExpression() {
-        return Stream.of(
-                arguments(
-                        TEST_SCHEMA,
-                        "name",
-                        "VALUE",
-                        Schema.from(TEST_SCHEMA, Set.of("name")),
-                        Map.of("name", "aValue")),
-                arguments(
-                        "aSchemNAme",
-                        "value",
-                        "VALUE",
-                        Schema.from("aSchemNAme", Set.of("value")),
-                        Map.of("value", "aValue")),
-                arguments(
-                        "anotherSchemaName",
-                        "value1",
-                        "VALUE",
-                        Schema.from("anotherSchemaName", Set.of("value1")),
-                        Map.of("value1", "aValue")),
-                arguments(
-                        "mySchemaName",
-                        "partition",
-                        "PARTITION",
-                        Schema.from("mySchemaName", Set.of("partition")),
-                        Map.of("partition", "150")));
-    }
-
-    @ParameterizedTest
-    @MethodSource("extractorFromSimpleExpression")
-    public void shouldCreateAndExtractValuesSimpleExpression(
-            String schemaName,
-            String param,
-            String expression,
+            boolean skipOnFailure,
             Schema expectedSchema,
             Map<String, String> expectedValues)
             throws ExtractionException {
         DataExtractor<String, String> extractor =
-                extractor(String(), schemaName, param, expression);
-        assertThat(extractor.schema()).isEqualTo(expectedSchema);
+                extractor(String(), schemaName, expressions, skipOnFailure);
+        Schema schema = extractor.schema();
+        assertThat(schema).isEqualTo(expectedSchema);
+        assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
 
         KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
@@ -179,12 +158,13 @@ public class DataExtractorTest {
     @ParameterizedTest
     @MethodSource("extractorArgumentsFromTemplateExpressions")
     public void shouldCreateAndExtractValuesFromTemplateExpressions(
-            TemplateExpression expression,
+            TemplateExpression templateExpression,
             Schema expectedSchema,
             Map<String, String> expectedValues)
             throws ExtractionException {
-        DataExtractor<String, String> extractor = extractor(String(), expression);
+        DataExtractor<String, String> extractor = extractor(String(), templateExpression);
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
+        assertThat(extractor.skipOnFailure()).isFalse();
 
         KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
@@ -196,11 +176,50 @@ public class DataExtractorTest {
     public void shouldCreateAndExtractValuesFromNoExpressions() throws ExtractionException {
         DataExtractor<String, String> extractor = extractor(String(), TEST_SCHEMA);
         assertThat(extractor.schema()).isEqualTo(Schema.empty(TEST_SCHEMA));
+        assertThat(extractor.skipOnFailure()).isFalse();
 
         KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEmpty();
+    }
+
+    @Test
+    public void shouldFailExtraction() throws ExtractionException {
+        DataExtractor<String, JsonNode> extractor =
+                extractor(
+                        TestSelectorSuppliers.JsonValue(),
+                        "fields",
+                        Map.of(
+                                "undefined",
+                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                "name",
+                                Expressions.Wrapped("#{VALUE.name}")),
+                        false);
+
+        // We expect that the whole extraction fails
+        assertThrows(
+                ValueException.class,
+                () -> extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD)));
+    }
+
+    @Test
+    public void shouldSkipFailurelExtraction() throws ExtractionException {
+        DataExtractor<String, JsonNode> extractor =
+                extractor(
+                        TestSelectorSuppliers.JsonValue(),
+                        "fields",
+                        Map.of(
+                                "undefined",
+                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                "name",
+                                Expressions.Wrapped("#{VALUE.name}")),
+                        true);
+
+        // We expect that only the extraction related to the VALUE.undefined_attrib fails
+        SchemaAndValues tryExtractData =
+                extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD));
+        assertThat(tryExtractData.values()).containsAtLeast("name", "joe");
     }
 
     @ParameterizedTest
@@ -212,6 +231,7 @@ public class DataExtractorTest {
                         extractor(
                                 TestSelectorSuppliers.JsonValue(),
                                 TEST_SCHEMA,
-                                Map.of("value", Expression(expression))));
+                                Map.of("value", Expression(expression)),
+                                false));
     }
 }
