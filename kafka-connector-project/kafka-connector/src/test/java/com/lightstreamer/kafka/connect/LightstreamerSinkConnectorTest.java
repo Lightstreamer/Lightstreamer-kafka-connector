@@ -26,7 +26,8 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
-import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPING;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE;
 
@@ -48,7 +49,7 @@ public class LightstreamerSinkConnectorTest {
         Map<String, String> config = new HashMap<>();
         config.put(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(TOPIC_MAPPINGS, "topic:item1");
-        config.put(RECORD_MAPPING, "field1:#{VALUE}");
+        config.put(RECORD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
 
@@ -102,7 +103,8 @@ public class LightstreamerSinkConnectorTest {
                         TOPIC_MAPPINGS,
                         TOPIC_MAPPINGS_REGEX_ENABLE,
                         ITEM_TEMPLATES,
-                        RECORD_MAPPING,
+                        RECORD_MAPPINGS,
+                        RECORD_MAPPINGS_SKIP_FAILED_ENABLE,
                         RECORD_EXTRACTION_ERROR_STRATEGY);
     }
 }

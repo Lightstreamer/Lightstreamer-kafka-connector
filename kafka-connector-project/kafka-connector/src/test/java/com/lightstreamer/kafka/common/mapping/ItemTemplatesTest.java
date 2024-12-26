@@ -158,8 +158,6 @@ public class ItemTemplatesTest {
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("stock", Set.of("index")),
@@ -204,8 +202,6 @@ public class ItemTemplatesTest {
         assertThat(templates.topics()).containsExactly("stocks");
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get("stocks")).hasSize(1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get("stocks")).hasSize(1);
         assertThat(templates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
@@ -224,8 +220,6 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
@@ -261,8 +255,6 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
         assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
@@ -301,9 +293,6 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
         assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
-        assertThat(templates.groupExtractors()).hasSize(2);
-        assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
-        assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
         assertThat(templates.groupExtractors()).hasSize(2);
         assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
         assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);

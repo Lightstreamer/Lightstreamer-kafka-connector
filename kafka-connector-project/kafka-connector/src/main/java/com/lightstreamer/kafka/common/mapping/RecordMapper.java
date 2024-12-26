@@ -42,6 +42,21 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 public interface RecordMapper<K, V> {
 
     interface MappedRecord {
@@ -142,7 +157,6 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
 
     private final DataExtractor<K, V> fieldExtractor;
-
     private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;

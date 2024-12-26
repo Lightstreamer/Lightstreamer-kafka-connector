@@ -67,7 +67,8 @@ public class DataAdapterConfigurator {
             FieldConfigs fieldConfigs = config.getFieldConfigs();
             logger.info("fieldsMapping: {}", fieldConfigs);
 
-            DataExtractor<Object, Object> fieldsExtractor = fieldConfigs.extractor(sSuppliers);
+            DataExtractor<Object, Object> fieldsExtractor =
+                    fieldConfigs.extractor(sSuppliers, config.isRecordMappingSkipFailedEnabled());
 
             return new DataAdapterConfigImpl(
                     fieldsExtractor, templates, config.getErrRecordErrorHandlingStrategy());
