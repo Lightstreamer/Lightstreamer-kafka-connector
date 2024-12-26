@@ -26,11 +26,7 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroValue
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
@@ -38,10 +34,17 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
+
+import org.apache.avro.generic.GenericRecord;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.Set;
 
 public class RecordMapperTest {
 
@@ -79,8 +82,8 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
-                .containsExactly(
-                        extractor(String(), Template("test-#{aKey=PARTITION}")));
+                .containsExactly(extractor(String(), Template("test-#{aKey=PARTITION}")));
+        // extractor(String(), "test", Map.of("aKey", Expression("PARTITION"))));
     }
 
     @Test
@@ -94,8 +97,7 @@ public class RecordMapperTest {
                                 extractor(String(), Template("prefix2-#{aValue=PARTITION}")))
                         .withTemplateExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
-                                        String(), Template("anotherPrefix-#{aKey=PARTITION}")))
+                                extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -109,45 +111,7 @@ public class RecordMapperTest {
                         extractor(String(), Template("prefix2-#{aValue=PARTITION}")));
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(
-                        extractor(
-                                String(),
-                                Template("anotherPrefix-#{aKey=PARTITION}")));
-    }
-
-    @Test
-    public void shouldBuildMapperWithTemplateExtractors() throws ExtractionException {
-        RecordMapper<String, String> mapper =
-                builder()
-                        .withTemplateExtractors(
-                                Map.of(
-                                        TEST_TOPIC_1,
-                                        Set.of(
-                                                extractor(
-                                                        String(), Template("prefix1-#{aKey=KEY}")),
-                                                extractor(
-                                                        String(), Template("prefix2-#{aValue=PARTITION}"))),
-                                        TEST_TOPIC_2,
-                                        Set.of(
-                                                extractor(
-                                                        String(), Template("anotherPrefix-#{aKey=PARTITION}")))))
-                        .build();
-
-        assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isTrue();
-        assertThat(mapper.hasFieldExtractor()).isFalse();
-        assertThat(mapper.isRegexEnabled()).isFalse();
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
-                .containsExactly(
-                        extractor(String(), Template("prefix1-#{aKey=KEY}")),
-                        extractor(String(), Template("prefix2-#{aValue=PARTITION}")));
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(
-                        extractor(
-                                String(),
-                                Template("anotherPrefix-#{aKey=PARTITION}")));
+                .containsExactly(extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")));
     }
 
     @Test
@@ -155,7 +119,11 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                extractor(String(), Template("fields-#{aKey=PARTITION}")))
+                                extractor(
+                                        String(),
+                                        "fields",
+                                        Map.of("aKey", Wrapped("#{PARTITION}")),
+                                        false))
                         .build();
 
         assertThat(mapper).isNotNull();
@@ -183,7 +151,13 @@ public class RecordMapperTest {
                         .withFieldExtractor(
                                 extractor(
                                         String(),
-                                        Template("fields-#{keyField=KEY,valueField=VALUE}")))
+                                        "fields",
+                                        Map.of(
+                                                "keyField",
+                                                Wrapped("#{KEY}"),
+                                                "valueField",
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -226,23 +200,27 @@ public class RecordMapperTest {
                         .withTemplateExtractor(
                                 "topic[0-9]+",
                                 extractor(
-                                        String(), Template("prefix1-#{partition=PARTITION,value=VALUE}")))
+                                        String(),
+                                        Template("prefix1-#{partition=PARTITION,value=VALUE}")))
                         .withTemplateExtractor(
                                 "topic[0-9]+",
-                                extractor(
-                                        String(), Template("prefix2-#{topic=TOPIC}")))
+                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
                         .withTemplateExtractor(
-                                "topic[0-9]+",
-                                extractor(String(), Template("prefix3-#{key=KEY}")))
+                                "topic[0-9]+", extractor(String(), Template("prefix3-#{key=KEY}")))
                         .withTemplateExtractor(
                                 "anotherTopic[A-C]",
-                                extractor(
-                                        String(), Template("prefix3-#{value=VALUE}")))
+                                extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
                                 extractor(
-                                        String(), Template("fields-#{keyField=KEY,valueField=VALUE}")))
-                                        
+                                        String(),
+                                        "fields",
+                                        Map.of(
+                                                "keyField",
+                                                Wrapped("#{KEY}"),
+                                                "valueField",
+                                                Wrapped("#{VALUE}")),
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -325,7 +303,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        true))
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -368,6 +346,101 @@ public class RecordMapperTest {
     }
 
     @Test
+    public void shoulSkipFieldMappingFailure() throws ExtractionException {
+        // This flag will let field mapping alway success by omitting not mapped fields
+        boolean skipOnFailure = true;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which will be
+                                                // omitted
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        // The childSignature filed has been skipped
+        assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
+    }
+
+    @Test
+    public void shoulNotMapDueToFieldMappingFailure() throws ExtractionException {
+        boolean skipOnFailure = false;
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                // This leads a ValueException, which leads to make
+                                                // mapping fail
+                                                Wrapped("#{VALUE.not_valid_attrib}")),
+                                        skipOnFailure))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
+    public void shoulNotMapDueToTemplateFailure() throws ExtractionException {
+        RecordMapper<String, JsonNode> mapper =
+                RecordMapper.<String, JsonNode>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                // This leads a ValueException, which leads to make mapping fail
+                                extractor(
+                                        JsonValue(),
+                                        Template("test-#{name=VALUE.not_valid_attrib}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        JsonValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "childSignature",
+                                                Wrapped("#{VALUE.children[0].signature}")),
+                                        false))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+    }
+
+    @Test
     public void shouldMapAvroRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, GenericRecord> mapper =
                 RecordMapper.<String, GenericRecord>builder()
@@ -400,7 +473,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        true))
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
