@@ -71,12 +71,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class RecordConsumerTest {
 
-    static record Event(String key, int position, int partition, long offset, String threadName) {}
+    static record Event(
+            String topic,
+            String key,
+            int position,
+            int partition,
+            long offset,
+            String threadName) {}
 
     private static RecordMapper<String, String> newRecordMapper(
             ConsumerTriggerConfig<String, String> config) {
@@ -98,6 +103,8 @@ public class RecordConsumerTest {
     public void setUp() throws IOException {
         File adapterDir = Files.createTempDirectory("adapter_dir").toFile();
         Map<String, String> overrideSettings = new HashMap<>();
+        overrideSettings.put("map.topic2.to", "item");
+        overrideSettings.put("field.topic", "#{TOPIC}");
         overrideSettings.put("field.key", "#{KEY}");
         overrideSettings.put("field.value", "#{VALUE}");
         overrideSettings.put("field.partition", "#{PARTITION}");
@@ -509,8 +516,7 @@ public class RecordConsumerTest {
     @MethodSource("iterations")
     public void shoudDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
         ConsumerRecords<String, String> records =
-                generateRecords(
-                        "topic", numOfRecords, List.of("a", "b", "c", "d"), new int[] {0, 1});
+                generateRecords("topic", numOfRecords, List.of("a", "b", "c", "d"), 2);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -539,12 +545,37 @@ public class RecordConsumerTest {
     @ParameterizedTest
     @MethodSource("iterations")
     public void shoudDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
-        List<String> keys = List.of("a", "b", "c");
+        List<String> keys = List.of("a", "b", "c", "d");
         // Provide less partitions than keys to enforce multiple key ending up to same partition.
-        int[] partitions = IntStream.range(0, keys.size() - 1).toArray();
+        int topic1Paritions = 3;
+        int topic2Partitions = 2;
 
-        ConsumerRecords<String, String> records =
-                generateRecords("topic", numOfRecords, keys, partitions);
+        // Generate records on differet topics
+        ConsumerRecords<String, String> recordsOnTopic =
+                generateRecords("topic", numOfRecords, keys, topic1Paritions);
+
+        ConsumerRecords<String, String> recordsOnTopic2 =
+                generateRecords("topic2", numOfRecords, keys, topic2Partitions);
+
+        // Create a new Consumer
+        Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
+                new HashMap<>();
+        Consumer<? super ConsumerRecord<String, String>> action =
+                consumerRecord ->
+                        recordsByPartition.compute(
+                                new TopicPartition(
+                                        consumerRecord.topic(), consumerRecord.partition()),
+                                (topicPartition, recordsList) -> {
+                                    if (recordsList == null) {
+                                        recordsList = new ArrayList<>();
+                                    }
+                                    recordsList.add(consumerRecord);
+                                    return recordsList;
+                                });
+        recordsOnTopic.forEach(action);
+        recordsOnTopic2.forEach(action);
+
+        ConsumerRecords<String, String> c = new ConsumerRecords<>(recordsByPartition);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -555,10 +586,10 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            recordConsumer.consumeRecords(c);
+            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
             // Group the list of offsets by partition stored in all the delivered events
-            Map<String, List<Number>> byPartition = getByPartition(deliveredEvents);
+            Map<String, List<Number>> byPartition = getByTopicAndPartition(deliveredEvents);
 
             // Ensure that the offsets relative to the same partition are in order
             Collection<List<Number>> orderedLists = byPartition.values();
@@ -575,10 +606,7 @@ public class RecordConsumerTest {
     public void shoudDeliverPartitionBasedOrderWithNoKey(
             int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        int[] partitions = IntStream.range(0, 3).toArray();
-
-        ConsumerRecords<String, String> records =
-                generateRecords("topic", numOfRecords, keys, partitions);
+        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> events = Collections.synchronizedList(new ArrayList<>());
@@ -592,7 +620,7 @@ public class RecordConsumerTest {
             recordConsumer.consumeRecords(records);
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
-            Map<String, List<Number>> byPartition = getByPartition(events);
+            Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
 
             // Ensure that the offsets relative to the same partition are in order
             Collection<List<Number>> orderedLists = byPartition.values();
@@ -608,10 +636,7 @@ public class RecordConsumerTest {
     @MethodSource("iterations")
     public void shoudDeliverUnordered(int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        int[] partitions = IntStream.range(0, 3).toArray();
-
-        ConsumerRecords<String, String> records =
-                generateRecords("topic", numOfRecords, keys, partitions);
+        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -633,8 +658,7 @@ public class RecordConsumerTest {
     public void shouldConsumeFiltered() {
         // Generate records distribuited into three partitions
         List<String> keys = Collections.emptyList();
-        int[] partitions = IntStream.range(0, 3).toArray();
-        ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, partitions);
+        ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -662,9 +686,7 @@ public class RecordConsumerTest {
     @MethodSource("handleErrors")
     public void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        int[] partitions = IntStream.range(0, 2).toArray();
-
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, partitions);
+        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -704,9 +726,7 @@ public class RecordConsumerTest {
     public void shouldIgnoreErrorsOnlyIfValueException(
             int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        int[] partitions = IntStream.range(0, 2).toArray();
-
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, partitions);
+        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -754,20 +774,21 @@ public class RecordConsumerTest {
     }
 
     /**
-     * Groups all the event offsets by partition.
+     * Groups all the event offsets by topic and partition.
      *
-     * @return a map of offsets list by partition
+     * @return a map of offsets list by topic and partition
      */
-    private static Map<String, List<Number>> getByPartition(List<Event> events) {
+    private static Map<String, List<Number>> getByTopicAndPartition(List<Event> events) {
         return events.stream()
                 .collect(
                         groupingBy(
-                                e -> String.valueOf(e.partition()),
+                                e -> String.valueOf(e.topic() + "-" + e.partition()),
                                 mapping(Event::offset, toList())));
     }
 
     private static Consumer<Map<String, String>> buildEvent(List<Event> events) {
         return event -> {
+            String topic = event.get("topic");
             // Get the key
             String key = event.get("key");
             // Extract the position from the value: "a-3" -> "3"
@@ -779,6 +800,7 @@ public class RecordConsumerTest {
             // Create and add the event
             events.add(
                     new Event(
+                            topic,
                             key,
                             position,
                             Integer.parseInt(partition),
