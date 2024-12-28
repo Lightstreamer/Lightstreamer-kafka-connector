@@ -84,12 +84,12 @@ public interface RecordConsumer<K, V> {
 
     public interface StartBuildingConsumer<K, V> {
 
-        WihtOffsetService<K, V> offsetService(OffsetService offsetService);
+        WithOffsetService<K, V> offsetService(OffsetService offsetService);
     }
 
-    interface WihtOffsetService<K, V> {
+    interface WithOffsetService<K, V> {
 
-        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy stragey);
+        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy strategy);
     }
 
     interface WithLogger<K, V> {
