@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class DataExtractorBenchmark {
 
-    static String TOPIC = "users";
+    static String[] TOPICS = {"users"};
     int partitions = 1;
 
     DataExtractor<String, JsonNode> extractor;
@@ -74,9 +74,9 @@ public class DataExtractorBenchmark {
 
     @Setup(Level.Iteration)
     public void setUp() throws ExtractionException, JsonMappingException, JsonProcessingException {
-        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPIC);
-        extractor = config.itemTemplates().groupExtractors().get(TOPIC).iterator().next();
-        records = BenchmarksUtils.Records.kafkaRecords(TOPIC, partitions, numOfRecords, keys);
+        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS);
+        extractor = config.itemTemplates().groupExtractors().get(TOPICS).iterator().next();
+        records = BenchmarksUtils.Records.kafkaRecords(TOPICS, partitions, numOfRecords, keys);
         System.out.println("Added " + numOfRecords + " records");
     }
 

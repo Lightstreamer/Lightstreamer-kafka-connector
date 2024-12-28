@@ -56,7 +56,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class BenchmarksUtils {
 
@@ -227,27 +226,25 @@ public class BenchmarksUtils {
         }
 
         public static List<KafkaRecord<String, JsonNode>> kafkaRecords(
-                String topic, int partitions, int numOfRecords, int keySize) {
+                String[] topics, int partitions, int numOfRecords, int keySize) {
             ConsumerRecords<String, JsonNode> records =
-                    consumerRecords(topic, partitions, numOfRecords, keySize);
+                    consumerRecords(topics, partitions, numOfRecords, keySize);
             List<KafkaRecord<String, JsonNode>> kafkaRecords = new ArrayList<>(records.count());
             records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
             return kafkaRecords;
         }
 
         public static ConsumerRecords<String, JsonNode> consumerRecords(
-                String topic, int partitions, int numOfRecords, int keys) {
+                String[] topics, int partitions, int numOfRecords, int keys) {
             var recordsToPartition =
                     new HashMap<TopicPartition, List<ConsumerRecord<String, JsonNode>>>();
-            IntStream.range(0, partitions)
-                    .forEach(
-                            p -> {
-                                TopicPartition tp = new TopicPartition(topic, p);
-                                recordsToPartition.put(
-                                        tp,
-                                        makeRecords(
-                                                tp, numOfRecords / partitions, keys / partitions));
-                            });
+            for (String topic : topics) {
+                for (int partition = 0; partition < partitions; partition++) {
+                    TopicPartition tp = new TopicPartition(topic, partition);
+                    recordsToPartition.put(
+                            tp, makeRecords(tp, numOfRecords / partitions, keys / partitions));
+                }
+            }
 
             return new ConsumerRecords<>(recordsToPartition);
         }
@@ -362,7 +359,7 @@ public class BenchmarksUtils {
     }
 
     @SuppressWarnings("unchecked")
-    public static ConsumerTriggerConfig<String, JsonNode> newConfigurator(String topic) {
+    public static ConsumerTriggerConfig<String, JsonNode> newConfigurator(String[] topic) {
         File adapterdir;
         try {
             adapterdir = Files.createTempDirectory("adapter_dir").toFile();
@@ -376,7 +373,7 @@ public class BenchmarksUtils {
 
     @SuppressWarnings("unchecked")
     public static ConsumerTriggerConfig<String, JsonNode> newConfigurator(
-            String topic, int threads, String ordering) {
+            String[] topic, int threads, String ordering) {
         File adapterdir;
         try {
             adapterdir = Files.createTempDirectory("adapter_dir").toFile();
@@ -388,7 +385,7 @@ public class BenchmarksUtils {
         }
     }
 
-    static Map<String, String> basicParameters(String topic, int threads, String ordering) {
+    static Map<String, String> basicParameters(String[] topics, int threads, String ordering) {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -400,7 +397,9 @@ public class BenchmarksUtils {
         adapterParams.put(
                 "item-template.users",
                 "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
-        adapterParams.put("map." + topic + ".to", "item-template.users");
+        for (String t : topics) {
+            adapterParams.put("map." + t + ".to", "item-template.users");
+        }
         adapterParams.put("field.name", "#{VALUE.name}");
         adapterParams.put("field.surname", "#{VALUE.surname}");
         adapterParams.put("field.age", "#{VALUE.age}");

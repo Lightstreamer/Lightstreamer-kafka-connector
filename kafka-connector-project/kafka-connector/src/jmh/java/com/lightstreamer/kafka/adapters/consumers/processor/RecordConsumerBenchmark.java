@@ -54,26 +54,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Thread)
-// @Warmup(iterations =  5, time = 10, timeUnit = TimeUnit.SECONDS)
-// @Measurement(iterations = 15, time = 20, timeUnit = TimeUnit.SECONDS)
-@Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 15, time = 20, timeUnit = TimeUnit.SECONDS)
+// @Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
+// @Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 public class RecordConsumerBenchmark {
 
     static final int WARMUP_CYCLES = 100;
 
-    static String TOPIC = "users";
+    static String[] TOPICS = {"users", "users2"};
 
-    static Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
 
     @Param({"1", "2", "4"})
     int threads = 4;
 
-    int partitions = 1;
+    int partitions = 4;
 
     // @Param({"true", "false"})
-    boolean prefereSingleThread = false;
+    boolean preferSingleThread = false;
 
     // @Param({"100", "200", "500"})
     @Param({"500"})
@@ -83,45 +83,52 @@ public class RecordConsumerBenchmark {
     int numOfKeys = 500;
 
     // @Param({"20", "200", "2000"})
-    int susbcriptions = 500;
+    int subscriptions = 500;
 
     // @Param({"ORDER_BY_PARTITION", "ORDER_BY_KEY"})
-    @Param({"UNORDERED"})
+    @Param({"ORDER_BY_PARTITION", "ORDER_BY_PARTITION_2"})
     String ordering;
 
     ConsumerRecords<String, JsonNode> consumerRecords;
     FakeItemEventListener listener;
+    FakeOffsetService offsetService;
     RecordConsumer<String, JsonNode> recordConsumer;
 
     AtomicInteger iterations = new AtomicInteger();
 
     private Collection<SubscribedItem> subscribedItem;
 
-    @Setup(Level.Iteration)
-    public void setUp(Blackhole bh) {
-        iterations.set(0);
+    @Setup(Level.Trial)
+    public void setUpTrial(Blackhole bh) {
         this.listener = new FakeItemEventListener(bh);
-        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPIC);
+        this.offsetService = new FakeOffsetService();
+    }
+
+    @Setup(Level.Iteration)
+    public void setUp() {
+        iterations.set(0);
+        // Reuse the listener and offsetService created in setUpTrial
+        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS);
 
         // Configure the RecordMapper.
         RecordMapper<String, JsonNode> recordMapper = newRecordMapper(config);
 
         // Make the RecordConsumer.
-        subscribedItem = subscriptions(susbcriptions);
+        subscribedItem = subscriptions(subscriptions);
         this.recordConsumer =
                 RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
                         .subscribedItems(subscribedItem)
                         .eventListener(listener)
-                        .offsetService(new FakeOffsetService())
+                        .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
                         .logger(log)
                         .threads(threads)
                         .ordering(OrderStrategy.valueOf(ordering))
-                        .preferSingleThread(prefereSingleThread)
+                        .preferSingleThread(preferSingleThread)
                         .build();
 
         // Generate the test records.
-        this.consumerRecords = Records.consumerRecords(TOPIC, partitions, numOfRecords, numOfKeys);
+        this.consumerRecords = Records.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
     }
 
     private static RecordMapper<String, JsonNode> newRecordMapper(
@@ -154,7 +161,7 @@ public class RecordConsumerBenchmark {
         return "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, tag, sonTag);
     }
 
-    @Benchmark()
+    @Benchmark
     public void consume() {
         iterations.incrementAndGet();
         recordConsumer.consumeRecords(consumerRecords);
@@ -168,14 +175,15 @@ public class RecordConsumerBenchmark {
     public static void test() throws RunnerException, InterruptedException {
         RecordConsumerBenchmark benchMark = new RecordConsumerBenchmark();
         benchMark.threads = 16;
-        benchMark.partitions = 1;
+        benchMark.partitions = 2;
         benchMark.ordering = "UNORDERED";
         benchMark.numOfRecords = 500;
-        benchMark.susbcriptions = 500;
+        benchMark.subscriptions = 500;
         benchMark.numOfKeys = 500;
-        benchMark.setUp(
+        benchMark.setUpTrial(
                 new Blackhole(
                         "Today's password is swordfish. I understand instantiating Blackholes directly is dangerous."));
+        benchMark.setUp();
         System.out.println("Start running");
 
         // Multiplexer.ENABLE_DUMP = false;

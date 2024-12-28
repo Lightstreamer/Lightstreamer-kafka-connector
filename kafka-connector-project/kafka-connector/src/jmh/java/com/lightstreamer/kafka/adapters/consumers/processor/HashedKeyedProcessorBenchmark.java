@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @OutputTimeUnit(TimeUnit.SECONDS) // Risultati in millisecondi
 public class HashedKeyedProcessorBenchmark {
 
-    static String TOPIC = "users";
+    static String[] TOPICS = {"users"};
 
     private int partitions = 1;
 
@@ -104,7 +104,7 @@ public class HashedKeyedProcessorBenchmark {
         fibos = Collections.nCopies(taskCount, fibo);
 
         RecordMapper<String, JsonNode> recordMapper =
-                newRecordMapper(BenchmarksUtils.newConfigurator(TOPIC));
+                newRecordMapper(BenchmarksUtils.newConfigurator(TOPICS));
 
         listener = new BenchmarksUtils.FakeItemEventListener(bh);
         this.recordProcessor =
@@ -112,7 +112,7 @@ public class HashedKeyedProcessorBenchmark {
         // Generate the test records.
         this.consumerRecords =
                 RecordConsumerSupport.flatRecords(
-                        Records.consumerRecords(TOPIC, partitions, fibo, keySize));
+                        Records.consumerRecords(TOPICS, partitions, fibo, keySize));
     }
 
     private static RecordMapper<String, JsonNode> newRecordMapper(

@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class RecordMapperBenchmark {
 
-    static String TOPIC = "users";
+    static String[] TOPICS = {"users"};
     int partitions = 1;
 
     public RecordMapper<String, JsonNode> mapper;
@@ -81,10 +81,10 @@ public class RecordMapperBenchmark {
 
     @Setup(Level.Iteration)
     public void setUp() throws Exception {
-        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPIC);
+        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS);
         this.mapper = newRecordMapper(config, regex);
         this.records =
-                BenchmarksUtils.Records.kafkaRecords(TOPIC, partitions, numOfRecords, numOfKeys);
+                BenchmarksUtils.Records.kafkaRecords(TOPICS, partitions, numOfRecords, numOfKeys);
         this.mappedRecord = mapper.map(records.get(0));
     }
 
