@@ -19,29 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WihtOffsetService;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.KafkaException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +26,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.KafkaException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 class RecordConsumerSupport {
 
@@ -79,7 +79,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WihtOffsetService<K, V> offsetService(OffsetService offsetService) {
+        public WithOffsetService<K, V> offsetService(OffsetService offsetService) {
             this.offsetService = offsetService;
             return new WithOffsetServiceImpl<>(this);
         }
@@ -126,7 +126,7 @@ class RecordConsumerSupport {
         }
     }
 
-    private static class WithOffsetServiceImpl<K, V> implements WihtOffsetService<K, V> {
+    private static class WithOffsetServiceImpl<K, V> implements WithOffsetService<K, V> {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
