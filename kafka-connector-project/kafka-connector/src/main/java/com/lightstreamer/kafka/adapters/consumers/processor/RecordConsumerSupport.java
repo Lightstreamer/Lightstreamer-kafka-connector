@@ -224,7 +224,7 @@ class RecordConsumerSupport {
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
-            // As logging the mapped record is expensive, log lazly it only at trace level.
+            // As logging the mapped record is expensive, log lazily it only at trace level.
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log(() -> "Mapped Kafka record");
 
@@ -408,7 +408,7 @@ class RecordConsumerSupport {
     }
 
     public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
+        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
         records.partitions()
                 .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
         return allRecords;
