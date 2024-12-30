@@ -103,6 +103,7 @@ public class RecordConsumerTest {
     public void setUp() throws IOException {
         File adapterDir = Files.createTempDirectory("adapter_dir").toFile();
         Map<String, String> overrideSettings = new HashMap<>();
+        overrideSettings.put("map.topic1.to", "item");
         overrideSettings.put("map.topic2.to", "item");
         overrideSettings.put("field.topic", "#{TOPIC}");
         overrideSettings.put("field.key", "#{KEY}");
@@ -515,11 +516,14 @@ public class RecordConsumerTest {
     @ParameterizedTest
     @MethodSource("iterations")
     public void shoudDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
-        ConsumerRecords<String, String> records =
-                generateRecords("topic", numOfRecords, List.of("a", "b", "c", "d"), 2);
+        // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
+        // the the same topic
+        List<String> keys = List.of("a", "b", "c", "d");
+        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 2);
 
-        // Make the RecordConsumer.
+        // Create a list to store all the delivered events
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        // Make the RecordConsumer.
         recordConsumer =
                 mkRecordConsumer(
                         new MockItemEventListener(buildEvent(deliveredEvents)),
@@ -529,14 +533,18 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(records);
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
-            // Group all the delievered events by record key
-            Map<String, List<Number>> byKey = getByKey(deliveredEvents);
-            // Ensure that events relative to the same key are in order
-            Collection<List<Number>> orderedLists = byKey.values();
-            for (List<Number> orderedList : orderedLists) {
-                assertThat(orderedList).isInOrder();
-            }
 
+            for (String key : keys) {
+                // Get the list of positions stored in all received events relative to the same key
+                List<Integer> list =
+                        deliveredEvents.stream()
+                                .filter(e -> e.key().equals(key))
+                                .map(Event::position)
+                                .toList();
+                // Ensure that positions (and, therefore, the events) relative to the same key are
+                // in order
+                assertThat(list).isInOrder();
+            }
             // Reset the event list for next iteration
             deliveredEvents.clear();
         }
@@ -545,17 +553,17 @@ public class RecordConsumerTest {
     @ParameterizedTest
     @MethodSource("iterations")
     public void shoudDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
+        // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
         List<String> keys = List.of("a", "b", "c", "d");
         // Provide less partitions than keys to enforce multiple key ending up to same partition.
-        int topic1Paritions = 3;
-        int topic2Partitions = 2;
+        int partitionsOnTopic1 = 3;
+        int partitionsOnTopic2 = 2;
 
-        // Generate records on differet topics
-        ConsumerRecords<String, String> recordsOnTopic =
-                generateRecords("topic", numOfRecords, keys, topic1Paritions);
-
+        // Generate records on different topics
+        ConsumerRecords<String, String> recordsOnTopic1 =
+                generateRecords("topic1", numOfRecords, keys, partitionsOnTopic1);
         ConsumerRecords<String, String> recordsOnTopic2 =
-                generateRecords("topic2", numOfRecords, keys, topic2Partitions);
+                generateRecords("topic2", numOfRecords, keys, partitionsOnTopic2);
 
         // Create a new Consumer
         Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
@@ -572,10 +580,10 @@ public class RecordConsumerTest {
                                     recordsList.add(consumerRecord);
                                     return recordsList;
                                 });
-        recordsOnTopic.forEach(action);
+        recordsOnTopic1.forEach(action);
         recordsOnTopic2.forEach(action);
 
-        ConsumerRecords<String, String> c = new ConsumerRecords<>(recordsByPartition);
+        ConsumerRecords<String, String> allRecords = new ConsumerRecords<>(recordsByPartition);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -586,15 +594,29 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(c);
+            recordConsumer.consumeRecords(allRecords);
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
-            // Group the list of offsets by partition stored in all the delivered events
-            Map<String, List<Number>> byPartition = getByTopicAndPartition(deliveredEvents);
-
-            // Ensure that the offsets relative to the same partition are in order
-            Collection<List<Number>> orderedLists = byPartition.values();
-            for (List<Number> orderedList : orderedLists) {
-                assertThat(orderedList).isInOrder();
+            for (int partition = 0; partition < partitionsOnTopic1; partition++) {
+                final int p = partition;
+                List<Number> offsets =
+                        deliveredEvents.stream()
+                                .filter(e -> e.partition() == p)
+                                .filter(e -> e.topic().equals("topic1"))
+                                .map(Event::offset)
+                                .collect(toList());
+                assertThat(offsets.size()).isGreaterThan(0);
+                assertThat(offsets).isInOrder();
+            }
+            for (int partition = 0; partition < partitionsOnTopic2; partition++) {
+                final int p = partition;
+                List<Number> offsets =
+                        deliveredEvents.stream()
+                                .filter(e -> e.partition() == p)
+                                .filter(e -> e.topic().equals("topic2"))
+                                .map(Event::offset)
+                                .collect(toList());
+                assertThat(offsets.size()).isGreaterThan(0);
+                assertThat(offsets).isInOrder();
             }
             // Reset the event list for next iteration
             deliveredEvents.clear();
@@ -787,16 +809,16 @@ public class RecordConsumerTest {
     }
 
     private static Consumer<Map<String, String>> buildEvent(List<Event> events) {
-        return event -> {
-            String topic = event.get("topic");
+        return map -> {
+            String topic = map.get("topic");
             // Get the key
-            String key = event.get("key");
+            String key = map.get("key");
             // Extract the position from the value: "a-3" -> "3"
-            int position = extractNumberedSuffix(event.get("value"));
+            int position = extractNumberedSuffix(map.get("value"));
             // Get the partition
-            String partition = event.get("partition");
+            String partition = map.get("partition");
             // Get the offset
-            String offset = event.get("offset");
+            String offset = map.get("offset");
             // Create and add the event
             events.add(
                     new Event(
