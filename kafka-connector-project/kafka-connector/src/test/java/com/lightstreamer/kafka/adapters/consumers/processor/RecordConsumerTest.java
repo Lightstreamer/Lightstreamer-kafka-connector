@@ -556,14 +556,14 @@ public class RecordConsumerTest {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
         List<String> keys = List.of("a", "b", "c", "d");
         // Provide less partitions than keys to enforce multiple key ending up to same partition.
-        int topic1Partitions = 3;
-        int topic2Partitions = 2;
+        int partitionsOnTopic1 = 3;
+        int partitionsOnTopic2 = 2;
 
         // Generate records on different topics
         ConsumerRecords<String, String> recordsOnTopic1 =
-                generateRecords("topic1", numOfRecords, keys, topic1Partitions);
+                generateRecords("topic1", numOfRecords, keys, partitionsOnTopic1);
         ConsumerRecords<String, String> recordsOnTopic2 =
-                generateRecords("topic2", numOfRecords, keys, topic2Partitions);
+                generateRecords("topic2", numOfRecords, keys, partitionsOnTopic2);
 
         // Create a new Consumer
         Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
@@ -596,7 +596,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(allRecords);
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
-            for (int partition = 0; partition < topic1Partitions; partition++) {
+            for (int partition = 0; partition < partitionsOnTopic1; partition++) {
                 final int p = partition;
                 List<Number> offsets =
                         deliveredEvents.stream()
@@ -607,7 +607,7 @@ public class RecordConsumerTest {
                 assertThat(offsets.size()).isGreaterThan(0);
                 assertThat(offsets).isInOrder();
             }
-            for (int partition = 0; partition < topic2Partitions; partition++) {
+            for (int partition = 0; partition < partitionsOnTopic2; partition++) {
                 final int p = partition;
                 List<Number> offsets =
                         deliveredEvents.stream()
