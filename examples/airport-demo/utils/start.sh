@@ -5,7 +5,8 @@ COMPOSE_FILE="$(pwd)/docker-compose-${WHICH}.yml"
 source ../utils/helpers.sh
 
 # Build the Lightstreamer Kafka Connector Docker image
-../docker/build.sh
+cd docker
+./build.sh
 
 if [ $? == 0 ]; then
      export version

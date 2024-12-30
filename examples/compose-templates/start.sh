@@ -1,5 +1,4 @@
 #!/bin/bash
-#source ../utils/helpers.sh
 source ./helpers.sh
 
 # Build the Lightstreamer Kafka Connector Docker image
