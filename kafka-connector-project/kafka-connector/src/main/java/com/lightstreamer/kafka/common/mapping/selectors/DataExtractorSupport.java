@@ -59,6 +59,15 @@ class DataExtractorSupport {
             this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
             this.schema = mkSchema(schemaName);
             this.skipOnFailure = skipOnFailure;
+            for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
+                this.extractors.add(record -> keySelector.extractKey(record));
+            }
+            for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
+                this.extractors.add(record -> valueSelector.extractValue(record));
+            }
+            for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
+                this.extractors.add(record -> constantSelector.extract(record));
+            }
         }
 
         @Override
