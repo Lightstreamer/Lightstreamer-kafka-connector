@@ -6,7 +6,7 @@
 
 - Upgraded _Gradle_ to version 8.12. ([#37](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/37))
 
-- Added support for [skipping failures](README.md#skip-failed-mapping-fieldsskipfailedmappingenable) while mapping fields (also available for the [Sink connector](README.md#record.mappings.skip.failed.enable)). ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
+- Added support for [skipping failures](README.md#skip-failed-mapping-fieldsskipfailedmappingenable) while mapping fields (also available for the [Sink connector](README.md#recordmappingsskipfailedenable)). ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
 
 - Added support for topic mappings declared as [regular expressions](README.md#enable-regular-exression-mapregexenable) (also available for the [Sink connector](README.md#topicmappingsregexenable)). ([#33](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/33), [#35](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/35))
 
