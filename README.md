@@ -1154,7 +1154,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="fields.skip.failed.extraction.enable">true</param>
+<param name="fields.skip.failed.mapping.enable">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1826,7 +1826,9 @@ By enabling this (optional) parameter, if a field mapping fails, that specific f
 
 Example:
 
-
+```
+record.mappings.skip.failed.enable=true
+```
 
 ### `item.templates`
 
