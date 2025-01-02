@@ -1207,7 +1207,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="fields.skip.failed.extraction.enable">true</param>
+<param name="fields.skip.failed.mapping.enable">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1841,7 +1841,7 @@ topic.mappings.regex.enable=true
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
 
-The list of mapping between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
+The list of mappings between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
 
@@ -1879,7 +1879,9 @@ By enabling this (optional) parameter, if a field mapping fails, that specific f
 
 Example:
 
-
+```
+record.mappings.skip.failed.enable=true
+```
 
 ### `item.templates`
 
