@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1-kvp] (2025-01-02)
+
+**Improvements**
+
+- Added support for KVP (Key Value Pairs) format.
+
 ## [1.2.0] (2025-01-02)
 
 **Improvements**
