@@ -43,7 +43,7 @@ public interface RecordConsumer<K, V> {
 
     enum OrderStrategy {
         ORDER_BY_KEY(record -> Objects.toString(record.key(), null)),
-        ORDER_BY_PARTITION(record -> String.valueOf(record.topic() + "-" + record.partition())),
+        ORDER_BY_PARTITION(record -> record.topic() + "-" + record.partition()),
         UNORDERED(record -> null);
 
         private Function<ConsumerRecord<?, ?>, String> sequence;
