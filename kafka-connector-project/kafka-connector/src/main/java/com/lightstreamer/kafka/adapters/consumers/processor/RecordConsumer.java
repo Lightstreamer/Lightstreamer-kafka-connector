@@ -81,7 +81,7 @@ public interface RecordConsumer<K, V> {
 
         StartBuildingConsumer<K, V> eventListener(ItemEventListener listener);
 
-        WithSubscribedItems<K,V> enforceCommandMode(boolean enforceCommandMode);
+        WithSubscribedItems<K, V> enforceCommandMode(boolean enforceCommandMode);
     }
 
     public interface StartBuildingConsumer<K, V> {
