@@ -23,8 +23,10 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
@@ -48,7 +50,8 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordComsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
@@ -70,6 +73,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
@@ -89,7 +94,11 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
 
+    public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
+
     public static final String FIELD_MAPPING = "field";
+    public static final String FIELDS_SKIP_FAILED_MAPPING_ENABLE =
+            "fields.skip.failed.mapping.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -105,6 +114,11 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
+
+    public static final String RECORD_CONSUME_WITH_ORDER_STRATEGY =
+            "record.consume.with.order.strategy";
+
+    public static final String RECORD_CONSUME_WITH_NUM_THREADS = "record.consume.with.num.threads";
 
     public static final String ITEM_INFO_NAME = "info.item";
 
@@ -180,7 +194,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
+                        .add(
+                                FIELDS_SKIP_FAILED_MAPPING_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
                         .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 false,
@@ -215,6 +236,18 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
+                        .add(
+                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                false,
+                                false,
+                                THREADS,
+                                defaultValue("1"))
+                        .add(
+                                RECORD_CONSUME_WITH_ORDER_STRATEGY,
+                                false,
+                                false,
+                                ORDER_STRATEGY,
+                                defaultValue("ORDER_BY_PARTITION"))
                         .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
@@ -223,7 +256,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 false,
                                 CONSUME_FROM,
-                                defaultValue(RecordComsumeFrom.LATEST.toString()))
+                                defaultValue(RecordConsumeFrom.LATEST.toString()))
                         .add(
                                 CONSUMER_CLIENT_ID,
                                 false,
@@ -254,7 +287,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("false"))
                         .add(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, false, false, INT)
                         .add(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, false, false, INT)
-                        .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
@@ -312,6 +344,7 @@ public final class ConnectorConfig extends AbstractConfig {
         itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
         topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
         fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
+        postValidate();
     }
 
     public ConnectorConfig(Map<String, String> configs) {
@@ -322,6 +355,7 @@ public final class ConnectorConfig extends AbstractConfig {
     protected final void postValidate() throws ConfigException {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
+        checkTopicMappingRegex();
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
@@ -343,6 +377,25 @@ public final class ConnectorConfig extends AbstractConfig {
                 }
             }
         }
+    }
+
+    private void checkTopicMappingRegex() throws ConfigException {
+        if (!isMapRegExEnabled()) {
+            return;
+        }
+
+        topicMappings.stream()
+                .map(TopicMappingConfig::topic)
+                .forEach(
+                        t -> {
+                            try {
+                                Pattern.compile(t);
+                            } catch (PatternSyntaxException pe) {
+                                throw new ConfigException(
+                                        "Specify a valid regular expression for parameter [map.%s.to]"
+                                                .formatted(t));
+                            }
+                        });
     }
 
     private Properties initProps() {
@@ -420,13 +473,22 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(RECORD_COMMAND_ENABLE);
     }
 
-    public final RecordComsumeFrom getRecordConsumeFrom() {
-        return RecordComsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
+    public final RecordConsumeFrom getRecordConsumeFrom() {
+        return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
         return RecordErrorHandlingStrategy.valueOf(
                 get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+    }
+
+    public final RecordConsumeWithOrderStrategy getRecordConsumeWithOrderStrategy() {
+        return RecordConsumeWithOrderStrategy.valueOf(
+                get(RECORD_CONSUME_WITH_ORDER_STRATEGY, ORDER_STRATEGY, false));
+    }
+
+    public final int getRecordConsumeWithNumThreads() {
+        return Integer.parseInt(getThreads(RECORD_CONSUME_WITH_NUM_THREADS));
     }
 
     public boolean hasKeySchemaFile() {
@@ -443,6 +505,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryEnabledForValue() {
         return getBoolean(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+    }
+
+    public boolean hasSchemaFile() {
+        return hasKeySchemaFile() || hasValueSchemaFile();
     }
 
     public boolean isSchemaRegistryEnabled() {
@@ -781,6 +847,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public List<TopicMappingConfig> getTopicMappings() {
         return topicMappings;
+    }
+
+    public boolean isMapRegExEnabled() {
+        return getBoolean(MAP_REG_EX_ENABLE);
+    }
+
+    public boolean isFieldsSkipFailedMappingEnabled() {
+        return getBoolean(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
     }
 
     public FieldConfigs getFieldConfigs() {

@@ -17,25 +17,13 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-public interface SelectorSuppliers<K, V> {
+/**
+ * The interface for wrapping a key selector supplier and a value selector supplier for the given
+ * data types.
+ */
+public interface KeyValueSelectorSuppliers<K, V> {
 
-    KeySelectorSupplier<K> keySelectorSupplier();
+    SelectorSupplier<KeySelector<K>> keySelectorSupplier();
 
-    ValueSelectorSupplier<V> valueSelectorSupplier();
-
-    static <K, V> SelectorSuppliers<K, V> of(
-            final KeySelectorSupplier<K> k, final ValueSelectorSupplier<V> v) {
-        return new SelectorSuppliers<K, V>() {
-
-            @Override
-            public KeySelectorSupplier<K> keySelectorSupplier() {
-                return k;
-            }
-
-            @Override
-            public ValueSelectorSupplier<V> valueSelectorSupplier() {
-                return v;
-            }
-        };
-    }
+    SelectorSupplier<ValueSelector<V>> valueSelectorSupplier();
 }

@@ -7,6 +7,46 @@
 - Updated the Airport demo to use COMMAND mode.
 
 
+## [1.2.0] (2025-01-02)
+
+**Improvements**
+
+- Upgraded _Gradle_ to version 8.12. ([#37](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/37))
+
+- Added support for [skipping failures](README.md#skip-failed-mapping-fieldsskipfailedmappingenable) while mapping fields (also available for the [Sink connector](README.md#recordmappingsskipfailedenable)). ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
+
+- Added support for topic mappings declared as [regular expressions](README.md#enable-regular-exression-mapregexenable) (also available for the [Sink connector](README.md#topicmappingsregexenable)). ([#33](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/33), [#35](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/35))
+
+- Optimize processing when there are no routable items. ([#30](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/30))
+
+**Bug Fixes**
+
+- Fixed unit tests to support version numbers that may include pre-release indentifiers. ([#38](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/38))
+
+- Fixed the Docker build in the Airport demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
+
+- Fixed the name of the [`record.mappings`](README.md#recordmappings) parameter. ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
+
+- Fixed evaluation of template expressions. ([#32](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/32))
+
+- Fixed exceptions management of single-threaded processing. ([#31](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/31))
+
+
+## [1.1.0] (2024-12-11)
+
+**Improvements**
+
+- Added support for concurrent processing, along with deep refactoring of the code base for better performance. ([#29](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/29))
+
+- Upgraded _Gradle_ to version 8.11.1. ([#29](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/29))
+
+**Documentation**
+
+- Added some style changes to the [README.md](README.md) and factory [adapters.xml](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files. ([#28](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/28))
+
+- Introduced the [Client Side Error Handling](README.md#client-side-error-handling) section in the [README.md](README.md) file. ([#17](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/17))
+
+
 ## [1.0.7] (2024-11-06)
 
 **Improvements and Documentation**
@@ -14,7 +54,8 @@
 - Revised some default settings for the internal Kafka consumer. ([#25](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/25))
 
 - Improved the [README.md](README.md) file. ([#18](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/18), [#20](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/20),
-[#21](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/21), [#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
+[#21](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/21),
+[#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))  
 
 - Significantly reorganized the [examples](examples) folder. Specifically:
 
