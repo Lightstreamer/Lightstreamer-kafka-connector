@@ -129,6 +129,11 @@ public class Mocks {
         public RecordErrorHandlingStrategy errorHandlingStrategy() {
             return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
         }
+
+        @Override
+        public boolean isCommandEnforceEnabled() {
+            return false;
+        }
     }
 
     public static class MockConsumerWrapper<K, V> implements ConsumerWrapper<K, V> {

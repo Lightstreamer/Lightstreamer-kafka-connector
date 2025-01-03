@@ -187,6 +187,7 @@ public class RecordConsumerTest {
         RecordConsumer<String, String> recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
+                        .enforceCommandMode(false)
                         .eventListener(listener)
                         .offsetService(offsetService)
                         .errorStrategy(error)

@@ -106,9 +106,17 @@ class RecordConsumerSupport {
 
     private static class WithSubscribedItemsImpl<K, V> implements WithSubscribedItems<K, V> {
         final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
+        private boolean enforceCommandMode;
 
         WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
             this.parentBuilder = b;
+            this.enforceCommandMode = false;
+        }
+
+        @Override
+        public WithSubscribedItemsImpl<K, V> enforceCommandMode(boolean enforceCommandMode) {
+            this.enforceCommandMode = enforceCommandMode;
+            return this;
         }
 
         @Override
@@ -118,10 +126,15 @@ class RecordConsumerSupport {
             Objects.requireNonNull(this.parentBuilder.subscribed);
             Objects.requireNonNull(this.parentBuilder.listener);
             RecordProcessor<K, V> recordProcessor =
-                    new DefaultRecordProcessor<>(
-                            this.parentBuilder.mapper,
-                            this.parentBuilder.subscribed,
-                            this.parentBuilder.listener);
+                    enforceCommandMode
+                            ? new CommandRecordProcessor<>(
+                                    this.parentBuilder.mapper,
+                                    this.parentBuilder.subscribed,
+                                    this.parentBuilder.listener)
+                            : new DefaultRecordProcessor<>(
+                                    this.parentBuilder.mapper,
+                                    this.parentBuilder.subscribed,
+                                    this.parentBuilder.listener);
             return new StartBuildingConsumerImpl<>(recordProcessor);
         }
     }
@@ -234,12 +247,110 @@ class RecordConsumerSupport {
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
                 log.atInfo().log("Routing record to {} items", routables.size());
-                for (SubscribedItem sub : routables) {
-                    log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                    listener.smartUpdate(sub.itemHandle(), updates, false);
-                }
+                processUpdates(updates, routables);
             } else {
                 log.atInfo().log("No routable items found");
+            }
+        }
+
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routables) {
+            for (SubscribedItem sub : routables) {
+                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                listener.smartUpdate(sub.itemHandle(), updates, false);
+            }
+        }
+    }
+
+    static class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
+
+        CommandRecordProcessor(
+                RecordMapper<K, V> recordMapper,
+                Collection<SubscribedItem> subscribedItems,
+                ItemEventListener listener) {
+            super(recordMapper, subscribedItems, listener);
+        }
+
+        @Override
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routables) {
+            if (!checkCommand(updates)) {
+                log.atWarn()
+                        .log(
+                                "Discarding record due to command mode fields not properly valued: {}",
+                                updates.get("key"));
+                return;
+            }
+
+            for (SubscribedItem sub : routables) {
+                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                log.atDebug().log("Enforce·COMMAND·mode·semantic·of·records·read:");
+
+                if (updates.get("key").equals("snapshot")) {
+                    handleSnapshot(updates, sub);
+                } else {
+                    handleCommand(updates, sub);
+                }
+            }
+        }
+
+        private boolean checkCommand(Map<String, String> input) {
+            if (input == null) {
+                return false;
+            }
+
+            if (!input.containsKey("key") || input.get("key") == null) {
+                return false;
+            }
+
+            if (!input.containsKey("command")) {
+                return false;
+            }
+
+            String command = input.get("command");
+            if (command == null) {
+                return false;
+            }
+
+            log.atDebug().log("key {} - command {}", input.get("key"), input.get("command"));
+            return switch (command) {
+                case "ADD", "DELETE", "UPDATE", "CS", "EOS" -> true;
+                default -> false;
+            };
+        }
+
+        private void handleSnapshot(Map<String, String> updates, SubscribedItem sub) {
+            switch (updates.get("command")) {
+                case "CS" -> {
+                    log.atDebug().log("Sending clearsnapshot");
+                    listener.smartClearSnapshot(sub.itemHandle());
+                    sub.setSnapshot(true);
+                }
+                case "EOS" -> {
+                    log.atDebug().log("Sending endofsnapshot");
+                    listener.smartEndOfSnapshot(sub.itemHandle());
+                    sub.setSnapshot(false);
+                }
+                default -> {
+                    log.atWarn()
+                            .log(
+                                    "Discarding record due to command mode fields not properly valued: {}",
+                                    updates.get("key"));
+                }
+            }
+        }
+
+        private void handleCommand(Map<String, String> updates, SubscribedItem sub) {
+            String command = updates.get("command");
+            switch (command) {
+                case "ADD", "DELETE", "UPDATE" -> {
+                    log.atDebug().log("Sending {} command", command);
+                    listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
+                }
+                default -> {
+                    log.atWarn()
+                            .log(
+                                    "Discarding record due to command mode fields not properly valued: {}",
+                                    command);
+                }
             }
         }
     }

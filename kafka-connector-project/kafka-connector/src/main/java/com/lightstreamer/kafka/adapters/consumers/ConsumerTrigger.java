@@ -46,6 +46,8 @@ public interface ConsumerTrigger {
 
         RecordErrorHandlingStrategy errorHandlingStrategy();
 
+        boolean isCommandEnforceEnabled();
+
         Concurrency concurrency();
 
         interface Concurrency {
@@ -54,6 +56,8 @@ public interface ConsumerTrigger {
             int threads();
         }
     }
+
+    boolean isSnapshotAvailable(String item);
 
     CompletableFuture<Void> subscribe(String item, Object itemHandle) throws SubscriptionException;
 
