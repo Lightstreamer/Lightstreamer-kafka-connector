@@ -15,18 +15,18 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.common.mapping.Items.Item;
+import static com.google.common.truth.Truth.assertThat;
 
-public interface Loop {
+import org.junit.jupiter.api.Test;
 
-    boolean isSnapshotAvailable(String item);
+public class DataTest {
 
-    Item subscribe(String item, Object itemHandle) throws SubscriptionException;
-
-    Item unsubscribe(String topic) throws SubscriptionException;
-
-    void unsubscribeInfoItem();
+    @Test
+    public void shouldCreateValue() {
+        Data data = Data.from("name", "value");
+        assertThat(data.text()).isEqualTo("value");
+        assertThat(data.name()).isEqualTo("name");
+    }
 }

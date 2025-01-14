@@ -27,7 +27,10 @@ import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,15 +40,30 @@ import java.util.Set;
 public class TopicConfigurationsTest {
 
     @Test
+    void shouldConfigWithRegexDisabledByDefault() {
+        TopicConfigurations topicConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
+        assertThat(topicConfig.isRegexEnabled()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldConfigRegexEnablement(boolean regex) {
+        TopicConfigurations topicConfig =
+                TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
+        assertThat(topicConfig.isRegexEnabled()).isEqualTo(regex);
+    }
+
+    @Test
     void shouldConfigOneToOneTemplate() {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=PARTITION}"));
-        var topicMappingCofnigs =
+        var topicMappingConfigs =
                 List.of(
                         TopicMappingConfig.fromDelimitedMappings(
                                 "topic", "item-template.template1"));
         TopicConfigurations topicConfig =
-                TopicConfigurations.of(templateConfigs, topicMappingCofnigs);
+                TopicConfigurations.of(templateConfigs, topicMappingConfigs);
 
         Set<TopicConfiguration> configurations = topicConfig.configurations();
         assertThat(configurations).hasSize(1);
@@ -61,7 +79,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te = itemReference.template();
         assertThat(te.prefix()).isEqualTo("template1");
-        assertThat(te.params()).containsExactly("a", Expressions.expression("PARTITION"));
+        assertThat(te.params()).containsExactly("a", Expressions.Expression("PARTITION"));
     }
 
     @Test
@@ -117,12 +135,12 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference1.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.expression("VALUE"));
+        assertThat(te1.params()).containsExactly("a", Expressions.Expression("VALUE"));
 
         ItemReference itemReference2 = itemReferences.get(1);
         TemplateExpression te2 = itemReference2.template();
         assertThat(te2.prefix()).isEqualTo("template2");
-        assertThat(te2.params()).containsExactly("c", Expressions.expression("OFFSET"));
+        assertThat(te2.params()).containsExactly("c", Expressions.Expression("OFFSET"));
     }
 
     @Test
@@ -176,7 +194,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression te1 = itemReference.template();
         assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.expression("KEY"));
+        assertThat(te1.params()).containsExactly("a", Expressions.Expression("KEY"));
     }
 
     @Test

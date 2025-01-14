@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
@@ -42,7 +43,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
 
-public class GenericRecordSelectorsSuppliers {
+public class GenericRecordSelectorsSuppliers
+        implements KeyValueSelectorSuppliersMaker<GenericRecord> {
 
     private static class AvroNode implements Node<AvroNode> {
 
@@ -184,10 +186,10 @@ public class GenericRecordSelectorsSuppliers {
     private static class GenericRecordKeySelectorSupplier
             implements KeySelectorSupplier<GenericRecord> {
 
-        private final GenericRecordDeserializer deserializer;
+        private final Deserializer<GenericRecord> deserializer;
 
         GenericRecordKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = new GenericRecordDeserializer(config, true);
+            this.deserializer = GenericRecordDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -220,10 +222,10 @@ public class GenericRecordSelectorsSuppliers {
     private static class GenericRecordValueSelectorSupplier
             implements ValueSelectorSupplier<GenericRecord> {
 
-        private final GenericRecordDeserializer deseralizer;
+        private final Deserializer<GenericRecord> deseralizer;
 
         GenericRecordValueSelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = new GenericRecordDeserializer(config, false);
+            this.deseralizer = GenericRecordDeserializers.ValueDeserializer(config);
         }
 
         @Override
@@ -253,14 +255,19 @@ public class GenericRecordSelectorsSuppliers {
         }
     }
 
-    public static KeySelectorSupplier<GenericRecord> keySelectorSupplier(ConnectorConfig config) {
+    private final ConnectorConfig config;
+
+    public GenericRecordSelectorsSuppliers(ConnectorConfig config) {
+        this.config = config;
+    }
+
+    @Override
+    public KeySelectorSupplier<GenericRecord> makeKeySelectorSupplier() {
         return new GenericRecordKeySelectorSupplier(config);
     }
 
-    public static ValueSelectorSupplier<GenericRecord> valueSelectorSupplier(
-            ConnectorConfig config) {
+    @Override
+    public ValueSelectorSupplier<GenericRecord> makeValueSelectorSupplier() {
         return new GenericRecordValueSelectorSupplier(config);
     }
-
-    private GenericRecordSelectorsSuppliers() {}
 }

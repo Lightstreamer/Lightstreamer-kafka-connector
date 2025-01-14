@@ -17,109 +17,163 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toSet;
-
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class DataExtractorSupport {
 
-    static class DataExtractorBuilder<K, V> implements DataExtractor.Builder<K, V> {
+    public static <K, V> DataExtractor<K, V> extractor(
+            KeyValueSelectorSuppliers<K, V> suppliers,
+            String schema,
+            Map<String, ExtractionExpression> expressions,
+            boolean skipOnFailure)
+            throws ExtractionException {
+        return new DataExtractorImpl<>(suppliers, schema, expressions, skipOnFailure);
+    }
 
-        private SelectorSuppliers<K, V> sSuppliers;
+    private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
 
-        private final Set<KeySelector<K>> keySelectors = new HashSet<>();
-        private final Set<ValueSelector<V>> valueSelectors = new HashSet<>();
-        private final Set<ConstantSelector> metaSelectors = new HashSet<>();
+        private final Schema schema;
+        private final WrapperSelectors<K, V> wrapperSelectors;
+        private final boolean skipOnFailure;
+        private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
 
-        private Map<String, ExtractionExpression> expressions = new HashMap<>();
-        private String schemaName;
+        DataExtractorImpl(
+                KeyValueSelectorSuppliers<K, V> sSuppliers,
+                String schemaName,
+                Map<String, ExtractionExpression> expressions,
+                boolean skipOnFailure)
+                throws ExtractionException {
 
-        DataExtractorBuilder(SelectorSuppliers<K, V> sSuppliers) {
-            this.sSuppliers = sSuppliers;
+            this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
+            this.schema = mkSchema(schemaName);
+            this.skipOnFailure = skipOnFailure;
+            for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
+                this.extractors.add(record -> keySelector.extractKey(record));
+            }
+            for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
+                this.extractors.add(record -> valueSelector.extractValue(record));
+            }
+            for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
+                this.extractors.add(record -> constantSelector.extract(record));
+            }
         }
-
-        DataExtractorBuilder() {}
 
         @Override
-        public DataExtractorBuilder<K, V> withSuppliers(SelectorSuppliers<K, V> sSuppliers) {
-            this.sSuppliers = sSuppliers;
-            return this;
+        public Schema schema() {
+            return schema;
         }
 
-        public DataExtractorBuilder<K, V> withExpressions(Map<String, ExtractionExpression> exprs) {
-            expressions = Collections.unmodifiableMap(exprs);
-            return this;
+        @Override
+        public boolean skipOnFailure() {
+            return skipOnFailure;
         }
 
-        public DataExtractorBuilder<K, V> withSchemaName(String schemaName) {
-            this.schemaName = schemaName;
-            return this;
-        }
-
-        public DataExtractor<K, V> build() throws ExtractionException {
-            SelectorsAppender<K, V> dispatcher = new SelectorsAppender<>(this);
-            for (Map.Entry<String, ExtractionExpression> entry : expressions.entrySet()) {
-                dispatcher.dispatch(entry);
+        @Override
+        public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
+            Map<String, String> values = new HashMap<>();
+            for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
+                try {
+                    Data data = extractor.apply(record);
+                    values.put(data.name(), data.text());
+                } catch (ValueException ve) {
+                    if (!skipOnFailure) {
+                        throw ve;
+                    }
+                }
             }
-            return new DataExtractorImpl<>(this);
+            return new DefaultSchemaAndValues(schema, values);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(wrapperSelectors, schema, skipOnFailure);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            return obj instanceof DataExtractorImpl<?, ?> other
+                    && Objects.equals(wrapperSelectors, other.wrapperSelectors)
+                    && Objects.equals(schema, other.schema)
+                    && Objects.equals(skipOnFailure, other.skipOnFailure);
+        }
+
+        private Schema mkSchema(String schemaName) {
+            Stream<String> keyNames = wrapperSelectors.keySelectors().stream().map(Selector::name);
+            Stream<String> valueNames =
+                    wrapperSelectors.valueSelectors().stream().map(Selector::name);
+            Stream<String> metaNames =
+                    wrapperSelectors.metaSelectors().stream().map(Selector::name);
+
+            return Schema.from(
+                    schemaName,
+                    Stream.of(metaNames, keyNames, valueNames)
+                            .flatMap(Function.identity())
+                            .collect(Collectors.toSet()));
         }
     }
 
-    private static class SelectorsAppender<K, V> {
+    private static class Appender<T extends Selector> {
 
-        private static class Appender<T extends Selector> {
+        private final Set<T> selectors;
+        private final SelectorSupplier<T> selectorSupplier;
 
-            private final Set<T> selectors;
-            private final SelectorSupplier<T> selectorSupplier;
-
-            Appender(Set<T> set, SelectorSupplier<T> selectorSupplier) {
-                this.selectors = set;
-                this.selectorSupplier = selectorSupplier;
-            }
-
-            void append(String param, ExtractionExpression expression) throws ExtractionException {
-                T newSelector = selectorSupplier.newSelector(param, expression);
-                if (!selectors.add(newSelector)) {
-                    throw ExtractionException.invalidExpression(param, expression.expression());
-                }
-            }
+        Appender(Set<T> set, SelectorSupplier<T> selectorSupplier) {
+            this.selectors = set;
+            this.selectorSupplier = selectorSupplier;
         }
 
-        private Appender<KeySelector<K>> kFiller;
-        private Appender<ValueSelector<V>> vFiller;
-        private Appender<ConstantSelector> mFiller;
-
-        SelectorsAppender(DataExtractorBuilder<K, V> builder) {
-            kFiller =
-                    new Appender<>(
-                            builder.keySelectors,
-                            Objects.requireNonNull(builder.sSuppliers.keySelectorSupplier()));
-            vFiller =
-                    new Appender<>(
-                            builder.valueSelectors,
-                            Objects.requireNonNull(builder.sSuppliers.valueSelectorSupplier()));
-            mFiller =
-                    new Appender<>(
-                            builder.metaSelectors,
-                            new ConstantSelectorSupplier(
-                                    Constant.OFFSET,
-                                    Constant.PARTITION,
-                                    Constant.TIMESTAMP,
-                                    Constant.TOPIC));
+        void append(String param, ExtractionExpression expression) throws ExtractionException {
+            T newSelector = selectorSupplier.newSelector(param, expression);
+            if (!selectors.add(newSelector)) {
+                throw ExtractionException.invalidExpression(param, expression.expression());
+            }
         }
+    }
 
-        void dispatch(Map.Entry<String, ExtractionExpression> boundExpression)
-                throws ExtractionException {
+    private static record WrapperSelectors<K, V>(
+            Set<KeySelector<K>> keySelectors,
+            Set<ValueSelector<V>> valueSelectors,
+            Set<ConstantSelector> metaSelectors) {
+
+        WrapperSelectors() {
+            this(new HashSet<>(), new HashSet<>(), new HashSet<>());
+        }
+    }
+
+    private static <K, V> WrapperSelectors<K, V> mkWrapperSelectors(
+            KeyValueSelectorSuppliers<K, V> sSuppliers,
+            Map<String, ExtractionExpression> expressions)
+            throws ExtractionException {
+
+        WrapperSelectors<K, V> ws = new WrapperSelectors<>();
+        Appender<KeySelector<K>> kFiller =
+                new Appender<>(ws.keySelectors(), sSuppliers.keySelectorSupplier());
+        Appender<ValueSelector<V>> vFiller =
+                new Appender<>(ws.valueSelectors(), sSuppliers.valueSelectorSupplier());
+        Appender<ConstantSelector> mFiller =
+                new Appender<>(
+                        ws.metaSelectors(),
+                        new ConstantSelectorSupplier(
+                                Constant.OFFSET,
+                                Constant.PARTITION,
+                                Constant.TIMESTAMP,
+                                Constant.TOPIC));
+
+        for (Map.Entry<String, ExtractionExpression> boundExpression : expressions.entrySet()) {
             Constant root = boundExpression.getValue().constant();
             Appender<?> filler =
                     switch (root) {
@@ -129,67 +183,7 @@ class DataExtractorSupport {
                     };
             filler.append(boundExpression.getKey(), boundExpression.getValue());
         }
-    }
-
-    private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
-
-        private final Set<KeySelector<K>> keySelectors;
-        private final Set<ValueSelector<V>> valueSelectors;
-        private final Set<ConstantSelector> metaSelectors;
-
-        private final Schema schema;
-
-        DataExtractorImpl(DataExtractorBuilder<K, V> builder) {
-            this.keySelectors = Collections.unmodifiableSet(builder.keySelectors);
-            this.valueSelectors = Collections.unmodifiableSet(builder.valueSelectors);
-            this.metaSelectors = Collections.unmodifiableSet(builder.metaSelectors);
-            this.schema = mkSchema(builder.schemaName);
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public DataContainer extractData(KafkaRecord<K, V> record) throws ValueException {
-            return new DefaultValuesContainer(
-                    this,
-                    Stream.of(
-                                    keySelectors.stream().map(k -> k.extractKey(record)),
-                                    valueSelectors.stream().map(v -> v.extractValue(record)),
-                                    metaSelectors.stream().map(m -> m.extract(record)))
-                            .flatMap(identity())
-                            .collect(toSet()));
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(keySelectors, valueSelectors, metaSelectors, schema);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-
-            return obj instanceof DataExtractorImpl<?, ?> other
-                    && Objects.equals(keySelectors, other.keySelectors)
-                    && Objects.equals(valueSelectors, other.valueSelectors)
-                    && Objects.equals(metaSelectors, other.metaSelectors)
-                    && Objects.equals(schema, other.schema);
-        }
-
-        private Schema mkSchema(String schemaName) {
-            Stream<String> keyNames = keySelectors.stream().map(Selector::name);
-            Stream<String> valueNames = valueSelectors.stream().map(Selector::name);
-            Stream<String> metaNames = metaSelectors.stream().map(Selector::name);
-
-            return Schema.from(
-                    schemaName,
-                    Stream.of(metaNames, keyNames, valueNames)
-                            .flatMap(identity())
-                            .collect(toSet()));
-        }
+        return ws;
     }
 
     private DataExtractorSupport() {}

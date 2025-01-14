@@ -17,8 +17,9 @@
 
 package com.lightstreamer.kafka.common.config;
 
+import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
+
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.utils.Either;
 import com.lightstreamer.kafka.common.utils.Split;
@@ -71,17 +72,14 @@ public class TopicConfigurations {
 
         public static TopicMappingConfig fromDelimitedMappings(
                 String topic, String delimitedMappings) {
-            return from(topic, Split.byComma(delimitedMappings));
+            return new TopicMappingConfig(
+                    topic, new LinkedHashSet<>(Split.byComma(delimitedMappings)));
         }
 
         public static List<TopicMappingConfig> from(Map<String, String> configs) {
             return configs.entrySet().stream()
                     .map(e -> fromDelimitedMappings(e.getKey(), e.getValue()))
                     .toList();
-        }
-
-        private static TopicMappingConfig from(String topic, List<String> mapping) {
-            return new TopicMappingConfig(topic, new LinkedHashSet<>(mapping));
         }
     }
 
@@ -108,8 +106,7 @@ public class TopicConfigurations {
                 String templateName = entry.getKey();
                 String templateExpression = entry.getValue();
                 try {
-                    TemplateExpression te = Expressions.template(templateExpression);
-                    expressions.put(templateName, te);
+                    expressions.put(templateName, Template(templateExpression));
                 } catch (ExpressionException e) {
                     String msg =
                             "Found the invalid expression [%s] while evaluating [%s]: <%s>"
@@ -203,13 +200,23 @@ public class TopicConfigurations {
 
     public static TopicConfigurations of(
             ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
-        return new TopicConfigurations(itemTemplateConfigs, topicMappingConfigs);
+        return of(itemTemplateConfigs, topicMappingConfigs, false);
+    }
+
+    public static TopicConfigurations of(
+            ItemTemplateConfigs itemTemplateConfigs,
+            List<TopicMappingConfig> topicMappingConfigs,
+            boolean regexEnabled) {
+        return new TopicConfigurations(itemTemplateConfigs, topicMappingConfigs, regexEnabled);
     }
 
     private final Set<TopicConfiguration> topicConfigurations;
+    private final boolean regexEnabled;
 
     private TopicConfigurations(
-            ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
+            ItemTemplateConfigs itemTemplateConfigs,
+            List<TopicMappingConfig> topicMappingConfigs,
+            boolean regexEnabled) {
         Set<TopicConfiguration> configs = new LinkedHashSet<>();
         for (TopicMappingConfig topicMapping : topicMappingConfigs) {
             List<ItemReference> refs =
@@ -218,8 +225,12 @@ public class TopicConfigurations {
                             .toList();
             configs.add(new TopicConfiguration(topicMapping.topic(), refs));
         }
-        // this.topicConfigurations = Collections.unmodifiableSet(configs);
-        this.topicConfigurations = configs;
+        this.topicConfigurations = Collections.unmodifiableSet(configs);
+        this.regexEnabled = regexEnabled;
+    }
+
+    public boolean isRegexEnabled() {
+        return regexEnabled;
     }
 
     public Set<TopicConfiguration> configurations() {

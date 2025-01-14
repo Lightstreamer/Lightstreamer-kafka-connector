@@ -17,42 +17,38 @@
 
 package com.lightstreamer.kafka.common.mapping;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
+
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.regex.Pattern;
 
 public class Items {
 
-    public interface Item {
-
-        Schema schema();
-
-        Map<String, String> values();
-
-        String valueAt(String key);
-
-        boolean matches(Item other);
-    }
+    public interface Item extends SchemaAndValues {}
 
     public interface SubscribedItem extends Item {
 
@@ -65,16 +61,20 @@ public class Items {
 
     public interface ItemTemplates<K, V> {
 
-        Stream<Item> expand(MappedRecord record);
-
         boolean matches(Item item);
 
-        Stream<DataExtractor<K, V>> extractors();
+        Map<String, Set<DataExtractor<K, V>>> groupExtractors();
+
+        // Only for testing purposes
+        Set<Schema> getExtractorSchemasByTopicName(String topic);
 
         Set<String> topics();
 
-        public Set<SubscribedItem> routes(
-                MappedRecord record, Collection<? extends SubscribedItem> subscribed);
+        default boolean isRegexEnabled() {
+            return false;
+        }
+
+        Optional<Pattern> subscriptionPattern();
     }
 
     private static class DefaultItem implements Item {
@@ -111,21 +111,7 @@ public class Items {
 
         @Override
         public Map<String, String> values() {
-            return Map.copyOf(valuesMap);
-        }
-
-        @Override
-        public String valueAt(String key) {
-            return valuesMap.get(key);
-        }
-
-        @Override
-        public boolean matches(Item other) {
-            if (!schema.matches(other.schema())) {
-                return false;
-            }
-
-            return schema.keys().stream().allMatch(key -> valueAt(key).equals(other.valueAt(key)));
+            return valuesMap;
         }
 
         @Override
@@ -141,7 +127,7 @@ public class Items {
         private boolean snapshotFlag;
 
         DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
-            wrappedItem = new DefaultItem(prefix, values);
+            this.wrappedItem = new DefaultItem(prefix, values);
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
         }
@@ -170,16 +156,6 @@ public class Items {
         }
 
         @Override
-        public String valueAt(String key) {
-            return wrappedItem.valueAt(key);
-        }
-
-        @Override
-        public boolean matches(Item other) {
-            return wrappedItem.matches(other);
-        }
-
-        @Override
         public Object itemHandle() {
             return itemHandle;
         }
@@ -192,6 +168,11 @@ public class Items {
         @Override
         public void setSnapshot(boolean flag) {
             this.snapshotFlag = flag;
+        }
+
+        @Override
+        public String toString() {
+            return wrappedItem.toString();
         }
     }
 
@@ -211,15 +192,6 @@ public class Items {
             return schema.matches(item.schema());
         }
 
-        Optional<Item> expand(MappedRecord record) {
-            if (record.topic().equals(this.topic)) {
-                Map<String, String> values = record.filter(extractor);
-                return Optional.of(new DefaultItem(schema.name(), values));
-            }
-
-            return Optional.empty();
-        }
-
         DataExtractor<K, V> selectors() {
             return extractor;
         }
@@ -232,24 +204,26 @@ public class Items {
     private static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
 
         private final List<ItemTemplate<K, V>> templates;
+        private final boolean regexEnabled;
+        private final Optional<Pattern> pattern;
 
-        DefaultItemTemplates(List<ItemTemplate<K, V>> templates) {
+        DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
+            this.regexEnabled = regexEnabled;
+            this.pattern = makeOptionalPattern();
         }
 
-        @Override
-        public Stream<Item> expand(MappedRecord record) {
-            return templates.stream()
-                    .flatMap(template -> template.expand(record).stream())
-                    .distinct();
-        }
-
-        @Override
-        public Set<SubscribedItem> routes(
-                MappedRecord record, Collection<? extends SubscribedItem> subscribed) {
-            return subscribed.stream()
-                    .filter(sItem -> expand(record).anyMatch(eItem -> eItem.matches(sItem)))
-                    .collect(Collectors.toSet());
+        private Optional<Pattern> makeOptionalPattern() {
+            if (regexEnabled) {
+                return Optional.of(
+                        Pattern.compile(
+                                templates.stream()
+                                        .map(t -> "(?:%s)".formatted(t.topic()))
+                                        .distinct()
+                                        .sorted() // Only helps to simplify unit tests
+                                        .collect(joining("|"))));
+            }
+            return Optional.empty();
         }
 
         @Override
@@ -258,23 +232,49 @@ public class Items {
         }
 
         @Override
-        public Stream<DataExtractor<K, V>> extractors() {
-            return templates.stream().map(ItemTemplate::selectors).distinct();
+        public Map<String, Set<DataExtractor<K, V>>> groupExtractors() {
+            return templates.stream()
+                    .collect(
+                            groupingBy(
+                                    ItemTemplate::topic,
+                                    mapping(ItemTemplate::selectors, toSet())));
         }
 
         @Override
         public Set<String> topics() {
-            return templates.stream().map(ItemTemplate::topic).collect(Collectors.toSet());
+            return templates.stream().map(ItemTemplate::topic).collect(toSet());
+        }
+
+        @Override
+        public Set<Schema> getExtractorSchemasByTopicName(String topic) {
+            return groupExtractors().getOrDefault(topic, emptySet()).stream()
+                    .map(DataExtractor::schema)
+                    .collect(toSet());
+        }
+
+        @Override
+        public boolean isRegexEnabled() {
+            return regexEnabled;
+        }
+
+        @Override
+        public Optional<Pattern> subscriptionPattern() {
+            return pattern;
+        }
+
+        @Override
+        public String toString() {
+            return templates.stream().map(Object::toString).collect(joining(","));
         }
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return susbcribedFrom(input, input);
+        return subscribedFrom(input, input);
     }
 
-    public static SubscribedItem susbcribedFrom(String input, Object itemHandle)
+    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
             throws ExpressionException {
-        SubscriptionExpression result = Expressions.subscription(input);
+        SubscriptionExpression result = Expressions.Subscription(input);
         return subscribedFrom(itemHandle, result.prefix(), result.params());
     }
 
@@ -283,29 +283,24 @@ public class Items {
         return new DefaultSubscribedItem(itemHandle, prefix, values);
     }
 
-    public static Item from(String prefix, Map<String, String> values) {
+    public static Item itemFrom(String prefix, Map<String, String> values) {
         return new DefaultItem(prefix, values);
     }
 
-    public static <K, V> ItemTemplates<K, V> from(
-            TopicConfigurations topicsConfig, SelectorSuppliers<K, V> sSuppliers)
+    public static <K, V> ItemTemplates<K, V> templatesFrom(
+            TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
             for (ItemReference reference : topicConfig.itemReferences()) {
-                DataExtractor.Builder<K, V> builder =
-                        DataExtractor.<K, V>builder().withSuppliers(sSuppliers);
-
-                if (reference.isTemplate()) {
-                    TemplateExpression evaluated = reference.template();
-                    builder.withSchemaName(evaluated.prefix()).withExpressions(evaluated.params());
-                } else {
-                    builder.withSchemaName(reference.itemName());
-                }
-                templates.add(new ItemTemplate<>(topicConfig.topic(), builder.build()));
+                DataExtractor<K, V> dataExtractor =
+                        reference.isTemplate()
+                                ? extractor(sSuppliers, reference.template())
+                                : extractor(sSuppliers, reference.itemName());
+                templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
             }
         }
-        return new DefaultItemTemplates<>(templates);
+        return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
     }
 
     private Items() {}

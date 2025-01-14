@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 
 import static org.junit.Assert.assertThrows;
 
@@ -57,7 +58,7 @@ public class StreamingDataAdapterTest {
         Map<String, String> config = new HashMap<>();
         config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1,item2");
-        config.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
+        config.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE}");
         config.putAll(overriding);
         return config;
     }
@@ -255,11 +256,9 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the IGNORE_AND_CONTINUE error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY,
-                "IGNORE_AND_CONTINUE");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "IGNORE_AND_CONTINUE");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
-        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
+        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE.attrib}");
 
         // Create new StreamingDataAdapter with ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(true);
@@ -289,16 +288,57 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
+    public void shouldSkipFailedMapping() throws SubscriptionException, FailureException {
+        int CURRENT_OFFSET = 5;
+        int NEXT_OFFSET = 6;
+        Map<String, String> otherSettings = new HashMap<>();
+
+        // Configure the IGNORE_AND_CONTINUE error strategy.
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "IGNORE_AND_CONTINUE");
+        // This setting will allow failed field to be omitted from the updates set to clients.
+        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "true");
+        // This entry will trigger a ValueException for records that are missing the 'attrib' field.
+        otherSettings.put(
+                LightstreamerConnectorConfig.RECORD_MAPPINGS,
+                "field1:#{VALUE.not_valid_attrib},field2:#{VALUE.attrib}");
+
+        // Create new StreamingDataAdapter with ErrantRecordReporter enabled.
+        FakeSinkContext sinkContext = new FakeSinkContext(true);
+        StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
+        FakeItemEventListener eventListener = new FakeItemEventListener();
+        adapter.setListener(eventListener);
+        adapter.subscribe("item1");
+
+        SinkRecord record = mkRecord(Map.of("attrib", 213), CURRENT_OFFSET);
+        assertThat(adapter.getCurrentOffsets()).isEmpty();
+        adapter.sendRecords(Collections.singleton(record));
+
+        // Verify that the ItemEventListener has been updated only with the non-failed field.
+        assertThat(eventListener.events).containsExactly(Map.of("field2", "213"));
+
+        // Verify that the Reporter has NOT been involved.
+        FakeErrantRecordReporter reporter =
+                (FakeErrantRecordReporter) sinkContext.errantRecordReporter();
+        assertThat(reporter.caughtError).isNull();
+        assertThat(reporter.record).isNull();
+
+        // Verify that the next offset for the involved partition.
+        Map<TopicPartition, OffsetAndMetadata> currentOffsets = adapter.getCurrentOffsets();
+        assertThat(currentOffsets).hasSize(1);
+        OffsetAndMetadata offsetAndMetadata = currentOffsets.get(new TopicPartition("topic", 1));
+        assertThat(offsetAndMetadata.offset()).isEqualTo(NEXT_OFFSET);
+    }
+
+    @Test
     public void shouldForwardToDLQ() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 1;
         int NEXT_OFFSET = 3;
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the FORWARD_TO_DLQ error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
-        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
+        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE.attrib}");
 
         // Create new StreamingDataAdapter with ErrantRecordReporter enabled
         FakeSinkContext sinkContext = new FakeSinkContext(true);
@@ -336,10 +376,9 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the FORWARD_TO_DLQ error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "FORWARD_TO_DLQ");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
-        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
+        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE.attrib}");
 
         // Create new StreamingDataAdapter with no ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(false);
@@ -370,10 +409,9 @@ public class StreamingDataAdapterTest {
         Map<String, String> otherSettings = new HashMap<>();
 
         // Configure the TERMINATE_TASK error strategy.
-        otherSettings.put(
-                LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY, "TERMINATE_TASK");
+        otherSettings.put(RECORD_EXTRACTION_ERROR_STRATEGY, "TERMINATE_TASK");
         // This entry will trigger a ValueException for records that are missing the 'attrib' field.
-        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE.attrib}");
+        otherSettings.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE.attrib}");
 
         // Create new StreamingDataAdapter with no ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(false);

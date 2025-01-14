@@ -115,7 +115,7 @@ public class ItemTest {
 						""")
     public void shouldMakeWithEmptySchemaKeys(String input, String expectedPrefix) {
         Object handle = new Object();
-        SubscribedItem item = Items.susbcribedFrom(input, handle);
+        SubscribedItem item = Items.subscribedFrom(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
@@ -142,7 +142,7 @@ public class ItemTest {
     public void shouldMakeWithValue(
             String input, String expectedPrefix, String expectedName, String expectedValue) {
         Object handle = new Object();
-        SubscribedItem item = Items.susbcribedFrom(input, handle);
+        SubscribedItem item = Items.subscribedFrom(input, handle);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
@@ -166,7 +166,7 @@ public class ItemTest {
     public void shouldMakeWithMoreValues(
             String input, String name1, String val1, String name2, String value2) {
         Object handle = new Object();
-        SubscribedItem item = Items.susbcribedFrom(input, handle);
+        SubscribedItem item = Items.subscribedFrom(input, handle);
 
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);

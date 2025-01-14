@@ -94,26 +94,26 @@ public class Expressions {
     private static Pattern TEMPLATE_GLOBAL =
             Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$");
     private static Pattern TEMPLATE_LOCAL =
-            Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9\\.\\[\\]\\*]+)),?");
+            Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9_\\.\\[\\]\\*]+)),?");
     private static Pattern SUBSCRIBED_GLOBAL = Pattern.compile("([a-zA-Z0-9_-]+)(-\\[(.*)\\])?");
     private static Pattern SUBSCRIBED_LOCAL = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
     private static Pattern FIELD = Pattern.compile(SELECTION_REGEX);
 
     private static final Expressions EXPRESSIONS = new Expressions();
 
-    public static TemplateExpression template(String templateExpression) {
+    public static TemplateExpression Template(String templateExpression) {
         return EXPRESSIONS.newTemplateExpression(templateExpression);
     }
 
-    public static ExtractionExpression wrapped(String wrappedExpression) {
+    public static ExtractionExpression Wrapped(String wrappedExpression) {
         return EXPRESSIONS.fromWrapped(wrappedExpression);
     }
 
-    public static SubscriptionExpression subscription(String subscriptionExpression) {
+    public static SubscriptionExpression Subscription(String subscriptionExpression) {
         return EXPRESSIONS.newSubscriptionExpression(subscriptionExpression);
     }
 
-    public static ExtractionExpression expression(String expression) {
+    public static ExtractionExpression Expression(String expression) {
         return EXPRESSIONS.newExpression(expression);
     }
 

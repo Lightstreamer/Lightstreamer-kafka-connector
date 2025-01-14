@@ -160,7 +160,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum RecordComsumeFrom {
+    public enum RecordConsumeFrom {
         LATEST,
         EARLIEST;
 
@@ -197,14 +197,44 @@ public interface ConfigTypes {
         SHORT,
         UUID;
 
+        public boolean is(EvaluatorType type) {
+            return this == type;
+        }
+
         public static Set<String> names() {
             return enumNames(values());
+        }
+
+        public static EvaluatorType fromClass(Class<?> klass) {
+            return switch (klass.getSimpleName()) {
+                case "String" -> EvaluatorType.STRING;
+                case "Integer" -> EvaluatorType.INTEGER;
+                case "Boolean" -> EvaluatorType.BOOLEAN;
+                case "byte[]" -> EvaluatorType.BYTE_ARRAY;
+                case "ByteBuffer" -> EvaluatorType.BYTE_BUFFER;
+                case "Bytes" -> EvaluatorType.BYTES;
+                case "Double" -> EvaluatorType.DOUBLE;
+                case "Float" -> EvaluatorType.FLOAT;
+                case "SHORT" -> EvaluatorType.SHORT;
+                case "UUID" -> EvaluatorType.UUID;
+                default -> throw new IllegalArgumentException();
+            };
         }
     }
 
     public enum RecordErrorHandlingStrategy {
         IGNORE_AND_CONTINUE,
         FORCE_UNSUBSCRIPTION;
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
+    public enum RecordConsumeWithOrderStrategy {
+        ORDER_BY_KEY,
+        ORDER_BY_PARTITION,
+        UNORDERED;
 
         public static Set<String> names() {
             return enumNames(values());

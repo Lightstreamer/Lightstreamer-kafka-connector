@@ -84,7 +84,7 @@ public class ItemTemplateValidator implements Validator {
 
         try {
             // Validates <template-expression>
-            Expressions.template(pair.value()).toString();
+            Expressions.Template(pair.value()).toString();
 
             // Returns <template-name>
             return pair.key();

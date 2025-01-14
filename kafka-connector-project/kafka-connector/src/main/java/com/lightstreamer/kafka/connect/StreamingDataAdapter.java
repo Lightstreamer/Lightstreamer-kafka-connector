@@ -28,7 +28,6 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
@@ -75,10 +74,6 @@ public final class StreamingDataAdapter implements RecordSender {
                 logger.debug("Skipping record");
             };
 
-    // The DataExtractor instance for extracting data from a SinkRecord to be mapped to Lighstreamer
-    // fields.
-    private final DataExtractor<Object, Object> fieldsExtractor;
-
     // The ItemTemplate instance for enabling the Filtered Routing.
     private final ItemTemplates<Object, Object> itemTemplates;
 
@@ -117,11 +112,11 @@ public final class StreamingDataAdapter implements RecordSender {
     StreamingDataAdapter(
             DataAdapterConfig config, SinkTaskContext context, DownstreamUpdater nopUpdater) {
         this.itemTemplates = config.itemTemplates();
-        this.fieldsExtractor = config.fieldsExtractor();
         this.recordMapper =
                 RecordMapper.builder()
-                        .withExtractor(itemTemplates.extractors())
-                        .withExtractor(fieldsExtractor)
+                        .withTemplateExtractors(itemTemplates.groupExtractors())
+                        .enableRegex(itemTemplates.isRegexEnabled())
+                        .withFieldExtractor(config.fieldsExtractor())
                         .build();
 
         this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
@@ -212,36 +207,37 @@ public final class StreamingDataAdapter implements RecordSender {
         }
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     ErrantRecordReporter getErrantRercordReporter() {
         return reporter;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     Item getSubscribedItem(String item) {
         return subscribedItems.get(item);
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     int getCurrentItemsCount() {
         return itemsCounter.get();
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     DownstreamUpdater getUpdater() {
         return updater;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     ItemEventListener getItemEventListener() {
         return listener;
     }
 
-    // Only for testing purposes.
+    // Only for testing purposes
     Map<TopicPartition, OffsetAndMetadata> getCurrentOffsets() {
         return currentOffsets;
     }
 
+    // Only for testing purposes
     Map<String, String> getInitParameters() {
         return initParameters;
     }
@@ -302,10 +298,10 @@ public final class StreamingDataAdapter implements RecordSender {
         MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
         logger.debug("Mapped Kafka record");
 
-        Set<SubscribedItem> routable = itemTemplates.routes(mappedRecord, subscribedItems.values());
+        Set<SubscribedItem> routable = mappedRecord.route(subscribedItems.values());
 
         logger.debug("Filtering updates");
-        Map<String, String> updates = mappedRecord.filter(fieldsExtractor);
+        Map<String, String> updates = mappedRecord.fieldsMap();
 
         logger.info("Routing record to {} items", routable.size());
         for (SubscribedItem sub : routable) {

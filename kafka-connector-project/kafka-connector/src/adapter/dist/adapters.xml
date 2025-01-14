@@ -259,6 +259,28 @@
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
+        <!-- Optional. The number of threads to be used for concurrent processing of the
+             incoming deserialized records. If set to `-1`, the number of threads will be automatically
+             determined based on the number of available CPU cores.
+
+             Default value: 1. -->
+        <!--
+        <param name="record.consume.with.num.threads">4</param>
+        -->
+
+        <!-- Optional but only effective if "record.consume.with.num.threads" is set to a value greater than 1 (which includes hte default value).
+             The order strategy to be used for concurrent processing of the incoming
+             deserialized records. Can be one of the following:
+
+             - ORDER_BY_PARTITION: maintain the order of records within each partition
+             - ORDER_BY_KEY: maintain the order among the records sharing the same key
+             - UNORDERED: provide no ordering guarantees
+
+             Default value: ORDER_BY_PARTITION. -->
+        <!--
+        <param name="record.consume.with.order.strategy">ORDER_BY_KEY</param>
+        -->
+
         <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
              Can be one of the following:
              - AVRO
@@ -313,41 +335,48 @@
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
         <!-- Multiple and Optional. Define an item template expression, which is made of:
-             - <prefix>: the prefix of the item name
-             - <bindable_expressions>: a sequence of bindable extraction expressions. See documentation at:
-             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate-name
+             - ITEM_PREFIX: the prefix of the item name
+             - BINDABLE_EXPRESSIONS: a sequence of bindable extraction expressions. See documentation at:
+             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate_name
         -->
         <!--
-        <param name="item-template.<template-name>"><item-prefix>-<bindable_expressions></param>
+        <param name="item-template.TEMPLATE_NAME">ITEM_PREFIX-BINDABLE_EXPRESSIONS</param>
         -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
 
-        <!-- Multiple and mandatory. Map the Kafka topic <topic> to:
+        <!-- Multiple and mandatory. Map the Kafka topic TOPIC_NAME to:
              - one or more simple items
              - one or more item templates
              - any combination of the above
 
              At least one mapping must be provided. -->
         <!-- Example 1:
-        <param name="map.<topic>.to">item1,item2,itemN,...</param>
+        <param name="map.aTopicName.to">item1,item2,itemN,...</param>
         -->
         <!-- Example 2:
-        <param name="map.<topic>.to">item-itemplate.template-name1,item-template.template-name2...</param>
+        <param name="map.aTopicName.to">item-itemplate.template-name1,item-template.template-name2...</param>
         -->
         <!-- Example 3:
-        <param name="map.<topic>.to">item-itemplate.template-name1,item1,item-template.template-name2,item2,...</param>
+        <param name="map.aTopicName.to">item-itemplate.template-name1,item1,item-template.template-name2,item2,...</param>
         -->
         <param name="map.stocks.to">item-template.stock</param>
+
+        <!-- Optional. Enable the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be treated as a regular expression
+             rather than of a literal topic name.
+        --> 
+        <!--
+        <parm name="map.regex.enable">true</param>
+        -->
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
         <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to
-             field <fieldName>. The expression is written in the Data Extraction Language. See documentation at:
-             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfiledname
+             field FIELD_NAME. The expression is written in the Data Extraction Language. See documentation at:
+             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfield_name
 
              At least one mapping must be provided. -->
         <!--
-        <param name="field.<fieldName>">extraction_expression</param>
+        <param name="field.FIELD_NAME">extraction_expression</param>
         -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
@@ -367,6 +396,16 @@
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
+
+        <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to 
+             Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. Can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="fields.skip.failed.mapping.enable">true</param>
+        -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 
@@ -464,6 +503,6 @@
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
 
-    </data_provider>    
+    </data_provider>
 
 </adapters_conf>

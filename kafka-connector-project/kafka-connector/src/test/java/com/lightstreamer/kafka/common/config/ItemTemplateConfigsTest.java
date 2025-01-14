@@ -56,7 +56,7 @@ public class ItemTemplateConfigsTest {
         assertThat(it.contains("template-name")).isTrue();
         TemplateExpression expression = it.getExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
-        assertThat(expression.params()).containsExactly("param", Expressions.expression("OFFSET"));
+        assertThat(expression.params()).containsExactly("param", Expressions.Expression("OFFSET"));
     }
 
     @Test
@@ -73,11 +73,11 @@ public class ItemTemplateConfigsTest {
         assertThat(expression.params())
                 .containsExactly(
                         "param1",
-                        Expressions.expression("OFFSET"),
+                        Expressions.Expression("OFFSET"),
                         "param2",
-                        Expressions.expression("PARTITION"),
+                        Expressions.Expression("PARTITION"),
                         "param3",
-                        Expressions.expression("TIMESTAMP"));
+                        Expressions.Expression("TIMESTAMP"));
     }
 
     @Test
@@ -97,22 +97,22 @@ public class ItemTemplateConfigsTest {
         assertThat(expression_a.params())
                 .containsExactly(
                         "param1a",
-                        Expressions.expression("VALUE"),
+                        Expressions.Expression("VALUE"),
                         "param2a",
-                        Expressions.expression("KEY"),
+                        Expressions.Expression("KEY"),
                         "param3a",
-                        Expressions.expression("PARTITION"));
+                        Expressions.Expression("PARTITION"));
 
         TemplateExpression expression_b = it.getExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
                         "param1b",
-                        Expressions.expression("VALUE.b"),
+                        Expressions.Expression("VALUE.b"),
                         "param2b",
-                        Expressions.expression("KEY.b"),
+                        Expressions.Expression("KEY.b"),
                         "param3b",
-                        Expressions.expression("KEY.c"));
+                        Expressions.Expression("KEY.c"));
     }
 
     @ParameterizedTest

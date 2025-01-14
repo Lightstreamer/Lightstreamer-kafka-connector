@@ -52,7 +52,7 @@ public class LightstreamerConnectorConfigTest {
         Map<String, String> config = new HashMap<>();
         config.put(LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS, "host:6661");
         config.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1");
-        config.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
+        config.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE}");
         return config;
     }
 
@@ -104,24 +104,24 @@ public class LightstreamerConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Missing required configuration \"record.mapping\" which has no default value.");
+                        "Missing required configuration \"record.mappings\" which has no default value.");
 
         // Empty record.mapping
-        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "");
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"record.mapping\": Must be a non-empty list");
+                        "Invalid value for configuration \"record.mappings\": Must be a non-empty list");
 
         // Invalid field mappings
-        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:value1");
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:value1");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Invalid value for configuration \"record.mapping\": Extraction expression must be in the form #{...}");
+                        "Invalid value for configuration \"record.mappings\": Extraction expression must be in the form #{...}");
 
         // Put valid field mappings and go on checking
-        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, "field1:#{VALUE}");
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:#{VALUE}");
         assertDoesNotThrow(() -> new LightstreamerConnectorConfig(props));
     }
 
@@ -236,16 +236,16 @@ public class LightstreamerConnectorConfigTest {
         TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
         assertThat(stockExpression.params())
-                .containsExactly("index", Expressions.expression("KEY"));
+                .containsExactly("index", Expressions.Expression("KEY"));
 
         TemplateExpression productExpression = itemTemplate.getExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
                 .containsExactly(
                         "id",
-                        Expressions.expression("KEY"),
+                        Expressions.Expression("KEY"),
                         "price",
-                        Expressions.expression("VALUE.price"));
+                        Expressions.Expression("VALUE.price"));
     }
 
     @Test
@@ -276,6 +276,50 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetTopicMappingRegex() {
+        Map<String, String> props = basicConfig();
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRegexEnabled()).isFalse();
+
+        props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "true");
+        config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRegexEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldNotValidateInvalidTopicMappingRegex() {
+        Map<String, String> props = basicConfig();
+        props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "INVALID");
+        ConfigException ce =
+                assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value INVALID for configuration topic.mappings.regex.enable: Expected value to be either true or false");
+    }
+
+    @Test
+    public void shouldGetRecordMappingSkipFailed() {
+        Map<String, String> props = basicConfig();
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRecordMappingSkipFailedEnabled()).isFalse();
+
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "true");
+        config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRecordMappingSkipFailedEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldNotValidateInvalidRecordMappingSkipFailed() {
+        Map<String, String> props = basicConfig();
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "INVALID");
+        ConfigException ce =
+                assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value INVALID for configuration record.mappings.skip.failed.enable: Expected value to be either true or false");
+    }
+
+    @Test
     void shouldGetFieldMappings() {
         String fieldMappingConfig =
                 """
@@ -299,7 +343,7 @@ public class LightstreamerConnectorConfigTest {
                     partition:#{PARTITION}
                 """;
         Map<String, String> props = basicConfig();
-        props.put(LightstreamerConnectorConfig.RECORD_MAPPING, fieldMappingConfig);
+        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, fieldMappingConfig);
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
 
         FieldConfigs fieldMappings = config.getFieldConfigs();
@@ -307,41 +351,41 @@ public class LightstreamerConnectorConfigTest {
         assertThat(fieldMappings.expressions())
                 .containsExactly(
                         "timestamp",
-                        Expressions.expression("VALUE.timestamp"),
+                        Expressions.Expression("VALUE.timestamp"),
                         "time",
-                        Expressions.expression("VALUE.time"),
+                        Expressions.Expression("VALUE.time"),
                         "stock_name",
-                        Expressions.expression("VALUE.name"),
+                        Expressions.Expression("VALUE.name"),
                         "last_price",
-                        Expressions.expression("VALUE.last_price"),
+                        Expressions.Expression("VALUE.last_price"),
                         "ask",
-                        Expressions.expression("VALUE.ask"),
+                        Expressions.Expression("VALUE.ask"),
                         "ask_quantity",
-                        Expressions.expression("VALUE.ask_quantity"),
+                        Expressions.Expression("VALUE.ask_quantity"),
                         "bid",
-                        Expressions.expression("VALUE.bid"),
+                        Expressions.Expression("VALUE.bid"),
                         "bid_quantity",
-                        Expressions.expression("VALUE.bid_quantity"),
+                        Expressions.Expression("VALUE.bid_quantity"),
                         "pct_change",
-                        Expressions.expression("VALUE.pct_change"),
+                        Expressions.Expression("VALUE.pct_change"),
                         "min",
-                        Expressions.expression("VALUE.min"),
+                        Expressions.Expression("VALUE.min"),
                         "max",
-                        Expressions.expression("VALUE.max"),
+                        Expressions.Expression("VALUE.max"),
                         "ref_price",
-                        Expressions.expression("VALUE.ref_price"),
+                        Expressions.Expression("VALUE.ref_price"),
                         "open_price",
-                        Expressions.expression("VALUE.open_price"),
+                        Expressions.Expression("VALUE.open_price"),
                         "item_status",
-                        Expressions.expression("VALUE.item_status"),
+                        Expressions.Expression("VALUE.item_status"),
                         "ts",
-                        Expressions.expression("TIMESTAMP"),
+                        Expressions.Expression("TIMESTAMP"),
                         "topic",
-                        Expressions.expression("TOPIC"),
+                        Expressions.Expression("TOPIC"),
                         "offset",
-                        Expressions.expression("OFFSET"),
+                        Expressions.Expression("OFFSET"),
                         "partition",
-                        Expressions.expression("PARTITION"));
+                        Expressions.Expression("PARTITION"));
     }
 
     @ParameterizedTest
