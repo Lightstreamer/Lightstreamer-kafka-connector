@@ -956,7 +956,7 @@ Default value: `ORDER_BY_PARTITION`.
 Example:
 
 ```xml
-<param name="record.consume.with.order.strategyy">ORDER_BY_KEY</param>
+<param name="record.consume.with.order.strategy">ORDER_BY_KEY</param>
 ```
 
 #### `record.key.evaluator.type` and `record.value.evaluator.type`
