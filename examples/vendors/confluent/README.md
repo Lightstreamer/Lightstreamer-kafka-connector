@@ -937,7 +937,7 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes hte default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
 - `ORDER_BY_PARTITION`: maintain the order of records within each partition.
 
