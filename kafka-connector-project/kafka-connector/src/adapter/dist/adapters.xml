@@ -268,7 +268,7 @@
         <param name="record.consume.with.num.threads">4</param>
         -->
 
-        <!-- Optional but only effective if "record.consume.with.num.threads" is set to a value greater than 1 (which includes hte default value).
+        <!-- Optional but only effective if "record.consume.with.num.threads" is set to a value greater than 1 (which includes the default value).
              The order strategy to be used for concurrent processing of the incoming
              deserialized records. Can be one of the following:
 
