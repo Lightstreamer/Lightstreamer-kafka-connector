@@ -77,7 +77,6 @@
         <!-- A TCP secure connection to Kafka is configured through parameters with
              the `encryption` prefix. -->
 
-        <!-- Enable encryption -->
         <!-- Optional. Enable encryption of this connection. Can be one of the following:
              - true
              - false
