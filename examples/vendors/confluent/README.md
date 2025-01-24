@@ -675,6 +675,8 @@ Example:
 
 _Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
+The trust store is used to validate the certificates provided by the Kafka brokers.
+
 Example:
 
 ```xml
@@ -1410,7 +1412,7 @@ A secure connection to the Confluent Schema Registry can be configured through p
 Example:
 
 ```xml
-<!-- Set the Confluent Schema Registry URL. The https protcol enable encryption parameters -->
+<!-- Set the Confluent Schema Registry URL. The https protocol enables encryptions parameters -->
 <param name="schema.registry.url">https//localhost:8084</param>
 
 <!-- Set general encryption settings -->

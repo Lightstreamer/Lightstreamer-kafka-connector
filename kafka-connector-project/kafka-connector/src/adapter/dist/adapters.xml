@@ -119,7 +119,8 @@
         -->
 
         <!-- Optional. The path of the trust store file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). 
+             The trust store is used to validate the certificates provided by the Kafka brokers. -->
         <!--
         <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
         -->
