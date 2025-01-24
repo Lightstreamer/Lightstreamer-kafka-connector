@@ -216,7 +216,7 @@
         <param name="authentication.gssapi.key.tab.enable">true</param>
         -->
 
-        <!-- Mandatory if keytab is enabled.  The path to the kaytab file, relative to
+        <!-- Mandatory if keytab is enabled. The path to the kaytab file, relative to
              the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
         <!--
         <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
