@@ -1368,13 +1368,14 @@ Example:
 <param name="schema.registry.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
-<param name="schema.registry.encryption.truststore.path">secrets/secrets/kafka.connector.schema.registry.truststore.jks</param></param>
+<param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+<param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
 <param name="schema.registry.encryption.keystore.enable">true</param>
 <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
 <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-<param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
+<param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
 #### Quick Start Schema Registry Example

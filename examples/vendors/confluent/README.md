@@ -1427,7 +1427,7 @@ Example:
 <param name="schema.registry.encryption.keystore.enable">true</param>
 <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
 <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-<param name="schema.registry.encryption.keystore.key.password">schemaregistry-private-key-password</param>
+<param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
 #### Quick Start Schema Registry Example
