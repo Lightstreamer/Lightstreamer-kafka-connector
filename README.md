@@ -72,7 +72,7 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 
 ## Intelligent Streaming
 
-With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnections seamlessly, keeping your users connected and up-to-date.
+With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnection seamlessly, keeping your users connected and up-to-date.
 
 ## Comprehensive Client SDKs
 
@@ -118,7 +118,7 @@ The diagram above illustrates how, in this setup, a stream of simulated market e
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are availbale in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/vendors/confluent/README.md), [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
+1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are available in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/vendors/confluent/README.md), [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -328,7 +328,7 @@ where you have to replace `username` and `password` with the credentials generat
    As you can see, you have to specify a few parameters:
 
    - `--address`: the Lightstreamer Server address
-   - `--adapter-set`: the name of the requested Adapter Set, which triggers Ligthstreamer to activate the Kafka Connector deployed into the `adapters` folder
+   - `--adapter-set`: the name of the requested Adapter Set, which triggers Lightstreamer to activate the Kafka Connector deployed into the `adapters` folder
    - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
    - `--items`: the list of items to subscribe to
    - `--fields`: the list of requested fields for the items
@@ -774,7 +774,7 @@ In the case of `GSSAPI` authentication mechanism, the following parameters will 
 
 - `authentication.gssapi.key.tab.path`
 
-  _Mandatory if keytab is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+  _Mandatory if keytab is enabled_. The path to the keytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 - `authentication.gssapi.store.key.enable`
 
@@ -981,7 +981,7 @@ Example:
 
 The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following purposes:
+The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafka records to extract data that can be used for the following purposes:
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
@@ -1087,7 +1087,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-##### Enable Regular Exression (`map.regex.enable`)
+##### Enable Regular Expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
@@ -1173,7 +1173,7 @@ To configure an item template, use the `item-template.TEMPLATE_NAME` parameter:
 <param name="item-template.TEMPLATE_NAME">ITEM_PREFIX-EXPRESSIONS</param>
 ```
 
-Then, map one (or more) topic to the template by referecing it in the `map.TOPIC_NAME.to` parameter:
+Then, map one (or more) topic to the template by referencing it in the `map.TOPIC_NAME.to` parameter:
 
 ```xml
 <param name="map.TOPIC_NAME.to">item-template.TEMPLATE_NAME</param>
@@ -1396,7 +1396,7 @@ In these scenarios, the Kafka Connector triggers the unsubscription from all the
 subscription.addSubscriptionListener(new SubscriptionListener() {
   ...
   public void onUnsubscription() {
-      // Manage the unscription event.
+      // Manage the unsubscription event.
   }
   ...
 
@@ -1412,7 +1412,7 @@ If you have any specific need to customize the _Kafka Connector Metadata Adapter
 
 - [_onSubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onSubscription(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a user has submitted a subscription
 
-- [_onUnsubcription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
+- [_onUnsubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
 
 ## Develop the Extension
 
@@ -1442,7 +1442,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 2. Add the repository and specify your personal access token:
 
-   ```grrovy
+   ```groovy
    repositories {
        mavenCentral()
        maven {
@@ -1565,11 +1565,11 @@ To manually install the Kafka Connect Lightstreamer Sink Connector to a local Co
    $ bin/connect-standalone.sh connect-standalone-local.properties quickstart-lightstreamer-local.properties
    ```
 
-To verify that an events stream actually flows from Kafka to a Lightstreamer consumer leveraging the same example already shwon in the [Start](#start) section:
+To verify that an events stream actually flows from Kafka to a Lightstreamer consumer leveraging the same example already shown in the [Start](#start) section:
 
 1. Attach a Lightstreamer consumer as specified in the step 2 of the [Start](#start) section.
 
-2. Make sure that a Schema Registy service is reachable from your local machine.
+2. Make sure that a Schema Registry service is reachable from your local machine.
 
 3. Edit a `producer.properties` file as follows:
 
@@ -1587,16 +1587,16 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
    This time, run the publisher passing as further argument the `producer.properties` file:
 
    ```sh
-   $ java -jar examples/quickstart-producer/build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
+   $ java -jar examples/quickstart-producer/build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file producer.properties
    ```
 
 3. Check the consumed events.
 
-   You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
+   You should see real-time updated as shown in the step 4 of the [Start](#start) section.
 
 ### Running in Docker
 
-If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
+If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
 In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
@@ -1648,7 +1648,7 @@ lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 
 ### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
 
-The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
+The (optional) amount of time in milliseconds the connector will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
 - **Type:** int
 - **Default:** 5000 (5 seconds)
@@ -1765,7 +1765,7 @@ Example:
 topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:order-item
 ```
 
-The configuration above specifes:
+The configuration above specifies:
 
 - A _One-to-many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
@@ -1791,11 +1791,11 @@ topic.mappings.regex.enable=true
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
 
-The list of mappings between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
+The list of mappings between Kafka records and Lightstreamer fields. The list should describe a set of subscribable fields in the following form:
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
 
-where the Lightstreamer field `[fieldNameX]` whill hold the data extracted from a deserialized Kafka record using the
+where the Lightstreamer field `[fieldNameX]` will hold the data extracted from a deserialized Kafka record using the
 _Data Extraction Language_ `[extractionExpressionX]`.
 
 - **Type:** list
@@ -1842,7 +1842,7 @@ Semicolon-separated list of _item templates_, which specify the rules to enable 
 
 `[templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]`
 
-where the `[templateX]` configures the item template `[templaeName]` defining the general format of the items the Lightstremer clients must subscribe to to receive udpdates.
+where the `[templateX]` configures the item template `[templateName]` defining the general format of the items the Lightstreamer clients must subscribe to to receive updates.
 
 A template is specified in the form:
 
@@ -1872,7 +1872,7 @@ item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
-The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
+The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
 
 # Docs
 
