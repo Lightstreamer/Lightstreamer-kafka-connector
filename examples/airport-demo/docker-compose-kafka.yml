@@ -71,7 +71,7 @@ configs:
               <param name="logging.configuration.path">log4j.properties</param>
           </metadata_provider>
 
-          <data_provider name="AirpotDemo">
+          <data_provider name="AirportDemo">
               <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
               <param name="bootstrap.servers">broker:29092</param>
@@ -100,7 +100,7 @@ configs:
     content: |
       log4j.rootLogger=DEBUG, stdout
       log4j.logger.org.apache.kafka=WARN, stdout
-      log4j.logger.AirpotDemo=TRACE, AirportDemo
+      log4j.logger.AirportDemo=TRACE, AirportDemo
 
       log4j.appender.stdout=org.apache.log4j.ConsoleAppender
       log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
