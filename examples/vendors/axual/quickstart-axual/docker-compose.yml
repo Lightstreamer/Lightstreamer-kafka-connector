@@ -1,5 +1,5 @@
 ---
-name: quickstart-kafka-connector-axqual
+name: quickstart-kafka-connector-axual
 services:
   kafka-connector:
     container_name: kafka-connector

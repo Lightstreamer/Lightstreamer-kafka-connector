@@ -307,7 +307,7 @@ To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps
 
 1. Copy the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
 
-2. Custome the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
+2. Customize the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
 
 3. Optionally, provide a minimal version of the `log4j.properties` file similar to the following:
 
@@ -832,7 +832,7 @@ In the case of `GSSAPI` authentication mechanism, the following parameters will 
 
 - `authentication.gssapi.key.tab.path`
 
-  _Mandatory if keytab is enabled_. The path to the kaytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+  _Mandatory if keytab is enabled_. The path to the keytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
 
 - `authentication.gssapi.store.key.enable`
 
@@ -1033,7 +1033,7 @@ Example:
 
 The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
-The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafa records to extract data that can be used for the following purposes:
+The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analysis of Kafka records to extract data that can be used for the following purposes:
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
@@ -1140,7 +1140,7 @@ This configuration enables the implementation of various routing scenarios, as s
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
 
-##### Enable Regular Exression (`map.regex.enable`)
+##### Enable Regular Expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
@@ -1226,7 +1226,7 @@ To configure an item template, use the `item-template.TEMPLATE_NAME` parameter:
 <param name="item-template.TEMPLATE_NAME">ITEM_PREFIX-EXPRESSIONS</param>
 ```
 
-Then, map one (or more) topic to the template by referecing it in the `map.TOPIC_NAME.to` parameter:
+Then, map one (or more) topic to the template by referencing it in the `map.TOPIC_NAME.to` parameter:
 
 ```xml
 <param name="map.TOPIC_NAME.to">item-template.TEMPLATE_NAME</param>
@@ -1449,7 +1449,7 @@ In these scenarios, the Kafka Connector triggers the unsubscription from all the
 subscription.addSubscriptionListener(new SubscriptionListener() {
   ...
   public void onUnsubscription() {
-      // Manage the unscription event.
+      // Manage the unsubscription event.
   }
   ...
 
@@ -1465,7 +1465,7 @@ If you have any specific need to customize the _Kafka Connector Metadata Adapter
 
 - [_onSubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onSubscription(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a user has submitted a subscription
 
-- [_onUnsubcription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
+- [_onUnsubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
 
 ## Develop the Extension
 
@@ -1495,7 +1495,7 @@ For a Gradle project, edit your _build.gradle_ file as follows:
 
 2. Add the repository and specify your personal access token:
 
-   ```grrovy
+   ```groovy
    repositories {
        mavenCentral()
        maven {
@@ -1618,11 +1618,11 @@ To manually install the Kafka Connect Lightstreamer Sink Connector to a local Co
    $ bin/connect-standalone.sh connect-standalone-local.properties quickstart-lightstreamer-local.properties
    ```
 
-To verify that an events stream actually flows from Kafka to a Lightstreamer consumer leveraging the same example already shwon in the [Start](#start) section:
+To verify that an events stream actually flows from Kafka to a Lightstreamer consumer leveraging the same example already shown in the [Start](#start) section:
 
 1. Attach a Lightstreamer consumer as specified in the step 2 of the [Start](#start) section.
 
-2. Make sure that a Schema Registy service is reachable from your local machine.
+2. Make sure that a Schema Registry service is reachable from your local machine.
 
 3. Edit a `producer.properties` file as follows:
 
@@ -1640,16 +1640,16 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
    This time, run the publisher passing as further argument the `producer.properties` file:
 
    ```sh
-   $ java -jar examples/quickstart-producer/build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --confg-file producer.properties
+   $ java -jar examples/quickstart-producer/build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file producer.properties
    ```
 
 3. Check the consumed events.
 
-   You shouls see real-time updated as shown in the step 4 of the [Start](#start) section.
+   You should see real-time updated as shown in the step 4 of the [Start](#start) section.
 
 ### Running in Docker
 
-If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [exmaples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
+If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
 In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
 
@@ -1701,7 +1701,7 @@ lightstreamer.server.proxy_adapter.address=lightstreamer.com:6661
 
 ### `lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms`
 
-The (optional) amount of time in milliseconds the connctor will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
+The (optional) amount of time in milliseconds the connector will wait for the socket connection to be established to the Lightstreamer server's Proxy Adapter before terminating the task. Specify `0` for infinite timeout.
 
 - **Type:** int
 - **Default:** 5000 (5 seconds)
@@ -1818,7 +1818,7 @@ Example:
 topic.mappings=sample-topic:item-template.template1,item1,item2;order-topic:order-item
 ```
 
-The configuration above specifes:
+The configuration above specifies:
 
 - A _One-to-many_ mapping between the topic `sample-topic` and the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`
 - [_Filtered routing_](#filtered-record-routing-item-templatetemplate_name) through the reference to the item template `template1` (not shown in the snippet)
@@ -1844,11 +1844,11 @@ topic.mappings.regex.enable=true
 > [!IMPORTANT]
 > This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
 
-The list of mappings between Kafa records and Ligtstreamer fields. The list should describe a set of subscribable fields in the following form:
+The list of mappings between Kafka records and Lightstreamer fields. The list should describe a set of subscribable fields in the following form:
 
  `[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]`
 
-where the Lightstreamer field `[fieldNameX]` whill hold the data extracted from a deserialized Kafka record using the
+where the Lightstreamer field `[fieldNameX]` will hold the data extracted from a deserialized Kafka record using the
 _Data Extraction Language_ `[extractionExpressionX]`.
 
 - **Type:** list
@@ -1895,7 +1895,7 @@ Semicolon-separated list of _item templates_, which specify the rules to enable 
 
 `[templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]`
 
-where the `[templateX]` configures the item template `[templaeName]` defining the general format of the items the Lightstremer clients must subscribe to to receive udpdates.
+where the `[templateX]` configures the item template `[templateName]` defining the general format of the items the Lightstreamer clients must subscribe to to receive updates.
 
 A template is specified in the form:
 
@@ -1925,7 +1925,7 @@ item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
-The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leverging _Data Extraction Langauge_ expressions.
+The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
 
 # Docs
 
