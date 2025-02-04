@@ -1409,9 +1409,7 @@ subscription.addSubscriptionListener(new SubscriptionListener() {
 If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages), 
 you can create your own implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html).
 
-You are free to implement any methods defined in the standard [`MetadataProvider`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html) interface and override implementations provided by its 
-descendant classes ([`MetadataProviderAdapter`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) 
-and [`LiteralBasedProvider`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html)]).
+You are free to implement any methods defined in the standard [`MetadataProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProvider.html) interface and override implementations provided by its descendant classes ([`MetadataProviderAdapter`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) and [`LiteralBasedProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html)).
 
 Bear in mind that the `KafkaConnectorMetadataAdapter` class already provides implementations for the following methods: init, notifyNewTables, notifyTablesClose, and wantsTablesNotification.
 To extend such methods, the class offers hook methods that you can override to incorporate your custom logic:
