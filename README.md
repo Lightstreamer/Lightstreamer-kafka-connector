@@ -44,7 +44,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Encryption Parameters](#encryption-parameters-1)
     - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
 - [Client Side Error Handling](#client-side-error-handling)
-- [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class)
+- [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
 - [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
@@ -426,7 +426,7 @@ The factory value is set to `com.lightstreamer.kafka.adapters.pub.KafkaConnector
 
 It is possible to provide a custom implementation by extending this class: just package your new class in a jar file and deploy it along with all required dependencies into the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/lib` folder.
 
-See the [Customize the Kafka Connector Metadata Class](#customize-the-kafkaconnector-metadata-adapter-class) section for more details.
+See the [Customizing the Kafka Connector Metadata Class](#customizing-the-kafka-connector-metadata-adapter-class) section for more details.
 
 Example:
 
@@ -1404,15 +1404,23 @@ subscription.addSubscriptionListener(new SubscriptionListener() {
 
 ```
 
-# Customize the Kafka Connector Metadata Adapter Class
+# Customizing the Kafka Connector Metadata Adapter Class
 
-If you have any specific need to customize the _Kafka Connector Metadata Adapter_ class (e.g, for implementing custom authentication and authorization logic), you can provide your implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html). The class provides the following hook methods, which you can override to add your custom logic:
+If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages), 
+you can create your own implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html).
 
-- [_postInit_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#postInit(java.util.Map,java.io.File)): invoked after the initialization phase of the Kafka Connector Metadata Adapter has been completed
+You are free to implement any methods defined in the standard [`MetadataProvider`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html) interface and override implementations provided by its 
+descendant classes ([`MetadataProviderAdapter`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) 
+and [`LiteralBasedProvider`](https://lightstreamer.com/sdks/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html)]).
 
-- [_onSubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onSubscription(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a user has submitted a subscription
+Bear in mind that the `KafkaConnectorMetadataAdapter` class already provides implementations for the following methods: init, notifyNewTables, notifyTablesClose, and wantsTablesNotification.
+To extend such methods, the class offers hook methods that you can override to incorporate your custom logic:
 
-- [_onUnsubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): invoked to notify that a Subscription has been removed
+- [_postInit_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#postInit(java.util.Map,java.io.File)):  Called after the initialization phase of the Kafka Connector Metadata Adapter is completed.
+
+- [_onSubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onSubscription(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): Called to notify when a user submits a subscription.
+
+- [_onUnsubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): Called to notify when a subscription is removed.
 
 ## Develop the Extension
 
@@ -1876,7 +1884,7 @@ The configuration above specifies how to route records published from the topic 
 
 # Docs
 
-The [docs](/docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customize the Kafka Connector Metadata Adapter Class](#customize-the-kafka-connector-metadata-adapter-class) section.
+The [docs](/docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class) section.
 
 To learn more about the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) and the [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/), visit their respective product pages.
 
