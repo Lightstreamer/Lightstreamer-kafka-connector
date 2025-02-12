@@ -42,7 +42,7 @@ Copy the generated jar file - along with all dependencies (if any) - under the `
 
 ## Start
 
-Start Lighststreamer Server and verify that the console log shows something similar:
+Start Lightstreamer Server and verify that the console log shows something similar:
 
 ```sh
 12.Mar.24 16:51:36,169 < INFO> Loading Metadata Adapter for Adapter Set KafkaConnector

@@ -8,13 +8,13 @@
 
 - Added support for [skipping failures](README.md#skip-failed-mapping-fieldsskipfailedmappingenable) while mapping fields (also available for the [Sink connector](README.md#recordmappingsskipfailedenable)). ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
 
-- Added support for topic mappings declared as [regular expressions](README.md#enable-regular-exression-mapregexenable) (also available for the [Sink connector](README.md#topicmappingsregexenable)). ([#33](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/33), [#35](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/35))
+- Added support for topic mappings declared as [regular expressions](README.md#enable-regular-expression-mapregexenable) (also available for the [Sink connector](README.md#topicmappingsregexenable)). ([#33](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/33), [#35](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/35))
 
 - Optimize processing when there are no routable items. ([#30](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/30))
 
 **Bug Fixes**
 
-- Fixed unit tests to support version numbers that may include pre-release indentifiers. ([#38](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/38))
+- Fixed unit tests to support version numbers that may include pre-release identifiers. ([#38](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/38))
 
 - Fixed the Docker build in the Airport demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
 
@@ -68,7 +68,7 @@
 
   - Added a new logger configuration named `QuickStartConfluentCloud` to the factory [log4j.properties](kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties) file. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22))
 
-  - Improved the [QuickStart web client](examples/compose-templates/web/) by refactoring the JavaScript coied and using the CDN version of the Lightstreamer client library. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22)) 
+  - Improved the [QuickStart web client](examples/compose-templates/web/) by refactoring the JavaScript code and using the CDN version of the Lightstreamer client library. ([#22](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/22)) 
 
 **Bug Fixes**
 
@@ -147,7 +147,7 @@ Modified the [README.md](README.md) file has follows:
 
 **Improvements**
 
-- Improved the [README.md](README.md) file by restructring the [Topic Mapping](README.md#topic-mapping) section.
+- Improved the [README.md](README.md) file by restructuring the [Topic Mapping](README.md#topic-mapping) section.
 
 **Bug Fixes**
 
@@ -158,7 +158,7 @@ Modified the [README.md](README.md) file has follows:
 
 **Improvements**
 
-- Added the [Project Report Plugin](https://docs.gradle.org/current/userguide/project_report_plugin.html) to the [project](./kafka-connector-project/buildSrc/src/main/groovy/lightstreamer-kafka-connector.gradle#L5) to generate reports contaning information about the build.
+- Added the [Project Report Plugin](https://docs.gradle.org/current/userguide/project_report_plugin.html) to the [project](./kafka-connector-project/buildSrc/src/main/groovy/lightstreamer-kafka-connector.gradle#L5) to generate reports containing information about the build.
 
 - Added dependency on _javadoc_ task to the _build_ task in the [build.gradle](./kafka-connector-project/kafka-connector/build.gradle) file.
 
@@ -174,7 +174,7 @@ Modified the [README.md](README.md) file has follows:
 
 - The [examples/docker-kafka-connect/README.md](./examples/docker-kafka-connect/README.md) file contained a wrong reference to the Docker image name.
 
-- The [gradle.properties](./kafka-connector-project/gradle.properties) file contained an unsed property.
+- The [gradle.properties](./kafka-connector-project/gradle.properties) file contained an unused property.
 
 - The [README.md](README.md) file contained broken links.
 

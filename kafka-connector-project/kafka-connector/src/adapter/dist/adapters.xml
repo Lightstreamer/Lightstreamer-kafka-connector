@@ -77,7 +77,6 @@
         <!-- A TCP secure connection to Kafka is configured through parameters with
              the `encryption` prefix. -->
 
-        <!-- Enable encryption -->
         <!-- Optional. Enable encryption of this connection. Can be one of the following:
              - true
              - false
@@ -120,7 +119,8 @@
         -->
 
         <!-- Optional. The path of the trust store file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). 
+             The trust store is used to validate the certificates provided by the Kafka brokers. -->
         <!--
         <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
         -->
@@ -144,7 +144,7 @@
             - encryption.keystore.password
             - encryption.keystore.key.password
 
-            Defalt value: false. -->
+            Default value: false. -->
         <!--
         <param name="encryption.keystore.enable">true</param>
         -->
@@ -216,7 +216,7 @@
         <param name="authentication.gssapi.key.tab.enable">true</param>
         -->
 
-        <!-- Mandatory if keytab is enabled.  The path to the kaytab file, relative to
+        <!-- Mandatory if keytab is enabled. The path to the keytab file, relative to
              the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
         <!--
         <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
@@ -354,10 +354,10 @@
         <param name="map.aTopicName.to">item1,item2,itemN,...</param>
         -->
         <!-- Example 2:
-        <param name="map.aTopicName.to">item-itemplate.template-name1,item-template.template-name2...</param>
+        <param name="map.aTopicName.to">item-template.template-name1,item-template.template-name2...</param>
         -->
         <!-- Example 3:
-        <param name="map.aTopicName.to">item-itemplate.template-name1,item1,item-template.template-name2,item2,...</param>
+        <param name="map.aTopicName.to">item-template.template-name1,item1,item-template.template-name2,item2,...</param>
         -->
         <param name="map.stocks.to">item-template.stock</param>
 
