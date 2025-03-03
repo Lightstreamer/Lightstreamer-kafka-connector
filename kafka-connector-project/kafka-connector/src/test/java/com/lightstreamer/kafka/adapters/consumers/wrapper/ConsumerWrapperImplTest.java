@@ -174,7 +174,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 10, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
         // Invoke the method and verify that task has been actually invoked with the
         // expected simulated records
@@ -460,7 +460,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -501,7 +501,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -547,7 +547,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));

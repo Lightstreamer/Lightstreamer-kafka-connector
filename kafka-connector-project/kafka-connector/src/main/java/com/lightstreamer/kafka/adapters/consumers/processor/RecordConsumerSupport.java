@@ -26,8 +26,8 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WihtOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -79,7 +79,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WihtOffsetService<K, V> offsetService(OffsetService offsetService) {
+        public WithOffsetService<K, V> offsetService(OffsetService offsetService) {
             this.offsetService = offsetService;
             return new WithOffsetServiceImpl<>(this);
         }
@@ -126,7 +126,7 @@ class RecordConsumerSupport {
         }
     }
 
-    private static class WithOffsetServiceImpl<K, V> implements WihtOffsetService<K, V> {
+    private static class WithOffsetServiceImpl<K, V> implements WithOffsetService<K, V> {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
@@ -224,7 +224,7 @@ class RecordConsumerSupport {
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
-            // As logging the mapped record is expensive, log lazly it only at trace level.
+            // As logging the mapped record is expensive, log lazily it only at trace level.
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log(() -> "Mapped Kafka record");
 
@@ -408,7 +408,7 @@ class RecordConsumerSupport {
     }
 
     public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
+        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
         records.partitions()
                 .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
         return allRecords;
