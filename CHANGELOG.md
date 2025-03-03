@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1-command] (UNRELEASED)
+
+- Added explicit support for COMMAND mode subscriptions, including the new configuration parameter "record.command.enable" to enable this feature.
+
+- Updated the Airport demo to use COMMAND mode.
+
 ## [1.2.1] (2025-03-03)
 
 **Bug Fixes**
