@@ -48,7 +48,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
 
 - `adapters.xml`: in this file, parameters are essentially configured for the connector to consume messages from Kafka, and the mapping between Kafka cluster topics and Lightstreamer items that the client will subscribe to is defined. In the specific case of this demo, message serialization occurs via JSON objects, and therefore, the mapping of fields from the received JSON object to the Lightstreamer item fields to be sent to clients is also defined. In particular, the section defining the field mapping is this one:
   ```xml
-    <data_provider name="AirpotDemo">
+    <data_provider name="AirportDemo">
       ...
 
       <!-- Extraction of the record key mapped to the field "key". -->
@@ -76,7 +76,7 @@ The demo needs a Kafka cluster where a topic `Flights` is created. You can use e
 Based on this choice, you will need to modify the [`adapters.xml`](connector/adapters.xml) files accordingly, particularly the `bootstrap server` parameter. The proposed configuration assumes a local Kafka installation that does not require authentication or the use of TLS communication:
 
 ```xml
-<data_provider name="AirpotDemo">
+<data_provider name="AirportDemo">
     <!-- ##### GENERAL PARAMETERS ##### -->
 
     <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
@@ -161,7 +161,7 @@ In order to install a web client for this demo pointing to your local Lightstrea
 
 ## Setting Up on Docker Compose
 
-To simplify the setup, we have also provided two different Docker Compose files to showcase the demo against  [_Apache Kakfa_](https://hub.docker.com/r/apache/kafka) and [_Redpanda Self-Hosted_](https://docs.redpanda.com/current/get-started/quick-start/):
+To simplify the setup, we have also provided two different Docker Compose files to showcase the demo against  [_Apache Kafka_](https://hub.docker.com/r/apache/kafka) and [_Redpanda Self-Hosted_](https://docs.redpanda.com/current/get-started/quick-start/):
 
 - [`docker-compose-kafka.yml`](./docker-compose-kafka.yml)
 - [`docker-compose-redpanda.yml`](./docker-compose-redpanda.yml)

@@ -36,7 +36,7 @@
          The connection name is also used to group all logging messages belonging to the same connection.
 
          Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
-	<data_provider name="AirpotDemo">
+	<data_provider name="AirportDemo">
         <!-- ##### GENERAL PARAMETERS ##### -->
 
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
