@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] (2025-03-03)
+
+**Bug Fixes**
+
+- Fixing spelling issues in documentation, examples, and comments in the configuration files ([#40](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/40)), ([#41](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/41)), ([#42](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/42))
+
 ## [1.2.0] (2025-01-02)
 
 **Improvements**
