@@ -28,7 +28,10 @@ import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.expressions.Expressions;
@@ -101,7 +104,7 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldMakeKeySelectorSupplierWithNoConfig() {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
         KeySelectorSupplier<JsonNode> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(keySelectorSupplier.deseralizer().getClass())
+        assertThat(keySelectorSupplier.deserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
     }
 
@@ -109,7 +112,7 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldMakeValueSelectorSupplierWithNoConfig() {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
         ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
-        assertThat(valueSelectorSupplier.deseralizer().getClass())
+        assertThat(valueSelectorSupplier.deserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
     }
 
@@ -142,7 +145,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
 
         Deserializer<JsonNode> keyDeserializer =
-                new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deseralizer();
+                new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
         // assertThat(JsonNodeDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
@@ -192,6 +195,7 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                        VALUE,                        The expression [VALUE] must evaluate to a non-complex object
                         VALUE.no_attrib,              Field [no_attrib] not found
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
@@ -211,6 +215,36 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () -> valueSelector(expression).extractValue(fromValue(RECORD)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        EXPRESSION     | EXPECTED
+                        VALUE          | {"root":{"name":"joe","signature":"YWJjZA"}}
+                        VALUE.root     | {"name":"joe","signature":"YWJjZA"}
+                        VALUE.root.name| joe
+                        """)
+    public void shouldExtractValueWithNonScalars(String expressionString, String expected)
+            throws ExtractionException, JsonMappingException, JsonProcessingException {
+        ObjectMapper om = new ObjectMapper();
+        JsonNode message =
+                om.readTree(
+                        """
+                {
+                    "root": {
+                        "name": "joe",
+                        "signature": "YWJjZA"
+                        }
+                }
+                """);
+
+        ExtractionExpression expression = Expressions.Expression(expressionString);
+        String text = valueSelector(expression).extractValue(fromValue(message), false).text();
+        assertThat(text).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -245,9 +279,40 @@ public class JsonNodeSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        EXPRESSION   |          EXPECTED
+                        KEY          |          {"root":{"name":"joe","signature":"YWJjZA"}}
+                        KEY.root     |          {"name":"joe","signature":"YWJjZA"}
+                        KEY.root.name|          joe
+                        """)
+    public void shouldExtractKeyWithNonScalars(String expressionString, String expected)
+            throws ExtractionException, JsonMappingException, JsonProcessingException {
+        ObjectMapper om = new ObjectMapper();
+        JsonNode message =
+                om.readTree(
+                        """
+                {
+                    "root": {
+                        "name": "joe",
+                        "signature": "YWJjZA"
+                        }
+                }
+                """);
+
+        ExtractionExpression expression = Expressions.Expression(expressionString);
+        String text = keySelector(expression).extractKey(fromKey(message), false).text();
+        assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
             textBlock =
                     """
                         EXPRESSION,                 EXPECTED_ERROR_MESSAGE
+                        KEY,                        The expression [KEY] must evaluate to a non-complex object
                         KEY.no_attrib,              Field [no_attrib] not found
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
@@ -274,7 +339,6 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        VALUE,               Found the invalid expression [VALUE] with missing attribute while evaluating [name]
                         VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
                         VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
                         VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
@@ -294,7 +358,6 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                         EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                        KEY,               Found the invalid expression [KEY] with missing attribute while evaluating [name]
                         KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
                         KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
                         KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
