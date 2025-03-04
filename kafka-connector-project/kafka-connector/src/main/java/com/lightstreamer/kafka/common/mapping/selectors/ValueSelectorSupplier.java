@@ -21,5 +21,5 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 public interface ValueSelectorSupplier<V> extends SelectorSupplier<ValueSelector<V>> {
 
-    Deserializer<V> deseralizer();
+    Deserializer<V> deserializer();
 }
