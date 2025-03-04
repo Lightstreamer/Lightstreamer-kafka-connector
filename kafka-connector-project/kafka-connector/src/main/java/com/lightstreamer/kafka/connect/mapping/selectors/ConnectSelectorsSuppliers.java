@@ -130,7 +130,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public String asText(String defaultStr) {
+        public String asText() {
             Object value = data.value();
             if (value != null) {
                 if (value instanceof ByteBuffer buffer) {
@@ -141,7 +141,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
                     return value.toString();
                 }
             }
-            return defaultStr;
+            return null;
         }
     }
 
@@ -162,12 +162,13 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
 
         ConnectKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            super(name, expression, Constant.KEY, false);
+            super(name, expression, Constant.KEY);
         }
 
         @Override
-        public Data extractKey(KafkaRecord<Object, ?> record) {
-            return eval(asNode((KafkaSinkRecord) record));
+        public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
         private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
@@ -191,12 +192,13 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
 
         ConnectValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            super(name, expression, Constant.VALUE, false);
+            super(name, expression, Constant.VALUE);
         }
 
         @Override
-        public Data extractValue(KafkaRecord<?, Object> record) {
-            return eval(asNode((KafkaSinkRecord) record));
+        public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
+                throws ValueException {
+            return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
         private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
