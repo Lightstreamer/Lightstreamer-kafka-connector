@@ -110,31 +110,22 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
     protected StructuredBaseSelector(
             String name, ExtractionExpression expression, Constant expectedRoot)
             throws ExtractionException {
-        this(name, expression, expectedRoot, true);
-    }
-
-    protected StructuredBaseSelector(
-            String name,
-            ExtractionExpression expression,
-            Constant expectedRoot,
-            boolean enforceStructured)
-            throws ExtractionException {
         super(name, expression);
-        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot, enforceStructured);
+        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
         this.evaluator = parser.parse(ctx);
     }
 
-    protected final Data eval(Node<T> node) {
+    protected final Data eval(Node<T> node, boolean checkScalar) {
         LinkedNodeEvaluator<T> currentEvaluator = evaluator;
         while (currentEvaluator != null) {
             node = currentEvaluator.current().eval(node);
             currentEvaluator = currentEvaluator.next();
         }
 
-        if (!node.isScalar()) {
+        if (checkScalar && !node.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return Data.from(name(), node.asText(null));
+        return Data.from(name(), node.asText());
     }
 }
