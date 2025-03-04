@@ -825,7 +825,7 @@ Example of configuration with the use of a ticket cache:
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L480) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start Redpanda Serverless Example
 
@@ -1157,6 +1157,31 @@ Example:
 
 ```xml
 <param name="fields.skip.failed.mapping.enable">true</param>
+```
+
+##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+
+_Optional_. By enabling this parameter, it is possible to map non-scalar values to Lightstreamer fields.
+This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values. This can be useful when dealing with nested JSON/Avro objects or other complex data types.
+
+In the following example:
+
+```xml
+<param name="field.structured">#{VALUE.complexAttribute}</param>
+```
+
+the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
+
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="fields.map.non.scalar.values">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
