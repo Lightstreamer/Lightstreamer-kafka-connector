@@ -185,7 +185,7 @@ public class OffsetServiceTest {
     @Test
     void shouldStoreFirstFailure() {
         // Notify two different exceptions
-        ValueException firstFailure = ValueException.indexOfOutBoundex(1);
+        ValueException firstFailure = ValueException.indexOfOutBounds(1);
         offsetService.onAsyncFailure(firstFailure);
         offsetService.onAsyncFailure(ValueException.noKeyFound("key"));
         // Verify that only the first one is stored
