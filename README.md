@@ -1161,8 +1161,9 @@ Example:
 
 ##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
 
-_Optional_. By enabling this parameter, it is possible to map non-scalar values to Lightstreamer fields.
-This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values. This can be useful when dealing with nested JSON/Avro objects or other complex data types.
+_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
+This can be useful when dealing with nested JSON/Avro objects or other complex data types.
 
 In the following example:
 
@@ -1866,8 +1867,8 @@ record.mappings.skip.failed.enable=true
 
 ### `record.mappings.map.non.scalar.values.enable`
 
-By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields so that complex data structures
-from Kafka records can be mapped directly to fields without requiring them to be flattened into scalar value.
+Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
 
 - **Type:** boolean
 - **Default:** false
