@@ -207,6 +207,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         VALUE.children[3].name,       Cannot retrieve field [name] from a null object
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
+                        VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -223,10 +224,12 @@ public class JsonNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION     | EXPECTED
-                        VALUE          | {"root":{"name":"joe","signature":"YWJjZA"}}
-                        VALUE.root     | {"name":"joe","signature":"YWJjZA"}
-                        VALUE.root.name| joe
+                        EXPRESSION             | EXPECTED
+                        VALUE                  | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}}
+                        VALUE.root             | {"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}
+                        VALUE.root.name        | joe
+                        VALUE.root.emptyArray  | []
+                        VALUE.root.emptyObject | {}
                         """)
     public void shouldExtractValueWithNonScalars(String expressionString, String expected)
             throws ExtractionException, JsonMappingException, JsonProcessingException {
@@ -237,7 +240,9 @@ public class JsonNodeSelectorsSuppliersTest {
                 {
                     "root": {
                         "name": "joe",
-                        "signature": "YWJjZA"
+                        "signature": "YWJjZA",
+                        "emptyArray": [],
+                        "emptyObject": {}
                         }
                 }
                 """);
@@ -282,10 +287,12 @@ public class JsonNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION   |          EXPECTED
-                        KEY          |          {"root":{"name":"joe","signature":"YWJjZA"}}
-                        KEY.root     |          {"name":"joe","signature":"YWJjZA"}
-                        KEY.root.name|          joe
+                        EXPRESSION           | EXPECTED
+                        KEY                  | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}}
+                        KEY.root             | {"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}
+                        KEY.root.name        | joe
+                        KEY.root.emptyArray  | []
+                        KEY.root.emptyObject | {}
                         """)
     public void shouldExtractKeyWithNonScalars(String expressionString, String expected)
             throws ExtractionException, JsonMappingException, JsonProcessingException {
@@ -296,7 +303,9 @@ public class JsonNodeSelectorsSuppliersTest {
                 {
                     "root": {
                         "name": "joe",
-                        "signature": "YWJjZA"
+                        "signature": "YWJjZA",
+                        "emptyArray": [],
+                        "emptyObject": {}
                         }
                 }
                 """);
@@ -323,6 +332,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         KEY.children[3].name,       Cannot retrieve field [name] from a null object
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
+                        KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
