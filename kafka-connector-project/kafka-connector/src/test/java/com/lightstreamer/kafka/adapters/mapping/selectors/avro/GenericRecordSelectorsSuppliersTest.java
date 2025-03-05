@@ -165,6 +165,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.children[1].children[0].name     |  gloria
                         VALUE.children[1].children[1].name     |  terence
                         VALUE.children[1].children[1]['name']  |  terence
+                        VALUE.nullArray                        | NULL
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
@@ -184,16 +185,17 @@ public class GenericRecordSelectorsSuppliersTest {
             delimiter = '|', // Required becase of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                      |  EXPECTED
-                        VALUE                           |  {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "network": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                        VALUE.documents                 |  {id={"doc_id": "ID123", "doc_type": "ID"}}
-                        VALUE.documents.id.doc_id       |  ID123
-                        VALUE.documents['id'].doc_id    |  ID123
-                        VALUE.documents['id']['doc_id'] |  ID123
-                        VALUE.preferences               |  {pref1=pref_value1, pref2=pref_value2}
-                        VALUE.preferences['pref1']      |  pref_value1
-                        VALUE.preferences['pref2']      |  pref_value2
-                        VALUE.type                      |  TYPE1
+                        EXPRESSION                      | EXPECTED
+                        VALUE                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                        VALUE.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                        VALUE.documents.id.doc_id       | ID123
+                        VALUE.documents['id'].doc_id    | ID123
+                        VALUE.documents['id']['doc_id'] | ID123
+                        VALUE.preferences               | {pref1=pref_value1, pref2=pref_value2}
+                        VALUE.preferences['pref1']      | pref_value1
+                        VALUE.preferences['pref2']      | pref_value2
+                        VALUE.type                      | TYPE1
+                        VALUE.emptyArray                | []
                         """)
     public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
@@ -225,6 +227,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
                         VALUE.type.attrib,            Field [attrib] not found
+                        VALUE.emptyArray[0],          Field not found at index [0]
+                        VALUE.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -241,23 +245,24 @@ public class GenericRecordSelectorsSuppliersTest {
             delimiter = '|', // Required becase of the expected value for input KEY.signature
             textBlock =
                     """
-                        EXPRESSION                           |  EXPECTED
-                        KEY.name                             |  joe
-                        KEY.preferences['pref1']             |  pref_value1
-                        KEY.preferences['pref2']             |  pref_value2
-                        KEY.documents['id'].doc_id           |  ID123
-                        KEY.documents['id'].doc_type         |  ID
-                        KEY.type                             |  TYPE1
-                        KEY.signature                        |  [97, 98, 99, 100]
-                        KEY.children[0].name                 |  alex
-                        KEY.children[0]['name']              |  alex
-                        KEY.children[0].signature            |  NULL
-                        KEY.children[1].name                 |  anna
-                        KEY.children[2].name                 |  serena
-                        KEY.children[3]                      |  NULL
-                        KEY.children[1].children[0].name     |  gloria
-                        KEY.children[1].children[1].name     |  terence
-                        KEY.children[1].children[1]['name']  |  terence
+                        EXPRESSION                           | EXPECTED
+                        KEY.name                             | joe
+                        KEY.preferences['pref1']             | pref_value1
+                        KEY.preferences['pref2']             | pref_value2
+                        KEY.documents['id'].doc_id           | ID123
+                        KEY.documents['id'].doc_type         | ID
+                        KEY.type                             | TYPE1
+                        KEY.signature                        | [97, 98, 99, 100]
+                        KEY.children[0].name                 | alex
+                        KEY.children[0]['name']              | alex
+                        KEY.children[0].signature            | NULL
+                        KEY.children[1].name                 | anna
+                        KEY.children[2].name                 | serena
+                        KEY.children[3]                      | NULL
+                        KEY.children[1].children[0].name     | gloria
+                        KEY.children[1].children[1].name     | terence
+                        KEY.children[1].children[1]['name']  | terence
+                        KEY.nullArray                        | NULL
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -276,16 +281,17 @@ public class GenericRecordSelectorsSuppliersTest {
             delimiter = '|', // Required becase of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                    |  EXPECTED
-                        KEY                           |  {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "network": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                        KEY.documents                 |  {id={"doc_id": "ID123", "doc_type": "ID"}}
-                        KEY.documents.id.doc_id       |  ID123
-                        KEY.documents['id'].doc_id    |  ID123
-                        KEY.documents['id']['doc_id'] |  ID123
-                        KEY.preferences               |  {pref1=pref_value1, pref2=pref_value2}
-                        KEY.preferences['pref1']      |  pref_value1
-                        KEY.preferences['pref2']      |  pref_value2
-                        KEY.type                      |  TYPE1
+                        EXPRESSION                    | EXPECTED
+                        KEY                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                        KEY.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                        KEY.documents.id.doc_id       | ID123
+                        KEY.documents['id'].doc_id    | ID123
+                        KEY.documents['id']['doc_id'] | ID123
+                        KEY.preferences               | {pref1=pref_value1, pref2=pref_value2}
+                        KEY.preferences['pref1']      | pref_value1
+                        KEY.preferences['pref2']      | pref_value2
+                        KEY.type                      | TYPE1
+                        KEY.emptyArray                | []
                         """)
     public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
@@ -315,6 +321,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
                         KEY.type.attrib,            Field [attrib] not found
+                        KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
