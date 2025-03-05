@@ -1867,7 +1867,7 @@ record.mappings.skip.failed.enable=true
 
 ### `record.mappings.map.non.scalar.values.enable`
 
-Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
 This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
 
 - **Type:** boolean
