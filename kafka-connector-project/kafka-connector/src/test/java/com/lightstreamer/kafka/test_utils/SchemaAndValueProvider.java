@@ -29,18 +29,20 @@ public class SchemaAndValueProvider {
     private SchemaAndValueProvider() {}
 
     public static Struct STRUCT = new SchemaAndValueProvider().newNode();
+    public static Struct SIMPLE_STRUCT = new SchemaAndValueProvider().newSimpleNode();
 
-    private Struct newNode() {
-        Schema grandSonsSchema = SchemaBuilder.struct().field("name", Schema.STRING_SCHEMA).build();
+    private final Schema grandSonsSchema =
+            SchemaBuilder.struct().field("name", Schema.STRING_SCHEMA).build();
 
-        Schema childrenSchema =
-                SchemaBuilder.struct()
-                        .field("name", Schema.STRING_SCHEMA)
-                        .field("signature", Schema.OPTIONAL_STRING_SCHEMA)
-                        .field("children", SchemaBuilder.array(grandSonsSchema).optional().build())
-                        .optional() // This allows to put null entries.
-                        .build();
+    private final Schema childrenSchema =
+            SchemaBuilder.struct()
+                    .field("name", Schema.STRING_SCHEMA)
+                    .field("signature", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("children", SchemaBuilder.array(grandSonsSchema).optional().build())
+                    .optional() // This allows to put null entries.
+                    .build();
 
+    private Struct newSimpleNode() {
         // Schema preferencesSchema =
         //         SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build();
         // Schema documentsSchema =
@@ -60,8 +62,21 @@ public class SchemaAndValueProvider {
                         // .field("preferences", preferencesSchema)
                         // .field("documents", documentsSchema)
                         .field("children", SchemaBuilder.array(childrenSchema).optional().build())
+                        .field(
+                                "nullArray",
+                                SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
                         .build();
+        Struct rootNode =
+                new Struct(rootSchema)
+                        .put("name", "joe")
+                        .put("signature", new byte[] {97, 98, 99, 100})
+                        .put("children", new ArrayList<>())
+                        .put("nullArray", null);
+        rootNode.validate();
+        return rootNode;
+    }
 
+    private List<Object> newChildren() {
         List<Object> joeChildren =
                 new ArrayList<>(
                         List.of(
@@ -77,13 +92,13 @@ public class SchemaAndValueProvider {
                                                                 .put("name", "terence"))),
                                 new Struct(childrenSchema).put("name", "serena")));
         joeChildren.add(null);
-        Struct value =
-                new Struct(rootSchema)
-                        .put("name", "joe")
-                        .put("signature", new byte[] {97, 98, 99, 100})
-                        .put("children", joeChildren);
+        return joeChildren;
+    }
 
-        value.validate();
-        return value;
+    private Struct newNode() {
+        Struct rootNode = newSimpleNode();
+        rootNode.put("children", newChildren());
+        rootNode.validate();
+        return rootNode;
     }
 }
