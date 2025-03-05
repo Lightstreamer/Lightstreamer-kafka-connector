@@ -407,7 +407,7 @@
         <param name="fields.skip.failed.mapping.enable">true</param>
         -->
 
-        <!-- Optional. By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields.
+        <!-- Optional. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
              For example, in the following mapping:
              
              <param name="field.structured">#{VALUE.complexAttribute}</param>
