@@ -55,7 +55,7 @@
             }
         },
         {
-            "name": "network",
+            "name": "emptyArray",
             "type": {
                 "type": "array",
                 "items": {
@@ -64,6 +64,16 @@
                 }
             }
         },
+        {
+            "name": "nullArray",
+            "type": {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": "string"
+                }
+            }
+        },        
         {
             "name": "preferences",
             "type": {

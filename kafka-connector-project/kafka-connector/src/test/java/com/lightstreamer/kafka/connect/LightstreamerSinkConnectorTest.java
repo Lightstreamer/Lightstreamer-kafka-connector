@@ -27,6 +27,7 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE;
@@ -105,6 +106,7 @@ public class LightstreamerSinkConnectorTest {
                         ITEM_TEMPLATES,
                         RECORD_MAPPINGS,
                         RECORD_MAPPINGS_SKIP_FAILED_ENABLE,
+                        RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE,
                         RECORD_EXTRACTION_ERROR_STRATEGY);
     }
 }

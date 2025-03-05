@@ -12,3 +12,5 @@ tmp
 .vscode
 .classpath
 .project
+
+bin

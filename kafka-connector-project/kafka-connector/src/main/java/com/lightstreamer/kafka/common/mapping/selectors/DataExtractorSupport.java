@@ -37,9 +37,11 @@ class DataExtractorSupport {
             KeyValueSelectorSuppliers<K, V> suppliers,
             String schema,
             Map<String, ExtractionExpression> expressions,
-            boolean skipOnFailure)
+            boolean skipOnFailure,
+            boolean mapNonScalars)
             throws ExtractionException {
-        return new DataExtractorImpl<>(suppliers, schema, expressions, skipOnFailure);
+        return new DataExtractorImpl<>(
+                suppliers, schema, expressions, skipOnFailure, mapNonScalars);
     }
 
     private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
@@ -48,22 +50,25 @@ class DataExtractorSupport {
         private final WrapperSelectors<K, V> wrapperSelectors;
         private final boolean skipOnFailure;
         private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
+        private final boolean mapNonScalars;
 
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
                 String schemaName,
                 Map<String, ExtractionExpression> expressions,
-                boolean skipOnFailure)
+                boolean skipOnFailure,
+                boolean mapNonScalars)
                 throws ExtractionException {
 
             this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
             this.schema = mkSchema(schemaName);
             this.skipOnFailure = skipOnFailure;
+            this.mapNonScalars = mapNonScalars;
             for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
-                this.extractors.add(record -> keySelector.extractKey(record));
+                this.extractors.add(record -> keySelector.extractKey(record, !mapNonScalars));
             }
             for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
-                this.extractors.add(record -> valueSelector.extractValue(record));
+                this.extractors.add(record -> valueSelector.extractValue(record, !mapNonScalars));
             }
             for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
                 this.extractors.add(record -> constantSelector.extract(record));
@@ -78,6 +83,11 @@ class DataExtractorSupport {
         @Override
         public boolean skipOnFailure() {
             return skipOnFailure;
+        }
+
+        @Override
+        public boolean mapNonScalars() {
+            return mapNonScalars;
         }
 
         @Override
@@ -98,7 +108,7 @@ class DataExtractorSupport {
 
         @Override
         public int hashCode() {
-            return Objects.hash(wrapperSelectors, schema, skipOnFailure);
+            return Objects.hash(wrapperSelectors, schema, skipOnFailure, mapNonScalars);
         }
 
         @Override
@@ -108,7 +118,8 @@ class DataExtractorSupport {
             return obj instanceof DataExtractorImpl<?, ?> other
                     && Objects.equals(wrapperSelectors, other.wrapperSelectors)
                     && Objects.equals(schema, other.schema)
-                    && Objects.equals(skipOnFailure, other.skipOnFailure);
+                    && Objects.equals(skipOnFailure, other.skipOnFailure)
+                    && Objects.equals(skipOnFailure, other.mapNonScalars);
         }
 
         private Schema mkSchema(String schemaName) {

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2-beta] (UNRELEASED)
+
+**Improvements**
+
+- Added support for [mapping non-scalar values](README.md#map-non-scalar-values-fieldsmapnonscalarvalues) to Lightstreamer fields (also available for the [Sink connector](README.md#recordmappingsmapnonscalarvaluesenable)). ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
+
+**Bug Fixes**
+
+- Corrected various typos in the code base. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
+- Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
+
 ## [1.2.1] (2025-03-03)
 
 **Bug Fixes**

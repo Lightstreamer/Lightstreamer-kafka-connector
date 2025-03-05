@@ -88,7 +88,7 @@ public final class StreamingDataAdapter implements RecordSender {
     private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
             new ConcurrentHashMap<>();
 
-    // The ItemEventListerner instance injected by the Remote Provider Server.
+    // The ItemEventListener instance injected by the Remote Provider Server.
     private volatile ItemEventListener listener;
 
     // The lock used to synchronize the replacement of the DownstreamUpdater instance.
@@ -106,7 +106,7 @@ public final class StreamingDataAdapter implements RecordSender {
     // The offsets map.
     private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
-    // The initializaton parameters received from Proxy Adapter.
+    // The initialization parameters received from Proxy Adapter.
     private Map<String, String> initParameters = Collections.emptyMap();
 
     StreamingDataAdapter(
@@ -208,7 +208,7 @@ public final class StreamingDataAdapter implements RecordSender {
     }
 
     // Only for testing purposes
-    ErrantRecordReporter getErrantRercordReporter() {
+    ErrantRecordReporter getErrantRecordReporter() {
         return reporter;
     }
 

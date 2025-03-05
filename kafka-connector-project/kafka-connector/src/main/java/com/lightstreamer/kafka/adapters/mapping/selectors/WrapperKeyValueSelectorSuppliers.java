@@ -65,7 +65,7 @@ public class WrapperKeyValueSelectorSuppliers<K, V> implements KeyValueSelectorS
         this.valueSelectorSupplier = valueSelectorSupplier;
         this.deserializers =
                 new WrapperDeserializers<>(
-                        keySelectorSupplier.deseralizer(), valueSelectorSupplier.deseralizer());
+                        keySelectorSupplier.deserializer(), valueSelectorSupplier.deserializer());
     }
 
     @Override

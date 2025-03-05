@@ -46,7 +46,7 @@ class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
     }
 
     @Override
-    public Deserializer<T> deseralizer() {
+    public Deserializer<T> deserializer() {
         return deseralizer;
     }
 }
@@ -66,7 +66,7 @@ class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
     }
 
     @Override
-    public Deserializer<T> deseralizer() {
+    public Deserializer<T> deserializer() {
         return deseralizer;
     }
 }

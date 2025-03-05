@@ -21,5 +21,5 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 public interface KeySelectorSupplier<K> extends SelectorSupplier<KeySelector<K>> {
 
-    Deserializer<K> deseralizer();
+    Deserializer<K> deserializer();
 }

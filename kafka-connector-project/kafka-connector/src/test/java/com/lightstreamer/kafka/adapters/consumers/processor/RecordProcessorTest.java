@@ -60,10 +60,10 @@ public class RecordProcessorTest {
                 builder()
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor(String(), "item1", Collections.emptyMap(), false))
+                                extractor(String(), "item1", Collections.emptyMap(), false, false))
                         .withTemplateExtractor(
                                 TEST_TOPIC,
-                                extractor(String(), "item2", Collections.emptyMap(), false))
+                                extractor(String(), "item2", Collections.emptyMap(), false, false))
                         .build();
         // Counts the listener invocations to deliver the real-time updates
         this.counter = new AtomicInteger();

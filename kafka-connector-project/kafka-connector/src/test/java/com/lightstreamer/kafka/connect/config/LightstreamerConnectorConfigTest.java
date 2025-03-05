@@ -309,6 +309,18 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetRecordMappingMapNonScalarValues() {
+        Map<String, String> props = basicConfig();
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRecordMappingMapNonScalarValuesEnabled()).isFalse();
+
+        props.put(
+                LightstreamerConnectorConfig.RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isRecordMappingMapNonScalarValuesEnabled()).isTrue();
+    }
+
+    @Test
     public void shouldNotValidateInvalidRecordMappingSkipFailed() {
         Map<String, String> props = basicConfig();
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "INVALID");
@@ -413,8 +425,8 @@ public class LightstreamerConnectorConfigTest {
         assertThat(from).isNull();
     }
 
-    @Test
     @Disabled
+    @Test
     public void shouldProduceFormattedConfiguration() throws IOException {
         ConfigDef config = LightstreamerConnectorConfig.makeConfig();
         Files.write(config.toHtml().getBytes(), new File("config.html"));

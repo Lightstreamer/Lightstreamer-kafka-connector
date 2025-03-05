@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromKey;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromValue;
+import static com.lightstreamer.kafka.test_utils.SchemaAndValueProvider.SIMPLE_STRUCT;
 import static com.lightstreamer.kafka.test_utils.SchemaAndValueProvider.STRUCT;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -105,7 +106,7 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input VALUE.signature
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
                         EXPRESSION                             |  EXPECTED
@@ -137,6 +138,28 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            textBlock =
+                    """
+                        EXPRESSION     |  EXPECTED
+                        VALUE          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                        VALUE.children | []
+                        VALUE.name     | joe
+                        """)
+    public void shouldExtractValueWithNonScalars(String expression, String expected)
+            throws ExtractionException {
+        String text =
+                valueSelector(expression)
+                        .extractValue(
+                                sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
+                                false)
+                        .text();
+        assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
             textBlock =
                     """
                         EXPRESSION,                   EXPECTED_ERROR_MESSAGE
@@ -152,6 +175,7 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.children[3].name,       Cannot retrieve field [name] from a null object
                         VALUE.children[4],            Field not found at index [4]
                         VALUE.children[4].name,       Field not found at index [4]
+                        VALUE.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -178,7 +202,7 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input KEY.signature
+            delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
                         EXPRESSION                           | EXPECTED
@@ -199,13 +223,33 @@ public class ConnectSelectorsSuppliersTest {
                 assertThat(
                         keySelector(expression)
                                 .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT))
-                                // .extract(sinkFromKey("topic", null, STRUCT))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
             subject.isEqualTo(expected);
         }
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            textBlock =
+                    """
+                        EXPRESSION   |  EXPECTED
+                        KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                        KEY.children |  []
+                        KEY.name     |  joe
+                        """)
+    public void shouldExtractKeyWithNonScalars(String expression, String expected)
+            throws ExtractionException {
+        String text =
+                keySelector(expression)
+                        .extractKey(
+                                sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false)
+                        .text();
+        assertThat(text).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -226,6 +270,7 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.children[3].name,       Cannot retrieve field [name] from a null object
                         KEY.children[4],            Field not found at index [4]
                         KEY.children[4].name,       Field not found at index [4]
+                        KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =

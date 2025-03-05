@@ -67,14 +67,14 @@ public class ListValidator implements Validator {
                             name));
         }
 
-        String stringElemnt = (String) element;
-        if (stringElemnt.isBlank()) {
+        String stringElement = (String) element;
+        if (stringElement.isBlank()) {
             throw new ConfigException(
                     String.format(
                             "Invalid value for configuration \"%s\": Must be a list of non-empty strings",
                             name));
         }
-        return validateStringElement(name, stringElemnt);
+        return validateStringElement(name, stringElement);
     }
 
     protected String validateStringElement(String name, String element) throws ConfigException {

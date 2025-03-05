@@ -159,9 +159,9 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public String asText(String defaultStr) {
+        public String asText() {
             if (isNull()) {
-                return defaultStr;
+                return null;
             }
             if (isContainer()) {
                 return container().toString();
@@ -199,7 +199,7 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public Deserializer<GenericRecord> deseralizer() {
+        public Deserializer<GenericRecord> deserializer() {
             return deserializer;
         }
     }
@@ -213,19 +213,20 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public Data extractKey(KafkaRecord<GenericRecord, ?> record) throws ValueException {
+        public Data extractKey(KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
+                throws ValueException {
             AvroNode node = AvroNode.fromContainer(record.key());
-            return super.eval(node);
+            return super.eval(node, checkScalar);
         }
     }
 
     private static class GenericRecordValueSelectorSupplier
             implements ValueSelectorSupplier<GenericRecord> {
 
-        private final Deserializer<GenericRecord> deseralizer;
+        private final Deserializer<GenericRecord> deserializer;
 
         GenericRecordValueSelectorSupplier(ConnectorConfig config) {
-            this.deseralizer = GenericRecordDeserializers.ValueDeserializer(config);
+            this.deserializer = GenericRecordDeserializers.ValueDeserializer(config);
         }
 
         @Override
@@ -235,8 +236,8 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public Deserializer<GenericRecord> deseralizer() {
-            return deseralizer;
+        public Deserializer<GenericRecord> deserializer() {
+            return deserializer;
         }
     }
 
@@ -249,9 +250,10 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public Data extractValue(KafkaRecord<?, GenericRecord> record) throws ValueException {
+        public Data extractValue(KafkaRecord<?, GenericRecord> record, boolean checkScalar)
+                throws ValueException {
             AvroNode node = AvroNode.fromContainer(record.value());
-            return super.eval(node);
+            return super.eval(node, checkScalar);
         }
     }
 

@@ -33,24 +33,30 @@ public interface DataExtractor<K, V> {
         return false;
     }
 
+    default boolean mapNonScalars() {
+        return false;
+    }
+
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             String schemaName,
             Map<String, ExtractionExpression> expressions,
-            boolean skipOnFailure)
+            boolean skipOnFailure,
+            boolean mapNonScalars)
             throws ExtractionException {
-        return DataExtractorSupport.extractor(sSuppliers, schemaName, expressions, skipOnFailure);
+        return DataExtractorSupport.extractor(
+                sSuppliers, schemaName, expressions, skipOnFailure, mapNonScalars);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression expression)
             throws ExtractionException {
-        return extractor(sSuppliers, expression.prefix(), expression.params(), false);
+        return extractor(sSuppliers, expression.prefix(), expression.params(), false, false);
     }
 
     public static <K, V> DataExtractor<K, V> extractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers, String schemaName)
             throws ExtractionException {
-        return extractor(sSuppliers, schemaName, Collections.emptyMap(), false);
+        return extractor(sSuppliers, schemaName, Collections.emptyMap(), false, false);
     }
 }

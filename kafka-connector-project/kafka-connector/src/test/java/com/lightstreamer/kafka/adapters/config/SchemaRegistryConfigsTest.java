@@ -76,9 +76,9 @@ public class SchemaRegistryConfigsTest {
         assertThat(trustStorePassword.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter enableHostNameVerification =
-                configSpec.getParameter(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
+                configSpec.getParameter(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE);
         assertThat(enableHostNameVerification.name())
-                .isEqualTo(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
+                .isEqualTo(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE);
         assertThat(enableHostNameVerification.required()).isFalse();
         assertThat(enableHostNameVerification.multiple()).isFalse();
         assertThat(enableHostNameVerification.mutable()).isTrue();
@@ -103,9 +103,9 @@ public class SchemaRegistryConfigsTest {
         assertThat(sslProviders.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslEngineFactoryClass =
-                configSpec.getParameter(SchemaRegistryConfigs.SSL_EGINE_FACTORY_CLASS);
+                configSpec.getParameter(SchemaRegistryConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.name())
-                .isEqualTo(SchemaRegistryConfigs.SSL_EGINE_FACTORY_CLASS);
+                .isEqualTo(SchemaRegistryConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.required()).isFalse();
         assertThat(sslEngineFactoryClass.multiple()).isFalse();
         assertThat(sslEngineFactoryClass.mutable()).isTrue();

@@ -55,18 +55,21 @@ public class FieldConfigs {
         return new HashMap<>(expressions);
     }
 
-    public ExtractionExpression getExression(String fieldName) {
+    public ExtractionExpression getExpression(String fieldName) {
         return expressions.get(fieldName);
     }
 
     public <K, V> DataExtractor<K, V> extractor(
-            KeyValueSelectorSuppliers<K, V> selectorSuppliers, boolean skipOnFailure)
+            KeyValueSelectorSuppliers<K, V> selectorSuppliers,
+            boolean skipOnFailure,
+            boolean mapNonScalars)
             throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure);
+        return DataExtractor.extractor(
+                selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure, mapNonScalars);
     }
 
     public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
             throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, false);
+        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, false, false);
     }
 }

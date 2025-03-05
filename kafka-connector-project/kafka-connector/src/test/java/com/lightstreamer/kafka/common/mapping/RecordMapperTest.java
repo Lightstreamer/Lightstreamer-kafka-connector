@@ -123,6 +123,7 @@ public class RecordMapperTest {
                                         String(),
                                         "fields",
                                         Map.of("aKey", Wrapped("#{PARTITION}")),
+                                        false,
                                         false))
                         .build();
 
@@ -157,6 +158,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{KEY}"),
                                                 "valueField",
                                                 Wrapped("#{VALUE}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
@@ -220,6 +222,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{KEY}"),
                                                 "valueField",
                                                 Wrapped("#{VALUE}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
@@ -303,6 +306,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
@@ -365,7 +369,8 @@ public class RecordMapperTest {
                                                 // This leads a ValueException, which will be
                                                 // omitted
                                                 Wrapped("#{VALUE.not_valid_attrib}")),
-                                        skipOnFailure))
+                                        skipOnFailure,
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -379,7 +384,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shoulNotMapDueToFieldMappingFailure() throws ExtractionException {
+    public void shoudNotMapDueToFieldMappingFailure() throws ExtractionException {
         boolean skipOnFailure = false;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
@@ -397,7 +402,8 @@ public class RecordMapperTest {
                                                 // This leads a ValueException, which leads to make
                                                 // mapping fail
                                                 Wrapped("#{VALUE.not_valid_attrib}")),
-                                        skipOnFailure))
+                                        skipOnFailure,
+                                        false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -410,7 +416,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shoulNotMapDueToTemplateFailure() throws ExtractionException {
+    public void shouldNotMapDueToTemplateFailure() throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
                         .withTemplateExtractor(
@@ -428,6 +434,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
@@ -473,6 +480,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
@@ -548,6 +556,7 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
+                                        false,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();

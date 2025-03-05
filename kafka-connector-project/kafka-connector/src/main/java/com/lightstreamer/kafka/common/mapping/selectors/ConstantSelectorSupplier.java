@@ -52,12 +52,14 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
         }
 
         @Override
-        public Data extractKey(KafkaRecord<Object, ?> record) throws ValueException {
+        public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
+                throws ValueException {
             return new SimpleData(name(), Objects.toString(record.key(), null));
         }
 
         @Override
-        public Data extractValue(KafkaRecord<?, Object> record) throws ValueException {
+        public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
+                throws ValueException {
             return new SimpleData(name(), Objects.toString(record.value(), null));
         }
     }

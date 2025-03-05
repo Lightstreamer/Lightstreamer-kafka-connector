@@ -37,12 +37,12 @@ public class TlsConfigs {
     public static String TRUSTSTORE_PATH = "truststore.path";
     public static String TRUSTSTORE_PASSWORD = "truststore.password";
 
-    public static String KESYTORE_ENABLE = "keystore.enable";
+    public static String KEYSTORE_ENABLE = "keystore.enable";
 
     public static String HOSTNAME_VERIFICATION_ENABLE = "hostname.verification.enable";
     public static String SSL_CIPHER_SUITES = "cipher.suites";
     public static String SSL_PROVIDER = "provider";
-    public static String SSL_EGINE_FACTORY_CLASS = "engine.factory.class";
+    public static String SSL_ENGINE_FACTORY_CLASS = "engine.factory.class";
     public static String SSL_KEYMANAGER_ALGORITHM = "keymanager.algorithm";
     public static String SSL_SECURE_RANDOM_IMPLEMENTATION = "secure.random.implementation";
     public static String SSL_TRUSTMANAGER_ALGORITHM = "trustmanager.algorithm";
@@ -81,13 +81,13 @@ public class TlsConfigs {
                                 defaultValue("false"))
                         .add(SSL_CIPHER_SUITES, false, false, ConfType.TEXT_LIST)
                         .add(SSL_PROVIDER, false, false, TEXT)
-                        .add(SSL_EGINE_FACTORY_CLASS, false, false, TEXT)
+                        .add(SSL_ENGINE_FACTORY_CLASS, false, false, TEXT)
                         .add(SSL_KEYMANAGER_ALGORITHM, false, false, TEXT)
                         .add(SSL_SECURE_RANDOM_IMPLEMENTATION, false, false, TEXT)
                         .add(SSL_TRUSTMANAGER_ALGORITHM, false, false, TEXT)
                         .add(SECURITY_PROVIDERS, false, false, TEXT)
-                        .add(KESYTORE_ENABLE, false, false, ConfType.BOOL, defaultValue("false"))
-                        .withEnabledChildConfigs(KeystoreConfigs.spec(), KESYTORE_ENABLE);
+                        .add(KEYSTORE_ENABLE, false, false, ConfType.BOOL, defaultValue("false"))
+                        .withEnabledChildConfigs(KeystoreConfigs.spec(), KEYSTORE_ENABLE);
     }
 
     public static ConfigsSpec spec() {

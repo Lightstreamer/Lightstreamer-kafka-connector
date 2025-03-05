@@ -35,6 +35,7 @@ dependencies {
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
 	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
+	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
 }
 
 ext {
@@ -83,7 +84,7 @@ distributions {
 				exclude "ls-log-adapter*"
 				exclude "jsr305*"
 				exclude "javax.ws.rs-api-*"
-				exclude "connect-api-*"
+				exclude "connect-*"
 			}
 		}
 	}

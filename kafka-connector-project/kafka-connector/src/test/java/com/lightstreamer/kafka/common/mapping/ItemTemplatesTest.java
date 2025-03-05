@@ -117,6 +117,7 @@ public class ItemTemplatesTest {
                                 Object(),
                                 "stock",
                                 Map.of("index", Expression("KEY.attrib")),
+                                false,
                                 false));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
@@ -129,6 +130,7 @@ public class ItemTemplatesTest {
                                 Object(),
                                 "stock",
                                 Map.of("index", Expression("KEY.attrib")),
+                                false,
                                 false));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));

@@ -297,7 +297,7 @@ public class Fakes {
     }
 
     /**
-     * Implements a fake {@code ItemEventListener} to track all the notifyed events, which can be
+     * Implements a fake {@code ItemEventListener} to track all the notified events, which can be
      * later investigated in the unit tests.
      */
     public static class FakeItemEventListener implements ItemEventListener {

@@ -322,7 +322,7 @@ where you have to replace `username` and `password` with the credentials generat
    Then, launch it with:
 
    ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
    ```
 
    As you can see, you have to specify a few parameters:
@@ -825,7 +825,7 @@ Example of configuration with the use of a ticket cache:
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L483) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start Redpanda Serverless Example
 
@@ -1157,6 +1157,32 @@ Example:
 
 ```xml
 <param name="fields.skip.failed.mapping.enable">true</param>
+```
+
+##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+
+_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
+This can be useful when dealing with nested JSON/Avro objects or other complex data types.
+
+In the following example:
+
+```xml
+<param name="field.structured">#{VALUE.complexAttribute}</param>
+```
+
+the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
+
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="fields.map.non.scalar.values">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1837,6 +1863,21 @@ Example:
 
 ```
 record.mappings.skip.failed.enable=true
+```
+
+### `record.mappings.map.non.scalar.values.enable`
+
+Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+record.mappings.map.non.scalar.values.enable=true
 ```
 
 ### `item.templates`

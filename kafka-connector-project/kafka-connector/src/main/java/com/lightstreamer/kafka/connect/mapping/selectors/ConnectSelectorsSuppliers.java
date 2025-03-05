@@ -35,6 +35,8 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.json.JsonConverterConfig;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -44,6 +46,18 @@ import java.util.Map;
 public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Object, Object> {
 
     private static class SchemaAndValueNode implements Node<SchemaAndValueNode> {
+
+        private static final JsonConverter jsonConverter;
+
+        static {
+            jsonConverter = new JsonConverter();
+            jsonConverter.configure(
+                    Map.of(
+                            JsonConverterConfig.TYPE_CONFIG,
+                            "key",
+                            JsonConverterConfig.SCHEMAS_ENABLE_CONFIG,
+                            "false"));
+        }
 
         private final SchemaAndValue data;
 
@@ -130,10 +144,14 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public String asText(String defaultStr) {
+        public String asText() {
             Object value = data.value();
             if (value != null) {
-                if (value instanceof ByteBuffer buffer) {
+                if (value instanceof Struct struct) {
+                    byte[] fromConnectData =
+                            jsonConverter.fromConnectData(null, struct.schema(), struct);
+                    return new String(fromConnectData);
+                } else if (value instanceof ByteBuffer buffer) {
                     return Arrays.toString(buffer.array());
                 } else if (value instanceof byte[] bt) {
                     return Arrays.toString(bt);
@@ -141,7 +159,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
                     return value.toString();
                 }
             }
-            return defaultStr;
+            return null;
         }
     }
 
@@ -162,12 +180,13 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
 
         ConnectKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            super(name, expression, Constant.KEY, false);
+            super(name, expression, Constant.KEY);
         }
 
         @Override
-        public Data extractKey(KafkaRecord<Object, ?> record) {
-            return eval(asNode((KafkaSinkRecord) record));
+        public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
         private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
@@ -191,12 +210,13 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
 
         ConnectValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            super(name, expression, Constant.VALUE, false);
+            super(name, expression, Constant.VALUE);
         }
 
         @Override
-        public Data extractValue(KafkaRecord<?, Object> record) {
-            return eval(asNode((KafkaSinkRecord) record));
+        public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
+                throws ValueException {
+            return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
         private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {

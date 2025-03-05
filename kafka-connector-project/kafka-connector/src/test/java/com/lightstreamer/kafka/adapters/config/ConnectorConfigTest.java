@@ -39,12 +39,12 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_R
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCYRPTION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_FIELD;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHSTREAMER_CLIENT_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
@@ -59,7 +59,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.TOPIC_MAPP
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION;
-import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE;
+import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_PASSWORD;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_PATH;
@@ -241,6 +241,17 @@ public class ConnectorConfigTest {
         assertThat(fieldsSkipFailedMappingEnable.defaultValue()).isEqualTo("false");
         assertThat(fieldsSkipFailedMappingEnable.type()).isEqualTo(ConfType.BOOL);
 
+        ConfParameter fieldsMapNonScalarValuesEnable =
+                configSpec.getParameter(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+        assertThat(fieldsMapNonScalarValuesEnable.name())
+                .isEqualTo(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+        assertThat(fieldsMapNonScalarValuesEnable.required()).isFalse();
+        assertThat(fieldsMapNonScalarValuesEnable.multiple()).isFalse();
+        assertThat(fieldsMapNonScalarValuesEnable.suffix()).isNull();
+        assertThat(fieldsMapNonScalarValuesEnable.mutable()).isTrue();
+        assertThat(fieldsMapNonScalarValuesEnable.defaultValue()).isEqualTo("false");
+        assertThat(fieldsMapNonScalarValuesEnable.type()).isEqualTo(ConfType.BOOL);
+
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
@@ -348,8 +359,8 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter encryptionEnabed = configSpec.getParameter(ENCYRPTION_ENABLE);
-        assertThat(encryptionEnabed.name()).isEqualTo(ENCYRPTION_ENABLE);
+        ConfParameter encryptionEnabed = configSpec.getParameter(ENCRYPTION_ENABLE);
+        assertThat(encryptionEnabed.name()).isEqualTo(ENCRYPTION_ENABLE);
         assertThat(encryptionEnabed.required()).isFalse();
         assertThat(encryptionEnabed.multiple()).isFalse();
         assertThat(encryptionEnabed.mutable()).isTrue();
@@ -520,7 +531,7 @@ public class ConnectorConfigTest {
 
     private Map<String, String> encryptionParameters() {
         Map<String, String> encryptionParams = new HashMap<>();
-        encryptionParams.put(ENCYRPTION_ENABLE, "true");
+        encryptionParams.put(ENCRYPTION_ENABLE, "true");
         return encryptionParams;
     }
 
@@ -707,7 +718,7 @@ public class ConnectorConfigTest {
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                         hostList,
                         ConsumerConfig.CLIENT_ID_CONFIG,
-                        LIGHSTREAMER_CLIENT_ID);
+                        LIGHTSTREAMER_CLIENT_ID);
     }
 
     static Stream<String> partialConfluentCloudHostList() {
@@ -964,6 +975,17 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetFieldsMapNonScalarValues() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.isFieldsMapNonScalarValuesEnabled()).isFalse();
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isFieldsMapNonScalarValuesEnabled()).isTrue();
+    }
+
+    @Test
     public void shouldFailDueToFieldsSkipFailedMapping() {
         Map<String, String> configs = new HashMap<>();
         configs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
@@ -974,6 +996,19 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [fields.skip.failed.mapping.enable]");
+    }
+
+    @Test
+    public void shouldFailDueToFieldsMapNonScalarValues() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "t");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [fields.map.non.scalar.values.enable]");
     }
 
     @Test
@@ -995,7 +1030,7 @@ public class ConnectorConfigTest {
         ConnectorConfig cgg = ConnectorConfigProvider.minimal();
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
         assertThat(fieldConfigs.expressions()).hasSize(1);
-        assertThat(fieldConfigs.getExression("fieldName1").toString()).isEqualTo("VALUE");
+        assertThat(fieldConfigs.getExpression("fieldName1").toString()).isEqualTo("VALUE");
     }
 
     @Test
@@ -1224,7 +1259,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyEncryptionParametersWhenRequired() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ENCYRPTION_ENABLE, "true");
+        updatedConfig.put(ENCRYPTION_ENABLE, "true");
 
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "");
         ConfigException ce =
@@ -1949,7 +1984,7 @@ public class ConnectorConfigTest {
         updatedConfig.put(
                 SSL_CIPHER_SUITES,
                 "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA");
-        updatedConfig.put(HOSTNAME_VERIFICATION_ENANLE, "true");
+        updatedConfig.put(HOSTNAME_VERIFICATION_ENABLE, "true");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 

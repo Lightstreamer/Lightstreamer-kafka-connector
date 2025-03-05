@@ -46,7 +46,7 @@ public interface Parsers {
 
         boolean isScalar();
 
-        String asText(String defaultStr);
+        String asText();
     }
 
     public interface NodeEvaluator<T extends Node<T>> {
@@ -143,24 +143,14 @@ public interface Parsers {
         private final ExtractionExpression expression;
         private final Constant expectedRoot;
         private final String[] tokens;
-        private final boolean checkStructured;
 
         private int tokenIndex = 0;
 
         ParsingContext(String name, ExtractionExpression expression, Constant expectedRoot) {
-            this(name, expression, expectedRoot, true);
-        }
-
-        ParsingContext(
-                String name,
-                ExtractionExpression expression,
-                Constant expectedRoot,
-                boolean checkStructured) {
             this.name = name;
             this.expression = expression;
             this.expectedRoot = expectedRoot;
             this.tokens = expression.tokens();
-            this.checkStructured = checkStructured;
         }
 
         String name() {
@@ -173,10 +163,6 @@ public interface Parsers {
 
         Constant expectedRoot() {
             return expectedRoot;
-        }
-
-        boolean checkStructured() {
-            return checkStructured;
         }
 
         void matchRoot() throws ExtractionException {
@@ -279,9 +265,7 @@ public interface Parsers {
                     current = linkedNode;
                 }
             }
-            if (ctx.checkStructured() && !head.hasNext()) {
-                throw ExtractionException.missingAttribute(ctx.name, ctx.expression());
-            }
+
             return head;
         }
     }

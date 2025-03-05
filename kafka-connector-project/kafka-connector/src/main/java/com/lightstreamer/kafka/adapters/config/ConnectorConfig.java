@@ -79,7 +79,7 @@ import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
 
-    static final String LIGHSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
+    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
     public static final String ENABLE = "enable";
 
@@ -99,6 +99,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELD_MAPPING = "field";
     public static final String FIELDS_SKIP_FAILED_MAPPING_ENABLE =
             "fields.skip.failed.mapping.enable";
+
+    public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
+            "fields.map.non.scalar.values.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -124,7 +127,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String ITEM_INFO_FIELD = "info.field";
 
-    public static final String ENCYRPTION_ENABLE = "encryption.enable";
+    public static final String ENCRYPTION_ENABLE = "encryption.enable";
 
     public static final String AUTHENTICATION_ENABLE = "authentication.enable";
 
@@ -202,6 +205,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 BOOL,
                                 defaultValue("false"))
                         .add(
+                                FIELDS_MAP_NON_SCALAR_VALUES_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 false,
                                 false,
@@ -247,7 +256,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ORDER_STRATEGY,
                                 defaultValue("ORDER_BY_PARTITION"))
-                        .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
+                        .add(ENCRYPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_FROM,
@@ -272,7 +281,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                                     .map(p -> p.key())
                                                     .allMatch(
                                                             s -> s.endsWith(".confluent.cloud"))) {
-                                                return LIGHSTREAMER_CLIENT_ID;
+                                                return LIGHTSTREAMER_CLIENT_ID;
                                             }
                                             return "";
                                         }))
@@ -320,7 +329,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("60000"))
-                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCYRPTION_ENABLE)
+                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCRYPTION_ENABLE)
                         .withEnabledChildConfigs(
                                 BrokerAuthenticationConfigs.spec(), AUTHENTICATION_ENABLE)
                         .withEnabledChildConfigs(
@@ -530,7 +539,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEncryptionEnabled() {
-        return getBoolean(ENCYRPTION_ENABLE);
+        return getBoolean(ENCRYPTION_ENABLE);
     }
 
     public boolean isKeystoreEnabled() {
@@ -541,7 +550,7 @@ public final class ConnectorConfig extends AbstractConfig {
     private void checkEncryptionEnabled() {
         if (!isEncryptionEnabled()) {
             throw new ConfigException(
-                    "Encryption is not enabled. Check parameter [%s]".formatted(ENCYRPTION_ENABLE));
+                    "Encryption is not enabled. Check parameter [%s]".formatted(ENCRYPTION_ENABLE));
         }
     }
 
@@ -775,7 +784,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryHostNameVerificationEnabled() {
         checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
+        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE);
     }
 
     public String schemaRegistryKeyPassword() {
@@ -849,6 +858,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isFieldsSkipFailedMappingEnabled() {
         return getBoolean(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+    }
+
+    public boolean isFieldsMapNonScalarValuesEnabled() {
+        return getBoolean(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
     }
 
     public FieldConfigs getFieldConfigs() {

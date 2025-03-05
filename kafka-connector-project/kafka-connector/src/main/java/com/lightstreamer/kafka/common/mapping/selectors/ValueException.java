@@ -27,11 +27,15 @@ public class ValueException extends RuntimeException {
         return mkException("Cannot retrieve field [%s] from a null object", field);
     }
 
+    public static ValueException nullObject(String nullField, int index) throws ValueException {
+        return mkException("Cannot retrieve index [%d] from null object [%s]", index, nullField);
+    }
+
     public static ValueException fieldNotFound(String field) throws ValueException {
         return mkException("Field [%s] not found", field);
     }
 
-    public static ValueException indexOfOutBoundex(int index) throws ValueException {
+    public static ValueException indexOfOutBounds(int index) throws ValueException {
         return mkException("Field not found at index [%d]", index);
     }
 
