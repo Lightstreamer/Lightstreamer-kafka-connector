@@ -69,7 +69,7 @@ public class DataAdapterConfigurator {
 
             DataExtractor<Object, Object> fieldsExtractor =
                     fieldConfigs.extractor(
-                            sSuppliers, config.isRecordMappingSkipFailedEnabled(), false);
+                            sSuppliers, config.isRecordMappingSkipFailedEnabled(), config.isRecordMappingMapNonScalarValuesEnabled());
 
             return new DataAdapterConfigImpl(
                     fieldsExtractor, templates, config.getErrRecordErrorHandlingStrategy());
