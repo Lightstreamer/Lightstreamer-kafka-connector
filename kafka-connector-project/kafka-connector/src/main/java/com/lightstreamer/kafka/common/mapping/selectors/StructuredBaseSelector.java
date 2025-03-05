@@ -90,11 +90,14 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         }
 
         Node<T> get(int index, Node<T> node) {
+            if (node.isNull()) {
+                throw ValueException.nullObject(name, index);
+            }
             if (node.isArray()) {
                 if (index < node.size()) {
                     return node.get(index);
                 } else {
-                    throw ValueException.indexOfOutBoundex(index);
+                    throw ValueException.indexOfOutBounds(index);
                 }
             } else {
                 throw ValueException.noIndexedField(name);
