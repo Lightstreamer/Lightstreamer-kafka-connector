@@ -1864,6 +1864,21 @@ Example:
 record.mappings.skip.failed.enable=true
 ```
 
+### `record.mappings.map.non.scalar.values.enable`
+
+By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields so that complex data structures
+from Kafka records can be mapped directly to fields without requiring them to be flattened into scalar value.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+record.mappings.map.non.scalar.values.enable=true
+```
+
 ### `item.templates`
 
 > [!IMPORTANT]
