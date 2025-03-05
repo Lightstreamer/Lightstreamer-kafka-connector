@@ -33,7 +33,6 @@ import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -314,10 +313,11 @@ public class LightstreamerConnectorConfigTest {
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         assertThat(config.isRecordMappingMapNonScalarValuesEnabled()).isFalse();
 
-        props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        props.put(
+                LightstreamerConnectorConfig.RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
         config = new LightstreamerConnectorConfig(props);
         assertThat(config.isRecordMappingMapNonScalarValuesEnabled()).isTrue();
-    }    
+    }
 
     @Test
     public void shouldNotValidateInvalidRecordMappingSkipFailed() {

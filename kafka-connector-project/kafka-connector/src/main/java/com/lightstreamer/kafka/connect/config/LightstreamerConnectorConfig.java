@@ -149,7 +149,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
             "record.mappings.skip.failed.enable";
     public static final String RECORD_MAPPING_SKIP_FAILED_ENABLE_DOC =
             """
-            Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+            Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields.
             This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
             """;
 
@@ -157,7 +157,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
             "record.mappings.map.non.scalar.values.enable";
     public static final String RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE_DOC =
             """
-            By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields so that complex data structures from Kafka records 
+            By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields so that complex data structures from Kafka records
             can be mapped directly to fields without requiring them to be flattened into scalar value.
 
             """;
@@ -282,7 +282,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .defaultValue(false)
                                 .importance(Importance.MEDIUM)
                                 .documentation(RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE_DOC)
-                                .build())                                
+                                .build())
                 .define(
                         new ConfigKeyBuilder()
                                 .name(RECORD_EXTRACTION_ERROR_STRATEGY)

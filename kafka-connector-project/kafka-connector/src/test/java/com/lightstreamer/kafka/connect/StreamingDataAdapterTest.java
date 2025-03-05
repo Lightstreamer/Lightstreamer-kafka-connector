@@ -110,7 +110,6 @@ public class StreamingDataAdapterTest {
         assertThat(adapter.getErrantRecordReporter()).isNull();
         assertThat(adapter.isSnapshotAvailable("anItem")).isFalse();
         assertThat(adapter.getErrantRecordReporter()).isNull();
-        
     }
 
     @Test
@@ -118,7 +117,6 @@ public class StreamingDataAdapterTest {
         StreamingDataAdapter adapter = newAdapter(true);
         assertThat(adapter.getErrantRecordReporter()).isNotNull();
     }
-
 
     @Test
     void shouldInit() throws DataProviderException {
