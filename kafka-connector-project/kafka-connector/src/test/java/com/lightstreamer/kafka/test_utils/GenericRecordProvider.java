@@ -32,6 +32,7 @@ public class GenericRecordProvider {
 
     private final Schema valueSchema;
     private final Schema childrenSchema;
+    private final Schema emptyArraySchema;
 
     private GenericRecordProvider() {
         ClassLoader classLoader = GenericRecordProvider.class.getClassLoader();
@@ -40,6 +41,7 @@ public class GenericRecordProvider {
         try {
             valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
             childrenSchema = valueSchema.getField("children").schema();
+            emptyArraySchema = valueSchema.getField("emptyArray").schema();
         } catch (IOException io) {
             throw new RuntimeException(io);
         }
@@ -70,7 +72,8 @@ public class GenericRecordProvider {
         documentRecord.put("doc_id", "ID123");
         documentRecord.put("doc_type", "ID");
         joe.put("documents", Map.of(new Utf8("id"), documentRecord));
-
+        joe.put("emptyArray", new GenericData.Array<>(emptyArraySchema, null));
+        joe.put("nullArray", null);
         return joe;
     }
 
