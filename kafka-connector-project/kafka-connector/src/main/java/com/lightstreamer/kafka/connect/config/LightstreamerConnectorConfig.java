@@ -149,8 +149,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
             "record.mappings.skip.failed.enable";
     public static final String RECORD_MAPPING_SKIP_FAILED_ENABLE_DOC =
             """
-            By enabling this (optional) parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
-            Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered.
+            Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+            This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
             """;
 
     public static final String RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE =
