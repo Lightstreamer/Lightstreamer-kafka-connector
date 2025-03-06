@@ -91,7 +91,8 @@ public class OffsetStoreTest {
     void shouldUpdateOffsetBeyondLastCommitted() {
         long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -116,7 +117,8 @@ public class OffsetStoreTest {
     void shouldSanitizeBeyondOffsetsSimple() {
         long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -138,7 +140,8 @@ public class OffsetStoreTest {
     void shouldSanitizeBeyondOffsetsComplex() {
         long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -161,7 +164,8 @@ public class OffsetStoreTest {
     void shouldSanitizeBeyondOffsetsComplexUnordered() {
         long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -185,7 +189,8 @@ public class OffsetStoreTest {
     void shouldSanitizeBeyondOffsetsVeryComplex() {
         long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 

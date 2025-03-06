@@ -46,8 +46,8 @@ public class EitherTest {
 
     @Test
     void shouldSupportNull() {
-        assertDoesNotThrow( () -> Either.left(null));
-        assertDoesNotThrow( () -> Either.right(null));
+        assertDoesNotThrow(() -> Either.left(null));
+        assertDoesNotThrow(() -> Either.right(null));
     }
 
     @Test

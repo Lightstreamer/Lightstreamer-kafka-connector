@@ -149,7 +149,8 @@ public class Offsets {
         @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
             Set<TopicPartition> partitions = consumer.assignment();
-            // Retrieve the offset to start from, which has to be used in case no committed offset is
+            // Retrieve the offset to start from, which has to be used in case no committed offset
+            // is
             // available for a given partition.
             // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =

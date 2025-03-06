@@ -220,8 +220,7 @@ public class RecordRoutingTest {
         ObjectMapper om = new ObjectMapper();
         JsonNode jsonNode = om.readTree(jsonString);
         MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
-        List<SubscribedItem> all =
-                Stream.concat(routable.stream(), nonRoutable.stream()).toList();
+        List<SubscribedItem> all = Stream.concat(routable.stream(), nonRoutable.stream()).toList();
         Set<SubscribedItem> routed = mapped.route(all);
         assertThat(routed).containsExactlyElementsIn(routable);
     }

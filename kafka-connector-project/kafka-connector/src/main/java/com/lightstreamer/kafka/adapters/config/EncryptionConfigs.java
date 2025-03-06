@@ -47,7 +47,8 @@ public class EncryptionConfigs {
             adapt(TlsConfigs.HOSTNAME_VERIFICATION_ENABLE);
 
     public static final String SSL_PROVIDER = adapt(TlsConfigs.SSL_PROVIDER);
-    public static final String SSL_ENGINE_FACTORY_CLASS = adapt(TlsConfigs.SSL_ENGINE_FACTORY_CLASS);
+    public static final String SSL_ENGINE_FACTORY_CLASS =
+            adapt(TlsConfigs.SSL_ENGINE_FACTORY_CLASS);
     public static final String SSL_KEYMANAGER_ALGORITHM =
             adapt(TlsConfigs.SSL_KEYMANAGER_ALGORITHM);
     public static final String SSL_SECURE_RANDOM_IMPLEMENTATION =
