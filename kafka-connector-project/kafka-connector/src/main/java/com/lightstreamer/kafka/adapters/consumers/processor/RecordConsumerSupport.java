@@ -26,7 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WihtOffsetService;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
@@ -72,14 +72,14 @@ class RecordConsumerSupport {
         // Optional and defaulted fields
         protected int threads = 1;
         protected OrderStrategy orderStrategy = OrderStrategy.ORDER_BY_PARTITION;
-        protected boolean prefereSingleThread = false;
+        protected boolean preferSingleThread = false;
 
         StartBuildingConsumerImpl(RecordProcessor<K, V> processor) {
             this.processor = processor;
         }
 
         @Override
-        public WihtOffsetService<K, V> offsetService(OffsetService offsetService) {
+        public WithOffsetService<K, V> offsetService(OffsetService offsetService) {
             this.offsetService = offsetService;
             return new WithOffsetServiceImpl<>(this);
         }
@@ -126,7 +126,7 @@ class RecordConsumerSupport {
         }
     }
 
-    private static class WithOffsetServiceImpl<K, V> implements WihtOffsetService<K, V> {
+    private static class WithOffsetServiceImpl<K, V> implements WithOffsetService<K, V> {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
@@ -135,8 +135,8 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy stragey) {
-            this.parentBuilder.errorStrategy = stragey;
+        public WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy strategy) {
+            this.parentBuilder.errorStrategy = strategy;
             return new WithLoggerImpl<>(parentBuilder);
         }
     }
@@ -177,7 +177,7 @@ class RecordConsumerSupport {
 
         @Override
         public WithOptionals<K, V> preferSingleThread(boolean singleThread) {
-            this.parentBuilder.prefereSingleThread = singleThread;
+            this.parentBuilder.preferSingleThread = singleThread;
             return this;
         }
 
@@ -189,7 +189,7 @@ class RecordConsumerSupport {
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
             }
-            if (parentBuilder.threads == 1 && parentBuilder.prefereSingleThread) {
+            if (parentBuilder.threads == 1 && parentBuilder.preferSingleThread) {
                 return new SingleThreadedRecordConsumer<>(parentBuilder);
             }
             return new ParallelRecordConsumer<>(parentBuilder);
@@ -224,17 +224,17 @@ class RecordConsumerSupport {
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
-            // As logging the mapped record is expensive, log lazly it only at trace level.
+            // As logging the mapped record is expensive, log lazily it only at trace level.
             log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
             log.atDebug().log(() -> "Mapped Kafka record");
 
-            Set<SubscribedItem> routables = mappedRecord.route(subscribedItems);
-            if (routables.size() > 0) {
+            Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
+            if (routable.size() > 0) {
                 log.atDebug().log(() -> "Filtering updates");
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
-                log.atInfo().log("Routing record to {} items", routables.size());
-                for (SubscribedItem sub : routables) {
+                log.atInfo().log("Routing record to {} items", routable.size());
+                for (SubscribedItem sub : routable) {
                     log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                     listener.smartUpdate(sub.itemHandle(), updates, false);
                 }

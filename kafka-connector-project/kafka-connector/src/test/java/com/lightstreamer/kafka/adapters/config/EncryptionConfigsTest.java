@@ -92,24 +92,24 @@ public class EncryptionConfigsTest {
         assertThat(sslProviders.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslEngineFactoryClass =
-                configSpec.getParameter(EncryptionConfigs.SSL_EGINE_FACTORY_CLASS);
+                configSpec.getParameter(EncryptionConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.name())
-                .isEqualTo(EncryptionConfigs.SSL_EGINE_FACTORY_CLASS);
+                .isEqualTo(EncryptionConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.required()).isFalse();
         assertThat(sslEngineFactoryClass.multiple()).isFalse();
         assertThat(sslEngineFactoryClass.mutable()).isTrue();
         assertThat(sslEngineFactoryClass.defaultValue()).isNull();
         assertThat(sslEngineFactoryClass.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter sslKeyManagerAlogorithm =
+        ConfParameter sslKeyManagerAlgorithm =
                 configSpec.getParameter(EncryptionConfigs.SSL_KEYMANAGER_ALGORITHM);
-        assertThat(sslKeyManagerAlogorithm.name())
+        assertThat(sslKeyManagerAlgorithm.name())
                 .isEqualTo(EncryptionConfigs.SSL_KEYMANAGER_ALGORITHM);
-        assertThat(sslKeyManagerAlogorithm.required()).isFalse();
-        assertThat(sslKeyManagerAlogorithm.multiple()).isFalse();
-        assertThat(sslKeyManagerAlogorithm.mutable()).isTrue();
-        assertThat(sslKeyManagerAlogorithm.defaultValue()).isNull();
-        assertThat(sslKeyManagerAlogorithm.type()).isEqualTo(ConfType.TEXT);
+        assertThat(sslKeyManagerAlgorithm.required()).isFalse();
+        assertThat(sslKeyManagerAlgorithm.multiple()).isFalse();
+        assertThat(sslKeyManagerAlgorithm.mutable()).isTrue();
+        assertThat(sslKeyManagerAlgorithm.defaultValue()).isNull();
+        assertThat(sslKeyManagerAlgorithm.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslSecureRandomImplementation =
                 configSpec.getParameter(EncryptionConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);

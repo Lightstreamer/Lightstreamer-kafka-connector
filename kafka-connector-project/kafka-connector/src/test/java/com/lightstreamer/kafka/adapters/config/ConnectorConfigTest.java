@@ -320,15 +320,15 @@ public class ConnectorConfigTest {
         assertThat(itemInfoField.defaultValue()).isEqualTo("MSG");
         assertThat(itemInfoField.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter recordExtrationErrorHandling =
+        ConfParameter recordExtractionErrorHandling =
                 configSpec.getParameter(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
-        assertThat(recordExtrationErrorHandling.name())
+        assertThat(recordExtractionErrorHandling.name())
                 .isEqualTo(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
-        assertThat(recordExtrationErrorHandling.required()).isFalse();
-        assertThat(recordExtrationErrorHandling.multiple()).isFalse();
-        assertThat(recordExtrationErrorHandling.mutable()).isTrue();
-        assertThat(recordExtrationErrorHandling.defaultValue()).isEqualTo("IGNORE_AND_CONTINUE");
-        assertThat(recordExtrationErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
+        assertThat(recordExtractionErrorHandling.required()).isFalse();
+        assertThat(recordExtractionErrorHandling.multiple()).isFalse();
+        assertThat(recordExtractionErrorHandling.mutable()).isTrue();
+        assertThat(recordExtractionErrorHandling.defaultValue()).isEqualTo("IGNORE_AND_CONTINUE");
+        assertThat(recordExtractionErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
 
         ConfParameter recordConsumeWithOrderStrategy =
                 configSpec.getParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
@@ -359,13 +359,13 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter encryptionEnabed = configSpec.getParameter(ENCRYPTION_ENABLE);
-        assertThat(encryptionEnabed.name()).isEqualTo(ENCRYPTION_ENABLE);
-        assertThat(encryptionEnabed.required()).isFalse();
-        assertThat(encryptionEnabed.multiple()).isFalse();
-        assertThat(encryptionEnabed.mutable()).isTrue();
-        assertThat(encryptionEnabed.defaultValue()).isEqualTo("false");
-        assertThat(encryptionEnabed.type()).isEqualTo(ConfType.BOOL);
+        ConfParameter encryptionEnabled = configSpec.getParameter(ENCRYPTION_ENABLE);
+        assertThat(encryptionEnabled.name()).isEqualTo(ENCRYPTION_ENABLE);
+        assertThat(encryptionEnabled.required()).isFalse();
+        assertThat(encryptionEnabled.multiple()).isFalse();
+        assertThat(encryptionEnabled.mutable()).isTrue();
+        assertThat(encryptionEnabled.defaultValue()).isEqualTo("false");
+        assertThat(encryptionEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter authenticationEnabled = configSpec.getParameter(AUTHENTICATION_ENABLE);
         assertThat(authenticationEnabled.name()).isEqualTo(AUTHENTICATION_ENABLE);
@@ -475,13 +475,13 @@ public class ConnectorConfigTest {
         assertThat(maxPollIntervalMs.defaultValue()).isEqualTo("5000");
         assertThat(maxPollIntervalMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter metadatMaxAge = configSpec.getParameter(CONSUMER_METADATA_MAX_AGE_CONFIG);
-        assertThat(metadatMaxAge.name()).isEqualTo(CONSUMER_METADATA_MAX_AGE_CONFIG);
-        assertThat(metadatMaxAge.required()).isFalse();
-        assertThat(metadatMaxAge.multiple()).isFalse();
-        assertThat(metadatMaxAge.mutable()).isFalse();
-        assertThat(metadatMaxAge.defaultValue()).isEqualTo("250");
-        assertThat(metadatMaxAge.type()).isEqualTo(ConfType.INT);
+        ConfParameter metadataMaxAge = configSpec.getParameter(CONSUMER_METADATA_MAX_AGE_CONFIG);
+        assertThat(metadataMaxAge.name()).isEqualTo(CONSUMER_METADATA_MAX_AGE_CONFIG);
+        assertThat(metadataMaxAge.required()).isFalse();
+        assertThat(metadataMaxAge.multiple()).isFalse();
+        assertThat(metadataMaxAge.mutable()).isFalse();
+        assertThat(metadataMaxAge.defaultValue()).isEqualTo("250");
+        assertThat(metadataMaxAge.type()).isEqualTo(ConfType.INT);
 
         ConfParameter requestTimeoutMs =
                 configSpec.getParameter(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
@@ -535,7 +535,7 @@ public class ConnectorConfigTest {
         return encryptionParams;
     }
 
-    private Map<String, String> kesytoreParameters() {
+    private Map<String, String> keystoreParameters() {
         Map<String, String> keystoreParams = new HashMap<>();
         keystoreParams.put(EncryptionConfigs.ENABLE_MTLS, "true");
         keystoreParams.put(EncryptionConfigs.KEYSTORE_PATH, keyStoreFile.getFileName().toString());
@@ -728,7 +728,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @MethodSource("partialConfluentCloudHostList")
-    public void shouldNonRetrieveLightstreamreClientIdWhenNotAllHostConnectedToConfluentClod(
+    public void shouldNonRetrieveLightstreamerClientIdWhenNotAllHostConnectedToConfluentClod(
             String hostList) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
@@ -877,7 +877,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetOverridenGroupId() {
+    public void shouldGetOverriddenGroupId() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(GROUP_ID, "group-id");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1146,7 +1146,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFaileDueToInvalidOrderStrategyType() {
+    public void shouldFailDueToInvalidOrderStrategyType() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_ORDER_STRATEGY, "invalidType");
         ConfigException e =
@@ -1435,7 +1435,7 @@ public class ConnectorConfigTest {
     public void shouldGetDefaultKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.putAll(kesytoreParameters());
+        updatedConfig.putAll(keystoreParameters());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -1459,7 +1459,7 @@ public class ConnectorConfigTest {
     public void shouldOverrideKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
-        updatedConfig.putAll(kesytoreParameters());
+        updatedConfig.putAll(keystoreParameters());
         updatedConfig.put(EncryptionConfigs.KEYSTORE_TYPE, "PKCS12");
         updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "");
         ConfigException ce =

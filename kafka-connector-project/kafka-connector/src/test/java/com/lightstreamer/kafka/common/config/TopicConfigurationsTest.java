@@ -171,7 +171,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    void shouldConfigOneToManyIndenticalTemplates() {
+    void shouldConfigOneToManyIdenticalTemplates() {
         var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=KEY}"));
         var topicMappingConfigs =
                 List.of(
@@ -198,7 +198,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    void shouldConfigOneToManyIndenticalItems() {
+    void shouldConfigOneToManyIdenticalItems() {
         var topicMappingConfigs =
                 List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item1,item1,item2"));
         TopicConfigurations topicsConfig =
