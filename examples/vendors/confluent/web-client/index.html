@@ -30,10 +30,10 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       console.log('The page has loaded!');
-      subsribeToKafkaConnector();
+      subscribeToKafkaConnector();
     });
     
-    function subsribeToKafkaConnector() {
+    function subscribeToKafkaConnector() {
       var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
 
       lsClient.addListener(new StatusWidget("left", "0px", true));
@@ -64,7 +64,7 @@
 
 <body>
   <div class="ribbon">
-    <a href="https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/compose-templates/web" target="_bòank">Fork me on GitHub</a>
+    <a href="https://github.com/Lightstreamer/Lightstreamer-kafka-connector/tree/main/examples/compose-templates/web" target="_blank">Fork me on GitHub</a>
   </div>
   <div id="wrap">
         <div class="banner">		
