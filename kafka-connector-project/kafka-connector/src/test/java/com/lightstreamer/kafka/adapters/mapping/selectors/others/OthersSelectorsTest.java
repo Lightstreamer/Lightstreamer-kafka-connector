@@ -94,7 +94,7 @@ public class OthersSelectorsTest {
         assertThat(s.keyEvaluatorType().is(type)).isTrue();
 
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(keySelectorSupplier.deseralizer()).isInstanceOf(expectedDeserializer);
+        assertThat(keySelectorSupplier.deserializer()).isInstanceOf(expectedDeserializer);
 
         assertThat(s.valueEvaluatorType().is(STRING)).isTrue();
     }
@@ -109,7 +109,7 @@ public class OthersSelectorsTest {
         assertThat(s.valueEvaluatorType().is(type)).isTrue();
 
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
-        assertThat(valueSelectorSupplier.deseralizer()).isInstanceOf(expectedDeserializer);
+        assertThat(valueSelectorSupplier.deserializer()).isInstanceOf(expectedDeserializer);
 
         assertThat(s.keyEvaluatorType().is(STRING)).isTrue();
     }
@@ -149,15 +149,19 @@ public class OthersSelectorsTest {
         OthersSelectorSuppliers othersSelectorSuppliers = new OthersSelectorSuppliers(config);
         ValueSelectorSupplier<?> valueSupplier =
                 othersSelectorSuppliers.makeValueSelectorSupplier();
-        Object deserializedData = valueSupplier.deseralizer().deserialize("topic", bytes);
+        Object deserializedData = valueSupplier.deserializer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = Records.fromValue(deserializedData);
-        String text =
-                valueSupplier
-                        .newSelector("name", Expressions.Expression("VALUE"))
-                        .extractValue(kafkaRecord)
-                        .text();
-        assertThat(text).isEqualTo(String.valueOf(data));
+
+        boolean[] checkScalars = {true, false};
+        for (boolean checkScalar : checkScalars) {
+            String text =
+                    valueSupplier
+                            .newSelector("name", Expressions.Expression("VALUE"))
+                            .extractValue(kafkaRecord, checkScalar)
+                            .text();
+            assertThat(text).isEqualTo(String.valueOf(data));
+        }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -169,12 +173,16 @@ public class OthersSelectorsTest {
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
         KafkaRecord kafkaRecord = Records.fromValue((Object) null);
-        String text =
-                valueSupplier
-                        .newSelector("name", Expressions.Expression("VALUE"))
-                        .extractValue(kafkaRecord)
-                        .text();
-        assertThat(text).isNull();
+
+        boolean[] checkScalars = {true, false};
+        for (boolean checkScalar : checkScalars) {
+            String text =
+                    valueSupplier
+                            .newSelector("name", Expressions.Expression("VALUE"))
+                            .extractValue(kafkaRecord, checkScalar)
+                            .text();
+            assertThat(text).isNull();
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -188,15 +196,19 @@ public class OthersSelectorsTest {
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
         byte[] bytes = serde.serializer().serialize("topic", data);
-        Object deserializedData = keySupplier.deseralizer().deserialize("topic", bytes);
+        Object deserializedData = keySupplier.deserializer().deserialize("topic", bytes);
 
         KafkaRecord kafkaRecord = Records.fromKey(deserializedData);
-        String text =
-                keySupplier
-                        .newSelector("name", Expressions.Expression("KEY"))
-                        .extractKey(kafkaRecord)
-                        .text();
-        assertThat(text).isEqualTo(String.valueOf(data));
+
+        boolean[] checkScalars = {true, false};
+        for (boolean checkScalar : checkScalars) {
+            String text =
+                    keySupplier
+                            .newSelector("name", Expressions.Expression("KEY"))
+                            .extractKey(kafkaRecord, checkScalar)
+                            .text();
+            assertThat(text).isEqualTo(String.valueOf(data));
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -208,12 +220,16 @@ public class OthersSelectorsTest {
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
         KafkaRecord kafkaRecord = Records.fromKey((Object) null);
-        String text =
-                keySupplier
-                        .newSelector("name", Expressions.Expression("KEY"))
-                        .extractKey(kafkaRecord)
-                        .text();
-        assertThat(text).isNull();
+
+        boolean[] checkScalars = {true, false};
+        for (boolean checkScalar : checkScalars) {
+            String text =
+                    keySupplier
+                            .newSelector("name", Expressions.Expression("KEY"))
+                            .extractKey(kafkaRecord, checkScalar)
+                            .text();
+            assertThat(text).isNull();
+        }
     }
 
     @ParameterizedTest()
