@@ -77,16 +77,10 @@ public class RecordConsumerTest {
 
     static record Event(
             String topic,
-            
-            String topic,
             String key,
-           
             int position,
-           
             int partition,
-           
             long offset,
-           
             String threadName) {}
 
     private static RecordMapper<String, String> newRecordMapper(
@@ -530,7 +524,6 @@ public class RecordConsumerTest {
         // Create a list to store all the delivered events
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
         // Make the RecordConsumer.
-        // Make the RecordConsumer.
         recordConsumer =
                 mkRecordConsumer(
                         new MockItemEventListener(buildEvent(deliveredEvents)),
@@ -561,37 +554,8 @@ public class RecordConsumerTest {
     @MethodSource("iterations")
     public void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
-        // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
-        List<String> keys = List.of("a", "b", "c", "d", "d");
+        List<String> keys = List.of("a", "b", "c", "d");
         // Provide less partitions than keys to enforce multiple key ending up to same partition.
-        int partitionsOnTopic1 = 3;
-        int partitionsOnTopic2 = 2;
-
-        // Generate records on different topics
-        ConsumerRecords<String, String> recordsOnTopic1 =
-                generateRecords("topic1", numOfRecords, keys, partitionsOnTopic1);
-        ConsumerRecords<String, String> recordsOnTopic2 =
-                generateRecords("topic2", numOfRecords, keys, partitionsOnTopic2);
-
-        // Create a new Consumer
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
-                new HashMap<>();
-        Consumer<? super ConsumerRecord<String, String>> action =
-                consumerRecord ->
-                        recordsByPartition.compute(
-                                new TopicPartition(
-                                        consumerRecord.topic(), consumerRecord.partition()),
-                                (topicPartition, recordsList) -> {
-                                    if (recordsList == null) {
-                                        recordsList = new ArrayList<>();
-                                    }
-                                    recordsList.add(consumerRecord);
-                                    return recordsList;
-                                });
-        recordsOnTopic1.forEach(action);
-        recordsOnTopic2.forEach(action);
-
-        ConsumerRecords<String, String> allRecords = new ConsumerRecords<>(recordsByPartition);
         int partitionsOnTopic1 = 3;
         int partitionsOnTopic2 = 2;
 

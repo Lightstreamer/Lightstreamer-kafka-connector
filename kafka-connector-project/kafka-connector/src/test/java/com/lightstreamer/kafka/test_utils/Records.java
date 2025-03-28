@@ -161,7 +161,6 @@ public class Records {
     public static ConsumerRecords<String, String> generateRecords(
             String topic, int size, List<String> keys) {
         return generateRecords(topic, size, keys, 1);
-        return generateRecords(topic, size, keys, 1);
     }
 
     public static ConsumerRecords<String, String> generateRecords(
@@ -191,7 +190,7 @@ public class Records {
                 // Select a partition based on the key hash code
                 partition = recordKey.hashCode() % partitions;
             } else {
-                // Generate a value simply by adding a counter suffix..
+                // Generate a value simply by adding a counter suffix.
                 // Note that in this case the counter is global
                 int counter = eventCounter.compute(eventCounterKey, (k, v) -> v == null ? 1 : ++v);
                 recordValue = "%s-%d".formatted("EVENT", counter);
