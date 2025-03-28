@@ -408,7 +408,7 @@ class RecordConsumerSupport {
     }
 
     public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>();
+        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
         records.partitions()
                 .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
         return allRecords;

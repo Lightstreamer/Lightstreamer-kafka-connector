@@ -160,11 +160,11 @@ public class Records {
 
     public static ConsumerRecords<String, String> generateRecords(
             String topic, int size, List<String> keys) {
-        return generateRecords(topic, size, keys, new int[] {0});
+        return generateRecords(topic, size, keys, 1);
     }
 
     public static ConsumerRecords<String, String> generateRecords(
-            String topic, int size, List<String> keys, int[] partitions) {
+            String topic, int size, List<String> keys, int partitions) {
 
         List<ConsumerRecord<String, String>> records = new ArrayList<>();
         Map<String, Integer> eventCounter = new HashMap<>();
@@ -188,14 +188,14 @@ public class Records {
                 int counter = eventCounter.compute(eventCounterKey, (k, v) -> v == null ? 1 : ++v);
                 recordValue = "%s-%d".formatted(recordKey, counter);
                 // Select a partition based on the key hash code
-                partition = recordKey.hashCode() % partitions.length;
+                partition = recordKey.hashCode() % partitions;
             } else {
-                // Generate a value simply by adding a counter suffix
+                // Generate a value simply by adding a counter suffix.
                 // Note that in this case the counter is global
                 int counter = eventCounter.compute(eventCounterKey, (k, v) -> v == null ? 1 : ++v);
                 recordValue = "%s-%d".formatted("EVENT", counter);
                 // Round robin selection of the partition
-                partition = i % partitions.length;
+                partition = i % partitions;
             }
 
             // Increment the offset relative to the selected partition
@@ -208,7 +208,7 @@ public class Records {
                 records.stream()
                         .collect(
                                 groupingBy(
-                                        record -> new TopicPartition("topic", record.partition()),
+                                        record -> new TopicPartition(topic, record.partition()),
                                         mapping(Function.identity(), toList())));
         return new ConsumerRecords<>(partitionsToRecords);
     }
