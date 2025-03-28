@@ -41,13 +41,14 @@ public class EncryptionConfigs {
     public static final String TRUSTSTORE_PATH = adapt(TlsConfigs.TRUSTSTORE_PATH);
     public static final String TRUSTSTORE_PASSWORD = adapt(TlsConfigs.TRUSTSTORE_PASSWORD);
 
-    public static final String ENABLE_MTLS = adapt(TlsConfigs.KESYTORE_ENABLE);
+    public static final String ENABLE_MTLS = adapt(TlsConfigs.KEYSTORE_ENABLE);
 
     public static final String ENABLE_HOSTNAME_VERIFICATION =
             adapt(TlsConfigs.HOSTNAME_VERIFICATION_ENABLE);
 
     public static final String SSL_PROVIDER = adapt(TlsConfigs.SSL_PROVIDER);
-    public static final String SSL_EGINE_FACTORY_CLASS = adapt(TlsConfigs.SSL_EGINE_FACTORY_CLASS);
+    public static final String SSL_ENGINE_FACTORY_CLASS =
+            adapt(TlsConfigs.SSL_ENGINE_FACTORY_CLASS);
     public static final String SSL_KEYMANAGER_ALGORITHM =
             adapt(TlsConfigs.SSL_KEYMANAGER_ALGORITHM);
     public static final String SSL_SECURE_RANDOM_IMPLEMENTATION =
@@ -90,7 +91,7 @@ public class EncryptionConfigs {
             props.setProperty(SslConfigs.SSL_PROVIDER_CONFIG, cfg.sslProvider());
             props.setProperty(
                     SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG,
-                    cfg.getText(SSL_EGINE_FACTORY_CLASS));
+                    cfg.getText(SSL_ENGINE_FACTORY_CLASS));
             props.setProperty(
                     SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG,
                     cfg.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
@@ -108,6 +109,6 @@ public class EncryptionConfigs {
                 props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, cfg.keyPassword());
             }
         }
-        return props.unmodifiables();
+        return props.unmodifiable();
     }
 }

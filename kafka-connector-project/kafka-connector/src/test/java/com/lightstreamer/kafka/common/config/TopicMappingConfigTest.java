@@ -124,7 +124,7 @@ public class TopicMappingConfigTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldNotCreateFromStringDueToinvalidTopic(String topic) {
+    void shouldNotCreateFromStringDueToInvalidTopic(String topic) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

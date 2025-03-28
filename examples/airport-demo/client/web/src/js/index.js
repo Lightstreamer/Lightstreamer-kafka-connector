@@ -50,7 +50,7 @@ function main() {
       });
     
     let subMonitor = new Ls.Subscription("MERGE",itemsList,fieldsList);
-    subMonitor.setDataAdapter("AirpotDemo");
+    subMonitor.setDataAdapter("AirportDemo");
     
     subMonitor.addListener(dynaGrid);
     

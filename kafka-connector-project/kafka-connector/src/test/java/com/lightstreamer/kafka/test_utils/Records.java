@@ -187,14 +187,14 @@ public class Records {
                 // "a-4"
                 int counter = eventCounter.compute(eventCounterKey, (k, v) -> v == null ? 1 : ++v);
                 recordValue = "%s-%d".formatted(recordKey, counter);
-                // Select a partition based on the key hascode
+                // Select a partition based on the key hash code
                 partition = recordKey.hashCode() % partitions;
             } else {
                 // Generate a value simply by adding a counter suffix.
                 // Note that in this case the counter is global
                 int counter = eventCounter.compute(eventCounterKey, (k, v) -> v == null ? 1 : ++v);
                 recordValue = "%s-%d".formatted("EVENT", counter);
-                // Round robin selection of the partion
+                // Round robin selection of the partition
                 partition = i % partitions;
             }
 
@@ -204,12 +204,12 @@ public class Records {
         }
 
         // Group records by partition to be passed to the ConsumerRecords instance
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> partionsToRecords =
+        Map<TopicPartition, List<ConsumerRecord<String, String>>> partitionsToRecords =
                 records.stream()
                         .collect(
                                 groupingBy(
                                         record -> new TopicPartition(topic, record.partition()),
                                         mapping(Function.identity(), toList())));
-        return new ConsumerRecords<>(partionsToRecords);
+        return new ConsumerRecords<>(partitionsToRecords);
     }
 }

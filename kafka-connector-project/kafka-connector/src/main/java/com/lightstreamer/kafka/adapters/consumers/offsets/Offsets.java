@@ -149,14 +149,15 @@ public class Offsets {
         @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
             Set<TopicPartition> partitions = consumer.assignment();
-            // Retrieve the offset to start from, which has to be used in case no commited offset is
+            // Retrieve the offset to start from, which has to be used in case no committed offset
+            // is
             // available for a given partition.
             // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =
                     fromLatest
                             ? consumer.endOffsets(partitions)
                             : consumer.beginningOffsets(partitions);
-            // Get the current commited offsets for all the assigned partitions
+            // Get the current committed offsets for all the assigned partitions
             Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(partitions);
             initStore(storeSupplier, startOffsets, committed);
         }
@@ -167,7 +168,7 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
-            // If a partition misses a commited offset for a partition, just put the
+            // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
                 OffsetAndMetadata offsetAndMetadata =
@@ -192,12 +193,12 @@ public class Offsets {
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            log.atDebug().log("Assigned partiions {}", partitions);
+            log.atDebug().log("Assigned partitions {}", partitions);
         }
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-            log.atWarn().log("Partions revoked");
+            log.atWarn().log("Partitions revoked");
             commitSync();
         }
 
@@ -213,9 +214,9 @@ public class Offsets {
 
         private void commitSync(boolean ignoreErrors) {
             try {
-                log.atDebug().log("Start commiting offset synchronously");
+                log.atDebug().log("Start committing offset synchronously");
                 consumer.commitSync(offsetStore.current());
-                log.atInfo().log("Offsets commited");
+                log.atInfo().log("Offsets committed");
             } catch (KafkaException e) {
                 log.atError().setCause(e).log("Unable to commit offsets");
                 if (!ignoreErrors) {

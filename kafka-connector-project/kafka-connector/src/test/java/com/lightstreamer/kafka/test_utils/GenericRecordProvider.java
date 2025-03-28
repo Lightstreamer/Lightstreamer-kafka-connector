@@ -24,6 +24,7 @@ import org.apache.avro.util.Utf8;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +32,7 @@ public class GenericRecordProvider {
 
     private final Schema valueSchema;
     private final Schema childrenSchema;
+    private final Schema emptyArraySchema;
 
     private GenericRecordProvider() {
         ClassLoader classLoader = GenericRecordProvider.class.getClassLoader();
@@ -39,6 +41,7 @@ public class GenericRecordProvider {
         try {
             valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
             childrenSchema = valueSchema.getField("children").schema();
+            emptyArraySchema = valueSchema.getField("emptyArray").schema();
         } catch (IOException io) {
             throw new RuntimeException(io);
         }
@@ -46,29 +49,36 @@ public class GenericRecordProvider {
 
     private static GenericRecordProvider PROVIDER = new GenericRecordProvider();
     public static GenericRecord RECORD = PROVIDER.newGenericRecord();
+    public static GenericRecord SIMPLE_RECORD = PROVIDER.newSimpleRecord();
 
-    private GenericRecord newGenericRecord() {
-        GenericRecord parentJoe = new GenericData.Record(valueSchema);
-        parentJoe.put("name", "joe");
+    private GenericRecord newSimpleRecord() {
+        GenericRecord joe = new GenericData.Record(valueSchema);
+        joe.put("name", "joe");
 
-        // Filling a Map of Strings
-        parentJoe.put(
-                "preferences",
-                Map.of(new Utf8("pref1"), "pref_value1", new Utf8("pref2"), "pref_value2"));
+        Map<Utf8, String> preferences = new LinkedHashMap<>();
+        preferences.put(new Utf8("pref1"), "pref_value1");
+        preferences.put(new Utf8("pref2"), "pref_value2");
+        joe.put("preferences", preferences);
+
         Schema enumSchema = valueSchema.getField("type").schema();
-        parentJoe.put("type", new GenericData.EnumSymbol(enumSchema, "TYPE1"));
-
-        parentJoe.put(
+        joe.put("type", new GenericData.EnumSymbol(enumSchema, "TYPE1"));
+        joe.put(
                 "signature",
                 new GenericData.Fixed(
                         valueSchema.getField("signature").schema(), "abcd".getBytes()));
 
-        // Filling a Map of Records
         GenericRecord documentRecord =
                 new GenericData.Record(valueSchema.getField("main_document").schema());
         documentRecord.put("doc_id", "ID123");
         documentRecord.put("doc_type", "ID");
-        parentJoe.put("documents", Map.of(new Utf8("id"), documentRecord));
+        joe.put("documents", Map.of(new Utf8("id"), documentRecord));
+        joe.put("emptyArray", new GenericData.Array<>(emptyArraySchema, null));
+        joe.put("nullArray", null);
+        return joe;
+    }
+
+    private GenericRecord newGenericRecord() {
+        GenericRecord parentJoe = newSimpleRecord();
 
         GenericRecord childAlex = new GenericData.Record(valueSchema);
         childAlex.put("name", "alex");

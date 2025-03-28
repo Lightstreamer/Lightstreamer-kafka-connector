@@ -40,38 +40,33 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"#{VALUE}", "#{OFFSET}", "#{PARTITION}", "#{OFFSET}", "#{TOPIC}"})
-    void shoudCreateAndMakeExtractor(String expression) throws ExtractionException {
+    void shouldCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
 
         boolean[] skipOnFailures = {false, true};
+        boolean[] mapScalars = {false, true};
         for (boolean skip : skipOnFailures) {
-            DataExtractor<String, String> extractor =
-                    configs.extractor(OthersSelectorSuppliers.String(), skip);
-            Schema schema = extractor.schema();
-            assertThat(schema.name()).isEqualTo("fields");
-            assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
-            assertThat(extractor.skipOnFailure()).isEqualTo(skip);
+            for (boolean mapNonScalars : mapScalars) {
+                DataExtractor<String, String> extractor =
+                        configs.extractor(OthersSelectorSuppliers.String(), skip, mapNonScalars);
+                Schema schema = extractor.schema();
+                assertThat(schema.name()).isEqualTo("fields");
+                assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+                assertThat(extractor.skipOnFailure()).isEqualTo(skip);
+                assertThat(extractor.mapNonScalars()).isEqualTo(mapNonScalars);
+            }
         }
     }
 
     @Test
-    void shouldCreateNoSkipOnFailureExtractor() throws ExtractionException {
-        Map<String, String> fieldMappings = Map.of("field1", "#{VALUE}");
-        FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<String, String> extractor =
-                configs.extractor(OthersSelectorSuppliers.String());
-        assertThat(extractor.skipOnFailure()).isFalse();
-    }
-
-    @Test
-    void shoudFailCreateExtractor() {
+    void shouldFailCreateExtractor() {
         Map<String, String> fieldMappings = Map.of("field1", "#{VALUE.notAllowedAttrib}");
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> configs.extractor(OthersSelectorSuppliers.String(), false));
+                        () -> configs.extractor(OthersSelectorSuppliers.String(), false, false));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values while evaluating [field1]");
@@ -87,12 +82,12 @@ public class FieldConfigsTest {
                 "#{OFFSET}",
                 "#{TOPIC}"
             })
-    void shoudCreateAndMakeExtractorForComplexSupplier(String expression)
+    void shouldCreateAndMakeExtractorForComplexSupplier(String expression)
             throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
         DataExtractor<Object, Object> extractor =
-                configs.extractor(TestSelectorSuppliers.Object(), false);
+                configs.extractor(TestSelectorSuppliers.Object(), false, false);
         Schema schema = extractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
         assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
@@ -102,7 +97,7 @@ public class FieldConfigsTest {
     @EmptySource
     @NullAndEmptySource
     @ValueSource(strings = {"#{}", ".", "\\", " "})
-    void shoudFailCreationDueToInvalidWrapperExpression(String expression) {
+    void shouldFailCreationDueToInvalidWrapperExpression(String expression) {
         Map<String, String> fieldMappings = new HashMap<>();
         fieldMappings.put("field1", expression);
         ConfigException ee =
@@ -116,7 +111,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"#{.}", "#{...}"})
-    void shoudFailCreationDueToMissingRootTokens(String fieldExpression) {
+    void shouldFailCreationDueToMissingRootTokens(String fieldExpression) {
         Map<String, String> fieldMappings = new HashMap<>();
         fieldMappings.put("field1", fieldExpression);
         ConfigException ee =

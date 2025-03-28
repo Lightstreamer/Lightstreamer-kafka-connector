@@ -181,25 +181,25 @@ public class AdapterSetTest {
 
     @Test
     void shouldHandleCustomAdapter() throws Exception {
-        record NotifyedNewTables(String user, String sessionId, TableInfo[] tables) {}
+        record NotifiedNewTables(String user, String sessionId, TableInfo[] tables) {}
 
-        record NotifyedCloseTables(String sessionId, TableInfo[] tables) {}
+        record NotifiedCloseTables(String sessionId, TableInfo[] tables) {}
 
         class CustomAdapter extends KafkaConnectorMetadataAdapter {
 
-            NotifyedNewTables newTables;
-            NotifyedCloseTables closedTables;
+            NotifiedNewTables newTables;
+            NotifiedCloseTables closedTables;
 
             @Override
             public void onSubscription(String user, String sessionID, TableInfo[] tables)
                     throws CreditsException, NotificationException {
-                newTables = new NotifyedNewTables(user, sessionID, tables);
+                newTables = new NotifiedNewTables(user, sessionID, tables);
             }
 
             @Override
             public void onUnsubscription(String sessionID, TableInfo[] tables)
                     throws NotificationException {
-                closedTables = new NotifyedCloseTables(sessionID, tables);
+                closedTables = new NotifiedCloseTables(sessionID, tables);
             }
         }
         CustomAdapter customAdapter = new CustomAdapter();
@@ -208,7 +208,7 @@ public class AdapterSetTest {
         TableInfo[] tables = mkTable("OTHER-ADAPTER", Mode.COMMAND);
         customAdapter.notifyNewTables("user", "sessionId", tables);
 
-        NotifyedNewTables newTables = customAdapter.newTables;
+        NotifiedNewTables newTables = customAdapter.newTables;
         assertThat(newTables).isNotNull();
         assertThat(newTables.user()).isEqualTo("user");
         assertThat(newTables.sessionId()).isEqualTo("sessionId");
@@ -216,7 +216,7 @@ public class AdapterSetTest {
         assertThat(customAdapter.closedTables).isNull();
 
         customAdapter.notifyTablesClose("sessionId", tables);
-        NotifyedCloseTables closedTables = customAdapter.closedTables;
+        NotifiedCloseTables closedTables = customAdapter.closedTables;
         assertThat(closedTables).isNotNull();
         assertThat(closedTables.sessionId()).isEqualTo("sessionId");
         assertThat(closedTables.tables()).isEqualTo(tables);

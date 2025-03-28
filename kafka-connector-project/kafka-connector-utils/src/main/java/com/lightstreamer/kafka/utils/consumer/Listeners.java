@@ -57,11 +57,11 @@ public class Listeners {
         return new SystemOutClientListener();
     }
 
-    private static class MySubscriptiontListener implements SubscriptionListener {
+    private static class MySubscriptionListener implements SubscriptionListener {
 
         private final Consumer<ItemUpdate> consumer;
 
-        MySubscriptiontListener(Consumer<ItemUpdate> itemUpdateConsumer) {
+        MySubscriptionListener(Consumer<ItemUpdate> itemUpdateConsumer) {
             this.consumer = itemUpdateConsumer;
         }
 
@@ -95,12 +95,12 @@ public class Listeners {
 
         @Override
         public void onListenEnd() {
-            System.out.println("Stop listeneing to subscription events");
+            System.out.println("Stop listening to subscription events");
         }
 
         @Override
         public void onListenStart() {
-            System.out.println("Start listeneing to subscription events");
+            System.out.println("Start listening to subscription events");
         }
 
         @Override
@@ -126,6 +126,6 @@ public class Listeners {
     }
 
     public static SubscriptionListener subscriptionListener(Consumer<ItemUpdate> consumer) {
-        return new MySubscriptiontListener(consumer);
+        return new MySubscriptionListener(consumer);
     }
 }

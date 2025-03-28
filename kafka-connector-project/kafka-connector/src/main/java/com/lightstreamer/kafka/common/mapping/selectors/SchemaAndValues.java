@@ -35,8 +35,8 @@ public interface SchemaAndValues {
         return new DefaultSchemaAndValues(schema, values);
     }
 
-    static SchemaAndValues from(String schemNane, Map<String, String> values) {
-        Schema schema = Schema.from(schemNane, values.keySet());
+    static SchemaAndValues from(String schemaName, Map<String, String> values) {
+        Schema schema = Schema.from(schemaName, values.keySet());
         return new DefaultSchemaAndValues(schema, values);
     }
 

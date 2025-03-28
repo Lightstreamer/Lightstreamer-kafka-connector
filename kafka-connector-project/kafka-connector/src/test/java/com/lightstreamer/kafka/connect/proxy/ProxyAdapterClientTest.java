@@ -82,13 +82,13 @@ public class ProxyAdapterClientTest {
         assertThat(client.closingException()).isEmpty();
     }
 
-    static Stream<Arguments> configuredRetriesAbsorbeFailures() {
+    static Stream<Arguments> configuredRetriesAbsorbFailures() {
         return Stream.of(
                 Arguments.of(0, 0), Arguments.of(1, 1), Arguments.of(2, 1), Arguments.of(5, 3));
     }
 
     @ParameterizedTest
-    @MethodSource("configuredRetriesAbsorbeFailures")
+    @MethodSource("configuredRetriesAbsorbFailures")
     void shouldStartAfterFailures(int maxRetries, int scheduledFailures)
             throws RemotingException, IOException {
         ProxyAdapterClientOptions options =
@@ -155,13 +155,13 @@ public class ProxyAdapterClientTest {
         assertThat(client.closingException()).isEmpty();
     }
 
-    static Stream<Arguments> configuredRetriesDontAbsorbeFailures() {
+    static Stream<Arguments> configuredRetriesNotAbsorbFailures() {
         return Stream.of(Arguments.of(0, 1), Arguments.of(1, 2), Arguments.of(2, 6));
     }
 
     @ParameterizedTest
-    @MethodSource("configuredRetriesDontAbsorbeFailures")
-    void shouldNotStartAfterNoMoreRertries(int maxRetries, int scheduledFailures)
+    @MethodSource("configuredRetriesNotAbsorbFailures")
+    void shouldNotStartAfterNoMoreRetries(int maxRetries, int scheduledFailures)
             throws RemotingException, IOException {
         ProxyAdapterClientOptions options =
                 new ProxyAdapterClientOptions.Builder("host", 6661)
@@ -239,7 +239,7 @@ public class ProxyAdapterClientTest {
     }
 
     @Test
-    void shoudStop() throws RemotingException {
+    void shouldStop() throws RemotingException {
         ProxyAdapterClientOptions options =
                 new ProxyAdapterClientOptions.Builder("host", 6661).build();
 

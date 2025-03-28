@@ -107,7 +107,7 @@ public class JsonNodeDeserializerTest {
         String flight =
                 """
           {
-            "airline": "Lightstreamer Airlies",
+            "airline": "Lightstreamer Airlines",
             "code": "LA1704",
             "departureTime": "2025-01-01:12.05.00",
             "status": "SCHEDULED_ON_TIME"
@@ -159,7 +159,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithSchemaRegsitry() {
+    public void shouldGetValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -177,7 +177,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndVaueDeserializeWithSchemaRegisstry() {
+    public void shouldGetKeyAndValueDeserializeWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -313,7 +313,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializazionWithLocalSchemaTakePrecedenceOverSchemaRegistry()
+    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(

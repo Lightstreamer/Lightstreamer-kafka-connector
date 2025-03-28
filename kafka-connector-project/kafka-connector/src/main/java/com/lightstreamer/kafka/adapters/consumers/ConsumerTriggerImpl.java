@@ -157,7 +157,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     }
 
     // Only for testing purposes
-    Item getSubscribeditem(String itemName) {
+    Item getSubscribedItem(String itemName) {
         return subscribedItems.get(itemName);
     }
 }

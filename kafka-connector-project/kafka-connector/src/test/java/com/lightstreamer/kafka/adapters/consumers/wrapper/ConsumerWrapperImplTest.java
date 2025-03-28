@@ -121,7 +121,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldNotSubscribeDueToExceptionWhileCheckintExistingTopic() {
+    public void shouldNotSubscribeDueToExceptionWhileCheckingExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("topic"), true));
@@ -573,7 +573,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldRunWithNoSubscriptioneDueToNotExistingTopic() {
+    public void shouldRunWithNoSubscriptionDueToNotExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
@@ -586,7 +586,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldRunWithNoSubscriptioneDueToExceptionWhileCheckintExistingTopic() {
+    public void shouldRunWithNoSubscriptionDueToExceptionWhileCheckingExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("anotherTopic"), true));
