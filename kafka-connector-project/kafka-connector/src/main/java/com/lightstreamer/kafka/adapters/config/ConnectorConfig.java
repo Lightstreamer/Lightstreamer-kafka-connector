@@ -277,7 +277,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 return "";
                                             }
                                             if (Split.byComma(hostList).stream()
-                                                    .flatMap(s -> Split.asPair(s, ':').stream())
+                                                    .flatMap(s -> Split.asPairWithColon(s).stream())
                                                     .map(p -> p.key())
                                                     .allMatch(
                                                             s -> s.endsWith(".confluent.cloud"))) {
