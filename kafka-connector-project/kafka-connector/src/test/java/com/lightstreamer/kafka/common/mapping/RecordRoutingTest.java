@@ -65,17 +65,17 @@ public class RecordRoutingTest {
                 arguments(
                         List.of(TEST_TOPIC_1),
                         "item",
-                        // Routeable item
+                        // Routable item
                         List.of(subscribedFrom("item", "handle1")),
-                        // Non-routeable item
+                        // Non-routable item
                         List.of(subscribedFrom("otherItem", "handle2"))),
                 // Many-to-One
                 arguments(
                         List.of(TEST_TOPIC_1, TEST_TOPIC_2),
                         "item",
-                        // Routeable item
+                        // Routable item
                         List.of(subscribedFrom("item", "handle1")),
-                        // Non-routeable item
+                        // Non-routable item
                         List.of(subscribedFrom("otherItem", "handle2"))));
     }
 
@@ -84,8 +84,8 @@ public class RecordRoutingTest {
     public void shouldRoutesFromSimpleItems(
             List<String> topics,
             String item,
-            List<SubscribedItem> routables,
-            List<SubscribedItem> nonRoutables)
+            List<SubscribedItem> routable,
+            List<SubscribedItem> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.mkSimpleItems(
@@ -98,10 +98,10 @@ public class RecordRoutingTest {
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             List<SubscribedItem> all =
-                    Stream.concat(routables.stream(), nonRoutables.stream()).toList();
+                    Stream.concat(routable.stream(), nonRoutable.stream()).toList();
 
             Set<SubscribedItem> routed = mapped.route(all);
-            assertThat(routed).containsExactlyElementsIn(routables);
+            assertThat(routed).containsExactlyElementsIn(routable);
         }
     }
 
@@ -159,8 +159,8 @@ public class RecordRoutingTest {
     public void shouldRoutesFromTemplates(
             List<String> topics,
             List<String> templateStr,
-            Map<String, List<SubscribedItem>> routables,
-            Map<String, List<SubscribedItem>> nonRoutables)
+            Map<String, List<SubscribedItem>> routable,
+            Map<String, List<SubscribedItem>> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.ItemTemplates(
@@ -172,14 +172,14 @@ public class RecordRoutingTest {
 
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
-            List<SubscribedItem> routablesForTopic = routables.get(topic);
-            List<SubscribedItem> nonRoutableForTopic = nonRoutables.get(topic);
+            List<SubscribedItem> routableForTopic = routable.get(topic);
+            List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
 
-            List<SubscribedItem> all = new ArrayList<>(routablesForTopic);
+            List<SubscribedItem> all = new ArrayList<>(routableForTopic);
             all.addAll(nonRoutableForTopic);
 
             Set<SubscribedItem> routed = mapped.route(all);
-            assertThat(routed).containsExactlyElementsIn(routablesForTopic);
+            assertThat(routed).containsExactlyElementsIn(routableForTopic);
         }
     }
 
@@ -239,8 +239,8 @@ public class RecordRoutingTest {
     public void shouldRoutesFromTemplateWithJsonValueRecord(
             String jsonString,
             List<String> templateStr,
-            List<SubscribedItem> routables,
-            List<SubscribedItem> nonRoutables)
+            List<SubscribedItem> routable,
+            List<SubscribedItem> nonRoutable)
             throws JsonMappingException, JsonProcessingException, ExtractionException {
         ItemTemplates<String, JsonNode> templates =
                 ItemTemplatesUtils.ItemTemplates(JsonValue(), List.of(TEST_TOPIC_1), templateStr);
@@ -252,10 +252,9 @@ public class RecordRoutingTest {
         ObjectMapper om = new ObjectMapper();
         JsonNode jsonNode = om.readTree(jsonString);
         MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
-        List<SubscribedItem> all =
-                Stream.concat(routables.stream(), nonRoutables.stream()).toList();
+        List<SubscribedItem> all = Stream.concat(routable.stream(), nonRoutable.stream()).toList();
         Set<SubscribedItem> routed = mapped.route(all);
-        assertThat(routed).containsExactlyElementsIn(routables);
+        assertThat(routed).containsExactlyElementsIn(routable);
     }
 
     @ParameterizedTest
@@ -264,7 +263,7 @@ public class RecordRoutingTest {
             useHeadersInDisplayName = true,
             delimiter = '|')
     public void shouldRoute(
-            String template, String subscribingItem, boolean canSubscribe, boolean routeable)
+            String template, String subscribingItem, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, GenericRecord> templates =
                 ItemTemplatesUtils.AvroAvroTemplates(TEST_TOPIC_1, template);
@@ -280,7 +279,7 @@ public class RecordRoutingTest {
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
         Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
-        if (routeable) {
+        if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {
             assertThat(routed).isEmpty();

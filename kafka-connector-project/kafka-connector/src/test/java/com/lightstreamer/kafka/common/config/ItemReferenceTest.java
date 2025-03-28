@@ -104,7 +104,7 @@ public class ItemReferenceTest {
     }
 
     @Test
-    void shouldNotCreateTemplateFromFactoryMethodDueToEmotyTemplateName() {
+    void shouldNotCreateTemplateFromFactoryMethodDueToEmptyTemplateName() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

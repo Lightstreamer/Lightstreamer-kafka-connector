@@ -91,10 +91,10 @@ public final class ProxyAdapterClient implements ExceptionHandler {
     // Holds the exception caught while communicating with Proxy Adapter.
     private AtomicReference<Throwable> closingException = new AtomicReference<>();
 
-    public ProxyAdapterClient(ProxyAdapterClientOptions options, Thread synckTaskThread) {
+    public ProxyAdapterClient(ProxyAdapterClientOptions options, Thread syncTaskThread) {
         this(
                 options,
-                synckTaskThread,
+                syncTaskThread,
                 ProxyAdapterConnection::newConnection,
                 new RemoteDataProviderServerImpl());
     }

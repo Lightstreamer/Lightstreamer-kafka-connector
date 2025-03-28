@@ -100,9 +100,9 @@ public interface RecordMapper<K, V> {
         }
 
         public final Builder<K, V> withTemplateExtractor(
-                String subsscription, DataExtractor<K, V> templateExtractor) {
+                String subscription, DataExtractor<K, V> templateExtractor) {
             this.extractorsByTopicSubscription.compute(
-                    subsscription,
+                    subscription,
                     (t, extractors) -> {
                         if (extractors == null) {
                             extractors = new HashSet<>();
@@ -249,7 +249,7 @@ final class DefaultMappedRecord implements MappedRecord {
         Set<SubscribedItem> result = new HashSet<>();
 
         // The following seems the most performant way
-        // to popoulate the set of routable subscriptions.
+        // to populate the set of routable subscriptions.
         for (SubscribedItem item : subscribedItems) {
             for (SchemaAndValues e : indexedTemplates) {
                 if (e.matches(item)) {

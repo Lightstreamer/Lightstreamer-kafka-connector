@@ -65,7 +65,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateWihtCommonTemplateDefinition() throws ExtractionException {
+    public void shouldCreateWithCommonTemplateDefinition() throws ExtractionException {
         // Define three template names
         String template1 = "template1";
         String template2 = "template2";
@@ -117,6 +117,7 @@ public class ItemTemplatesTest {
                                 Object(),
                                 "stock",
                                 Map.of("index", Expression("KEY.attrib")),
+                                false,
                                 false));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
@@ -129,6 +130,7 @@ public class ItemTemplatesTest {
                                 Object(),
                                 "stock",
                                 Map.of("index", Expression("KEY.attrib")),
+                                false,
                                 false));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
@@ -297,8 +299,8 @@ public class ItemTemplatesTest {
         assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
         assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem subcribingItem = Items.subscribedFrom("orders", "");
-        assertThat(templates.matches(subcribingItem)).isTrue();
+        SubscribedItem subscribingItem = Items.subscribedFrom("orders", "");
+        assertThat(templates.matches(subscribingItem)).isTrue();
     }
 
     @Test

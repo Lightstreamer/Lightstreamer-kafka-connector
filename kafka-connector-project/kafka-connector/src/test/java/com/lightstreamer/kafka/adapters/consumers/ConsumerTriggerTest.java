@@ -98,10 +98,10 @@ public class ConsumerTriggerTest {
                 consumerTrigger.subscribe("anotherItemTemplate", itemHandle2);
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(2);
 
-        Item item1 = consumerTrigger.getSubscribeditem("anItemTemplate");
+        Item item1 = consumerTrigger.getSubscribedItem("anItemTemplate");
         assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
-        Item item2 = consumerTrigger.getSubscribeditem("anotherItemTemplate");
+        Item item2 = consumerTrigger.getSubscribedItem("anotherItemTemplate");
         assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
 
         assertThat(consuming1).isSameInstanceAs(consuming2);
@@ -137,7 +137,7 @@ public class ConsumerTriggerTest {
         Object itemHandle = new Object();
 
         CompletableFuture<Void> consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);
-        Item item = consumerTrigger.getSubscribeditem("anItemTemplate");
+        Item item = consumerTrigger.getSubscribedItem("anItemTemplate");
 
         assertThat(item).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle));
         assertThat(consuming.isCompletedExceptionally());
@@ -145,7 +145,7 @@ public class ConsumerTriggerTest {
         assertThat(kafkaConsumer.hasRan()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
 
-        // Since the exception might be temporary, tt is still possbile to try a new subscription.
+        // Since the exception might be temporary, tt is still possible to try a new subscription.
         consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);
         assertThat(consuming.isCompletedExceptionally());
     }
@@ -156,10 +156,10 @@ public class ConsumerTriggerTest {
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
         consumerTrigger.subscribe("anItemTemplate", itemHandle1);
-        Item item1 = consumerTrigger.getSubscribeditem("anItemTemplate");
+        Item item1 = consumerTrigger.getSubscribedItem("anItemTemplate");
 
         consumerTrigger.subscribe("anotherItemTemplate", itemHandle2);
-        Item item2 = consumerTrigger.getSubscribeditem("anotherItemTemplate");
+        Item item2 = consumerTrigger.getSubscribedItem("anotherItemTemplate");
 
         Item removed1 = consumerTrigger.unsubscribe("anItemTemplate");
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(1);

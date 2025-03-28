@@ -19,5 +19,9 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 public interface ValueSelector<V> extends Selector {
 
-    Data extractValue(KafkaRecord<?, V> record) throws ValueException;
+    default Data extractValue(KafkaRecord<?, V> record) throws ValueException {
+        return extractValue(record, true);
+    }
+
+    Data extractValue(KafkaRecord<?, V> record, boolean checkScalar) throws ValueException;
 }

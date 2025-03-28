@@ -58,11 +58,11 @@ public class OffsetServiceTest {
 
     @BeforeEach
     void beforeEach() {
-        setUpFromEarliast();
+        setUpFromEarliest();
         // setUpFromLatest();
     }
 
-    void setUpFromEarliast() {
+    void setUpFromEarliest() {
         setUp(true);
     }
 
@@ -152,7 +152,7 @@ public class OffsetServiceTest {
 
     @Test
     void shouldInitStore() {
-        // Normally, the store is initialized only after the very firt poll invocation
+        // Normally, the store is initialized only after the very first poll invocation
         offsetService.initStore(false);
 
         Map<TopicPartition, OffsetAndMetadata> map = offsetService.offsetStore().get().current();
@@ -185,7 +185,7 @@ public class OffsetServiceTest {
     @Test
     void shouldStoreFirstFailure() {
         // Notify two different exceptions
-        ValueException firstFailure = ValueException.indexOfOutBoundex(1);
+        ValueException firstFailure = ValueException.indexOfOutBounds(1);
         offsetService.onAsyncFailure(firstFailure);
         offsetService.onAsyncFailure(ValueException.noKeyFound("key"));
         // Verify that only the first one is stored
@@ -194,10 +194,10 @@ public class OffsetServiceTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void shouldCommitySync() {
+    void shouldCommitSync() {
         prepareCommittedRecords();
 
-        // Normally, the store is initialized only after the very firt poll invocation
+        // Normally, the store is initialized only after the very first poll invocation
         offsetService.initStore(false);
 
         // No commit happens before invocation of commitSync
@@ -247,10 +247,10 @@ public class OffsetServiceTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void shouldCommityAsync() {
+    void shouldCommitAsync() {
         prepareCommittedRecords();
 
-        // Normally, the store is initialized only after the very firt poll invocation
+        // Normally, the store is initialized only after the very first poll invocation
         offsetService.initStore(false);
 
         // No commit happens before invocation of commitSync
@@ -275,7 +275,7 @@ public class OffsetServiceTest {
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
-        // Update the offsetns and then commit
+        // Update the offsets and then commit
         records.forEach(record -> offsetService.updateOffsets(record));
         offsetService.commitAsync();
 
@@ -294,7 +294,7 @@ public class OffsetServiceTest {
     void shouldCommitOnPartitionRevoked() {
         prepareCommittedRecords();
 
-        // Normally, the store is initialized only after the very firt poll invocation
+        // Normally, the store is initialized only after the very first poll invocation
         offsetService.initStore(false);
 
         // Poll two new records
@@ -345,7 +345,7 @@ public class OffsetServiceTest {
         }
 
         // The following records do not have their offsets stored as pending in the metadata
-        List<ConsumerRecord<?, ?>> dontHavePendingOffsets =
+        List<ConsumerRecord<?, ?>> haveNoPendingOffsets =
                 List.of(
                         Record(TOPIC, 0, "A-10"),
                         Record(TOPIC, 0, "A-12"),
@@ -357,7 +357,7 @@ public class OffsetServiceTest {
                         Record(TOPIC, 0, "A-19"),
                         Record(TOPIC, 0, "A-21"),
                         Record(TOPIC, 1, "B-21"));
-        for (ConsumerRecord<?, ?> record : dontHavePendingOffsets) {
+        for (ConsumerRecord<?, ?> record : haveNoPendingOffsets) {
             assertThat(offsetService.notHasPendingOffset(record)).isTrue();
         }
     }

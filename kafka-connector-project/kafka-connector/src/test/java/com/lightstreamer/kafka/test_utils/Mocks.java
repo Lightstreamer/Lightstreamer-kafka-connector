@@ -84,7 +84,8 @@ public class Mocks {
         @Override
         public DataExtractor<String, String> fieldsExtractor() {
             try {
-                return FieldConfigs.from(Map.of("field", "#{VALUE}")).extractor(String(), false);
+                return FieldConfigs.from(Map.of("field", "#{VALUE}"))
+                        .extractor(String(), false, false);
             } catch (ExtractionException e) {
                 throw new RuntimeException(e);
             }
@@ -303,13 +304,13 @@ public class Mocks {
 
     public static class MockRecordProcessor<K, V> implements RecordProcessor<K, V> {
 
-        private List<ConsumedRecordInfo> offsetTrriggeringExceptions;
+        private List<ConsumedRecordInfo> offsetTriggeringExceptions;
         private RuntimeException e;
 
         public MockRecordProcessor(
-                RuntimeException e, List<ConsumedRecordInfo> offsetTrriggeringExceptions) {
+                RuntimeException e, List<ConsumedRecordInfo> offsetTriggeringExceptions) {
             this.e = e;
-            this.offsetTrriggeringExceptions = offsetTrriggeringExceptions;
+            this.offsetTriggeringExceptions = offsetTriggeringExceptions;
         }
 
         public MockRecordProcessor() {
@@ -322,7 +323,7 @@ public class Mocks {
                 return;
             }
 
-            if (offsetTrriggeringExceptions.contains(ConsumedRecordInfo.from(record))) {
+            if (offsetTriggeringExceptions.contains(ConsumedRecordInfo.from(record))) {
                 throw e;
             }
         }
