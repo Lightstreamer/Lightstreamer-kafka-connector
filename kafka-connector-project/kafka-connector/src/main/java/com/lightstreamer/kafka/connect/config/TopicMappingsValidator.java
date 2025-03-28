@@ -74,7 +74,7 @@ public class TopicMappingsValidator implements Validator {
 
         // Gets the <topic-name>:<item-mapping> pair
         Pair pair =
-                Split.asPair(topicMapping)
+                Split.asPairWithColon(topicMapping)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(
