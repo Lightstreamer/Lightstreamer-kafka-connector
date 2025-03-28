@@ -8,7 +8,7 @@
 
 **Bug Fixes**
 
-- Corrected various typos in the code base. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
+- Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
 - Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
 
 ## [1.2.1] (2025-03-03)
