@@ -259,8 +259,8 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord3 =
                 Records.record("anotherTopicA", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        Set<SchemaAndValues> expandedFromAntoherTopicA = mappedRecord3.expanded();
-        assertThat(expandedFromAntoherTopicA)
+        Set<SchemaAndValues> expandedFromAnotherTopicA = mappedRecord3.expanded();
+        assertThat(expandedFromAnotherTopicA)
                 .containsExactly(SchemaAndValues.from("prefix3", Map.of("value", "anotherValue")));
         assertThat(mappedRecord3.fieldsMap())
                 .containsExactly("keyField", "anotherKey", "valueField", "anotherValue");
@@ -350,7 +350,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shoulSkipFieldMappingFailure() throws ExtractionException {
+    public void shouldSkipFieldMappingFailure() throws ExtractionException {
         // This flag will let field mapping alway success by omitting not mapped fields
         boolean skipOnFailure = true;
         RecordMapper<String, JsonNode> mapper =
@@ -384,7 +384,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shoudNotMapDueToFieldMappingFailure() throws ExtractionException {
+    public void shouldNotMapDueToFieldMappingFailure() throws ExtractionException {
         boolean skipOnFailure = false;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()

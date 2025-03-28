@@ -68,7 +68,7 @@ public class RecordProcessorTest {
         // Counts the listener invocations to deliver the real-time updates
         this.counter = new AtomicInteger();
 
-        // The mocked ItemEventListener instance, wich updates the counter upon invocation.
+        // The mocked ItemEventListener instance, which updates the counter upon invocation.
         this.listener = new MockItemEventListener(update -> counter.incrementAndGet());
 
         // A record routable to "item1" and "item2"

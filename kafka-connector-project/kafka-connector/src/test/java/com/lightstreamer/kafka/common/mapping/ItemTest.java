@@ -93,7 +93,7 @@ public class ItemTest {
     }
 
     @Test
-    public void shouldNotMathcDueToDifferentPrefix() {
+    public void shouldNotMatchDueToDifferentPrefix() {
         Map<String, String> sameValues = Map.of("n1", "1");
         SubscribedItem item1 = Items.subscribedFrom("source", "aPrefix", sameValues);
         SubscribedItem item2 = Items.subscribedFrom("source", "anotherPrefix", sameValues);

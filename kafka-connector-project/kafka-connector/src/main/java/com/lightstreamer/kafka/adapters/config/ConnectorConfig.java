@@ -436,7 +436,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.putAll(BrokerAuthenticationConfigs.addAuthentication(this));
         properties.putAll(SchemaRegistryConfigs.addSchemaRegistry(this));
 
-        return properties.unmodifiables();
+        return properties.unmodifiable();
     }
 
     static ConfigsSpec configSpec() {

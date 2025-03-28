@@ -145,7 +145,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input VALUE.signature
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
                         EXPRESSION                             |  EXPECTED
@@ -182,7 +182,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input VALUE.signature
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
                         EXPRESSION                      | EXPECTED
@@ -242,7 +242,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input KEY.signature
+            delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
                         EXPRESSION                           | EXPECTED
@@ -278,7 +278,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input VALUE.signature
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
                         EXPRESSION                    | EXPECTED

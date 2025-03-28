@@ -118,7 +118,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     public void run() {
         // Install the shutdown hook
         this.hook = setShutdownHook();
-        log.atDebug().log("Set shutdown kook");
+        log.atDebug().log("Set shutdown hook");
         try {
             if (subscribed()) {
                 pollOnce(this::initStoreAndConsume);

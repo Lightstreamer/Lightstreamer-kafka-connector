@@ -53,7 +53,7 @@ public final class NonNullKeyProperties {
         properties.putAll(t);
     }
 
-    public Properties unmodifiables() {
+    public Properties unmodifiable() {
         return new ImmutableProperties(properties);
     }
 

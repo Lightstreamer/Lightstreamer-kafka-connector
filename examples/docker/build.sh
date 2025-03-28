@@ -11,7 +11,7 @@ $_gradle adapterDistZip
 mkdir -p ${TMP_DIR}
 cp ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connector-${version}.zip ${TMP_DIR}
 
-echo "Building the Lightstramer Kafka Connector Docker image"
+echo "Building the Lightstreamer Kafka Connector Docker image"
 docker build -t lightstreamer-kafka-connector-${version} $SCRIPT_DIR --build-arg VERSION=${version}
 
 echo "Launch the image with:"

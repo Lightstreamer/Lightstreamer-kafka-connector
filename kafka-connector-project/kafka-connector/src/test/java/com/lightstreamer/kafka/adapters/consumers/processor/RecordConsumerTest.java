@@ -147,7 +147,7 @@ public class RecordConsumerTest {
     @Test
     public void testExtractNumberSuffix() {
         assertThat(extractNumberedSuffix("abc-21")).isEqualTo(21);
-        assertThat(extractNumberedSuffix("EVENTT-1")).isEqualTo(1);
+        assertThat(extractNumberedSuffix("EVENT-1")).isEqualTo(1);
     }
 
     @Test
@@ -179,7 +179,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @EnumSource(RecordErrorHandlingStrategy.class)
-    public void shouldBuildParalleRecordConsumerFromRecordMapperWithDefaultValues(
+    public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues(
             RecordErrorHandlingStrategy error) {
         MockOffsetService offsetService = new MockOffsetService();
         MockItemEventListener listener = new MockItemEventListener();
@@ -220,7 +220,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @EnumSource(RecordErrorHandlingStrategy.class)
-    public void shouldBuildParalleRecordConsumerFromRecorProcessorDefaultValues(
+    public void shouldBuildParallelRecordConsumerFromRecordProcessorDefaultValues(
             RecordErrorHandlingStrategy error) {
         MockOffsetService offsetService = new MockOffsetService();
 
@@ -258,7 +258,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("parallelConsumerArgs")
-    public void shouldBuildParalleRecordConsumerFromRecordMapperWithNonDefaultValues(
+    public void shouldBuildParallelRecordConsumerFromRecordMapperWithNonDefaultValues(
             int threads, OrderStrategy order, boolean preferSingleThread) {
         MockOffsetService offsetService = new MockOffsetService();
         MockItemEventListener listener = new MockItemEventListener();
@@ -286,7 +286,7 @@ public class RecordConsumerTest {
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
         assertThat(parallelRecordConsumer.recordProcessor)
                 .isInstanceOf(DefaultRecordProcessor.class);
-        // Nond-default values
+        // Non-default values
         assertThat(parallelRecordConsumer.orderStrategy).isEqualTo(order);
         assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
         if (threads == -1) {
@@ -306,7 +306,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("parallelConsumerArgs")
-    public void shouldBuildParalleRecordConsumerFromRecordProcessorWithNonDefaultValues(
+    public void shouldBuildParallelRecordConsumerFromRecordProcessorWithNonDefaultValues(
             int threads, OrderStrategy order, boolean preferSingleThread) {
         MockOffsetService offsetService = new MockOffsetService();
 
@@ -379,7 +379,7 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void shouldBuildSingleThreadedRecordConsumerFromRecorProcessor() {
+    public void shouldBuildSingleThreadedRecordConsumerFromRecordProcessor() {
         MockOffsetService offsetService = new MockOffsetService();
 
         RecordConsumer<String, String> recordConsumer =
@@ -507,7 +507,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shoudDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
         ConsumerRecords<String, String> records =
                 generateRecords(
                         "topic", numOfRecords, List.of("a", "b", "c", "d"), new int[] {0, 1});
@@ -523,7 +523,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(records);
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
-            // Group all the delievered events by record key
+            // Group all the delivered events by record key
             Map<String, List<Number>> byKey = getByKey(deliveredEvents);
             // Ensure that events relative to the same key are in order
             Collection<List<Number>> orderedLists = byKey.values();
@@ -538,7 +538,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shoudDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
         List<String> keys = List.of("a", "b", "c");
         // Provide less partitions than keys to enforce multiple key ending up to same partition.
         int[] partitions = IntStream.range(0, keys.size() - 1).toArray();
@@ -572,7 +572,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shoudDeliverPartitionBasedOrderWithNoKey(
+    public void shouldDeliverPartitionBasedOrderWithNoKey(
             int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
         int[] partitions = IntStream.range(0, 3).toArray();
@@ -606,7 +606,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shoudDeliverUnordered(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
         int[] partitions = IntStream.range(0, 3).toArray();
 
@@ -631,7 +631,7 @@ public class RecordConsumerTest {
 
     @Test
     public void shouldConsumeFiltered() {
-        // Generate records distribuited into three partitions
+        // Generate records distributed into three partitions
         List<String> keys = Collections.emptyList();
         int[] partitions = IntStream.range(0, 3).toArray();
         ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, partitions);
@@ -644,7 +644,7 @@ public class RecordConsumerTest {
                         2,
                         OrderStrategy.UNORDERED);
 
-        // Consume only the records published to partion 0
+        // Consume only the records published to partition 0
         recordConsumer.consumeFilteredRecords(records, c -> c.partition() == 0);
         // Verify that only 1/3 of total published record have been consumed
         assertThat(deliveredEvents.size()).isEqualTo(records.count() / 3);
@@ -690,8 +690,8 @@ public class RecordConsumerTest {
 
         List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
         // For single-threaded processing, processing will stop upon first failure, therefore only
-        // the first two records (offsets 0l and 1l) will be procesed.
-        // For concurrent processing, processing won't stop upon first faulire, therefore we expect
+        // the first two records (offsets 0l and 1l) will be processed.
+        // For concurrent processing, processing won't stop upon first failure, therefore we expect
         // to find only the "good" offsets.
         int expectedNumOfProcessedRecords =
                 numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
@@ -731,7 +731,7 @@ public class RecordConsumerTest {
 
         if (exception instanceof ValueException) {
             recordConsumer.consumeRecords(records);
-            // Ensure that all offsets are commited (even the offending ones)
+            // Ensure that all offsets are committed (even the offending ones)
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             assertThat(consumedRecords).hasSize(records.count());
         } else {
