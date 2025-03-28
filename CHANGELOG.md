@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.2.2-beta] (UNRELEASED)
+## [1.2.2] (2025-03-28)
 
 **Improvements**
 
@@ -8,6 +8,7 @@
 
 **Bug Fixes**
 
+- Fixed an issue in concurrent processing where the topic name was not considered when using the ORDER_BY_PARTITION order strategy. ([#39](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/39))
 - Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
 - Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
 
