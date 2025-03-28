@@ -374,21 +374,21 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     private Pair getProxyAdapterAddress() {
-        return Split.asPair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
+        return Split.asPairWithColon(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
                 .orElseThrow(() -> new RuntimeException());
     }
 
     private FieldConfigs initFieldConfigs() {
         return FieldConfigs.from(
                 getList(RECORD_MAPPINGS).stream()
-                        .flatMap(t -> Split.asPair(t).stream())
+                        .flatMap(t -> Split.asPairWithColon(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
     private List<TopicMappingConfig> initTopicMappingConfigs() {
         return TopicMappingConfig.from(
                 Split.bySemicolon(getString(TOPIC_MAPPINGS)).stream()
-                        .flatMap(t -> Split.asPair(t).stream())
+                        .flatMap(t -> Split.asPairWithColon(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
@@ -396,7 +396,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         try {
             return ItemTemplateConfigs.from(
                     Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
-                            .flatMap(s -> Split.asPair(s).stream())
+                            .flatMap(s -> Split.asPairWithColon(s).stream())
                             .collect(toMap(Pair::key, Pair::value)));
         } catch (ConfigException ce) {
             throw new org.apache.kafka.common.config.ConfigException("");
