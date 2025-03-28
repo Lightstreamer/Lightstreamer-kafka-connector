@@ -81,7 +81,7 @@ public class SchemaAndValuesTest {
         Schema otherSchema = schema;
         SchemaAndValues anotherSchemaAndValues =
                 SchemaAndValues.from(
-                        otherSchema, Map.of("key", "anoterKey", "value", "aNotherValue"));
+                        otherSchema, Map.of("key", "anotherKey", "value", "aNotherValue"));
         assertThat(schemaAndValues.matches(anotherSchemaAndValues)).isFalse();
         assertThat(schemaAndValues.equals(anotherSchemaAndValues)).isFalse();
     }

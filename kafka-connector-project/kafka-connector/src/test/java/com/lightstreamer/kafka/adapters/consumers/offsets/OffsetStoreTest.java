@@ -45,7 +45,7 @@ public class OffsetStoreTest {
     }
 
     @Test
-    void shoulddDecode() {
+    void shouldDecode() {
         assertThat(Offsets.decode("")).isEmpty();
         assertThat(Offsets.decode(",")).isEmpty();
         assertThat(Offsets.decode("200")).containsExactly(200l);
@@ -88,45 +88,47 @@ public class OffsetStoreTest {
     }
 
     @Test
-    void shouldUpdateOffsetBeyondLastCommited() {
-        long LAST_COMMITED_OFFSET = 0;
+    void shouldUpdateOffsetBeyondLastCommitted() {
+        long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
         repo.save(Record(0, "A-2"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
-        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("2");
 
         repo.save(Record(0, "B-4"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
-        assertThat(o2.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o2.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o2.metadata()).isEqualTo("2,4");
 
         repo.save(Record(0, "B-6"));
         OffsetAndMetadata o3 = getOffsetAndMetadata(TEST_TOPIC, 0);
-        assertThat(o3.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o3.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o3.metadata()).isEqualTo("2,4,6");
     }
 
     @Test
     void shouldSanitizeBeyondOffsetsSimple() {
-        long LAST_COMMITED_OFFSET = 0;
+        long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
         repo.save(Record(0, "A-1"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
-        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("1");
 
-        // Save the record whose offset matched the LAST_COMMITED_OFFSET
+        // Save the record whose offset matched the LAST_COMMITTED_OFFSET
         repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Sanitization happened
@@ -136,9 +138,10 @@ public class OffsetStoreTest {
 
     @Test
     void shouldSanitizeBeyondOffsetsComplex() {
-        long LAST_COMMITED_OFFSET = 0;
+        long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -147,21 +150,22 @@ public class OffsetStoreTest {
         repo.save(Record(0, "A-3"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
-        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("1,2,3");
 
         repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
-        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        // After committing the record whose offset matched the LAST_COMMITTED_OFFSET,
         assertThat(o2.offset()).isEqualTo(4);
         assertThat(o2.metadata()).isEqualTo("");
     }
 
     @Test
     void shouldSanitizeBeyondOffsetsComplexUnordered() {
-        long LAST_COMMITED_OFFSET = 0;
+        long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -170,12 +174,12 @@ public class OffsetStoreTest {
         repo.save(Record(0, "A-200"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
-        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("300,100,200");
 
         repo.save(Record(0, "A-0"));
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
-        // After commiting the record whose offset matched the LAST_COMMITED_OFFSET,
+        // After committing the record whose offset matched the LAST_COMMITTED_OFFSET,
         // the consumed list
         assertThat(o2.offset()).isEqualTo(1);
         assertThat(o2.metadata()).isEqualTo("300,100,200");
@@ -183,9 +187,10 @@ public class OffsetStoreTest {
 
     @Test
     void shouldSanitizeBeyondOffsetsVeryComplex() {
-        long LAST_COMMITED_OFFSET = 0;
+        long LAST_COMMITTED_OFFSET = 0;
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITED_OFFSET));
+        offsets.put(
+                new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(LAST_COMMITTED_OFFSET));
 
         repo = Offsets.OffsetStore(offsets);
 
@@ -196,11 +201,11 @@ public class OffsetStoreTest {
         repo.save(Record(0, "A-6"));
         OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
         // Last offset is still the one provided by the initializing map (0)
-        assertThat(o1.offset()).isEqualTo(LAST_COMMITED_OFFSET);
+        assertThat(o1.offset()).isEqualTo(LAST_COMMITTED_OFFSET);
         assertThat(o1.metadata()).isEqualTo("5,1,2,3,6");
 
         repo.save(Record(0, "A-0"));
-        // Now the consumed list has been sanitized from 0 to 3, the next offet is 4
+        // Now the consumed list has been sanitized from 0 to 3, the next offset is 4
         OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
         assertThat(o2.offset()).isEqualTo(4);
         assertThat(o2.metadata()).isEqualTo("5,6");

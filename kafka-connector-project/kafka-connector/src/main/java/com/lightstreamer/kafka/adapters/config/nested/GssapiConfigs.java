@@ -33,10 +33,10 @@ public class GssapiConfigs {
     public static final String GSSAPI_PRINCIPAL = "gssapi.principal";
     public static final String GSSAPI_TICKET_CACHE_ENABLE = "gssapi.ticket.cache.enable";
 
-    private static ConfigsSpec GSSAPI_CONFIG_SEPC;
+    private static ConfigsSpec GSSAPI_CONFIG_SPEC;
 
     static {
-        GSSAPI_CONFIG_SEPC =
+        GSSAPI_CONFIG_SPEC =
                 new ConfigsSpec("gssapi")
                         .add(GSSAPI_KERBEROS_SERVICE_NAME, true, false, TEXT)
                         .add(GSSAPI_KEY_TAB_ENABLE, false, false, BOOL, defaultValue("false"))
@@ -47,7 +47,7 @@ public class GssapiConfigs {
     }
 
     public static ConfigsSpec spec() {
-        return GSSAPI_CONFIG_SEPC;
+        return GSSAPI_CONFIG_SPEC;
     }
 
     private GssapiConfigs() {}

@@ -52,7 +52,7 @@ public class LsClient implements Runnable {
 
     @Option(
             names = "--subscription-mode",
-            description = "The subcription mode",
+            description = "The subscription mode",
             defaultValue = "RAW")
     private String subscriptionMode;
 
@@ -70,11 +70,11 @@ public class LsClient implements Runnable {
             required = true)
     private String[] fields;
 
-    private String prepareEventRow(int firstColumnWidht, int otherColumnWidth) {
+    private String prepareEventRow(int firstColumnWidth, int otherColumnWidth) {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         for (int i = 0; i < fields.length; i++) {
-            int width = i == 0 ? firstColumnWidht : otherColumnWidth;
+            int width = i == 0 ? firstColumnWidth : otherColumnWidth;
             sb.append("%s = %" + width + "s");
             if (i < fields.length - 1) {
                 sb.append(", ");
