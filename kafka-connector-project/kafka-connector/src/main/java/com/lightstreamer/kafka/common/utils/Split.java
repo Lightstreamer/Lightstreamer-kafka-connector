@@ -17,12 +17,11 @@
 
 package com.lightstreamer.kafka.common.utils;
 
-import com.google.re2j.Pattern;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class Split {
 
@@ -30,32 +29,60 @@ public class Split {
 
     private static final String TEMPLATE_PATTERN = "\\s*%s\\s*";
 
-    private static final Pattern COMMA_WITH_WHITESPACE = splitPattern(',');
-    private static final Pattern COLON_WITH_WHITESPACE = splitPattern(':');
-    private static final Pattern SEMICOLON_WITH_WHITESPACE = splitPattern(';');
+    enum Separator {
+        COMMA(','),
+        COLON(':'),
+        SEMICOLON(';'),
+        EQUAL('=');
 
-    public static Optional<Pair> asPair(String splittable) {
-        List<String> tokens = byColon(splittable);
-        if (tokens.size() == 2) {
-            String key = tokens.get(0);
-            String value = tokens.get(1);
-            if (!(key.isBlank() || value.isBlank())) {
-                return Optional.of(new Pair(key, value));
-            }
+        private final char separator;
+
+        Separator(char separator) {
+            this.separator = separator;
         }
-        return Optional.empty();
+
+        public char separator() {
+            return separator;
+        }
     }
 
-    public static Optional<Pair> asPair(String splittable, char separator) {
-        List<String> tokens = bySeparator(separator, splittable);
-        if (tokens.size() == 2) {
-            String key = tokens.get(0);
-            String value = tokens.get(1);
-            if (!(key.isBlank() || value.isBlank())) {
-                return Optional.of(new Pair(key, value));
-            }
+    private static final Pattern COMMA_WITH_WHITESPACE = splitPattern(Separator.COMMA.separator());
+    private static final Pattern COLON_WITH_WHITESPACE = splitPattern(Separator.COLON.separator());
+    private static final Pattern SEMICOLON_WITH_WHITESPACE =
+            splitPattern(Separator.SEMICOLON.separator());
+    private static final Pattern EQUAL_WITH_WHITESPACE = splitPattern(Separator.EQUAL.separator());
+
+    public static Optional<Pair> asPairWithColon(String splittable) {
+        return asPairInternal(byColon(splittable), false);
+    }
+
+    public static Optional<Pair> asPairWithColon(String splittable, boolean includeBlankValue) {
+        return asPairInternal(byColon(splittable), includeBlankValue);
+    }
+
+    public static Optional<Pair> asPairWithEqual(String splittable) {
+        return asPairInternal(byEqual(splittable), false);
+    }
+
+    public static Optional<Pair> asPairWithEqual(String splittable, boolean includeBlankValue) {
+        return asPairInternal(byEqual(splittable), includeBlankValue);
+    }
+
+    public static Optional<Pair> asPair(
+            String splittable, char separator, boolean includeBlankValue) {
+        return asPairInternal(bySeparator(separator, splittable), includeBlankValue);
+    }
+
+    private static Optional<Pair> asPairInternal(List<String> tokens, boolean includeBlankValue) {
+        if (tokens.size() != 2) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        String key = tokens.get(0);
+        String value = tokens.get(1);
+        if (key.isBlank() || (value.isBlank() && !includeBlankValue)) {
+            return Optional.empty();
+        }
+        return Optional.of(new Pair(key, value));
     }
 
     public static List<String> byComma(String input) {
@@ -68,6 +95,10 @@ public class Split {
 
     public static List<String> bySemicolon(String input) {
         return by(SEMICOLON_WITH_WHITESPACE, input);
+    }
+
+    public static List<String> byEqual(String input) {
+        return by(EQUAL_WITH_WHITESPACE, input);
     }
 
     public static List<String> bySeparator(char separator, String input) {
