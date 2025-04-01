@@ -18,14 +18,20 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.kvp;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.truth.StringSubject;
+import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -34,42 +40,69 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Map;
+
 public class KvpNodeSelectorsSuppliersTest {
 
+    // A configuration with proper evaluator type settings for key and value
+    static ConnectorConfig CONFIG =
+            ConnectorConfigProvider.minimalWith(
+                    Map.of(
+                            RECORD_KEY_EVALUATOR_TYPE,
+                            KVP.toString(),
+                            RECORD_VALUE_EVALUATOR_TYPE,
+                            KVP.toString()));
     private String INPUT =
-            "QCHARTTOT=2032;TRow=12790;QV=9;PV=43;TMSTMP=2024-04-3013:23:07;QCHART=1;VTOT=81316;QTOT=2032;O=30/04/2024-13:23:07;QA=9012;Q=1;PA=40;PCHART=43;NTRAD=106;NOVALUE;NOVALUE2=";
+            "QCHARTTOT=2032,TRow=12790,QV=9,PV=43,TMSTMP=2024-04-3013:23:07,QCHART=1,VTOT=81316,QTOT=2032,O=30/04/2024-13:23:07,QA=9012,Q=1,PA=40,PCHART=43,NTRAD=106,NOVALUE,NOVALUE2=";
 
     static ValueSelector<String> valueSelector(ExtractionExpression expression)
             throws ExtractionException {
-        return new KvpSelectorsSuppliers()
+        return valueSelector(expression, CONFIG);
+    }
+
+    static ValueSelector<String> valueSelector(
+            ExtractionExpression expression, ConnectorConfig config) throws ExtractionException {
+        return new KvpSelectorsSuppliers(config)
                 .makeValueSelectorSupplier()
                 .newSelector("name", expression);
     }
 
     static KeySelector<String> keySelector(ExtractionExpression expression)
             throws ExtractionException {
-        return new KvpSelectorsSuppliers()
+        return keySelector(expression, CONFIG);
+    }
+
+    static KeySelector<String> keySelector(ExtractionExpression expression, ConnectorConfig config)
+            throws ExtractionException {
+        return new KvpSelectorsSuppliers(config)
                 .makeKeySelectorSupplier()
                 .newSelector("name", expression);
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplierWith() {
-        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers();
+    public void shouldMakeKeySelectorSupplier() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(RECORD_KEY_EVALUATOR_TYPE, KVP.toString()));
+        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         KeySelectorSupplier<String> keySelectorSupplier = s.makeKeySelectorSupplier();
         assertThat(keySelectorSupplier.deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplierWith() {
-        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers();
+    public void shouldMakeValueSelectorSupplier() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(RECORD_VALUE_EVALUATOR_TYPE, KVP.toString()));
+        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         ValueSelectorSupplier<String> keySelectorSupplier = s.makeValueSelectorSupplier();
         assertThat(keySelectorSupplier.deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
@@ -144,11 +177,22 @@ public class KvpNodeSelectorsSuppliersTest {
                         VALUE.A    | 1
                         VALUE.B    | 2
                         """)
-    public void shouldExtractValueWithNoScalarCheck(String expressionString, String expected)
-            throws ExtractionException, JsonMappingException, JsonProcessingException {
-        String message = "A=1;B=2";
+    public void shouldExtractValueWithNonDefaultSettings(String expressionString, String expected)
+            throws ExtractionException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                KVP.toString(),
+                                RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                "@",
+                                RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                "|"));
+
+        String message = "A@1|B@2";
         ExtractionExpression expression = Expressions.Expression(expressionString);
-        String text = valueSelector(expression).extractValue(fromValue(message), false).text();
+        String text =
+                valueSelector(expression, config).extractValue(fromValue(message), false).text();
         assertThat(text).isEqualTo(expected);
     }
 
@@ -219,11 +263,22 @@ public class KvpNodeSelectorsSuppliersTest {
                         KEY.A      | 1
                         KEY.B      | 2
                         """)
-    public void shouldExtractKeyWithNonScalars(String expressionString, String expected)
-            throws ExtractionException, JsonMappingException, JsonProcessingException {
-        String message = "A=1;B=2";
+    public void shouldExtractKeyWithNonDefaultSettings(String expressionString, String expected)
+            throws ExtractionException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                KVP.toString(),
+                                RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                "@",
+                                RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                "|"));
+
+        String message = "A@1|B@2";
         ExtractionExpression expression = Expressions.Expression(expressionString);
-        String text = keySelector(expression).extractKey(fromKey(message), false).text();
+        String text =
+                keySelector(expression, config).extractKey(fromKey(message), false).text();
         assertThat(text).isEqualTo(expected);
     }
 
