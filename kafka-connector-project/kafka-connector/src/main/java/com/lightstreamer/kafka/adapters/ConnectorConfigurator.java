@@ -126,7 +126,7 @@ public class ConnectorConfigurator {
                     return switch (type) {
                         case JSON -> new JsonNodeSelectorsSuppliers(config);
                         case AVRO -> new GenericRecordSelectorsSuppliers(config);
-                        case KVP -> new KvpSelectorsSuppliers();
+                        case KVP -> new KvpSelectorsSuppliers(config);
                         default -> new OthersSelectorSuppliers(config);
                     };
                 };
