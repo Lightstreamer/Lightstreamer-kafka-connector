@@ -53,6 +53,7 @@ dependencies {
 	jmhImplementation group: 'org.openjdk.jmh', name:'jmh-core', version:'1.37'
 	jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
 	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
+	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
 }
 
 ext {

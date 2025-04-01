@@ -91,6 +91,11 @@ public class ConnectorConfiguratorTest {
                         "JSON",
                         KafkaJsonDeserializer.class),
                 Arguments.of(
+                        "INTEGER",
+                        Serdes.Integer().deserializer().getClass(),
+                        "KVP",
+                        Serdes.String().deserializer().getClass()),
+                Arguments.of(
                         "FLOAT",
                         Serdes.Float().deserializer().getClass(),
                         "BOOLEAN",

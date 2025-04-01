@@ -238,7 +238,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L458) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L490) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -881,7 +881,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L503) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -907,6 +907,17 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+
+#### Support for Key Value Pairs (KVP)
+
+In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
+
+The Kafka Connector provides flexible configuration options for parsing and extracting data from KVP-formatted records, enabling seamless mapping to Lightstreamer fields. Key-value pairs can be separated by custom delimiters for both the pairs themselves and the key-value separator, ensuring compatibility with diverse data structures. For example:
+
+- A record with the format `key1=value1;key2=value2` uses `=` as the key-value separator and `;` as the pairs separator.
+- These separators can be customized using the parameters [`record.key/value.evaluator.kvp.key-value.separator`](#recordkeyevaluatorkvpkey-valueseparator-and-recordvalueevaluatorkvpkey-valueseparator) and [`record.key/value.evaluator.kvp.pairs.separator`](#recordkeyevaluatorkvppairsseparator-and-recordvalueevaluatorkvppairsseparator).
+
+This support for KVP adds to the versatility of the Kafka Connector, allowing it to handle a wide range of data formats efficiently.
 
 #### `record.consume.from`
 
@@ -1012,6 +1023,48 @@ Examples:
 ```xml
 <param name="record.key.evaluator.schema.registry.enable">true</param>
 <param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+#### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
+
+_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
+        
+For example, in the following record value:
+
+```
+key1=value1;key2=value2
+```
+
+the key-value separator is the `=` symbol.
+
+Default value: `=`.
+
+```xml
+<param name="record.key.evaluator.kvp.key-value.separator">-</param>
+<param name="record.value.evaluator.kvp.key-value.separator">@</param>
+```
+
+#### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
+
+_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
+
+For example, in the following record value:
+
+```
+key1=value1;key2=value2
+```
+
+the pairs separator is the `;` symbol, which separates `key1=value1` and `key2=value2`.
+        
+Default value: `,`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.kvp.pairs.separator">;</param>
+<param name="record.value.evaluator.kvp.pairs.separator">;</param>
 ```
 
 #### `record.extraction.error.strategy`
@@ -1139,7 +1192,6 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-
 ##### Enable Regular Expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
@@ -1175,7 +1227,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L486) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L519) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1210,6 +1262,32 @@ Example:
 
 ```xml
 <param name="fields.skip.failed.mapping.enable">true</param>
+```
+
+##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+
+_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
+This can be useful when dealing with nested JSON/Avro objects or other complex data types.
+
+In the following example:
+
+```xml
+<param name="field.structured">#{VALUE.complexAttribute}</param>
+```
+
+the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
+
+Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="fields.map.non.scalar.values">true</param>
 ```
 
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
@@ -1412,7 +1490,7 @@ A secure connection to the Confluent Schema Registry can be configured through p
 Example:
 
 ```xml
-<!-- Set the Confluent Schema Registry URL. The https protocol enables encryptions parameters -->
+<!-- Set the Confluent Schema Registry URL. The https protocol enables encryption parameters -->
 <param name="schema.registry.url">https//localhost:8084</param>
 
 <!-- Set general encryption settings -->
@@ -1890,6 +1968,21 @@ Example:
 
 ```
 record.mappings.skip.failed.enable=true
+```
+
+### `record.mappings.map.non.scalar.values.enable`
+
+Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** medium
+
+Example:
+
+```
+record.mappings.map.non.scalar.values.enable=true
 ```
 
 ### `item.templates`
