@@ -1,29 +1,5 @@
 # Changelog
 
-## [1.2.2] (2025-03-28)
-
-**Improvements**
-
-- Added support for [mapping non-scalar values](README.md#map-non-scalar-values-fieldsmapnonscalarvalues) to Lightstreamer fields (also available for the [Sink connector](README.md#recordmappingsmapnonscalarvaluesenable)). ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
-
-**Bug Fixes**
-
-- Fixed an issue in concurrent processing where the topic name was not considered when using the ORDER_BY_PARTITION order strategy. ([#39](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/39))
-- Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
-- Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
-
-## [1.2.1] (2025-03-03)
-
-**Bug Fixes**
-
-- Fixing spelling issues in documentation, examples, and comments in the configuration file. ([#40](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/40)), ([#41](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/41)), ([#42](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/42))
-
-## [1.2.1-kvp] (2025-01-02)
-
-**Improvements**
-
-- Added support for KVP (Key Value Pairs) format.
-
 ## [1.2.0] (2025-01-02)
 
 **Improvements**
