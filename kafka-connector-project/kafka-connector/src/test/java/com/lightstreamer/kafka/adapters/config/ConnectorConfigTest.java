@@ -49,9 +49,13 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CON
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
@@ -108,6 +112,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
@@ -303,6 +308,44 @@ public class ConnectorConfigTest {
         assertThat(schemaRegistryEnabledForValue.mutable()).isTrue();
         assertThat(schemaRegistryEnabledForValue.defaultValue()).isEqualTo("false");
         assertThat(schemaRegistryEnabledForValue.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter keyKvpSeparator =
+                configSpec.getParameter(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR);
+        assertThat(keyKvpSeparator.name()).isEqualTo(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR);
+        assertThat(keyKvpSeparator.required()).isFalse();
+        assertThat(keyKvpSeparator.multiple()).isFalse();
+        assertThat(keyKvpSeparator.mutable()).isTrue();
+        assertThat(keyKvpSeparator.defaultValue()).isEqualTo(",");
+        assertThat(keyKvpSeparator.type()).isEqualTo(ConfType.CHAR);
+
+        ConfParameter keyKvpKeyValueSeparator =
+                configSpec.getParameter(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+        assertThat(keyKvpKeyValueSeparator.name())
+                .isEqualTo(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+        assertThat(keyKvpKeyValueSeparator.required()).isFalse();
+        assertThat(keyKvpKeyValueSeparator.multiple()).isFalse();
+        assertThat(keyKvpKeyValueSeparator.mutable()).isTrue();
+        assertThat(keyKvpKeyValueSeparator.defaultValue()).isEqualTo("=");
+        assertThat(keyKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
+
+        ConfParameter valueKvpSeparator =
+                configSpec.getParameter(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR);
+        assertThat(valueKvpSeparator.name()).isEqualTo(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR);
+        assertThat(valueKvpSeparator.required()).isFalse();
+        assertThat(valueKvpSeparator.multiple()).isFalse();
+        assertThat(valueKvpSeparator.mutable()).isTrue();
+        assertThat(valueKvpSeparator.defaultValue()).isEqualTo(",");
+        assertThat(valueKvpSeparator.type()).isEqualTo(ConfType.CHAR);
+
+        ConfParameter valueKvpKeyValueSeparator =
+                configSpec.getParameter(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+        assertThat(valueKvpKeyValueSeparator.name())
+                .isEqualTo(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+        assertThat(valueKvpKeyValueSeparator.required()).isFalse();
+        assertThat(valueKvpKeyValueSeparator.multiple()).isFalse();
+        assertThat(valueKvpKeyValueSeparator.mutable()).isTrue();
+        assertThat(valueKvpKeyValueSeparator.defaultValue()).isEqualTo("=");
+        assertThat(valueKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
 
         ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
@@ -875,6 +918,84 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value either for [record.value.evaluator.schema.path] or [record.value.evaluator.schema.registry.enable]");
+    }
+
+    @Test
+    public void shouldGetKvpPairsSeparator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(",");
+        assertThat(config.getValueKvpPairsSeparator()).isEqualTo(",");
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, ";");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, "|");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(";");
+        assertThat(config.getValueKvpPairsSeparator()).isEqualTo("|");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"==", ";;"})
+    public void shouldFailDueToInvalidKvpPairsSeparator(String delimiter) {
+        Map<String, String> configs1 = new HashMap<>();
+        configs1.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.key.evaluator.kvp.pairs.separator]");
+
+        Map<String, String> configs2 = new HashMap<>();
+        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
+
+        ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.value.evaluator.kvp.pairs.separator]");
+    }
+
+    @Test
+    public void shouldGetKvpValueSeparator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo("=");
+        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo("=");
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "@");
+        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "|");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo("@");
+        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo("|");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"==", ";;"})
+    public void shouldFailDueToInvalidKvpSeparator(String delimiter) {
+        Map<String, String> configs1 = new HashMap<>();
+        configs1.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.key.evaluator.kvp.key-value.separator]");
+
+        Map<String, String> configs2 = new HashMap<>();
+        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
+
+        ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.value.evaluator.kvp.key-value.separator]");
     }
 
     @Test
