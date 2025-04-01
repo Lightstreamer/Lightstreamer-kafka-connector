@@ -856,6 +856,17 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 > [!IMPORTANT]
 > For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
 
+#### Support for Key Value Pairs (KVP)
+
+In addition to the already mentioned formats, the Kafka Connector also supports the Key Value Pairs (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
+
+The Kafka Connector provides flexible configuration options for parsing and extracting data from KVP-formatted records, enabling seamless mapping to Lightstreamer fields. Key-value pairs can be separated by custom delimiters for both the pairs themselves and the key-value separator, ensuring compatibility with diverse data structures. For example:
+
+- A record with the format `key1=value1;key2=value2` uses `=` as the key-value separator and `;` as the pairs separator.
+- These separators can be customized using the parameters [`record.key/value.evaluator.kvp.key-value.separator`](#recordkeyevaluatorkvpkey-valueseparator-and-recordvalueevaluatorkvpkey-valueseparator) and [`record.key/value.evaluator.kvp.pairs.separator`](#recordkeyevaluatorkvppairsseparator-and-recordvalueevaluatorkvppairsseparator).
+
+This support for KVP adds to the versatility of the Kafka Connector, allowing it to handle a wide range of data formats efficiently.
+
 #### `record.consume.from`
 
 _Optional_. Specifies where to start consuming events from:
@@ -960,6 +971,48 @@ Examples:
 ```xml
 <param name="record.key.evaluator.schema.registry.enable">true</param>
 <param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+#### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
+
+_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
+        
+For example, in the following record value:
+
+```
+key1=value1;key2=value2
+```
+
+the key-value separator is the `=` symbol.
+
+Default value: `=`.
+
+```xml
+<param name="record.key.evaluator.kvp.key-value.separator">-</param>
+<param name="record.value.evaluator.kvp.key-value.separator">@</param>
+```
+
+#### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
+
+_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
+
+For example, in the following record value:
+
+```
+key1=value1;key2=value2
+```
+
+the pairs separator is the `;` symbol, which separates `key1=value1` and `key2=value2`.
+        
+**Default value: `,`.**
+
+**Examples:**
+
+```xml
+<param name="record.key.evaluator.kvp.pairs.separator">;</param>
+<param name="record.value.evaluator.kvp.pairs.separator">;</param>
 ```
 
 #### `record.extraction.error.strategy`
