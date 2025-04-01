@@ -923,15 +923,15 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetKvpPairsSeparator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(",");
-        assertThat(config.getValueKvpPairsSeparator()).isEqualTo(",");
+        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(',');
+        assertThat(config.getValueKvpPairsSeparator()).isEqualTo(',');
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, ";");
         updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, "|");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(";");
-        assertThat(config.getValueKvpPairsSeparator()).isEqualTo("|");
+        assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(';');
+        assertThat(config.getValueKvpPairsSeparator()).isEqualTo('|');
     }
 
     @ParameterizedTest
@@ -962,15 +962,15 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetKvpValueSeparator() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo("=");
-        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo("=");
+        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo('=');
+        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('=');
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "@");
         updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "|");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo("@");
-        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo("|");
+        assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo('@');
+        assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('|');
     }
 
     @ParameterizedTest
