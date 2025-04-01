@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CHAR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
@@ -114,6 +115,18 @@ public final class ConnectorConfig extends AbstractConfig {
             "record.value.evaluator.schema.path";
     public static final String RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
             "record.value.evaluator.schema.registry.enable";
+
+    public static final String RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR =
+            "record.key.evaluator.kvp.pairs.separator";
+
+    public static final String RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
+            "record.key.evaluator.kvp.key-value.separator";
+
+    public static final String RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR =
+            "record.value.evaluator.kvp.pairs.separator";
+
+    public static final String RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
+            "record.value.evaluator.kvp.key-value.separator";
 
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
@@ -236,6 +249,30 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
+                        .add(
+                                RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue(","))
+                        .add(
+                                RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue("="))
+                        .add(
+                                RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue(","))
+                        .add(
+                                RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue("="))
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -862,6 +899,22 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isFieldsMapNonScalarValuesEnabled() {
         return getBoolean(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+    }
+
+    public String getKeyKvpPairsSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false);
+    }
+
+    public String getKeyKvpKeyValueSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false);
+    }
+
+    public String getValueKvpPairsSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false);
+    }
+
+    public String getValueKvpKeyValueSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false);
     }
 
     public FieldConfigs getFieldConfigs() {
