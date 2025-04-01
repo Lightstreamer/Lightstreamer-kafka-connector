@@ -168,7 +168,8 @@ public class ConnectSelectorsSuppliersTest {
                         VALUE.children[0].no_attrib,  Field [no_attrib] not found
                         VALUE.no_children[0],         Field [no_children] not found
                         VALUE.name[0],                Field [name] is not indexed
-                        VALUE.name['no_key'],         Field [no_key] not found
+                        VALUE.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
+                        VALUE.name.no_key,            Cannot retrieve field [no_key] from a scalar object
                         VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
                         VALUE.children[0]['no_key'],  Field [no_key] not found
                         VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
@@ -263,7 +264,8 @@ public class ConnectSelectorsSuppliersTest {
                         KEY.children[0].no_attrib,  Field [no_attrib] not found
                         KEY.no_children[0],         Field [no_children] not found
                         KEY.name[0],                Field [name] is not indexed
-                        KEY.name['no_key'],         Field [no_key] not found
+                        KEY.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
+                        KEY.name.no_key,            Cannot retrieve field [no_key] from a scalar object
                         KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
                         KEY.children[0]['no_key'],  Field [no_key] not found
                         KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
