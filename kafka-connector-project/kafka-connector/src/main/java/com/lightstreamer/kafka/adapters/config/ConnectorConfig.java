@@ -901,20 +901,20 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
     }
 
-    public String getKeyKvpPairsSeparator() {
-        return get(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false);
+    public char getKeyKvpPairsSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false).charAt(0);
     }
 
-    public String getKeyKvpKeyValueSeparator() {
-        return get(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false);
+    public char getKeyKvpKeyValueSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false).charAt(0);
     }
 
-    public String getValueKvpPairsSeparator() {
-        return get(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false);
+    public char getValueKvpPairsSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false).charAt(0);
     }
 
-    public String getValueKvpKeyValueSeparator() {
-        return get(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false);
+    public char getValueKvpKeyValueSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false).charAt(0);
     }
 
     public FieldConfigs getFieldConfigs() {
