@@ -246,15 +246,15 @@ class RecordConsumerSupport {
                 log.atDebug().log(() -> "Filtering updates");
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
-                log.atInfo().log("Routing record to {} items", routables.size());
-                processUpdates(updates, routables);
+                log.atInfo().log("Routing record to {} items", routable.size());
+                processUpdates(updates, routable);
             } else {
                 log.atInfo().log("No routable items found");
             }
         }
 
-        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routables) {
-            for (SubscribedItem sub : routables) {
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
+            for (SubscribedItem sub : routable) {
                 log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 listener.smartUpdate(sub.itemHandle(), updates, false);
             }
