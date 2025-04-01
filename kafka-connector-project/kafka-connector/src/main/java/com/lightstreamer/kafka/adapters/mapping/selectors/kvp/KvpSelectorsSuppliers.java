@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.kvp;
 
+import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
@@ -72,11 +73,13 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         default boolean isScalar() {
             return true;
         }
+
+        default boolean isNull() {
+            return false;
+        }
     }
 
     static class KvpValue implements KvpNode {
-
-        static final KvpValue NULL_VALUE = new KvpValue("NULL_VALUE");
 
         private String value;
 
@@ -85,18 +88,13 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public String asText(String defaultStr) {
-            return this != NULL_VALUE ? value : defaultStr;
+        public String asText() {
+            return toString();
         }
 
         @Override
         public String toString() {
             return value;
-        }
-
-        @Override
-        public boolean isNull() {
-            return this == NULL_VALUE;
         }
     }
 
@@ -131,8 +129,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public String asText(String defaultStr) {
-            return this != NULL_MAP ? toString() : defaultStr;
+        public String asText() {
+            return this != NULL_MAP ? toString() : "";
         }
 
         @Override
@@ -153,11 +151,9 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             List<String> tokens = Split.bySemicolon(text);
             Map<String, KvpValue> values = new LinkedHashMap<>();
             for (int i = 0; i < tokens.size(); i++) {
-                String splittable = tokens.get(i);
-                Split.asPair(splittable, '=')
-                        .ifPresentOrElse(
-                                pair -> values.put(pair.key(), new KvpValue(pair.value())),
-                                () -> values.put(splittable, KvpValue.NULL_VALUE));
+                String pairToBeSplitted = tokens.get(i);
+                Split.asPairWithEqual(pairToBeSplitted, true)
+                        .ifPresent(pair -> values.put(pair.key(), new KvpValue(pair.value())));
             }
 
             return new KvpMap(values);
@@ -166,10 +162,10 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
     private static class KvpNodeKeySelectorSupplier implements KeySelectorSupplier<String> {
 
-        private final Deserializer<String> deseralizer;
+        private final Deserializer<String> deserializer;
 
         KvpNodeKeySelectorSupplier() {
-            this.deseralizer = Serdes.String().deserializer();
+            this.deserializer = Serdes.String().deserializer();
         }
 
         @Override
@@ -179,8 +175,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public Deserializer<String> deseralizer() {
-            return deseralizer;
+        public Deserializer<String> deserializer() {
+            return deserializer;
         }
     }
 
@@ -193,18 +189,18 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public Data extractKey(KafkaRecord<String, ?> record) {
+        public Data extractKey(KafkaRecord<String, ?> record, boolean checkScalar) {
             KvpMap node = KvpMap.fromString(record.key());
-            return super.eval(node);
+            return super.eval(node, checkScalar);
         }
     }
 
     private static class KvpNodeValueSelectorSupplier implements ValueSelectorSupplier<String> {
 
-        private final Deserializer<String> deseralizer;
+        private final Deserializer<String> deserializer;
 
         KvpNodeValueSelectorSupplier() {
-            this.deseralizer = Serdes.String().deserializer();
+            this.deserializer = Serdes.String().deserializer();
         }
 
         @Override
@@ -214,8 +210,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public Deserializer<String> deseralizer() {
-            return deseralizer;
+        public Deserializer<String> deserializer() {
+            return deserializer;
         }
     }
 
@@ -228,13 +224,21 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public Data extractValue(KafkaRecord<?, String> record) {
+        public Data extractValue(KafkaRecord<?, String> record, boolean checkScalar) {
             KvpMap node = KvpMap.fromString(record.value());
-            return super.eval(node);
+            return super.eval(node, checkScalar);
         }
     }
 
-    public KvpSelectorsSuppliers() {}
+    private final ConnectorConfig config;
+
+    public KvpSelectorsSuppliers(ConnectorConfig config) {
+        this.config = config;
+    }
+
+    public KvpSelectorsSuppliers() {
+        this.config = null;
+    }
 
     @Override
     public KeySelectorSupplier<String> makeKeySelectorSupplier() {
