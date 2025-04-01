@@ -146,7 +146,7 @@ public class ConstantSelectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldNotCreatValueSelector(String expressionStr) {
+    public void shouldNotCreateValueSelector(String expressionStr) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 

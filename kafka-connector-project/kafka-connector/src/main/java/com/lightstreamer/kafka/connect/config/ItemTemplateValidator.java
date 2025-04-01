@@ -74,7 +74,7 @@ public class ItemTemplateValidator implements Validator {
 
         // Gets the <template-name>:<template-expression> pair
         Pair pair =
-                Split.asPair(template)
+                Split.asPairWithColon(template)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(

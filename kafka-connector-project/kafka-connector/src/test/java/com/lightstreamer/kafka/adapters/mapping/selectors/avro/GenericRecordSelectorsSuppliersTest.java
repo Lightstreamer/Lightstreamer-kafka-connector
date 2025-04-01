@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.RECORD;
+import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.SIMPLE_RECORD;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -127,14 +128,16 @@ public class GenericRecordSelectorsSuppliersTest {
     @Test
     public void shouldGetDeserializer() {
         Deserializer<GenericRecord> keyDeserializer =
-                new GenericRecordSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deseralizer();
+                new GenericRecordSelectorsSuppliers(CONFIG)
+                        .makeKeySelectorSupplier()
+                        .deserializer();
         assertThat(keyDeserializer).isInstanceOf(GenericRecordLocalSchemaDeserializer.class);
         // assertThat(GenericRecordDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
         Deserializer<GenericRecord> valueDeserializer =
                 new GenericRecordSelectorsSuppliers(CONFIG)
                         .makeValueSelectorSupplier()
-                        .deseralizer();
+                        .deserializer();
         assertThat(valueDeserializer).isInstanceOf(GenericRecordLocalSchemaDeserializer.class);
         // assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
@@ -142,26 +145,27 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input VALUE.signature
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                             |  EXPECTED
-                        VALUE.name                             |  joe
-                        VALUE.preferences['pref1']             |  pref_value1
-                        VALUE.preferences['pref2']             |  pref_value2
-                        VALUE.documents['id'].doc_id           |  ID123
-                        VALUE.documents['id'].doc_type         |  ID
-                        VALUE.type                             |  TYPE1
-                        VALUE.signature                        |  [97, 98, 99, 100]
-                        VALUE.children[0].name                 |  alex
-                        VALUE.children[0]['name']              |  alex
-                        VALUE.children[0].signature            |  NULL
-                        VALUE.children[1].name                 |  anna
-                        VALUE.children[2].name                 |  serena
-                        VALUE.children[3]                      |  NULL
-                        VALUE.children[1].children[0].name     |  gloria
-                        VALUE.children[1].children[1].name     |  terence
-                        VALUE.children[1].children[1]['name']  |  terence
+                        EXPRESSION                            |  EXPECTED
+                        VALUE.name                            |  joe
+                        VALUE.preferences['pref1']            |  pref_value1
+                        VALUE.preferences['pref2']            |  pref_value2
+                        VALUE.documents['id'].doc_id          |  ID123
+                        VALUE.documents['id'].doc_type        |  ID
+                        VALUE.type                            |  TYPE1
+                        VALUE.signature                       |  [97, 98, 99, 100]
+                        VALUE.children[0].name                |  alex
+                        VALUE.children[0]['name']             |  alex
+                        VALUE.children[0].signature           |  NULL
+                        VALUE.children[1].name                |  anna
+                        VALUE.children[2].name                |  serena
+                        VALUE.children[3]                     |  NULL
+                        VALUE.children[1].children[0].name    |  gloria
+                        VALUE.children[1].children[1].name    |  terence
+                        VALUE.children[1].children[1]['name'] |  terence
+                        VALUE.nullArray                       | NULL
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
@@ -178,23 +182,54 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION,                   EXPECTED_ERROR_MESSAGE
-                        VALUE.no_attrib,              Field [no_attrib] not found
-                        VALUE.children[0].no_attrib,  Field [no_attrib] not found
-                        VALUE.no_children[0],         Field [no_children] not found
-                        VALUE.name[0],                Field [name] is not indexed
-                        VALUE.name['no_key'],         Field [no_key] not found
-                        VALUE.preferences,            The expression [VALUE.preferences] must evaluate to a non-complex object
-                        VALUE.documents,              The expression [VALUE.documents] must evaluate to a non-complex object
-                        VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
-                        VALUE.children[0]['no_key'],  Field [no_key] not found
-                        VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
-                        VALUE.children[3].name,       Cannot retrieve field [name] from a null object
-                        VALUE.children[4],            Field not found at index [4]
-                        VALUE.children[4].name,       Field not found at index [4]
-                        VALUE.type.attrib,            Field [attrib] not found
+                        EXPRESSION                      | EXPECTED
+                        VALUE                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                        VALUE.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                        VALUE.documents.id.doc_id       | ID123
+                        VALUE.documents['id'].doc_id    | ID123
+                        VALUE.documents['id']['doc_id'] | ID123
+                        VALUE.preferences               | {pref1=pref_value1, pref2=pref_value2}
+                        VALUE.preferences['pref1']      | pref_value1
+                        VALUE.preferences['pref2']      | pref_value2
+                        VALUE.type                      | TYPE1
+                        VALUE.emptyArray                | []
+                        """)
+    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
+            throws ExtractionException {
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
+
+        String text =
+                valueSelector(expression).extractValue(fromValue(SIMPLE_RECORD), false).text();
+        assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                        EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                        VALUE,                       The expression [VALUE] must evaluate to a non-complex object
+                        VALUE.no_attrib,             Field [no_attrib] not found
+                        VALUE.children[0].no_attrib, Field [no_attrib] not found
+                        VALUE.no_children[0],        Field [no_children] not found
+                        VALUE.name[0],               Field [name] is not indexed
+                        VALUE.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
+                        VALUE.name.no_key,           Cannot retrieve field [no_key] from a scalar object
+                        VALUE.preferences,           The expression [VALUE.preferences] must evaluate to a non-complex object
+                        VALUE.documents,             The expression [VALUE.documents] must evaluate to a non-complex object
+                        VALUE.children,              The expression [VALUE.children] must evaluate to a non-complex object
+                        VALUE.children[0]['no_key'], Field [no_key] not found
+                        VALUE.children[0],           The expression [VALUE.children[0]] must evaluate to a non-complex object
+                        VALUE.children[3].name,      Cannot retrieve field [name] from a null object
+                        VALUE.children[4],           Field not found at index [4]
+                        VALUE.children[4].name,      Field not found at index [4]
+                        VALUE.type.attrib,           Cannot retrieve field [attrib] from a scalar object
+                        VALUE.emptyArray[0],         Field not found at index [0]
+                        VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -208,26 +243,27 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required becase of the expected value for input KEY.signature
+            delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
-                        EXPRESSION                           |  EXPECTED
-                        KEY.name                             |  joe
-                        KEY.preferences['pref1']             |  pref_value1
-                        KEY.preferences['pref2']             |  pref_value2
-                        KEY.documents['id'].doc_id           |  ID123
-                        KEY.documents['id'].doc_type         |  ID
-                        KEY.type                             |  TYPE1
-                        KEY.signature                        |  [97, 98, 99, 100]
-                        KEY.children[0].name                 |  alex
-                        KEY.children[0]['name']              |  alex
-                        KEY.children[0].signature            |  NULL
-                        KEY.children[1].name                 |  anna
-                        KEY.children[2].name                 |  serena
-                        KEY.children[3]                      |  NULL
-                        KEY.children[1].children[0].name     |  gloria
-                        KEY.children[1].children[1].name     |  terence
-                        KEY.children[1].children[1]['name']  |  terence
+                        EXPRESSION                          | EXPECTED
+                        KEY.name                            | joe
+                        KEY.preferences['pref1']            | pref_value1
+                        KEY.preferences['pref2']            | pref_value2
+                        KEY.documents['id'].doc_id          | ID123
+                        KEY.documents['id'].doc_type        | ID
+                        KEY.type                            | TYPE1
+                        KEY.signature                       | [97, 98, 99, 100]
+                        KEY.children[0].name                | alex
+                        KEY.children[0]['name']             | alex
+                        KEY.children[0].signature           | NULL
+                        KEY.children[1].name                | anna
+                        KEY.children[2].name                | serena
+                        KEY.children[3]                     | NULL
+                        KEY.children[1].children[0].name    | gloria
+                        KEY.children[1].children[1].name    | terence
+                        KEY.children[1].children[1]['name'] | terence
+                        KEY.nullArray                       | NULL
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -243,22 +279,51 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION,                 EXPECTED_ERROR_MESSAGE
-                        KEY.no_attrib,              Field [no_attrib] not found
-                        KEY.children[0].no_attrib,  Field [no_attrib] not found
-                        KEY.no_children[0],         Field [no_children] not found
-                        KEY.name[0],                Field [name] is not indexed
-                        KEY.name['no_key'],         Field [no_key] not found
-                        KEY.preferences,            The expression [KEY.preferences] must evaluate to a non-complex object
-                        KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
-                        KEY.children[0]['no_key'],  Field [no_key] not found
-                        KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
-                        KEY.children[3].name,       Cannot retrieve field [name] from a null object
-                        KEY.children[4],            Field not found at index [4]
-                        KEY.children[4].name,       Field not found at index [4]
-                        KEY.type.attrib,            Field [attrib] not found
+                        EXPRESSION                    | EXPECTED
+                        KEY                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                        KEY.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                        KEY.documents.id.doc_id       | ID123
+                        KEY.documents['id'].doc_id    | ID123
+                        KEY.documents['id']['doc_id'] | ID123
+                        KEY.preferences               | {pref1=pref_value1, pref2=pref_value2}
+                        KEY.preferences['pref1']      | pref_value1
+                        KEY.preferences['pref2']      | pref_value2
+                        KEY.type                      | TYPE1
+                        KEY.emptyArray                | []
+                        """)
+    public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
+            throws ExtractionException {
+        ExtractionExpression expression = Expressions.Expression(expressionStr);
+
+        String text = keySelector(expression).extractKey(fromKey(SIMPLE_RECORD), false).text();
+        assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                        EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                        KEY,                       The expression [KEY] must evaluate to a non-complex object
+                        KEY.no_attrib,             Field [no_attrib] not found
+                        KEY.children[0].no_attrib, Field [no_attrib] not found
+                        KEY.no_children[0],        Field [no_children] not found
+                        KEY.name[0],               Field [name] is not indexed
+                        KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
+                        KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
+                        KEY.preferences,           The expression [KEY.preferences] must evaluate to a non-complex object
+                        KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
+                        KEY.children[0]['no_key'], Field [no_key] not found
+                        KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
+                        KEY.children[3].name,      Cannot retrieve field [name] from a null object
+                        KEY.children[4],           Field not found at index [4]
+                        KEY.children[4].name,      Field not found at index [4]
+                        KEY.type.attrib,           Cannot retrieve field [attrib] from a scalar object
+                        KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -274,13 +339,12 @@ public class GenericRecordSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        VALUE,               Found the invalid expression [VALUE] with missing attribute while evaluating [name]
-                        VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                        EXPRESSION,         EXPECTED_ERROR_MESSAGE
+                        VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
+                        VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                        VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+                        VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                        VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -294,13 +358,12 @@ public class GenericRecordSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                        KEY,               Found the invalid expression [KEY] with missing attribute while evaluating [name]
-                        KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                        EXPRESSION,       EXPECTED_ERROR_MESSAGE
+                        KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
+                        KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                        KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+                        KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                        KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);

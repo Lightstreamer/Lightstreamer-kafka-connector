@@ -121,7 +121,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldNotSubscribeDueToExceptionWhileCheckintExistingTopic() {
+    public void shouldNotSubscribeDueToExceptionWhileCheckingExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("topic"), true));
@@ -174,7 +174,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 10, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
         // Invoke the method and verify that task has been actually invoked with the
         // expected simulated records
@@ -460,7 +460,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -501,7 +501,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -547,7 +547,7 @@ public class ConsumerWrapperImplTest {
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), new int[] {0, 1});
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -573,7 +573,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldRunWithNoSubscriptioneDueToNotExistingTopic() {
+    public void shouldRunWithNoSubscriptionDueToNotExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
@@ -586,7 +586,7 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldRunWithNoSubscriptioneDueToExceptionWhileCheckintExistingTopic() {
+    public void shouldRunWithNoSubscriptionDueToExceptionWhileCheckingExistingTopic() {
         ConsumerWrapperImpl<String, String> consumer =
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.singleton("anotherTopic"), true));

@@ -74,7 +74,7 @@ public class TopicMappingsValidator implements Validator {
 
         // Gets the <topic-name>:<item-mapping> pair
         Pair pair =
-                Split.asPair(topicMapping)
+                Split.asPairWithColon(topicMapping)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(
@@ -83,9 +83,9 @@ public class TopicMappingsValidator implements Validator {
                                                         name, "[topicName]:[mappingList]")));
 
         // Validates <item-mapping>
-        List<String> emptyEntryes =
+        List<String> emptyEntries =
                 Split.byComma(pair.value()).stream().filter(String::isBlank).toList();
-        if (!emptyEntryes.isEmpty()) {
+        if (!emptyEntries.isEmpty()) {
             throw new ConfigException(
                     String.format(
                             "Invalid value for configuration \"%s\": Mapping list must be in the form %s",

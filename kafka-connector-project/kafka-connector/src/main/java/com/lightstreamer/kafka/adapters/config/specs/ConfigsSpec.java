@@ -64,6 +64,13 @@ public class ConfigsSpec {
     }
 
     public enum ConfType implements Type {
+        CHAR {
+            @Override
+            public boolean checkValidity(String param) {
+                return param.length() == 1;
+            }
+        },
+
         TEXT {
             @Override
             public boolean checkValidity(String param) {
@@ -390,35 +397,35 @@ public class ConfigsSpec {
             return new Options(SaslMechanism.names());
         }
 
-        private Set<String> choiches;
+        private Set<String> choices;
 
         Options(String... options) {
-            this.choiches = Set.of(options);
+            this.choices = Set.of(options);
         }
 
-        Options(Set<String> choiches) {
-            this.choiches = Set.copyOf(choiches);
+        Options(Set<String> choices) {
+            this.choices = Set.copyOf(choices);
         }
 
         public String toString() {
-            return choiches.toString();
+            return choices.toString();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(choiches);
+            return Objects.hash(choices);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof Options other && Objects.equals(choiches, other.choiches);
+            return obj instanceof Options other && Objects.equals(choices, other.choices);
         }
 
         @Override
         public boolean isValid(String param) {
-            return choiches.contains(param);
+            return choices.contains(param);
         }
     }
 
@@ -658,7 +665,7 @@ public class ConfigsSpec {
                 .orElseThrow(
                         () ->
                                 new ConfigException(
-                                        "Can't add parameters subsection [%s] without the enablig parameter [%s]"
+                                        "Can't add parameters subsection [%s] without the enabling parameter [%s]"
                                                 .formatted(spec.name, enablingKey)));
         specChildren.add(new ChildSpec(enablingKey, spec, evalStrategy));
         return this;

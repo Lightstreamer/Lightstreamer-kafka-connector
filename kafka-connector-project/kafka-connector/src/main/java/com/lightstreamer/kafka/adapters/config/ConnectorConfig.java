@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CHAR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
@@ -79,7 +80,7 @@ import java.util.stream.Collectors;
 
 public final class ConnectorConfig extends AbstractConfig {
 
-    static final String LIGHSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
+    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
     public static final String ENABLE = "enable";
 
@@ -100,6 +101,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_SKIP_FAILED_MAPPING_ENABLE =
             "fields.skip.failed.mapping.enable";
 
+    public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
+            "fields.map.non.scalar.values.enable";
+
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
             "record.key.evaluator.schema.path";
@@ -111,6 +115,18 @@ public final class ConnectorConfig extends AbstractConfig {
             "record.value.evaluator.schema.path";
     public static final String RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
             "record.value.evaluator.schema.registry.enable";
+
+    public static final String RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR =
+            "record.key.evaluator.kvp.pairs.separator";
+
+    public static final String RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
+            "record.key.evaluator.kvp.key-value.separator";
+
+    public static final String RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR =
+            "record.value.evaluator.kvp.pairs.separator";
+
+    public static final String RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
+            "record.value.evaluator.kvp.key-value.separator";
 
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
@@ -124,7 +140,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String ITEM_INFO_FIELD = "info.field";
 
-    public static final String ENCYRPTION_ENABLE = "encryption.enable";
+    public static final String ENCRYPTION_ENABLE = "encryption.enable";
 
     public static final String AUTHENTICATION_ENABLE = "authentication.enable";
 
@@ -203,6 +219,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 BOOL,
                                 defaultValue("false"))
                         .add(
+                                FIELDS_MAP_NON_SCALAR_VALUES_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 false,
                                 false,
@@ -228,6 +250,30 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
+                        .add(
+                                RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue(","))
+                        .add(
+                                RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue("="))
+                        .add(
+                                RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue(","))
+                        .add(
+                                RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR,
+                                false,
+                                false,
+                                CHAR,
+                                defaultValue("="))
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -248,7 +294,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ORDER_STRATEGY,
                                 defaultValue("ORDER_BY_PARTITION"))
-                        .add(ENCYRPTION_ENABLE, false, false, BOOL, defaultValue("false"))
+                        .add(ENCRYPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
@@ -270,11 +316,11 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 return "";
                                             }
                                             if (Split.byComma(hostList).stream()
-                                                    .flatMap(s -> Split.asPair(s, ':').stream())
+                                                    .flatMap(s -> Split.asPairWithColon(s).stream())
                                                     .map(p -> p.key())
                                                     .allMatch(
                                                             s -> s.endsWith(".confluent.cloud"))) {
-                                                return LIGHSTREAMER_CLIENT_ID;
+                                                return LIGHTSTREAMER_CLIENT_ID;
                                             }
                                             return "";
                                         }))
@@ -322,7 +368,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 INT,
                                 false,
                                 defaultValue("60000"))
-                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCYRPTION_ENABLE)
+                        .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCRYPTION_ENABLE)
                         .withEnabledChildConfigs(
                                 BrokerAuthenticationConfigs.spec(), AUTHENTICATION_ENABLE)
                         .withEnabledChildConfigs(
@@ -429,7 +475,7 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.putAll(BrokerAuthenticationConfigs.addAuthentication(this));
         properties.putAll(SchemaRegistryConfigs.addSchemaRegistry(this));
 
-        return properties.unmodifiables();
+        return properties.unmodifiable();
     }
 
     static ConfigsSpec configSpec() {
@@ -536,7 +582,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isEncryptionEnabled() {
-        return getBoolean(ENCYRPTION_ENABLE);
+        return getBoolean(ENCRYPTION_ENABLE);
     }
 
     public boolean isKeystoreEnabled() {
@@ -547,7 +593,7 @@ public final class ConnectorConfig extends AbstractConfig {
     private void checkEncryptionEnabled() {
         if (!isEncryptionEnabled()) {
             throw new ConfigException(
-                    "Encryption is not enabled. Check parameter [%s]".formatted(ENCYRPTION_ENABLE));
+                    "Encryption is not enabled. Check parameter [%s]".formatted(ENCRYPTION_ENABLE));
         }
     }
 
@@ -781,7 +827,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isSchemaRegistryHostNameVerificationEnabled() {
         checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENANLE);
+        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE);
     }
 
     public String schemaRegistryKeyPassword() {
@@ -855,6 +901,26 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isFieldsSkipFailedMappingEnabled() {
         return getBoolean(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+    }
+
+    public boolean isFieldsMapNonScalarValuesEnabled() {
+        return getBoolean(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+    }
+
+    public char getKeyKvpPairsSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false).charAt(0);
+    }
+
+    public char getKeyKvpKeyValueSeparator() {
+        return get(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false).charAt(0);
+    }
+
+    public char getValueKvpPairsSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, CHAR, false).charAt(0);
+    }
+
+    public char getValueKvpKeyValueSeparator() {
+        return get(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false).charAt(0);
     }
 
     public FieldConfigs getFieldConfigs() {

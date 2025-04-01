@@ -33,11 +33,11 @@ import java.util.function.Supplier;
 public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer<T> {
 
     private String keySchemaFileName;
-    private String valueShemaFileName;
+    private String valueSchemaFileName;
 
     public void preConfigure(ConnectorConfig config) {
         keySchemaFileName = config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
-        valueShemaFileName = config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        valueSchemaFileName = config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
     }
 
     public final File getSchemaFile(boolean isKey) {
@@ -56,7 +56,7 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
     }
 
     private Optional<File> valueSchemaFile() {
-        return schemaFile(valueShemaFileName);
+        return schemaFile(valueSchemaFileName);
     }
 
     private Optional<File> schemaFile(String schemaFile) {

@@ -177,14 +177,25 @@ public class ExpressionsTest {
                         "item",
                         Map.of("param1", "a", "param2", "b", "param3", "c")),
                 arguments("item-prefix-[param=a,]", "item-prefix", Map.of("param", "a")),
+                arguments("item-prefix-[param=a.b]", "item-prefix", Map.of("param", "a.b")),
                 arguments("item-prefix-[param=a]]", "item-prefix", Map.of("param", "a]")),
+                // arguments("item-prefix-[param1=a param with spaces]", "item-prefix",
+                // Map.of("param1", "a param with spaces")),
+                arguments(
+                        "item-prefix-[param1=a param with spaces,param2=another param with values]",
+                        "item-prefix",
+                        Map.of(
+                                "param1",
+                                "a param with spaces",
+                                "param2",
+                                "another param with values")),
                 arguments("item-prefix-", "item-prefix-", Collections.emptyMap()),
                 arguments("item-prefix-[]", "item-prefix", Collections.emptyMap()));
     }
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    void shouldCreateSubscriptionEpression(
+    void shouldCreateSubscriptionExpression(
             String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
         SubscriptionExpression subscription = Subscription(expressionStr);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);

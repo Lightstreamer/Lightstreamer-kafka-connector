@@ -76,13 +76,13 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
             "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC =
             "The (optional) value in milliseconds for the time to wait while trying to establish a "
-                    + "connection to the Lighstreamer server's Proxy Adapter before terminating the task."
+                    + "connection to the Lightstreamer server's Proxy Adapter before terminating the task."
                     + "\nSpecify 0 for infinite timeout.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES_DOC =
-            "The (optional) max number of retries to establish a connection the Lighstreamer server's Proxy Adapter.";
+            "The (optional) max number of retries to establish a connection the Lightstreamer server's Proxy Adapter.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms";
@@ -109,7 +109,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
             [templateName1]:[template1];[templateName2]:[template2];...;[templateNameN]:[templateN]
 
-            where the [templateX] configures the item template [templaeName] defining the general format of the items the Lightstremer clients must subscribe to to receive udpdates.
+            where the [templateX] configures the item template [templateName] defining the general format of the items the Lightstreamer clients must subscribe to to receive updates.
 
             A template is specified in the form:
 
@@ -137,20 +137,29 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_MAPPINGS = "record.mappings";
     public static final String RECORD_MAPPINGS_DOC =
-            "The list of mappings between Kafa records and Ligtstreamer fields. The list should describe a set of "
+            "The list of mappings between Kafka records and Lightstreamer fields. The list should describe a set of "
                     + "subscribable fields in the following form:"
                     + "\n\n"
                     + "[fieldName1]:[extractionExpression1],[fieldName2]:[extractionExpressionN],...,[fieldNameN]:[extractionExpressionN]"
                     + "\n\n"
-                    + "where the Lightstreamer field [fieldNameX] whill hold the data extracted from a deserialized Kafka record using the "
+                    + "where the Lightstreamer field [fieldNameX] will hold the data extracted from a deserialized Kafka record using the "
                     + "Data Extraction Language [extractionExpressionX].";
 
     public static final String RECORD_MAPPINGS_SKIP_FAILED_ENABLE =
             "record.mappings.skip.failed.enable";
     public static final String RECORD_MAPPING_SKIP_FAILED_ENABLE_DOC =
             """
-            By enabling this (optional) parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
-            Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered.
+            Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields.
+            This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
+            """;
+
+    public static final String RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE =
+            "record.mappings.map.non.scalar.values.enable";
+    public static final String RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE_DOC =
+            """
+            By enabling the parameter, it is possible to map non-scalar values to Lightstreamer fields so that complex data structures from Kafka records
+            can be mapped directly to fields without requiring them to be flattened into scalar value.
+
             """;
 
     public static final String RECORD_EXTRACTION_ERROR_STRATEGY =
@@ -268,6 +277,14 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
+                                .name(RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE)
+                                .type(Type.BOOLEAN)
+                                .defaultValue(false)
+                                .importance(Importance.MEDIUM)
+                                .documentation(RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE_DOC)
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
                                 .name(RECORD_EXTRACTION_ERROR_STRATEGY)
                                 .type(Type.STRING)
                                 .defaultValue(
@@ -280,7 +297,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     private final ItemTemplateConfigs itemTemplateConfigs;
-    private final List<TopicMappingConfig> topicMppingCofigs;
+    private final List<TopicMappingConfig> topicMappingConfigs;
     private final FieldConfigs fieldConfigs;
     private final ProxyAdapterClientOptions proxyAdapterClientOptions;
 
@@ -288,7 +305,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         super(makeConfig(), originals);
 
         itemTemplateConfigs = initItemTemplateConfigs();
-        topicMppingCofigs = initTopicMappingConfigs();
+        topicMappingConfigs = initTopicMappingConfigs();
         fieldConfigs = initFieldConfigs();
 
         Pair address = getProxyAdapterAddress();
@@ -329,7 +346,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
-        return topicMppingCofigs;
+        return topicMappingConfigs;
     }
 
     public FieldConfigs getFieldConfigs() {
@@ -352,22 +369,26 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         return getBoolean(RECORD_MAPPINGS_SKIP_FAILED_ENABLE);
     }
 
+    public boolean isRecordMappingMapNonScalarValuesEnabled() {
+        return getBoolean(RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE);
+    }
+
     private Pair getProxyAdapterAddress() {
-        return Split.asPair(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
+        return Split.asPairWithColon(getString(LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS))
                 .orElseThrow(() -> new RuntimeException());
     }
 
     private FieldConfigs initFieldConfigs() {
         return FieldConfigs.from(
                 getList(RECORD_MAPPINGS).stream()
-                        .flatMap(t -> Split.asPair(t).stream())
+                        .flatMap(t -> Split.asPairWithColon(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
     private List<TopicMappingConfig> initTopicMappingConfigs() {
         return TopicMappingConfig.from(
                 Split.bySemicolon(getString(TOPIC_MAPPINGS)).stream()
-                        .flatMap(t -> Split.asPair(t).stream())
+                        .flatMap(t -> Split.asPairWithColon(t).stream())
                         .collect(toMap(Pair::key, Pair::value)));
     }
 
@@ -375,7 +396,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         try {
             return ItemTemplateConfigs.from(
                     Split.bySemicolon(getString(ITEM_TEMPLATES)).stream()
-                            .flatMap(s -> Split.asPair(s).stream())
+                            .flatMap(s -> Split.asPairWithColon(s).stream())
                             .collect(toMap(Pair::key, Pair::value)));
         } catch (ConfigException ce) {
             throw new org.apache.kafka.common.config.ConfigException("");

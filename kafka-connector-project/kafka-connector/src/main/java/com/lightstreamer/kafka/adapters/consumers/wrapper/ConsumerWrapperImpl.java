@@ -120,13 +120,13 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     public void run() {
         // Install the shutdown hook
         this.hook = setShutdownHook();
-        log.atDebug().log("Set shutdown kook");
+        log.atDebug().log("Set shutdown hook");
         try {
             if (subscribed()) {
                 pollOnce(this::initStoreAndConsume);
                 pollForEver(this::consumeRecords);
             } else {
-                log.atWarn().log("No subcriptons happended");
+                log.atWarn().log("No subscriptions happened");
             }
         } catch (WakeupException e) {
             log.atDebug().log("Kafka Consumer woken up");
@@ -197,7 +197,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             ListTopicsOptions options = new ListTopicsOptions();
             options.timeoutMs(30000);
 
-            // Retain from the original requestes topics the available ones.
+            // Retain from the original requests topics the available ones.
             Set<String> existingTopics = admin.listTopics(options);
             boolean notAllPresent = topics.retainAll(existingTopics);
 

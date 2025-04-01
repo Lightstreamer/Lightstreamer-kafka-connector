@@ -94,7 +94,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithSchemaRegsitry() {
+    public void shouldGetKeyDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -112,7 +112,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithSchemaRegsitry() {
+    public void shouldGetValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -130,7 +130,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndVaueDeserializeWithSchemaRegisstry() {
+    public void shouldGetKeyAndValueDeserializeWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -275,7 +275,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializazionWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
+    public void shouldDeserializationWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(

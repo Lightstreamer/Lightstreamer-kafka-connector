@@ -107,15 +107,15 @@ public class StreamingDataAdapterTest {
     void shouldCreate() throws SubscriptionException {
         StreamingDataAdapter adapter = newAdapter();
         assertThat(adapter.getInitParameters()).isEmpty();
-        assertThat(adapter.getErrantRercordReporter()).isNull();
+        assertThat(adapter.getErrantRecordReporter()).isNull();
         assertThat(adapter.isSnapshotAvailable("anItem")).isFalse();
-        assertThat(adapter.getErrantRercordReporter()).isNull();
+        assertThat(adapter.getErrantRecordReporter()).isNull();
     }
 
     @Test
     void shouldCreateWithNoErrantReporter() {
         StreamingDataAdapter adapter = newAdapter(true);
-        assertThat(adapter.getErrantRercordReporter()).isNotNull();
+        assertThat(adapter.getErrantRecordReporter()).isNotNull();
     }
 
     @Test
@@ -215,7 +215,7 @@ public class StreamingDataAdapterTest {
         adapter.setListener(eventsListener);
         adapter.sendRecords(Collections.singleton(mkRecord()));
 
-        // The NOP Updater has been notifyed with the event.
+        // The NOP Updater has been notified with the event.
         assertThat(counter.get()).isEqualTo(1);
     }
 
