@@ -277,8 +277,7 @@ public class KvpNodeSelectorsSuppliersTest {
 
         String message = "A@1|B@2";
         ExtractionExpression expression = Expressions.Expression(expressionString);
-        String text =
-                keySelector(expression, config).extractKey(fromKey(message), false).text();
+        String text = keySelector(expression, config).extractKey(fromKey(message), false).text();
         assertThat(text).isEqualTo(expected);
     }
 
