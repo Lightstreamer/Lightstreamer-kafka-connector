@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.common.utils.Split;
+import com.lightstreamer.kafka.common.utils.Split.Splitter;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<String> {
 
@@ -143,16 +145,41 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             return this == NULL_MAP;
         }
 
+        /**
+         * Parses a string into a {@code KvpMap} using the specified delimiters for key-value pairs
+         * and key-value separation.
+         *
+         * @param text the input string to be parsed into a {@code KvpMap}. The string should
+         *     contain key-value pairs separated by a semicolon ({@code ;}) and keys and values
+         *     separated by an equals sign ({@code =}). If null or blank, {@link KvpMap#NULL_MAP} is
+         *     returned.
+         * @return a {@code KvpMap} containing the parsed key-value pairs
+         */
         static KvpMap fromString(String text) {
+            return fromString(text, Split.on(';'), Split.on('='));
+        }
+
+        /**
+         * Parses a string into a {@code KvpMap} using the provided {@code Splitter} instances for
+         * splitting pairs and key-value components.
+         *
+         * @param text the input string to be parsed. If null or blank, {@link KvpMap#NULL_MAP} is
+         *     returned.
+         * @param pairs a {@code Splitter} used to split the input string into pairs
+         * @param keyValue a {@code Splitter} used to split each pair into key-value components
+         * @return a {@code KvpMap} containing the parsed key-value pairs. If the input string is
+         *     null or blank, {@link KvpMap#NULL_MAP} is returned.
+         */
+        static KvpMap fromString(String text, Splitter pairs, Splitter keyValue) {
             if (text == null || text.isBlank()) {
                 return KvpMap.NULL_MAP;
             }
 
-            List<String> tokens = Split.bySemicolon(text);
+            List<String> tokens = pairs.splitToList(text);
             Map<String, KvpValue> values = new LinkedHashMap<>();
             for (int i = 0; i < tokens.size(); i++) {
                 String pairToBeSplitted = tokens.get(i);
-                Split.asPairWithEqual(pairToBeSplitted, true)
+                keyValue.splitToPair(pairToBeSplitted, true)
                         .ifPresent(pair -> values.put(pair.key(), new KvpValue(pair.value())));
             }
 
@@ -163,15 +190,17 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static class KvpNodeKeySelectorSupplier implements KeySelectorSupplier<String> {
 
         private final Deserializer<String> deserializer;
+        private final Function<KafkaRecord<String, ?>, KvpMap> kvpMapFactory;
 
-        KvpNodeKeySelectorSupplier() {
+        KvpNodeKeySelectorSupplier(Splitter pair, Splitter keyValue) {
             this.deserializer = Serdes.String().deserializer();
+            this.kvpMapFactory = record -> KvpMap.fromString(record.key(), pair, keyValue);
         }
 
         @Override
         public KeySelector<String> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return new KvpNodeKeySelector(name, expression);
+            return new KvpNodeKeySelector(name, expression, kvpMapFactory);
         }
 
         @Override
@@ -183,14 +212,20 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static final class KvpNodeKeySelector extends StructuredBaseSelector<KvpNode>
             implements KeySelector<String> {
 
-        KvpNodeKeySelector(String name, ExtractionExpression expression)
+        private final Function<KafkaRecord<String, ?>, KvpMap> kvpMapFactory;
+
+        KvpNodeKeySelector(
+                String name,
+                ExtractionExpression expression,
+                Function<KafkaRecord<String, ?>, KvpMap> kvpMapFactory)
                 throws ExtractionException {
             super(name, expression, Constant.KEY);
+            this.kvpMapFactory = kvpMapFactory;
         }
 
         @Override
         public Data extractKey(KafkaRecord<String, ?> record, boolean checkScalar) {
-            KvpMap node = KvpMap.fromString(record.key());
+            KvpMap node = kvpMapFactory.apply(record);
             return super.eval(node, checkScalar);
         }
     }
@@ -198,15 +233,17 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static class KvpNodeValueSelectorSupplier implements ValueSelectorSupplier<String> {
 
         private final Deserializer<String> deserializer;
+        private final Function<KafkaRecord<?, String>, KvpMap> kvpMapFactory;
 
-        KvpNodeValueSelectorSupplier() {
+        KvpNodeValueSelectorSupplier(Splitter pair, Splitter keyValue) {
             this.deserializer = Serdes.String().deserializer();
+            this.kvpMapFactory = record -> KvpMap.fromString(record.value(), pair, keyValue);
         }
 
         @Override
         public ValueSelector<String> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
-            return new KvpNodeValueSelector(name, expression);
+            return new KvpNodeValueSelector(name, expression, kvpMapFactory);
         }
 
         @Override
@@ -218,14 +255,20 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static final class KvpNodeValueSelector extends StructuredBaseSelector<KvpNode>
             implements ValueSelector<String> {
 
-        KvpNodeValueSelector(String name, ExtractionExpression expression)
+        private final Function<KafkaRecord<?, String>, KvpMap> kvpMapFactory;
+
+        KvpNodeValueSelector(
+                String name,
+                ExtractionExpression expression,
+                Function<KafkaRecord<?, String>, KvpMap> kvpMapFactory)
                 throws ExtractionException {
             super(name, expression, Constant.VALUE);
+            this.kvpMapFactory = kvpMapFactory;
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, String> record, boolean checkScalar) {
-            KvpMap node = KvpMap.fromString(record.value());
+            KvpMap node = kvpMapFactory.apply(record);
             return super.eval(node, checkScalar);
         }
     }
@@ -236,17 +279,17 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         this.config = config;
     }
 
-    public KvpSelectorsSuppliers() {
-        this.config = null;
-    }
-
     @Override
     public KeySelectorSupplier<String> makeKeySelectorSupplier() {
-        return new KvpNodeKeySelectorSupplier();
+        Splitter pair = Split.on(config.getKeyKvpPairsSeparator());
+        Splitter keyValue = Split.on(config.getKeyKvpKeyValueSeparator());
+        return new KvpNodeKeySelectorSupplier(pair, keyValue);
     }
 
     @Override
     public ValueSelectorSupplier<String> makeValueSelectorSupplier() {
-        return new KvpNodeValueSelectorSupplier();
+        Splitter pair = Split.on(config.getValueKvpPairsSeparator());
+        Splitter keyValue = Split.on(config.getValueKvpKeyValueSeparator());
+        return new KvpNodeValueSelectorSupplier(pair, keyValue);
     }
 }
