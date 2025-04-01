@@ -217,7 +217,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.children[0].no_attrib, Field [no_attrib] not found
                         VALUE.no_children[0],        Field [no_children] not found
                         VALUE.name[0],               Field [name] is not indexed
-                        VALUE.name['no_key'],        Field [no_key] not found
+                        VALUE.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
+                        VALUE.name.no_key,           Cannot retrieve field [no_key] from a scalar object
                         VALUE.preferences,           The expression [VALUE.preferences] must evaluate to a non-complex object
                         VALUE.documents,             The expression [VALUE.documents] must evaluate to a non-complex object
                         VALUE.children,              The expression [VALUE.children] must evaluate to a non-complex object
@@ -226,7 +227,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.children[3].name,      Cannot retrieve field [name] from a null object
                         VALUE.children[4],           Field not found at index [4]
                         VALUE.children[4].name,      Field not found at index [4]
-                        VALUE.type.attrib,           Field [attrib] not found
+                        VALUE.type.attrib,           Cannot retrieve field [attrib] from a scalar object
                         VALUE.emptyArray[0],         Field not found at index [0]
                         VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
@@ -312,7 +313,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.children[0].no_attrib, Field [no_attrib] not found
                         KEY.no_children[0],        Field [no_children] not found
                         KEY.name[0],               Field [name] is not indexed
-                        KEY.name['no_key'],        Field [no_key] not found
+                        KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
+                        KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
                         KEY.preferences,           The expression [KEY.preferences] must evaluate to a non-complex object
                         KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
                         KEY.children[0]['no_key'], Field [no_key] not found
@@ -320,7 +322,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.children[3].name,      Cannot retrieve field [name] from a null object
                         KEY.children[4],           Field not found at index [4]
                         KEY.children[4].name,      Field not found at index [4]
-                        KEY.type.attrib,           Field [attrib] not found
+                        KEY.type.attrib,           Cannot retrieve field [attrib] from a scalar object
                         KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
