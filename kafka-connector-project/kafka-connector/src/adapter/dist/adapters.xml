@@ -320,6 +320,26 @@
         <param name="record.value.evaluator.schema.registry.enable">true</param>
         -->
 
+        <!-- Optional but only effective if "record.key/value.evaluator.type" is set to "KVP".
+             Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
+          
+             Default value: "=".
+        -->
+        <!--
+        <param name="record.key.evaluator.kvp.key-value.separator">-</param>
+        <param name="record.value.evaluator.kvp.key-value.separator">@</param>
+        -->  
+
+        <!-- Optional but only effective if "record.key/value.evaluator.type" is set to "KVP".
+             Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
+          
+             Default value: ",".
+        -->
+        <!--
+        <param name="record.key.evaluator.kvp.pairs.separator">;</param>
+        <param name="record.value.evaluator.kvp.pairs.separator">;</param>
+        -->        
+
         <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming
              deserialized records.
              Can be one of the following:
