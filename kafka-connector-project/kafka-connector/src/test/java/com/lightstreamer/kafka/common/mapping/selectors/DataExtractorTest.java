@@ -305,4 +305,41 @@ public class DataExtractorTest {
                                 false,
                                 false));
     }
+
+    //     @Test
+    //     public void test() throws ExtractionException, JsonMappingException,
+    // JsonProcessingException {
+
+    //         FieldConfigs f = FieldConfigs.from(Map.of("pippo", "#{VALUE.pippo}"));
+    //         var extractor = f.extractor(TestSelectorSuppliers.JsonValue(), true);
+
+    //         TopicConfigurations topicsConfig =
+    //                 TopicConfigurations.of(
+    //                         ItemTemplateConfigs.empty(),
+    //                         List.of(
+    //                                 TopicMappingConfig.fromDelimitedMappings(
+    //                                         "record-topic", "simple-item")));
+
+    //         ItemTemplates<String, JsonNode> templates =
+    //                 Items.templatesFrom(topicsConfig, TestSelectorSuppliers.JsonValue());
+
+    //         RecordMapper<String, JsonNode> mapper =
+    //                 RecordMapper.<String, JsonNode>builder()
+    //                         .withFieldExtractor(extractor)
+    //                         .withTemplateExtractors(templates.extractorsByTopicName())
+    //                         .build();
+
+    //         ObjectMapper oo = new ObjectMapper();
+    //         String content =
+    //                 """
+    //                         {
+    //                             "pippo":"pluto",
+    //                             "name":"pippo"
+    //                         }
+    //                         """;
+    //         JsonNode tree = oo.readTree(content);
+    //         KafkaRecord<String, JsonNode> record = Records.record("key", tree);
+    //         MappedRecord map = mapper.map(record);
+    //         System.out.println(map);
+    //     }
 }

@@ -192,7 +192,6 @@ public class OffsetServiceTest {
         assertThat(offsetService.getFirstFailure()).isSameInstanceAs(firstFailure);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void shouldCommitSync() {
         prepareCommittedRecords();
@@ -245,7 +244,6 @@ public class OffsetServiceTest {
                         new OffsetAndMetadata(16l)));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void shouldCommitAsync() {
         prepareCommittedRecords();
@@ -289,7 +287,6 @@ public class OffsetServiceTest {
                         new OffsetAndMetadata(17L));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void shouldCommitOnPartitionRevoked() {
         prepareCommittedRecords();

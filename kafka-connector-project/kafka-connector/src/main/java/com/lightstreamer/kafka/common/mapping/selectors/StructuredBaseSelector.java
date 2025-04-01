@@ -36,6 +36,11 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             if (node.isNull()) {
                 throw ValueException.nullObject(name);
             }
+
+            if (node.isScalar()) {
+                throw ValueException.scalarObject(name);
+            }
+
             if (!node.has(name)) {
                 throw ValueException.fieldNotFound(name);
             }

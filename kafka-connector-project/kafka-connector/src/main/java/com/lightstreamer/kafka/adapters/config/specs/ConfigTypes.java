@@ -185,6 +185,7 @@ public interface ConfigTypes {
     public enum EvaluatorType {
         AVRO,
         JSON,
+        KVP,
         STRING,
         INTEGER,
         BOOLEAN,

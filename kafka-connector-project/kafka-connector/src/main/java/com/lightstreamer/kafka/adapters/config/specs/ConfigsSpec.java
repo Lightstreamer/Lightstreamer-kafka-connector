@@ -64,6 +64,13 @@ public class ConfigsSpec {
     }
 
     public enum ConfType implements Type {
+        CHAR {
+            @Override
+            public boolean checkValidity(String param) {
+                return param.length() == 1;
+            }
+        },
+
         TEXT {
             @Override
             public boolean checkValidity(String param) {
