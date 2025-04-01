@@ -2,11 +2,10 @@ package com.lightstreamer.examples.kafkademo.producer;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -22,7 +21,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -132,7 +130,7 @@ public class DemoPublisher {
                                 FlightInfo endup = new FlightInfo("", "", fno,  0, "", "");
                                 endup.command = "DELETE";
 
-                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, fno, endup));
+                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, fno, endup));
 
                                 rmtdta = futurek.get();
                             }
@@ -143,7 +141,7 @@ public class DemoPublisher {
                             FlightInfo cs = new FlightInfo("", "", "",  0, "", "");
                             cs.command = "CS";
 
-                            futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, "snapshot", cs));
+                            futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", cs));
 
                             rmtdta = futurek.get();
 
@@ -170,7 +168,7 @@ public class DemoPublisher {
                             flightinfo.currentTime = sdf.format(calendar.getTime());
                             flightinfo.command = cmd;
     
-                            Future<RecordMetadata> wait = producer.send(new ProducerRecord<String, FlightInfo>(topicname, k, flightinfo));
+                            Future<RecordMetadata> wait = producer.send(new ProducerRecord<String, FlightInfo>(topicName, k, flightinfo));
     
                             try {
                                 wait.get();
@@ -188,7 +186,7 @@ public class DemoPublisher {
                         FlightInfo eos = new FlightInfo("", "", "",  0, "", "");
                         eos.command = "EOS";
 
-                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, "snapshot", eos));
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", eos));
 
                         rmtdta = futurek.get();
 
@@ -218,7 +216,7 @@ public class DemoPublisher {
                         flightinfo.currentTime = sdf.format(calendar.getTime());
                         flightinfo.command = command;
 
-                    futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, my_key, flightinfo));
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, key, flightinfo));
 
                         rmtdta = futurek.get();
 
