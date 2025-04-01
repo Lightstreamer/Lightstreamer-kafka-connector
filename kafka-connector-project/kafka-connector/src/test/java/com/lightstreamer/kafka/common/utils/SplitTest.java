@@ -22,7 +22,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.common.utils.Split.Pair;
+import com.lightstreamer.kafka.common.utils.Split.Splitter;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,12 +48,35 @@ public class SplitTest {
         return values(',');
     }
 
-    static Stream<Arguments> equalTestValues() {
-        return values('=');
-    }
-
     static Stream<Arguments> testValues() {
         return values('@');
+    }
+
+    static Stream<Arguments> splitterTestValues() {
+        return Stream.of(
+                arguments("a@b", new Pair("a", "b"), List.of("a", "b")),
+                arguments("  a@b  ", new Pair("a", "b"), List.of("a", "b")),
+                arguments("a@  b ", new Pair("a", "b"), List.of("a", "b")),
+                arguments("  a@b", new Pair("a", "b"), List.of("a", "b")),
+                arguments(" a  @ b  ", new Pair("a", "b"), List.of("a", "b")),
+                arguments("a@", null, List.of("a", "")),
+                arguments("@b", null, List.of("", "b")),
+                arguments("@", null, List.of("", "")),
+                arguments("a", null, List.of("a")));
+    }
+
+    @ParameterizedTest
+    @MethodSource("splitterTestValues")
+    void shouldUseSplitter(String input, Pair expectedPair, List<String> expectedList) {
+        Splitter splitter = Split.on('@');
+        assertThat(splitter.splitToPair(input).orElse(null)).isEqualTo(expectedPair);
+        assertThat(splitter.splitToList(input)).containsExactlyElementsIn(expectedList);
+    }
+
+    @Test
+    void shouldSplitToPairIncludingBlankValue() {
+        Splitter splitter = Split.on('|');
+        assertThat(splitter.splitToPair("a", true)).hasValue(new Pair("a", ""));
     }
 
     static Stream<Arguments> specialValues() {
@@ -67,6 +92,8 @@ public class SplitTest {
                 arguments("a%s".formatted(symbol), List.of("a", "")),
                 arguments(" a%s ".formatted(symbol), List.of("a", "")),
                 arguments("a%sb".formatted(symbol), List.of("a", "b")),
+                arguments("a%sb%s".formatted(symbol, symbol), List.of("a", "b", "")),
+                arguments("a%sb%sc".formatted(symbol, symbol), List.of("a", "b", "c")),
                 arguments("a%sb  ".formatted(symbol), List.of("a", "b")),
                 arguments("%sb".formatted(symbol), List.of("", "b")),
                 arguments("  %sb  ".formatted(symbol), List.of("", "b")));
@@ -91,12 +118,6 @@ public class SplitTest {
     }
 
     @ParameterizedTest
-    @MethodSource("equalTestValues")
-    void shouldSplitByEqual(String input, List<String> expected) {
-        assertThat(Split.byEqual(input)).containsExactlyElementsIn(expected);
-    }
-
-    @ParameterizedTest
     @MethodSource("testValues")
     void shouldSplitByAnySeparator(String input, List<String> expected) {
         assertThat(Split.bySeparator('@', input)).containsExactlyElementsIn(expected);
@@ -109,13 +130,6 @@ public class SplitTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
-    void shouldReturnNoTokens(String input) {
-        List<String> bySeparator = Split.byColon(input);
-        assertThat(bySeparator).containsExactly("");
-    }
-
-    @ParameterizedTest
     @ValueSource(strings = {"a:b", "  a:b  ", "a:  b ", "  a:b", " a  : b  "})
     void shouldReturnPairWithColon(String splittable) {
         assertThat(Split.asPairWithColon(splittable)).hasValue(new Pair("a", "b"));
@@ -124,53 +138,13 @@ public class SplitTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"a", "a:", "  :b  ", ":  b ", ":", " : "})
-    void shouldReturnEmptyPairWithColonWhenMissingKeyOrValue(String splittable) {
+    void shouldNotReturnPairWithColonWhenMissingKeyOrValue(String splittable) {
         assertThat(Split.asPairWithColon(splittable)).isEmpty();
-        assertThat(Split.asPairWithColon(splittable, false)).isEmpty();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"a", "a:", "  a:", "a:  "})
-    void shouldReturnPairWithColonWhenIncludedBlankValues(String splittable) {
-        assertThat(Split.asPairWithColon(splittable, true)).hasValue(new Pair("a", ""));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"a=b", "  a=b  ", "a=  b ", "  a=b", " a  = b  "})
-    void shouldReturnPairWithEqual(String splittable) {
-        assertThat(Split.asPairWithEqual(splittable)).hasValue(new Pair("a", "b"));
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"a", "a=", "  =b  ", "=  b ", "=", " = "})
-    void shouldReturnEmptyPairWithEqualWhenMissingKeyOrValue(String splittable) {
-        assertThat(Split.asPairWithEqual(splittable)).isEmpty();
-        assertThat(Split.asPairWithEqual(splittable, false)).isEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"a", "a=", "  a=", "a=  "})
-    void shouldReturnPairWithEqualWhenIncludedBlankValues(String splittable) {
-        assertThat(Split.asPairWithEqual(splittable, true)).hasValue(new Pair("a", ""));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"a-b", "  a-b  ", "a-  b ", "  a-b", " a  - b  "})
-    void shouldReturnPairWithOtherSeparator(String splittable) {
-        assertThat(Split.asPair(splittable, '-', false)).hasValue(new Pair("a", "b"));
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"a", "a-", "  -b  ", "-  b ", "-", " - "})
-    void shouldReturnEmptyPairWithOtherSeparatorWhenMissingKeyOrValue(String splittable) {
-        assertThat(Split.asPair(splittable, '-', false)).isEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"a", "a-", "  a-", "a-  "})
-    void shouldReturnPairWithOtherSeparatorWhenIncludedBlankValues(String splittable) {
-        assertThat(Split.asPair(splittable, '-', true)).hasValue(new Pair("a", ""));
+    @Test
+    void shouldNotReturnPairWithColonWhenMoreThanTwoTokens() {
+        String splittable = "a:b:c";
+        assertThat(Split.asPairWithColon(splittable)).isEmpty();
     }
 }
