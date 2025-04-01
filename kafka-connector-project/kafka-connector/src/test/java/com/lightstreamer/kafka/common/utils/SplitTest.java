@@ -46,8 +46,16 @@ public class SplitTest {
         return values(',');
     }
 
+    static Stream<Arguments> equalTestValues() {
+        return values('=');
+    }
+
     static Stream<Arguments> testValues() {
         return values('@');
+    }
+
+    static Stream<Arguments> specialValues() {
+        return values('.');
     }
 
     static Stream<Arguments> values(char symbol) {
@@ -83,34 +91,86 @@ public class SplitTest {
     }
 
     @ParameterizedTest
+    @MethodSource("equalTestValues")
+    void shouldSplitByEqual(String input, List<String> expected) {
+        assertThat(Split.byEqual(input)).containsExactlyElementsIn(expected);
+    }
+
+    @ParameterizedTest
     @MethodSource("testValues")
     void shouldSplitByAnySeparator(String input, List<String> expected) {
         assertThat(Split.bySeparator('@', input)).containsExactlyElementsIn(expected);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"a:b", "  a:b  ", "a:  b ", "  a:b", " a  : b  "})
-    void shouldReturnPair(String splittable) {
-        assertThat(Split.asPair(splittable)).hasValue(new Pair("a", "b"));
+    @MethodSource("specialValues")
+    void shouldSplitBySpecialCharacter(String input, List<String> expected) {
+        assertThat(Split.bySeparator('.', input)).containsExactlyElementsIn(expected);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"a-b", "  a-b  ", "a-  b ", "  a-b", " a  - b  "})
-    void shouldReturnPairWithNonDefaultSeparator(String splittable) {
-        assertThat(Split.asPair(splittable, '-')).hasValue(new Pair("a", "b"));
+    @NullAndEmptySource
+    void shouldReturnNoTokens(String input) {
+        List<String> bySeparator = Split.byColon(input);
+        assertThat(bySeparator).containsExactly("");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a:b", "  a:b  ", "a:  b ", "  a:b", " a  : b  "})
+    void shouldReturnPairWithColon(String splittable) {
+        assertThat(Split.asPairWithColon(splittable)).hasValue(new Pair("a", "b"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"a", "a:", "  :b  ", ":  b ", ":", " : "})
-    void shouldReturnEmptyPair(String splittable) {
-        assertThat(Split.asPair(splittable)).isEmpty();
+    void shouldReturnEmptyPairWithColonWhenMissingKeyOrValue(String splittable) {
+        assertThat(Split.asPairWithColon(splittable)).isEmpty();
+        assertThat(Split.asPairWithColon(splittable, false)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a", "a:", "  a:", "a:  "})
+    void shouldReturnPairWithColonWhenIncludedBlankValues(String splittable) {
+        assertThat(Split.asPairWithColon(splittable, true)).hasValue(new Pair("a", ""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a=b", "  a=b  ", "a=  b ", "  a=b", " a  = b  "})
+    void shouldReturnPairWithEqual(String splittable) {
+        assertThat(Split.asPairWithEqual(splittable)).hasValue(new Pair("a", "b"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"a", "a=", "  =b  ", "=  b ", "=", " = "})
+    void shouldReturnEmptyPairWithEqualWhenMissingKeyOrValue(String splittable) {
+        assertThat(Split.asPairWithEqual(splittable)).isEmpty();
+        assertThat(Split.asPairWithEqual(splittable, false)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a", "a=", "  a=", "a=  "})
+    void shouldReturnPairWithEqualWhenIncludedBlankValues(String splittable) {
+        assertThat(Split.asPairWithEqual(splittable, true)).hasValue(new Pair("a", ""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a-b", "  a-b  ", "a-  b ", "  a-b", " a  - b  "})
+    void shouldReturnPairWithOtherSeparator(String splittable) {
+        assertThat(Split.asPair(splittable, '-', false)).hasValue(new Pair("a", "b"));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"a", "a-", "  -b  ", "-  b ", "-", " - "})
-    void shouldReturnEmptyPairWithNonDefaultSeparator(String splittable) {
-        assertThat(Split.asPair(splittable, '-')).isEmpty();
+    void shouldReturnEmptyPairWithOtherSeparatorWhenMissingKeyOrValue(String splittable) {
+        assertThat(Split.asPair(splittable, '-', false)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a", "a-", "  a-", "a-  "})
+    void shouldReturnPairWithOtherSeparatorWhenIncludedBlankValues(String splittable) {
+        assertThat(Split.asPair(splittable, '-', true)).hasValue(new Pair("a", ""));
     }
 }
