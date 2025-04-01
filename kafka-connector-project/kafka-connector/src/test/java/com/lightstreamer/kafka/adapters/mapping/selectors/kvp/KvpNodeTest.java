@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers.KvpNode;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -29,9 +28,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 public class KvpNodeTest {
 
-    @Test
-    public void shouldParseValidString() {
-        String text = "key1=value1;key2=value2";
+    @ParameterizedTest
+    @ValueSource(strings = {"key1=value1;key2=value2", "key1=value1;key2=value2;"})
+    public void shouldParseValidString(String text) {
         KvpSelectorsSuppliers.KvpMap csvMap = KvpSelectorsSuppliers.KvpMap.fromString(text);
 
         assertThat(csvMap.size()).isEqualTo(2);
@@ -40,34 +39,34 @@ public class KvpNodeTest {
         assertThat(csvMap.isNull()).isFalse();
         assertThat(csvMap.has("key1")).isTrue();
 
-        KvpNode key1 = csvMap.get("key1");
-        assertThat(key1.size()).isEqualTo(0);
-        assertThat(key1.isScalar()).isTrue();
-        assertThat(key1.isArray()).isFalse();
-        assertThat(key1.isNull()).isFalse();
-        assertThat(key1.has("anyProp")).isFalse();
-        assertThat(key1.get("anyProp")).isNull();
-        assertThat(key1.get(3)).isNull();
-        assertThat(key1.asText("")).isEqualTo("value1");
+        KvpNode key1Value = csvMap.get("key1");
+        assertThat(key1Value.size()).isEqualTo(0);
+        assertThat(key1Value.isScalar()).isTrue();
+        assertThat(key1Value.isArray()).isFalse();
+        assertThat(key1Value.isNull()).isFalse();
+        assertThat(key1Value.has("anyProp")).isFalse();
+        assertThat(key1Value.get("anyProp")).isNull();
+        assertThat(key1Value.get(3)).isNull();
+        assertThat(key1Value.asText()).isEqualTo("value1");
 
         assertThat(csvMap.has("key2")).isTrue();
 
-        KvpNode key2 = csvMap.get("key2");
-        assertThat(key1.size()).isEqualTo(0);
-        assertThat(key2.isScalar()).isTrue();
-        assertThat(key2.isArray()).isFalse();
-        assertThat(key2.isNull()).isFalse();
-        assertThat(key2.has("anyProp")).isFalse();
-        assertThat(key2.get("anyProp")).isNull();
-        assertThat(key2.get(3)).isNull();
-        assertThat(key2.asText("")).isEqualTo("value2");
+        KvpNode key2Value = csvMap.get("key2");
+        assertThat(key2Value.size()).isEqualTo(0);
+        assertThat(key2Value.isScalar()).isTrue();
+        assertThat(key2Value.isArray()).isFalse();
+        assertThat(key2Value.isNull()).isFalse();
+        assertThat(key2Value.has("anyProp")).isFalse();
+        assertThat(key2Value.get("anyProp")).isNull();
+        assertThat(key2Value.get(3)).isNull();
+        assertThat(key2Value.asText()).isEqualTo("value2");
 
         assertThat(csvMap.has("key3")).isFalse();
     }
 
-    @Test
-    public void shouldParseStringWithNullValue() {
-        String text = "key1";
+    @ParameterizedTest
+    @ValueSource(strings = {"key1", "key1;"})
+    public void shouldParseKeysOnly(String text) {
         KvpSelectorsSuppliers.KvpMap csvMap = KvpSelectorsSuppliers.KvpMap.fromString(text);
         assertThat(csvMap.size()).isEqualTo(1);
         assertThat(csvMap.isScalar()).isFalse();
@@ -78,35 +77,8 @@ public class KvpNodeTest {
         assertThat(key1.size()).isEqualTo(0);
         assertThat(key1.isScalar()).isTrue();
         assertThat(key1.isArray()).isFalse();
-        assertThat(key1.isNull()).isTrue();
-        assertThat(key1.asText(null)).isNull();
-        assertThat(key1.asText("NULL")).isEqualTo("NULL");
-    }
-
-    @Test
-    public void shouldParseStringEndingWithNullValue() {
-        String text = "key1;";
-        KvpSelectorsSuppliers.KvpMap csvMap = KvpSelectorsSuppliers.KvpMap.fromString(text);
-        assertThat(csvMap.size()).isEqualTo(2);
-        assertThat(csvMap.isScalar()).isFalse();
-        assertThat(csvMap.isArray()).isFalse();
-        assertThat(csvMap.isNull()).isFalse();
-
-        KvpNode key1 = csvMap.get("key1");
-        assertThat(key1.size()).isEqualTo(0);
-        assertThat(key1.isScalar()).isTrue();
-        assertThat(key1.isArray()).isFalse();
-        assertThat(key1.isNull()).isTrue();
-        assertThat(key1.asText(null)).isNull();
-        assertThat(key1.asText("NULL")).isEqualTo("NULL");
-
-        KvpNode nullKey = csvMap.get("");
-        assertThat(nullKey.size()).isEqualTo(0);
-        assertThat(nullKey.isScalar()).isTrue();
-        assertThat(nullKey.isArray()).isFalse();
-        assertThat(nullKey.isNull()).isTrue();
-        assertThat(nullKey.asText(null)).isNull();
-        assertThat(nullKey.asText("NULL")).isEqualTo("NULL");
+        assertThat(key1.isNull()).isFalse();
+        assertThat(key1.asText()).isEmpty();
     }
 
     @ParameterizedTest
@@ -118,8 +90,7 @@ public class KvpNodeTest {
         assertThat(csvMap.isScalar()).isFalse();
         assertThat(csvMap.isArray()).isFalse();
         assertThat(csvMap.isNull()).isTrue();
-        assertThat(csvMap.asText(null)).isNull();
-        assertThat(csvMap.asText("NULL")).isEqualTo("NULL");
+        assertThat(csvMap.asText()).isEmpty();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -128,12 +99,18 @@ public class KvpNodeTest {
             delimiter = '|',
             textBlock =
                     """
-                        INPUT                   | EXPECTED                        | EXPECTED_SIZE
-                        key1                    | {key1=NULL_VALUE}               | 1
-                        key1=value1             | {key1=value1}                   | 1
-                        key1=value1;key2=value2 | {key1=value1, key2=value2}      | 2
-                        key1=value1;key2        | {key1=value1, key2=NULL_VALUE}  | 2
-                        key1=value1;            | {key1=value1, =NULL_VALUE}      | 2
+                        INPUT                   | EXPECTED                   | EXPECTED_SIZE
+                        key1                    | {key1=}                    | 1
+                        key1;                   | {key1=}                    | 1
+                        key1;key2               | {key1=, key2=}             | 2
+                        key1=                   | {key1=}                    | 1
+                        key1=value1             | {key1=value1}              | 1
+                        key1=value1;            | {key1=value1}              | 1
+                        key1=value1;key2=value2 | {key1=value1, key2=value2} | 2
+                        key1=value1;key2        | {key1=value1, key2=}       | 2
+                        key1=value1;key2;       | {key1=value1, key2=}       | 2
+                        key1=value1;key2=       | {key1=value1, key2=}       | 2
+                        key1=value1;=           | {key1=value1}              | 1
                         """)
     public void shouldReturnAsText(String input, String expected, int expectedSize) {
         KvpSelectorsSuppliers.KvpMap csvMap = KvpSelectorsSuppliers.KvpMap.fromString(input);
@@ -141,6 +118,6 @@ public class KvpNodeTest {
         assertThat(csvMap.isScalar()).isFalse();
         assertThat(csvMap.isArray()).isFalse();
         assertThat(csvMap.isNull()).isFalse();
-        assertThat(csvMap.asText(null)).isEqualTo(expected);
+        assertThat(csvMap.asText()).isEqualTo(expected);
     }
 }
