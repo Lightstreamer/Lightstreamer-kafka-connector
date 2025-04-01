@@ -74,11 +74,12 @@ public class Split {
     }
 
     private static Optional<Pair> asPairInternal(List<String> tokens, boolean includeBlankValue) {
-        if (tokens.size() != 2) {
+        int size = tokens.size();
+        if (size > 2) {
             return Optional.empty();
         }
         String key = tokens.get(0);
-        String value = tokens.get(1);
+        String value = size == 2 ? tokens.get(1) : "";
         if (key.isBlank() || (value.isBlank() && !includeBlankValue)) {
             return Optional.empty();
         }
@@ -106,7 +107,8 @@ public class Split {
     }
 
     private static Pattern splitPattern(char separator) {
-        return Pattern.compile(TEMPLATE_PATTERN.formatted(separator));
+        return Pattern.compile(
+                TEMPLATE_PATTERN.formatted(Pattern.quote(String.valueOf(separator))));
     }
 
     private static List<String> by(Pattern pattern, String input) {
