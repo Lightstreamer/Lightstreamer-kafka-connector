@@ -11,7 +11,7 @@ public class FlightInfo {
     public String departure;
 
     @JsonProperty
-    public String key;
+    public String flightNo;
 
     @JsonProperty
     public int terminal;
@@ -35,7 +35,7 @@ public class FlightInfo {
             String airline) {
         this.destination = destination;
         this.departure = departure;
-        this.key = flightNo;
+        this.flightNo = flightNo;
         this.terminal = terminal;
         this.status = status;
         this.airline = airline;
