@@ -46,7 +46,7 @@ public interface RecordConsumer<K, V> {
         ORDER_BY_PARTITION(record -> record.topic() + "-" + record.partition()),
         UNORDERED(record -> null);
 
-        private Function<ConsumerRecord<?, ?>, String> sequence;
+        private final Function<ConsumerRecord<?, ?>, String> sequence;
 
         OrderStrategy(Function<ConsumerRecord<?, ?>, String> sequence) {
             this.sequence = sequence;
@@ -70,6 +70,10 @@ public interface RecordConsumer<K, V> {
         void process(ConsumerRecord<K, V> record) throws ValueException;
 
         void useLogger(Logger logger);
+
+        default boolean isCommandEnforceEnabled() {
+            return false;
+        }
     }
 
     public interface StartBuildingProcessor<K, V> {
@@ -78,6 +82,11 @@ public interface RecordConsumer<K, V> {
     }
 
     interface WithSubscribedItems<K, V> {
+
+        WithEnforceCommandMode<K, V> enforceCommandMode(boolean enforceCommandMode);
+    }
+
+    interface WithEnforceCommandMode<K, V> {
 
         StartBuildingConsumer<K, V> eventListener(ItemEventListener listener);
     }

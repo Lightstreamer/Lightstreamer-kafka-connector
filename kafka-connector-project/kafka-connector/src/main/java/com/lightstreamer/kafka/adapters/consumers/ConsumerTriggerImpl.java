@@ -81,6 +81,11 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     }
 
     @Override
+    public boolean isSnapshotAvailable() {
+        return config.isCommandEnforceEnabled();
+    }
+
+    @Override
     public final CompletableFuture<Void> subscribe(String item, Object itemHandle)
             throws SubscriptionException {
         try {

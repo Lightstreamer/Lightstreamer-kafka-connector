@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -48,14 +49,16 @@ public class ConsumerTriggerTest {
     private static ConsumerTriggerImpl<?, ?> mkConsumerTrigger(
             MetadataListener metadataListener,
             ConsumerWrapper<String, String> consumer,
-            boolean throwExceptionWhileConnectingToKafka) {
+            boolean throwExceptionWhileConnectingToKafka,
+            boolean enforceCommandMode) {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
                         List.of(
                                 fromDelimitedMappings(
                                         "aTopic", "anItemTemplate,anotherItemTemplate")));
-        ConsumerTriggerConfig<String, String> config = new Mocks.MockTriggerConfig(topicsConfig);
+        ConsumerTriggerConfig<String, String> config =
+                new Mocks.MockTriggerConfig(topicsConfig, new Properties(), enforceCommandMode);
 
         Function<Collection<SubscribedItem>, ConsumerWrapper<String, String>> consumerWrapper =
                 items -> {
@@ -72,15 +75,18 @@ public class ConsumerTriggerTest {
     private MockConsumerWrapper<String, String> kafkaConsumer;
 
     void init() {
-        init(false);
+        init(false, false);
     }
 
-    void init(boolean throwExceptionWhileConnectingToKafka) {
+    void init(boolean throwExceptionWhileConnectingToKafka, boolean enforceCommandMode) {
         kafkaConsumer = new Mocks.MockConsumerWrapper<>();
         metadataListener = new Mocks.MockMetadataListener();
         consumerTrigger =
                 mkConsumerTrigger(
-                        metadataListener, kafkaConsumer, throwExceptionWhileConnectingToKafka);
+                        metadataListener,
+                        kafkaConsumer,
+                        throwExceptionWhileConnectingToKafka,
+                        enforceCommandMode);
         assertThat(consumerTrigger.getItemsCounter()).isEqualTo(0);
     }
 
@@ -112,6 +118,18 @@ public class ConsumerTriggerTest {
     }
 
     @Test
+    public void shouldSnapshotBeNotAvailableWhenCommandModeNotEnforced() {
+        init();
+        assertThat(consumerTrigger.isSnapshotAvailable()).isFalse();
+    }
+
+    @Test
+    public void shouldSnapshotBeAvailableWhenCommandModeEnforced() {
+        init(false, true);
+        assertThat(consumerTrigger.isSnapshotAvailable()).isTrue();
+    }
+
+    @Test
     public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
         init();
         Object itemHandle = new Object();
@@ -133,7 +151,7 @@ public class ConsumerTriggerTest {
 
     @Test
     public void shouldFailSubscriptionDueToKafkaException() throws SubscriptionException {
-        init(true);
+        init(true, false);
         Object itemHandle = new Object();
 
         CompletableFuture<Void> consuming = consumerTrigger.subscribe("anItemTemplate", itemHandle);

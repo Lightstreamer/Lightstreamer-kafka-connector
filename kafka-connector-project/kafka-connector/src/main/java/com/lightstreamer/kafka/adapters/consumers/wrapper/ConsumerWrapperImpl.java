@@ -97,9 +97,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
         Concurrency concurrency = config.concurrency();
+        // this.recordConsumer = RecordConsumer.<K,V>recordProcessor(null).
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
+                        .enforceCommandMode(config.isCommandEnforceEnabled())
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())

@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.adapters.pub;
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
-import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
@@ -172,10 +171,6 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         if (!connection.enabled()) {
             throw new CreditsException(
                     -1, "Connection [%s] not enabled".formatted(connection.name()));
-        }
-        if (Mode.COMMAND.equals(table.getMode())) {
-            throw new CreditsException(
-                    -2, "Subscription mode [%s] not allowed".formatted(Mode.COMMAND));
         }
 
         String[] items = table.getSubscribedItems();

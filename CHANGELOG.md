@@ -20,6 +20,12 @@
 - Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
 - Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
 
+## [1.2.1-command] (UNRELEASED)
+
+- Added explicit support for COMMAND mode subscriptions, including the new configuration parameter "record.command.enable" to enable this feature.
+
+- Updated the Airport demo to use COMMAND mode.
+
 ## [1.2.1] (2025-03-03)
 
 **Bug Fixes**

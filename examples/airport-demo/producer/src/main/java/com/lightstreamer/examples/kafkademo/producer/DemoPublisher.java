@@ -2,15 +2,18 @@ package com.lightstreamer.examples.kafkademo.producer;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.List;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -18,7 +21,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,6 +51,8 @@ public class DemoPublisher {
     private static HashMap<String, Integer> board_position = new HashMap<String, Integer>();
 
     private static LinkedList<Integer> avl_pos = new LinkedList<Integer>();
+
+    private static LinkedList<String> to_delete = new LinkedList<String>();
 
     private static final AtomicInteger counter = new AtomicInteger(0);
 
@@ -109,49 +113,110 @@ public class DemoPublisher {
 
                 Producer<String, FlightInfo> producer = new KafkaProducer<>(props);
 
+                int countdown_to_end_of_day = 0;
+                boolean first = true;
+
                 while (go) {
                     String key;
+                    String command;
 
-                    if (flight_momentum.size() < 10) {
-                        int tmp = random.nextInt(900) + 10;
+                    if ( countdown_to_end_of_day-- == 0 ) {
+                        if (!first) {
+                            // Cleanup all the keys
+                            for (String fno : flight_momentum.keySet()) {
+                                System.out.println("Key: " + fno + ". Value: " + flight_momentum.get(fno));
 
-                        key = "LS" + tmp;
-                    } else {
-                        int fd = random.nextInt(10);
-                        Iterator<String> itr = flight_momentum.keySet().iterator();
-                        for (int k = 0; k < fd; k++) {
-                            itr.next();
+                                FlightInfo endup = new FlightInfo("", "", fno,  0, "", "");
+                                endup.command = "DELETE";
+                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, fno, endup));
+                                rmtdta = futurek.get();
+                            }
+
+                            logger.info("Send CS messasge.");
+
+                            FlightInfo cs = new FlightInfo("", "", "",  0, "", "");
+                            cs.command = "CS";
+
+                            futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", cs));
+                            rmtdta = futurek.get();
+
+                            logger.info("Sent message to partition: " + rmtdta.partition());
+                        } else {
+                            first = false;
                         }
-                        key = itr.next();
-                    }
+                        
+                        flight_momentum.clear();
+                        board_position.clear();
+                        avl_pos.clear();
 
-                    FlightInfo flightinfo = getrandominfo(key);
-                    Integer intgr = board_position.get(key);
-                    String my_key;
-                    if (intgr == null) {
-                        int lst = avl_pos.getLast();
-                        my_key = "" + lst;
+                        // snapshots
+                        IntStream.range(0, 10).forEach(i -> {
+                            int tmp = random.nextInt(900) + 10;
 
-                        logger.info("Recover key: " + lst);
+                            String k = "LS" + tmp;
+                            String cmd = "ADD";
+
+                            FlightInfo flightinfo = getrandominfo(k);
+                            
+                            logger.info("Key : " + k + ", new Message : " + flightinfo.departure);
+    
+                            flightinfo.currentTime = sdf.format(calendar.getTime());
+                            flightinfo.command = cmd;
+    
+                            Future<RecordMetadata> wait = producer.send(new ProducerRecord<String, FlightInfo>(topicName, k, flightinfo));
+    
+                            try {
+                                wait.get();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+    
+                            logger.info("Sent snapshot.");
+                        });
+
+                        logger.info("Send EOS message.");
+
+                        FlightInfo eos = new FlightInfo("", "", "",  0, "", "");
+                        eos.command = "EOS";
+
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", eos));
+                        rmtdta = futurek.get();
+
+                        logger.info("Sent message to partition: " + rmtdta.partition());
+
+                        countdown_to_end_of_day = 100;
+
                     } else {
-                        my_key = "" + intgr.intValue();
+                        if (flight_momentum.size() < 10) {
+                            int tmp = random.nextInt(900) + 10;
+
+                            key = "LS" + tmp;
+                            command = "ADD";
+                        } else {                           
+                            key = getRandomKey(flight_momentum);
+                            command = "UPDATE";
+                        }
+
+                        FlightInfo flightinfo = getrandominfo(key);
+                        if (to_delete.size() > 0 ) {
+                            command = "DELETE";
+                            to_delete.clear();
+                        }                         
+                        logger.info("Key : " + key + ", new Message : " + flightinfo.departure);
+
+                        flightinfo.currentTime = sdf.format(calendar.getTime());
+                        flightinfo.command = command;
+
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, key, flightinfo));
+                        rmtdta = futurek.get();
+
+                        logger.info("Sent message to partition: " + rmtdta.partition());
                     }
-
-                    logger.info("Key : " + my_key + ", new Message : " + flightinfo.departure);
-
-                    flightinfo.currentTime = sdf.format(calendar.getTime());
-
-                    futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, my_key, flightinfo));
-
-                    rmtdta = futurek.get();
-
-                    logger.info("Sent message to" + rmtdta.partition());
-
                     Thread.sleep(pause_millis);
                 }
-
                 producer.close();
-
             } catch (Exception e) {
                 logger.error("Error during producer loop: " + e.getMessage());
             }
@@ -218,6 +283,7 @@ public class DemoPublisher {
             inds = flight_momentum.remove(key);
 
             Integer removed = board_position.remove(key);
+            to_delete.add(key);
             if (removed != null) {
                 avl_pos.add(removed);
             }
@@ -244,14 +310,23 @@ public class DemoPublisher {
         }
 
         flightinfo = new FlightInfo(status_icon.get(inds) + ' ' + destinations.get(indx), departure, key, trmnl,
-                status_desc.get(inds), "Lightstreamer Airlines");
+            status_desc.get(inds), "Lightstreamer Airlines");
 
         return flightinfo;
     }
-    public static void main(String[] args) {
-        
-        logger.info("Start Kafka demo producer: " + args.length);
 
+    private static String getRandomKey(Map<String, Integer> map) {
+        Set<String> keys = map.keySet();
+        String[] keyArray = keys.toArray(new String[0]);
+
+        Random random = new Random();
+        int randomIndex = random.nextInt(keyArray.length);
+
+        return keyArray[randomIndex];
+    }
+
+    public static void main(String[] args) {
+        logger.info("Start Kafka demo producer: " + args.length);
         if (args.length < 3) {
             logger.error("Missing arguments: [bootstrap-servers] [topic-name] [interval of update]");
             return ;

@@ -128,6 +128,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
             "record.value.evaluator.kvp.key-value.separator";
 
+    public static final String RECORD_COMMAND_ENABLE = "record.command.enable";
+
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
 
@@ -273,6 +275,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 CHAR,
                                 defaultValue("="))
+                        .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -400,6 +403,7 @@ public final class ConnectorConfig extends AbstractConfig {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
         checkTopicMappingRegex();
+        checkCommandMode();
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
@@ -440,6 +444,16 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 .formatted(t));
                             }
                         });
+    }
+
+    private void checkCommandMode() {
+        if (isCommandEnforceEnabled()) {
+            if (getRecordConsumeWithNumThreads() != 1) {
+                throw new ConfigException(
+                        "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
+                                .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
+            }
+        }
     }
 
     private Properties initProps() {
@@ -511,6 +525,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final EvaluatorType getEvaluator(String configKey) {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
+    public boolean isCommandEnforceEnabled() {
+        return getBoolean(RECORD_COMMAND_ENABLE);
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {

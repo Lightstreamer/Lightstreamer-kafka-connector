@@ -53,6 +53,10 @@ public class Items {
     public interface SubscribedItem extends Item {
 
         Object itemHandle();
+
+        boolean isSnapshot();
+
+        void setSnapshot(boolean flag);
     }
 
     public interface ItemTemplates<K, V> {
@@ -120,10 +124,12 @@ public class Items {
 
         private final Object itemHandle;
         private final DefaultItem wrappedItem;
+        private boolean snapshotFlag;
 
         DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
             this.wrappedItem = new DefaultItem(prefix, values);
             this.itemHandle = itemHandle;
+            this.snapshotFlag = true;
         }
 
         @Override
@@ -152,6 +158,16 @@ public class Items {
         @Override
         public Object itemHandle() {
             return itemHandle;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return snapshotFlag;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            this.snapshotFlag = flag;
         }
 
         @Override

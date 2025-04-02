@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
@@ -91,6 +92,7 @@ class RecordConsumerSupport {
         protected RecordMapper<K, V> mapper;
         protected Collection<SubscribedItem> subscribed;
         protected ItemEventListener listener;
+        protected boolean enforceCommandMode;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
             this.mapper = mapper;
@@ -107,21 +109,40 @@ class RecordConsumerSupport {
     private static class WithSubscribedItemsImpl<K, V> implements WithSubscribedItems<K, V> {
         final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
 
-        WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
-            this.parentBuilder = b;
+        WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
+        }
+
+        @Override
+        public WithEnforceCommandMode<K, V> enforceCommandMode(boolean enforceCommandMode) {
+            this.parentBuilder.enforceCommandMode = enforceCommandMode;
+            return new WithEnforceCommandModeImpl<>(parentBuilder);
+        }
+    }
+
+    private static class WithEnforceCommandModeImpl<K, V> implements WithEnforceCommandMode<K, V> {
+        final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
+
+        WithEnforceCommandModeImpl(StartBuildingProcessorBuilderImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
         public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
             this.parentBuilder.listener = listener;
-            Objects.requireNonNull(this.parentBuilder.mapper);
-            Objects.requireNonNull(this.parentBuilder.subscribed);
-            Objects.requireNonNull(this.parentBuilder.listener);
+            Objects.requireNonNull(this.parentBuilder.mapper, "RecordMapper not set");
+            Objects.requireNonNull(this.parentBuilder.subscribed, "SubscribedItems not set");
+            Objects.requireNonNull(this.parentBuilder.listener, "ItemEventListener not set");
             RecordProcessor<K, V> recordProcessor =
-                    new DefaultRecordProcessor<>(
-                            this.parentBuilder.mapper,
-                            this.parentBuilder.subscribed,
-                            this.parentBuilder.listener);
+                    this.parentBuilder.enforceCommandMode
+                            ? new CommandRecordProcessor<>(
+                                    this.parentBuilder.mapper,
+                                    this.parentBuilder.subscribed,
+                                    this.parentBuilder.listener)
+                            : new DefaultRecordProcessor<>(
+                                    this.parentBuilder.mapper,
+                                    this.parentBuilder.subscribed,
+                                    this.parentBuilder.listener);
             return new StartBuildingConsumerImpl<>(recordProcessor);
         }
     }
@@ -130,8 +151,8 @@ class RecordConsumerSupport {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithOffsetServiceImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.parentBuilder = b;
+        WithOffsetServiceImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
@@ -143,24 +164,24 @@ class RecordConsumerSupport {
 
     private static class WithLoggerImpl<K, V> implements WithLogger<K, V> {
 
-        final StartBuildingConsumerImpl<K, V> b;
+        final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithLoggerImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.b = b;
+        WithLoggerImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
         public WithOptionals<K, V> logger(Logger logger) {
-            this.b.logger = logger;
-            return new WithOptionalsImpl<>(b);
+            this.parentBuilder.logger = logger;
+            return new WithOptionalsImpl<>(parentBuilder);
         }
     }
 
     private static class WithOptionalsImpl<K, V> implements WithOptionals<K, V> {
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithOptionalsImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.parentBuilder = b;
+        WithOptionalsImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
@@ -183,11 +204,17 @@ class RecordConsumerSupport {
 
         @Override
         public RecordConsumer<K, V> build() {
-            Objects.requireNonNull(parentBuilder.errorStrategy);
-            Objects.requireNonNull(parentBuilder.logger);
-            Objects.requireNonNull(parentBuilder.orderStrategy);
+            Objects.requireNonNull(parentBuilder.processor, "RecordProcessor not set");
+            Objects.requireNonNull(parentBuilder.offsetService, "OffsetService not set");
+            Objects.requireNonNull(parentBuilder.errorStrategy, "ErrorStrategy not set");
+            Objects.requireNonNull(parentBuilder.logger, "Logger not set");
+            Objects.requireNonNull(parentBuilder.orderStrategy, "OrderStrategy not set");
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
+            }
+            if (parentBuilder.threads > 1 && parentBuilder.processor.isCommandEnforceEnabled()) {
+                throw new IllegalArgumentException(
+                        "Command mode does not support parallel processing");
             }
             if (parentBuilder.threads == 1 && parentBuilder.preferSingleThread) {
                 return new SingleThreadedRecordConsumer<>(parentBuilder);
@@ -196,7 +223,8 @@ class RecordConsumerSupport {
         }
     }
 
-    static class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V> {
+    static sealed class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V>
+            permits CommandRecordProcessor {
 
         protected final RecordMapper<K, V> recordMapper;
         protected final Collection<SubscribedItem> subscribedItems;
@@ -213,12 +241,12 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void useLogger(Logger logger) {
+        public final void useLogger(Logger logger) {
             this.log = Objects.requireNonNullElse(logger, this.log);
         }
 
         @Override
-        public void process(ConsumerRecord<K, V> record) throws ValueException {
+        public final void process(ConsumerRecord<K, V> record) throws ValueException {
             log.atDebug().log(() -> "Mapping incoming Kafka record");
             log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
@@ -234,12 +262,115 @@ class RecordConsumerSupport {
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
                 log.atInfo().log("Routing record to {} items", routable.size());
-                for (SubscribedItem sub : routable) {
-                    log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                    listener.smartUpdate(sub.itemHandle(), updates, false);
-                }
+                processUpdates(updates, routable);
             } else {
                 log.atInfo().log("No routable items found");
+            }
+        }
+
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
+            for (SubscribedItem sub : routable) {
+                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                listener.smartUpdate(sub.itemHandle(), updates, false);
+            }
+        }
+    }
+
+    static final class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
+
+        CommandRecordProcessor(
+                RecordMapper<K, V> recordMapper,
+                Collection<SubscribedItem> subscribedItems,
+                ItemEventListener listener) {
+            super(recordMapper, subscribedItems, listener);
+        }
+
+        @Override
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
+            if (!checkCommand(updates)) {
+                log.atWarn()
+                        .log(
+                                "Discarding record due to command mode fields not properly valued: {}",
+                                updates.get("key"));
+                return;
+            }
+
+            for (SubscribedItem sub : routable) {
+                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                log.atDebug().log("Enforce·COMMAND·mode·semantic·of·records·read:");
+
+                if (updates.get("key").equals("snapshot")) {
+                    handleSnapshot(updates, sub);
+                } else {
+                    handleCommand(updates, sub);
+                }
+            }
+        }
+
+        @Override
+        public boolean isCommandEnforceEnabled() {
+            return true;
+        }
+
+        private boolean checkCommand(Map<String, String> input) {
+            if (input == null) {
+                return false;
+            }
+
+            if (!input.containsKey("key") || input.get("key") == null) {
+                return false;
+            }
+
+            if (!input.containsKey("command")) {
+                return false;
+            }
+
+            String command = input.get("command");
+            if (command == null) {
+                return false;
+            }
+
+            log.atDebug().log("key {} - command {}", input.get("key"), input.get("command"));
+            return switch (command) {
+                case "ADD", "DELETE", "UPDATE", "CS", "EOS" -> true;
+                default -> false;
+            };
+        }
+
+        private void handleSnapshot(Map<String, String> updates, SubscribedItem sub) {
+            switch (updates.get("command")) {
+                case "CS" -> {
+                    log.atDebug().log("Sending clearsnapshot");
+                    listener.smartClearSnapshot(sub.itemHandle());
+                    sub.setSnapshot(true);
+                }
+                case "EOS" -> {
+                    log.atDebug().log("Sending endofsnapshot");
+                    listener.smartEndOfSnapshot(sub.itemHandle());
+                    sub.setSnapshot(false);
+                }
+                default -> {
+                    log.atWarn()
+                            .log(
+                                    "Discarding record due to command mode fields not properly valued: {}",
+                                    updates.get("key"));
+                }
+            }
+        }
+
+        private void handleCommand(Map<String, String> updates, SubscribedItem sub) {
+            String command = updates.get("command");
+            switch (command) {
+                case "ADD", "DELETE", "UPDATE" -> {
+                    log.atDebug().log("Sending {} command", command);
+                    listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
+                }
+                default -> {
+                    log.atWarn()
+                            .log(
+                                    "Discarding record due to command mode fields not properly valued: {}",
+                                    command);
+                }
             }
         }
     }
