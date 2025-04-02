@@ -70,6 +70,10 @@ public interface RecordConsumer<K, V> {
         void process(ConsumerRecord<K, V> record) throws ValueException;
 
         void useLogger(Logger logger);
+
+        default boolean isCommandEnforceEnabled() {
+            return false;
+        }
     }
 
     public interface StartBuildingProcessor<K, V> {
