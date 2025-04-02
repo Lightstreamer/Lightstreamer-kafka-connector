@@ -128,6 +128,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
             "record.value.evaluator.kvp.key-value.separator";
 
+    public static final String RECORD_COMMAND_ENABLE = "record.command.enable";
+
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
 
@@ -146,7 +148,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     // Kafka consumer specific settings
     private static final String CONNECTOR_PREFIX = "consumer.";
-    public static final String RECORD_COMMAND_ENABLE = "record.command.enable";
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
     public static final String CONSUMER_CLIENT_ID =
             CONNECTOR_PREFIX + CommonClientConfigs.CLIENT_ID_CONFIG;
@@ -274,6 +275,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 CHAR,
                                 defaultValue("="))
+                        .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -296,7 +298,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("ORDER_BY_PARTITION"))
                         .add(ENCRYPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
-                        .add(RECORD_COMMAND_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_FROM,
                                 false,
