@@ -81,7 +81,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     }
 
     @Override
-    public boolean isSnapshotAvailable(String item) {
+    public boolean isSnapshotAvailable() {
         return config.isCommandEnforceEnabled();
     }
 
