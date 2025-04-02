@@ -53,11 +53,7 @@
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
-        <!-- The "Flights" item template, which defines the format of the items the Lightstreamer Clients 
-             must subscribe to to receive real-time updates. 
-        <param name="item-template.flights">flights-board</param> -->
-
-        <!-- Map the topic "Flights" to the previously defined "flights" item template. -->
+        <!-- Map the topic "Flights" to the "flights-board" item. -->
         <param name="map.Flights.to">flights-board</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
