@@ -45,6 +45,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
@@ -346,6 +347,14 @@ public class ConnectorConfigTest {
         assertThat(valueKvpKeyValueSeparator.mutable()).isTrue();
         assertThat(valueKvpKeyValueSeparator.defaultValue()).isEqualTo("=");
         assertThat(valueKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
+
+        ConfParameter commandModeEnabled = configSpec.getParameter(RECORD_COMMAND_ENABLE);
+        assertThat(commandModeEnabled.name()).isEqualTo(RECORD_COMMAND_ENABLE);
+        assertThat(commandModeEnabled.required()).isFalse();
+        assertThat(commandModeEnabled.multiple()).isFalse();
+        assertThat(commandModeEnabled.mutable()).isTrue();
+        assertThat(commandModeEnabled.defaultValue()).isEqualTo("false");
+        assertThat(commandModeEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
