@@ -102,7 +102,9 @@ public class ConsumerWrapperImplTest {
         return (ConsumerWrapperImpl<String, String>)
                 ConsumerWrapper.create(
                         new Mocks.MockTriggerConfig(
-                                makeTopicsConfig(enableSubscriptionPattern), makeProperties()),
+                                makeTopicsConfig(enableSubscriptionPattern),
+                                makeProperties(),
+                                false),
                         itemEventListener,
                         metadataListener,
                         subscribedItems,
