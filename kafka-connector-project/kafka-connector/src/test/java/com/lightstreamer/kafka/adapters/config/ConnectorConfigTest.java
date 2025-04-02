@@ -1012,12 +1012,15 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
+        // Checks value "false"
         config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "false"));
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
+        // Checks value "true"
         config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "true"));
         assertThat(config.isCommandEnforceEnabled()).isTrue();
 
+        // Checks invalid values
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -1026,6 +1029,21 @@ public class ConnectorConfigTest {
                                         Map.of(RECORD_COMMAND_ENABLE, "invalid")));
         assertThat(ce.getMessage())
                 .isEqualTo("Specify a valid value for parameter [record.command.enable]");
+
+        // Requires that exactly one consumer thread is set
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                RECORD_COMMAND_ENABLE,
+                                                "true",
+                                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                                "2")));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
     }
 
     @Test
