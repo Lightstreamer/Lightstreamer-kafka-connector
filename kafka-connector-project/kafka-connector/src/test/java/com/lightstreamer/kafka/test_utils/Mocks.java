@@ -65,15 +65,20 @@ public class Mocks {
     public static class MockTriggerConfig implements ConsumerTriggerConfig<String, String> {
 
         private final TopicConfigurations topicsConfig;
-        private Properties consumerProperties;
+        private final Properties consumerProperties;
+        private final boolean enforceCommandMode;
 
         public MockTriggerConfig(TopicConfigurations topicsConfig) {
-            this(topicsConfig, new Properties());
+            this(topicsConfig, new Properties(), false);
         }
 
-        public MockTriggerConfig(TopicConfigurations topicsConfig, Properties properties) {
+        public MockTriggerConfig(
+                TopicConfigurations topicsConfig,
+                Properties properties,
+                boolean enforceCommandMode) {
             this.topicsConfig = topicsConfig;
             this.consumerProperties = properties;
+            this.enforceCommandMode = enforceCommandMode;
         }
 
         @Override
@@ -133,7 +138,7 @@ public class Mocks {
 
         @Override
         public boolean isCommandEnforceEnabled() {
-            return false;
+            return enforceCommandMode;
         }
     }
 
