@@ -50,7 +50,8 @@ function main() {
       });
     
     let subMonitor = new Ls.Subscription("COMMAND",itemsList,fieldsList);
-    subMonitor.setDataAdapter("AirpotDemo");
+    subMonitor.setDataAdapter("AirportDemo");
+    
     subMonitor.addListener(dynaGrid);
     subMonitor.addListener({
       onItemUpdate: function(updateInfo) {
