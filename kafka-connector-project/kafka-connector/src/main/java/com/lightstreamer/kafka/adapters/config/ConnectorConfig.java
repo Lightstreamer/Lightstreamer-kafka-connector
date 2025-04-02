@@ -403,6 +403,7 @@ public final class ConnectorConfig extends AbstractConfig {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
         checkTopicMappingRegex();
+        checkCommandMode();
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
@@ -443,6 +444,16 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 .formatted(t));
                             }
                         });
+    }
+
+    private void checkCommandMode() {
+        if (isCommandEnforceEnabled()) {
+            if (getRecordConsumeWithNumThreads() != 1) {
+                throw new ConfigException(
+                        "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
+                                .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
+            }
+        }
     }
 
     private Properties initProps() {
