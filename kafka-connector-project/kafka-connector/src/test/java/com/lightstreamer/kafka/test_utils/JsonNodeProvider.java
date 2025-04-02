@@ -40,15 +40,16 @@ public class JsonNodeProvider {
                                 new Value("serena")));
         joeChildren.add(null);
 
-        Value value = new Value("joe", joeChildren);
-        value.signature = new byte[] {97, 98, 99, 100};
-        value.family =
+        Value root = new Value("joe", joeChildren);
+        // root.
+        root.signature = new byte[] {97, 98, 99, 100};
+        root.family =
                 new Value[][] {
                     {new Value("bro00"), new Value("bro01")},
                     {new Value("bro10"), new Value("bro11")}
                 };
 
-        ObjectNode node = new ObjectMapper().valueToTree(value);
+        ObjectNode node = new ObjectMapper().valueToTree(root);
         return node;
     }
 
@@ -65,6 +66,8 @@ class Value {
     public Value child;
 
     public List<Value> children;
+
+    public final List<String> nullArray = null;
 
     public byte[] signature;
 

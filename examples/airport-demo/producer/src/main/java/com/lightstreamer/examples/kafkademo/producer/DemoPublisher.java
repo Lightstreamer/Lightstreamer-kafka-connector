@@ -2,11 +2,10 @@ package com.lightstreamer.examples.kafkademo.producer;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -22,7 +21,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,9 +28,9 @@ public class DemoPublisher {
 
     private static Logger logger = LogManager.getLogger("kafkademo-producer");
 
-    private static String kconnstring; 
+    private static String kconnString; 
 
-    private static int pause_milis = 800;
+    private static int pause_millis = 800;
 
     private static boolean go = true;
 
@@ -40,7 +38,7 @@ public class DemoPublisher {
 
     private static Calendar calendar = Calendar.getInstance();
 
-    private static String topicname;
+    private static String topicName;
 
     private static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
 
@@ -99,7 +97,7 @@ public class DemoPublisher {
 
     private static void kafkaproducerloop() throws InterruptedException {
         Properties props = new Properties();
-        props.put("bootstrap.servers", kconnstring);
+        props.put("bootstrap.servers", kconnString);
         props.put("linger.ms", 1);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 org.apache.kafka.common.serialization.StringSerializer.class);
@@ -132,7 +130,7 @@ public class DemoPublisher {
                                 FlightInfo endup = new FlightInfo("", "", fno,  0, "", "");
                                 endup.command = "DELETE";
 
-                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, fno, endup));
+                                futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, fno, endup));
 
                                 rmtdta = futurek.get();
                             }
@@ -143,7 +141,7 @@ public class DemoPublisher {
                             FlightInfo cs = new FlightInfo("", "", "",  0, "", "");
                             cs.command = "CS";
 
-                            futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, "snapshot", cs));
+                            futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", cs));
 
                             rmtdta = futurek.get();
 
@@ -170,7 +168,7 @@ public class DemoPublisher {
                             flightinfo.currentTime = sdf.format(calendar.getTime());
                             flightinfo.command = cmd;
     
-                            Future<RecordMetadata> wait = producer.send(new ProducerRecord<String, FlightInfo>(topicname, k, flightinfo));
+                            Future<RecordMetadata> wait = producer.send(new ProducerRecord<String, FlightInfo>(topicName, k, flightinfo));
     
                             try {
                                 wait.get();
@@ -188,7 +186,7 @@ public class DemoPublisher {
                         FlightInfo eos = new FlightInfo("", "", "",  0, "", "");
                         eos.command = "EOS";
 
-                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, "snapshot", eos));
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", eos));
 
                         rmtdta = futurek.get();
 
@@ -218,14 +216,14 @@ public class DemoPublisher {
                         flightinfo.currentTime = sdf.format(calendar.getTime());
                         flightinfo.command = command;
 
-                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicname, key, flightinfo));
+                        futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, key, flightinfo));
 
                         rmtdta = futurek.get();
 
                         logger.info("Sent message to partition: " + rmtdta.partition());
                     }
 
-                    Thread.sleep(pause_milis);
+                    Thread.sleep(pause_millis);
                 }
 
                 producer.close();
@@ -347,16 +345,16 @@ public class DemoPublisher {
             return ;
         }
 
-        kconnstring = args[0];
-        topicname = args[1];
+        kconnString = args[0];
+        topicName = args[1];
 
         try {
-            pause_milis = Integer.parseInt(args[2]);
+            pause_millis = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
             logger.error("Interval of update not valid assumd 800ms.");
-            pause_milis = 800;
+            pause_millis = 800;
         }
-        logger.info("wait pause in millis : " + pause_milis);
+        logger.info("wait pause in millis : " + pause_millis);
 
         Thread t1 = new Thread(new Runnable() {
             @Override

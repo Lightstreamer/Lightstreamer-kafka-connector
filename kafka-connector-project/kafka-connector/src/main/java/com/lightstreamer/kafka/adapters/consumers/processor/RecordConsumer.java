@@ -43,7 +43,7 @@ public interface RecordConsumer<K, V> {
 
     enum OrderStrategy {
         ORDER_BY_KEY(record -> Objects.toString(record.key(), null)),
-        ORDER_BY_PARTITION(record -> String.valueOf(record.partition())),
+        ORDER_BY_PARTITION(record -> record.topic() + "-" + record.partition()),
         UNORDERED(record -> null);
 
         private Function<ConsumerRecord<?, ?>, String> sequence;
@@ -86,12 +86,12 @@ public interface RecordConsumer<K, V> {
 
     public interface StartBuildingConsumer<K, V> {
 
-        WihtOffsetService<K, V> offsetService(OffsetService offsetService);
+        WithOffsetService<K, V> offsetService(OffsetService offsetService);
     }
 
-    interface WihtOffsetService<K, V> {
+    interface WithOffsetService<K, V> {
 
-        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy stragey);
+        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy strategy);
     }
 
     interface WithLogger<K, V> {

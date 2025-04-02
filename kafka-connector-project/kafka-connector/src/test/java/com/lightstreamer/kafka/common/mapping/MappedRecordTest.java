@@ -103,7 +103,7 @@ public class MappedRecordTest {
                 subscribedFrom("schema1-[topic=aTopic,partition=aPartition]");
         // This item should match the expandedTemplate 2: routable
         SubscribedItem matchingItem2 = subscribedFrom("schema2-[key=aKey,value=aValue]");
-        // The following items shuld match no templates: non-routable
+        // The following items should match no templates: non-routable
         SubscribedItem notMatchingBindParameters =
                 subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
         SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");

@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.common.utils;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,8 +46,8 @@ public class EitherTest {
 
     @Test
     void shouldSupportNull() {
-        // Either nullassertThrows(IllegalArgumentException.class, () -> Either.left(null));
-        // assertThrows(IllegalArgumentException.class, () -> Either.right(null));
+        assertDoesNotThrow(() -> Either.left(null));
+        assertDoesNotThrow(() -> Either.right(null));
     }
 
     @Test

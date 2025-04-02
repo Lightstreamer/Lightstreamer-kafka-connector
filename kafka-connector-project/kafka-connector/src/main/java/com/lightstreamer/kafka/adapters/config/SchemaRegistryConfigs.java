@@ -51,14 +51,14 @@ public class SchemaRegistryConfigs {
     public static final String TRUSTSTORE_PATH = nse(TlsConfigs.TRUSTSTORE_PATH);
     public static final String TRUSTSTORE_PASSWORD = nse(TlsConfigs.TRUSTSTORE_PASSWORD);
 
-    public static final String KEYSTORE_ENABLE = nse(TlsConfigs.KESYTORE_ENABLE);
+    public static final String KEYSTORE_ENABLE = nse(TlsConfigs.KEYSTORE_ENABLE);
 
-    public static final String HOSTNAME_VERIFICATION_ENANLE =
+    public static final String HOSTNAME_VERIFICATION_ENABLE =
             nse(TlsConfigs.HOSTNAME_VERIFICATION_ENABLE);
 
     public static final String SSL_CIPHER_SUITES = nse(TlsConfigs.SSL_CIPHER_SUITES);
     public static final String SSL_PROVIDER = nse(TlsConfigs.SSL_PROVIDER);
-    public static final String SSL_EGINE_FACTORY_CLASS = nse(TlsConfigs.SSL_EGINE_FACTORY_CLASS);
+    public static final String SSL_ENGINE_FACTORY_CLASS = nse(TlsConfigs.SSL_ENGINE_FACTORY_CLASS);
     public static final String SSL_KEYMANAGER_ALGORITHM = nse(TlsConfigs.SSL_KEYMANAGER_ALGORITHM);
     public static final String SSL_SECURE_RANDOM_IMPLEMENTATION =
             nse(TlsConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);
@@ -118,7 +118,7 @@ public class SchemaRegistryConfigs {
         }
 
         if (!cfg.isSchemaRegistryEnabled()) {
-            return props.unmodifiables();
+            return props.unmodifiable();
         }
 
         props.setProperty(
@@ -147,7 +147,7 @@ public class SchemaRegistryConfigs {
             props.setProperty(ns(SslConfigs.SSL_PROVIDER_CONFIG), cfg.schemaRegistrySslProvider());
             props.setProperty(
                     ns(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG),
-                    cfg.getText(SSL_EGINE_FACTORY_CLASS));
+                    cfg.getText(SSL_ENGINE_FACTORY_CLASS));
             props.setProperty(
                     ns(SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG),
                     cfg.getText(SSL_SECURE_RANDOM_IMPLEMENTATION));
@@ -182,7 +182,7 @@ public class SchemaRegistryConfigs {
                                     cfg.schemaRegistryBasicAuthenticationUserName(),
                                     cfg.schemaRegistryBasicAuthenticationPassword()));
         }
-        return props.unmodifiables();
+        return props.unmodifiable();
     }
 
     private SchemaRegistryConfigs() {}

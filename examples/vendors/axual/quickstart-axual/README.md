@@ -64,7 +64,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```      
 
 - _producer_:
-   - Update of the parameter `--boostrap-servers` to the environment variable `bootstrap_server`
+   - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
    - Update of the parameter `--topic` to the environment variable `topic`
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
     

@@ -1,4 +1,4 @@
-TEMPLATE                                                                       | SUBCRIBING_ITEM                                | SHOULD_SUBSCRIBE  | SHOULD_ROUTE
+TEMPLATE                                                                       | SUBSCRIBING_ITEM                               | SHOULD_SUBSCRIBE  | SHOULD_ROUTE
 complex-item-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-[name=joe]                             | false             | false
 complex-item-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-[name=joe]                        | false             | false 
 complex-item-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}  | complex-item-[name=joe,child=alex]             | false             | false

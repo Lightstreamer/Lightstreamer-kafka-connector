@@ -109,7 +109,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
      * Only used internally.
      *
      * <p>Returns a new MetadataLister instance, which will be used by the DataProvider to force
-     * unsubscriptions from items.
+     * unsubscription from items.
      *
      * @param dataProviderName the name of the DataProvider
      * @param enabled indicates whether the calling DataProvider is enabled
@@ -117,7 +117,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
      * @hidden
      */
     public static final MetadataListener listener(String dataProviderName, boolean enabled) {
-        return new MetadataListenterImpl(METADATA_ADAPTER, dataProviderName, enabled);
+        return new MetadataListenerImpl(METADATA_ADAPTER, dataProviderName, enabled);
     }
 
     private void forceUnsubscriptionAll(String dataAdapterName) {
@@ -272,13 +272,13 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
      */
     protected static record ConnectionInfo(String name, boolean enabled) {}
 
-    private static class MetadataListenterImpl implements MetadataListener {
+    private static class MetadataListenerImpl implements MetadataListener {
 
         private final String dataAdapter;
 
         private final KafkaConnectorMetadataAdapter metadataAdapter;
 
-        private MetadataListenterImpl(
+        private MetadataListenerImpl(
                 KafkaConnectorMetadataAdapter metadataAdapter,
                 String dataAdapter,
                 boolean enabled) {

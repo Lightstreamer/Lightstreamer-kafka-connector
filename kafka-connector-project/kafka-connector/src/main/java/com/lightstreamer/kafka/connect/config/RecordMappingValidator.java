@@ -30,7 +30,7 @@ public class RecordMappingValidator extends ListValidator {
     public String validateStringElement(String name, String element) {
         // Gets the <field-name>:<field-expression> pair
         Pair pair =
-                Split.asPair(element)
+                Split.asPairWithColon(element)
                         .orElseThrow(
                                 () ->
                                         new ConfigException(

@@ -36,6 +36,11 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             if (node.isNull()) {
                 throw ValueException.nullObject(name);
             }
+
+            if (node.isScalar()) {
+                throw ValueException.scalarObject(name);
+            }
+
             if (!node.has(name)) {
                 throw ValueException.fieldNotFound(name);
             }
@@ -90,11 +95,14 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         }
 
         Node<T> get(int index, Node<T> node) {
+            if (node.isNull()) {
+                throw ValueException.nullObject(name, index);
+            }
             if (node.isArray()) {
                 if (index < node.size()) {
                     return node.get(index);
                 } else {
-                    throw ValueException.indexOfOutBoundex(index);
+                    throw ValueException.indexOfOutBounds(index);
                 }
             } else {
                 throw ValueException.noIndexedField(name);
@@ -110,31 +118,22 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
     protected StructuredBaseSelector(
             String name, ExtractionExpression expression, Constant expectedRoot)
             throws ExtractionException {
-        this(name, expression, expectedRoot, true);
-    }
-
-    protected StructuredBaseSelector(
-            String name,
-            ExtractionExpression expression,
-            Constant expectedRoot,
-            boolean enforceStructured)
-            throws ExtractionException {
         super(name, expression);
-        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot, enforceStructured);
+        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
         this.evaluator = parser.parse(ctx);
     }
 
-    protected final Data eval(Node<T> node) {
+    protected final Data eval(Node<T> node, boolean checkScalar) {
         LinkedNodeEvaluator<T> currentEvaluator = evaluator;
         while (currentEvaluator != null) {
             node = currentEvaluator.current().eval(node);
             currentEvaluator = currentEvaluator.next();
         }
 
-        if (!node.isScalar()) {
+        if (checkScalar && !node.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return Data.from(name(), node.asText(null));
+        return Data.from(name(), node.asText());
     }
 }
