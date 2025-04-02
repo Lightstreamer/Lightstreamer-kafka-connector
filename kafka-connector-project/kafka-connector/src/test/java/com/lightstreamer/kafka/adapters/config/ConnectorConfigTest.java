@@ -160,13 +160,13 @@ public class ConnectorConfigTest {
         assertThat(adapterConfId.defaultValue()).isNull();
         assertThat(adapterConfId.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter adapterDir = configSpec.getParameter(ADAPTER_DIR);
-        assertThat(adapterDir.name()).isEqualTo(ADAPTER_DIR);
-        assertThat(adapterDir.required()).isTrue();
-        assertThat(adapterDir.multiple()).isFalse();
-        assertThat(adapterDir.mutable()).isTrue();
-        assertThat(adapterDir.defaultValue()).isNull();
-        assertThat(adapterDir.type()).isEqualTo(ConfType.DIRECTORY);
+        ConfParameter adapterPath = configSpec.getParameter(ADAPTER_DIR);
+        assertThat(adapterPath.name()).isEqualTo(ADAPTER_DIR);
+        assertThat(adapterPath.required()).isTrue();
+        assertThat(adapterPath.multiple()).isFalse();
+        assertThat(adapterPath.mutable()).isTrue();
+        assertThat(adapterPath.defaultValue()).isNull();
+        assertThat(adapterPath.type()).isEqualTo(ConfType.DIRECTORY);
 
         ConfParameter dataAdapterName = configSpec.getParameter(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.name()).isEqualTo(DATA_ADAPTER_NAME);
@@ -266,13 +266,13 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter keySchemaFile = configSpec.getParameter(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
-        assertThat(keySchemaFile.name()).isEqualTo(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
-        assertThat(keySchemaFile.required()).isFalse();
-        assertThat(keySchemaFile.multiple()).isFalse();
-        assertThat(keySchemaFile.mutable()).isTrue();
-        assertThat(keySchemaFile.defaultValue()).isNull();
-        assertThat(keySchemaFile.type()).isEqualTo(ConfType.FILE);
+        ConfParameter keySchemaPath = configSpec.getParameter(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        assertThat(keySchemaPath.name()).isEqualTo(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        assertThat(keySchemaPath.required()).isFalse();
+        assertThat(keySchemaPath.multiple()).isFalse();
+        assertThat(keySchemaPath.mutable()).isTrue();
+        assertThat(keySchemaPath.defaultValue()).isNull();
+        assertThat(keySchemaPath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForKey =
                 configSpec.getParameter(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
@@ -292,13 +292,13 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter valueSchemaFile = configSpec.getParameter(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
-        assertThat(valueSchemaFile.name()).isEqualTo(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
-        assertThat(valueSchemaFile.required()).isFalse();
-        assertThat(valueSchemaFile.multiple()).isFalse();
-        assertThat(valueSchemaFile.mutable()).isTrue();
-        assertThat(valueSchemaFile.defaultValue()).isNull();
-        assertThat(valueSchemaFile.type()).isEqualTo(ConfType.FILE);
+        ConfParameter valueSchemaPath = configSpec.getParameter(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        assertThat(valueSchemaPath.name()).isEqualTo(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        assertThat(valueSchemaPath.required()).isFalse();
+        assertThat(valueSchemaPath.multiple()).isFalse();
+        assertThat(valueSchemaPath.mutable()).isTrue();
+        assertThat(valueSchemaPath.defaultValue()).isNull();
+        assertThat(valueSchemaPath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForValue =
                 configSpec.getParameter(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
@@ -936,8 +936,8 @@ public class ConnectorConfigTest {
         assertThat(config.getValueKvpPairsSeparator()).isEqualTo(',');
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, ";");
-        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, "|");
+        updatedConfig.put(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, ";");
+        updatedConfig.put(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, "|");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(';');
         assertThat(config.getValueKvpPairsSeparator()).isEqualTo('|');
@@ -958,7 +958,7 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter [record.key.evaluator.kvp.pairs.separator]");
 
         Map<String, String> configs2 = new HashMap<>();
-        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
+        configs2.put(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
 
         ce =
                 assertThrows(
@@ -975,8 +975,8 @@ public class ConnectorConfigTest {
         assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('=');
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "@");
-        updatedConfig.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "|");
+        updatedConfig.put(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "@");
+        updatedConfig.put(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, "|");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo('@');
         assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('|');
@@ -987,7 +987,7 @@ public class ConnectorConfigTest {
     @ValueSource(strings = {"==", ";;"})
     public void shouldFailDueToInvalidKvpSeparator(String delimiter) {
         Map<String, String> configs1 = new HashMap<>();
-        configs1.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
+        configs1.put(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
 
         ConfigException ce =
                 assertThrows(
@@ -1005,6 +1005,27 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [record.value.evaluator.kvp.key-value.separator]");
+    }
+
+    @Test
+    public void shouldGetCommandMode() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.isCommandEnforceEnabled()).isFalse();
+
+        config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "false"));
+        assertThat(config.isCommandEnforceEnabled()).isFalse();
+
+        config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "true"));
+        assertThat(config.isCommandEnforceEnabled()).isTrue();
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(RECORD_COMMAND_ENABLE, "invalid")));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [record.command.enable]");
     }
 
     @Test
@@ -1193,12 +1214,9 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldOverrideConsumeEventsFrom() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_FROM, "EARLIEST");
-        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getRecordConsumeFrom()).isEqualTo(EARLIEST);
         assertThat(config.baseConsumerProps())
                 .containsAtLeast(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
