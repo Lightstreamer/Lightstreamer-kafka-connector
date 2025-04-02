@@ -57,7 +57,7 @@ public interface ConsumerTrigger {
         }
     }
 
-    boolean isSnapshotAvailable(String item);
+    boolean isSnapshotAvailable();
 
     CompletableFuture<Void> subscribe(String item, Object itemHandle) throws SubscriptionException;
 
