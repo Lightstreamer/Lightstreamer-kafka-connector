@@ -51,10 +51,7 @@ function main() {
     
     let subMonitor = new Ls.Subscription("COMMAND",itemsList,fieldsList);
     subMonitor.setDataAdapter("AirpotDemo");
-	subMonitor.set
-    
     subMonitor.addListener(dynaGrid);
-    
     subMonitor.addListener({
       onItemUpdate: function(updateInfo) {
         console.log("New - " + updateInfo.getValue("key") + ", " + updateInfo.getValue("flightNo"));
