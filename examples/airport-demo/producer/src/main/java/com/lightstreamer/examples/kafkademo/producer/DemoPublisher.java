@@ -114,27 +114,23 @@ public class DemoPublisher {
                 Producer<String, FlightInfo> producer = new KafkaProducer<>(props);
 
                 int countdown_to_end_of_day = 0;
-                boolean fisrt = true;
+                boolean first = true;
 
                 while (go) {
                     String key;
                     String command;
 
                     if ( countdown_to_end_of_day-- == 0 ) {
-                        
-                        if (!fisrt) {
+                        if (!first) {
                             // Cleanup all the keys
                             for (String fno : flight_momentum.keySet()) {
                                 System.out.println("Key: " + fno + ". Value: " + flight_momentum.get(fno));
 
                                 FlightInfo endup = new FlightInfo("", "", fno,  0, "", "");
                                 endup.command = "DELETE";
-
                                 futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, fno, endup));
-
                                 rmtdta = futurek.get();
                             }
-
 
                             logger.info("Send CS messasge.");
 
@@ -142,12 +138,11 @@ public class DemoPublisher {
                             cs.command = "CS";
 
                             futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", cs));
-
                             rmtdta = futurek.get();
 
                             logger.info("Sent message to partition: " + rmtdta.partition());
                         } else {
-                            fisrt = false;
+                            first = false;
                         }
                         
                         flight_momentum.clear();
@@ -181,13 +176,12 @@ public class DemoPublisher {
                             logger.info("Sent snapshot.");
                         });
 
-                        logger.info("Send EOS messasge.");
+                        logger.info("Send EOS message.");
 
                         FlightInfo eos = new FlightInfo("", "", "",  0, "", "");
                         eos.command = "EOS";
 
                         futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, "snapshot", eos));
-
                         rmtdta = futurek.get();
 
                         logger.info("Sent message to partition: " + rmtdta.partition());
@@ -202,7 +196,6 @@ public class DemoPublisher {
                             command = "ADD";
                         } else {                           
                             key = getRandomKey(flight_momentum);
-
                             command = "UPDATE";
                         }
 
@@ -217,17 +210,13 @@ public class DemoPublisher {
                         flightinfo.command = command;
 
                         futurek = producer.send(new ProducerRecord<String, FlightInfo>(topicName, key, flightinfo));
-
                         rmtdta = futurek.get();
 
                         logger.info("Sent message to partition: " + rmtdta.partition());
                     }
-
                     Thread.sleep(pause_millis);
                 }
-
                 producer.close();
-
             } catch (Exception e) {
                 logger.error("Error during producer loop: " + e.getMessage());
             }
@@ -337,9 +326,7 @@ public class DemoPublisher {
     }
 
     public static void main(String[] args) {
-        
         logger.info("Start Kafka demo producer: " + args.length);
-
         if (args.length < 3) {
             logger.error("Missing arguments: [bootstrap-servers] [topic-name] [interval of update]");
             return ;
