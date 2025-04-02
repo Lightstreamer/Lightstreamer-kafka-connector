@@ -192,10 +192,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         return templateExtractors.get(topicName);
     }
 
+    @Override
     public boolean hasExtractors() {
         return !templateExtractors.isEmpty();
     }
 
+    @Override
     public boolean hasFieldExtractor() {
         return fieldExtractor != Builder.NOP;
     }
@@ -235,7 +237,7 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     DefaultMappedRecord(Set<SchemaAndValues> expandedTemplates, SchemaAndValues fieldsMap) {
-        this.indexedTemplates = expandedTemplates.toArray(new SchemaAndValues[] {});
+        this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
         this.fieldsMap = fieldsMap;
     }
 
