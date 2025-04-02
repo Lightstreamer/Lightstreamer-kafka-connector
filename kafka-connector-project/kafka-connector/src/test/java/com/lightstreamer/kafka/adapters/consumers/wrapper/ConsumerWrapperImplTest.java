@@ -65,7 +65,7 @@ public class ConsumerWrapperImplTest {
 
     private MockMetadataListener metadataListener;
     private MockItemEventListener itemEventListener;
-    private Collection<SubscribedItem> subscribedItems = Collections.emptyList();
+    private final Collection<SubscribedItem> subscribedItems = Collections.emptyList();
     private MockConsumer<String, String> mockConsumer;
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
 
