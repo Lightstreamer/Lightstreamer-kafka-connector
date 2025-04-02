@@ -78,9 +78,17 @@ public class RecordProcessorTest {
         this.subscribedItems = new HashSet<>();
 
         // The RecordProcessor instance
-        this.processor =
-                new RecordConsumerSupport.DefaultRecordProcessor<>(
-                        mapper, subscribedItems, listener);
+        this.processor = defaultRecordProcessor();
+    }
+
+    private RecordProcessor<String, String> defaultRecordProcessor() {
+        return new RecordConsumerSupport.DefaultRecordProcessor<>(
+                mapper, subscribedItems, listener);
+    }
+
+    private RecordProcessor<String, String> commandRecordProcessor() {
+        return new RecordConsumerSupport.CommandRecordProcessor<>(
+                mapper, subscribedItems, listener);
     }
 
     @Test
@@ -88,14 +96,17 @@ public class RecordProcessorTest {
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
         processor.process(record);
+
         // Verify that the real-time update has been routed
         assertThat(counter.get()).isEqualTo(1);
+
         // Reset the counter
         counter.set(0);
 
-        // Add subscription "item2"
+        // Add subscription "item2" and process the record
         subscribedItems.add(Items.subscribedFrom("item2", new Object()));
         processor.process(record);
+
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
         assertThat(counter.get()).isEqualTo(2);
     }
@@ -107,5 +118,15 @@ public class RecordProcessorTest {
         processor.process(record);
         // Verify that the update has NOT been routed
         assertThat(counter.get()).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldDefaultRecordProcessorNotBeCommandEnforceEnabled() {
+        assertThat(processor.isCommandEnforceEnabled()).isFalse();
+    }
+
+    @Test
+    public void shouldCommandRecordProcessorBeCommandEnforceEnabled() {
+        assertThat(commandRecordProcessor().isCommandEnforceEnabled()).isTrue();
     }
 }
