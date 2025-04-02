@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithLogger;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
@@ -91,6 +92,7 @@ class RecordConsumerSupport {
         protected RecordMapper<K, V> mapper;
         protected Collection<SubscribedItem> subscribed;
         protected ItemEventListener listener;
+        protected boolean enforceCommandMode;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
             this.mapper = mapper;
@@ -106,27 +108,33 @@ class RecordConsumerSupport {
 
     private static class WithSubscribedItemsImpl<K, V> implements WithSubscribedItems<K, V> {
         final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
-        private boolean enforceCommandMode;
 
-        WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> b) {
-            this.parentBuilder = b;
-            this.enforceCommandMode = false;
+        WithSubscribedItemsImpl(StartBuildingProcessorBuilderImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
-        public WithSubscribedItemsImpl<K, V> enforceCommandMode(boolean enforceCommandMode) {
-            this.enforceCommandMode = enforceCommandMode;
-            return this;
+        public WithEnforceCommandMode<K, V> enforceCommandMode(boolean enforceCommandMode) {
+            this.parentBuilder.enforceCommandMode = enforceCommandMode;
+            return new WithEnforceCommandModeImpl<>(parentBuilder);
+        }
+    }
+
+    private static class WithEnforceCommandModeImpl<K, V> implements WithEnforceCommandMode<K, V> {
+        final StartBuildingProcessorBuilderImpl<K, V> parentBuilder;
+
+        WithEnforceCommandModeImpl(StartBuildingProcessorBuilderImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
         public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
             this.parentBuilder.listener = listener;
-            Objects.requireNonNull(this.parentBuilder.mapper);
-            Objects.requireNonNull(this.parentBuilder.subscribed);
-            Objects.requireNonNull(this.parentBuilder.listener);
+            Objects.requireNonNull(this.parentBuilder.mapper, "RecordMapper not set");
+            Objects.requireNonNull(this.parentBuilder.subscribed, "SubscribedItems not set");
+            Objects.requireNonNull(this.parentBuilder.listener, "ItemEventListener not set");
             RecordProcessor<K, V> recordProcessor =
-                    enforceCommandMode
+                    this.parentBuilder.enforceCommandMode
                             ? new CommandRecordProcessor<>(
                                     this.parentBuilder.mapper,
                                     this.parentBuilder.subscribed,
@@ -143,8 +151,8 @@ class RecordConsumerSupport {
 
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithOffsetServiceImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.parentBuilder = b;
+        WithOffsetServiceImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
@@ -156,24 +164,24 @@ class RecordConsumerSupport {
 
     private static class WithLoggerImpl<K, V> implements WithLogger<K, V> {
 
-        final StartBuildingConsumerImpl<K, V> b;
+        final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithLoggerImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.b = b;
+        WithLoggerImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
         public WithOptionals<K, V> logger(Logger logger) {
-            this.b.logger = logger;
-            return new WithOptionalsImpl<>(b);
+            this.parentBuilder.logger = logger;
+            return new WithOptionalsImpl<>(parentBuilder);
         }
     }
 
     private static class WithOptionalsImpl<K, V> implements WithOptionals<K, V> {
         final StartBuildingConsumerImpl<K, V> parentBuilder;
 
-        WithOptionalsImpl(StartBuildingConsumerImpl<K, V> b) {
-            this.parentBuilder = b;
+        WithOptionalsImpl(StartBuildingConsumerImpl<K, V> parentBuilder) {
+            this.parentBuilder = parentBuilder;
         }
 
         @Override
@@ -196,11 +204,17 @@ class RecordConsumerSupport {
 
         @Override
         public RecordConsumer<K, V> build() {
-            Objects.requireNonNull(parentBuilder.errorStrategy);
-            Objects.requireNonNull(parentBuilder.logger);
-            Objects.requireNonNull(parentBuilder.orderStrategy);
+            Objects.requireNonNull(parentBuilder.processor, "RecordProcessor not set");
+            Objects.requireNonNull(parentBuilder.offsetService, "OffsetService not set");
+            Objects.requireNonNull(parentBuilder.errorStrategy, "ErrorStrategy not set");
+            Objects.requireNonNull(parentBuilder.logger, "Logger not set");
+            Objects.requireNonNull(parentBuilder.orderStrategy, "OrderStrategy not set");
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
+            }
+            if (parentBuilder.threads > 1 && parentBuilder.processor.isCommandEnforceEnabled()) {
+                throw new IllegalArgumentException(
+                        "Command mode does not support parallel processing");
             }
             if (parentBuilder.threads == 1 && parentBuilder.preferSingleThread) {
                 return new SingleThreadedRecordConsumer<>(parentBuilder);
@@ -209,7 +223,8 @@ class RecordConsumerSupport {
         }
     }
 
-    static class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V> {
+    static sealed class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V>
+            permits CommandRecordProcessor {
 
         protected final RecordMapper<K, V> recordMapper;
         protected final Collection<SubscribedItem> subscribedItems;
@@ -226,12 +241,12 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void useLogger(Logger logger) {
+        public final void useLogger(Logger logger) {
             this.log = Objects.requireNonNullElse(logger, this.log);
         }
 
         @Override
-        public void process(ConsumerRecord<K, V> record) throws ValueException {
+        public final void process(ConsumerRecord<K, V> record) throws ValueException {
             log.atDebug().log(() -> "Mapping incoming Kafka record");
             log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
@@ -261,7 +276,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
+    static final class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
 
         CommandRecordProcessor(
                 RecordMapper<K, V> recordMapper,
@@ -271,7 +286,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routables) {
+        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
             if (!checkCommand(updates)) {
                 log.atWarn()
                         .log(
@@ -280,7 +295,7 @@ class RecordConsumerSupport {
                 return;
             }
 
-            for (SubscribedItem sub : routables) {
+            for (SubscribedItem sub : routable) {
                 log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 log.atDebug().log("Enforce·COMMAND·mode·semantic·of·records·read:");
 
@@ -290,6 +305,11 @@ class RecordConsumerSupport {
                     handleCommand(updates, sub);
                 }
             }
+        }
+
+        @Override
+        public boolean isCommandEnforceEnabled() {
+            return true;
         }
 
         private boolean checkCommand(Map<String, String> input) {
