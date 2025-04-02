@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -138,6 +139,24 @@ public class AdapterSetTest {
         connectorMetadataAdapter.notifyNewTables("user", "sessionId", tables);
         Optional<Set<String>> items = connectorMetadataAdapter.itemsBySession("sessionId");
         assertThat(items.isPresent()).isFalse();
+    }
+
+    @Test
+    public void shouldHandleSnapshot() throws Exception {
+        doInit();
+
+        KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
+        connectorDataAdapter1.setListener(new Mocks.MockItemEventListener());
+        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
+
+        KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter2.init(
+                ConnectorConfigProvider.minimalConfigWith(
+                        Map.of(ConnectorConfig.RECORD_COMMAND_ENABLE, "true")),
+                adapterDir.toFile());
+        connectorDataAdapter2.setListener(new Mocks.MockItemEventListener());
+        assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
     }
 
     @Test
