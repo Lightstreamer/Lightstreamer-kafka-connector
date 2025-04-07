@@ -67,7 +67,7 @@ public class RecordConsumerBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
 
-    @Param({"1", "2", "4"})
+    @Param({"1"})
     int threads = 4;
 
     int partitions = 4;
@@ -85,8 +85,7 @@ public class RecordConsumerBenchmark {
     // @Param({"20", "200", "2000"})
     int subscriptions = 500;
 
-    // @Param({"ORDER_BY_PARTITION", "ORDER_BY_KEY"})
-    @Param({"ORDER_BY_PARTITION", "ORDER_BY_PARTITION_2"})
+    @Param({"ORDER_BY_PARTITION"})
     String ordering;
 
     ConsumerRecords<String, JsonNode> consumerRecords;
