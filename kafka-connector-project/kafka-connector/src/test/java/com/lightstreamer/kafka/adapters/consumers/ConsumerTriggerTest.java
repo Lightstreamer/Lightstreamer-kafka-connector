@@ -30,7 +30,7 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumerWrapper;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -38,7 +38,6 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 import org.apache.kafka.common.KafkaException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -60,7 +59,7 @@ public class ConsumerTriggerTest {
         ConsumerTriggerConfig<String, String> config =
                 new Mocks.MockTriggerConfig(topicsConfig, new Properties(), enforceCommandMode);
 
-        Function<Collection<SubscribedItem>, ConsumerWrapper<String, String>> consumerWrapper =
+        Function<SubscribedItems, ConsumerWrapper<String, String>> consumerWrapper =
                 items -> {
                     if (throwExceptionWhileConnectingToKafka) {
                         throw new KafkaException("Simulated Exception");
