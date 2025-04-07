@@ -1022,7 +1022,13 @@ public class ConnectorConfigTest {
         // Checks value "true"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true"));
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"));
         assertThat(config.isCommandEnforceEnabled()).isTrue();
 
         // Checks invalid values
@@ -1035,6 +1041,31 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value for parameter [fields.evaluate.as.command.enable]");
+
+        // Check that field.key is set
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true")));
+        assertThat(ce.getMessage())
+                .isEqualTo("Command mode requires a key field. Parameter [field.key] must be set");
+
+        // Check that field.command is set
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                                "true",
+                                                "field.key",
+                                                "#{KEY}")));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Command mode requires a command field. Parameter [field.command] must be set");
 
         // Requires that exactly one consumer thread is set
         ce =
