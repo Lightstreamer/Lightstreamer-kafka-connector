@@ -104,7 +104,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
             "fields.map.non.scalar.values.enable";
 
-    public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE = "fields.evaluate.as.command.enable";
+    public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
+            "fields.evaluate.as.command.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
