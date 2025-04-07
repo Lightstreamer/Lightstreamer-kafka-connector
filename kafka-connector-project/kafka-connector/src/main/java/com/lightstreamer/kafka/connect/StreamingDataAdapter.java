@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -87,6 +88,13 @@ public final class StreamingDataAdapter implements RecordSender {
     // Map of all the subscribed items.
     private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
             new ConcurrentHashMap<>();
+
+    /**
+     * A container of all currently subscribed items in the Lightstreamer Server. This instance is
+     * created from the values of the subscribedItems map and manages the collection of active
+     * subscription requests.
+     */
+    private final SubscribedItems subscribed = SubscribedItems.of(subscribedItems.values());
 
     // The ItemEventListener instance injected by the Remote Provider Server.
     private volatile ItemEventListener listener;
@@ -298,7 +306,7 @@ public final class StreamingDataAdapter implements RecordSender {
         MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
         logger.debug("Mapped Kafka record");
 
-        Set<SubscribedItem> routable = mappedRecord.route(subscribedItems.values());
+        Set<SubscribedItem> routable = mappedRecord.route(subscribed);
 
         logger.debug("Filtering updates");
         Map<String, String> updates = mappedRecord.fieldsMap();
