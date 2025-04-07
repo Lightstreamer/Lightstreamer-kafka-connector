@@ -24,7 +24,7 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
@@ -33,7 +33,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -78,7 +77,7 @@ public interface RecordConsumer<K, V> {
 
     public interface StartBuildingProcessor<K, V> {
 
-        WithSubscribedItems<K, V> subscribedItems(Collection<SubscribedItem> subscribedItems);
+        WithSubscribedItems<K, V> subscribedItems(SubscribedItems subscribedItems);
     }
 
     interface WithSubscribedItems<K, V> {
