@@ -45,15 +45,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class RecordConsumerSupport {
 
@@ -281,25 +277,38 @@ class RecordConsumerSupport {
 
     static final class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
 
-        enum Command {
+        private enum Command {
             ADD,
             DELETE,
-            UPDATE,
+            UPDATE;
+        }
+
+        private enum Snapshot {
             CS,
             EOS;
-
-            static Map<String, Command> NAME_CACHE = new HashMap<>();
-
-            static {
-                NAME_CACHE =
-                        Stream.of(values())
-                                .collect(Collectors.toMap(Command::toString, Function.identity()));
-            }
-
-            public static Command fromName(String name) {
-                return NAME_CACHE.get(name);
-            }
         }
+
+        private enum CommandKey {
+            KEY("key"),
+            COMMAND("command");
+
+            private final String key;
+
+            CommandKey(String key) {
+                this.key = key;
+            }
+
+            String lookUp(Map<String, String> input) {
+                return input.get(key);
+            }
+
+            boolean contains(Map<String, String> input) {
+                return input.containsKey(key);
+            }
+
+        }
+
+        private static String SNAPSHOT = "snapshot";
 
         CommandRecordProcessor(
                 RecordMapper<K, V> recordMapper,
@@ -314,20 +323,21 @@ class RecordConsumerSupport {
                 log.atWarn()
                         .log(
                                 "Discarding record due to command mode fields not properly valued: key {} - command {}",
-                                updates.get("key"),
-                                updates.get("command"));
+                                CommandKey.KEY.lookUp(updates),
+                                CommandKey.COMMAND.lookUp(updates)
+                                );
                 return;
             }
 
-            Command command = Command.valueOf(updates.get("command"));
+            String snapshotOrCommand = updates.get(CommandKey.COMMAND.key);
             for (SubscribedItem sub : routable) {
                 log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 log.atDebug().log("Enforce COMMAND mode semantic of records read");
 
-                if (updates.get("key").equals("snapshot")) {
-                    handleSnapshot(command, updates, sub);
+                if (SNAPSHOT.equals(updates.get(CommandKey.KEY.key))) {
+                    handleSnapshot(Snapshot.valueOf(snapshotOrCommand), sub);
                 } else {
-                    handleCommand(command, updates, sub);
+                    handleCommand(Command.valueOf(snapshotOrCommand), updates, sub);
                 }
             }
         }
@@ -342,35 +352,34 @@ class RecordConsumerSupport {
                 return false;
             }
 
-            String key = input.get("key");
+            String key = CommandKey.KEY.lookUp(input);
             if (key == null || key.isBlank()) {
                 return false;
             }
 
-            if (!input.containsKey("command")) {
+            if (!CommandKey.COMMAND.contains(input)) {
                 return false;
             }
 
-            String command = input.get("command");
-            if (command == null) {
+            String snapshotOrCommand = CommandKey.COMMAND.lookUp(input);
+            if (snapshotOrCommand == null) {
                 return false;
             }
 
-            if (key.equals("snapshot")) {
-                return switch (command) {
+            if (SNAPSHOT.equals(key)) {
+                return switch (snapshotOrCommand) {
                     case "CS", "EOS" -> true;
                     default -> false;
                 };
             }
-            return switch (command) {
+            return switch (snapshotOrCommand) {
                 case "ADD", "DELETE", "UPDATE" -> true;
                 default -> false;
             };
         }
 
-        private void handleSnapshot(
-                Command command, Map<String, String> updates, SubscribedItem sub) {
-            switch (command) {
+        private void handleSnapshot(Snapshot snapshotCommand, SubscribedItem sub) {
+            switch (snapshotCommand) {
                 case CS -> {
                     log.atDebug().log("Sending clearSnapshot");
                     listener.smartClearSnapshot(sub.itemHandle());
@@ -381,22 +390,12 @@ class RecordConsumerSupport {
                     listener.smartEndOfSnapshot(sub.itemHandle());
                     sub.setSnapshot(false);
                 }
-                default -> {
-                    log.atWarn().log("Shouldn't have happened! Discarding record");
-                }
             }
         }
 
         void handleCommand(Command command, Map<String, String> updates, SubscribedItem sub) {
-            switch (command) {
-                case ADD, DELETE, UPDATE -> {
-                    log.atDebug().log("Sending {} command", command);
-                    listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
-                }
-                default -> {
-                    log.atWarn().log("Shouldn't have happened! Discarding record");
-                }
-            }
+            log.atDebug().log("Sending {} command", command);
+            listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
         }
     }
 
