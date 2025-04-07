@@ -38,7 +38,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
@@ -69,7 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -96,7 +95,8 @@ public class RecordConsumerTest {
     private RecordConsumer<String, String> recordConsumer;
     private ConsumerTriggerConfig<String, String> config;
     private RecordMapper<String, String> recordMapper;
-    private Set<SubscribedItem> subscriptions;
+    //     private Set<SubscribedItem> subscriptions;
+    private Items.SubscribedItems subscriptions;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -118,7 +118,8 @@ public class RecordConsumerTest {
         this.config = (ConsumerTriggerConfig<String, String>) connectorConfigurator.configure();
 
         String item = "item";
-        this.subscriptions = Collections.singleton(Items.subscribedFrom(item, new Object()));
+        this.subscriptions =
+                () -> Collections.singleton(Items.subscribedFrom(item, new Object())).iterator();
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);
@@ -876,15 +877,6 @@ public class RecordConsumerTest {
     }
 
     /**
-     * Groups all the event offsets by key.
-     *
-     * @return a map of offsets list by key
-     */
-    private static Map<String, List<Number>> getByKey(List<Event> events) {
-        return events.stream().collect(groupingBy(Event::key, mapping(Event::offset, toList())));
-    }
-
-    /**
      * Groups all the event offsets by topic and partition.
      *
      * @return a map of offsets list by topic and partition
@@ -915,8 +907,8 @@ public class RecordConsumerTest {
      *     The consumer will create an Event object using these values along with the current thread
      *     name and add it to the provided events list.
      */
-    private static Consumer<Map<String, String>> buildEvent(List<Event> events) {
-        return map -> {
+    private static BiConsumer<Map<String, String>, Boolean> buildEvent(List<Event> events) {
+        return (map, isSnapshot) -> {
             String topic = map.get("topic");
             // Get the key
             String key = map.get("key");

@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.ext
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RecordProcessorTest {
@@ -48,8 +50,11 @@ public class RecordProcessorTest {
     }
 
     private RecordMapper<String, String> mapper;
+
     private AtomicInteger counter;
+    private AtomicBoolean snapshotEvent;
     private MockItemEventListener listener;
+
     private ConsumerRecord<String, String> record;
     private Set<SubscribedItem> subscribedItems;
     private RecordProcessor<String, String> processor;
@@ -68,27 +73,27 @@ public class RecordProcessorTest {
         // Counts the listener invocations to deliver the real-time updates
         this.counter = new AtomicInteger();
 
-        // The mocked ItemEventListener instance, which updates the counter upon invocation.
-        this.listener = new MockItemEventListener(update -> counter.incrementAndGet());
+        // Indicates whether the delivered event is a snapshot
+        this.snapshotEvent = new AtomicBoolean(false);
+
+        // The mocked ItemEventListener instance, which updates the counter upon invocation
+        this.listener =
+                new MockItemEventListener(
+                        (update, isSnapshot) -> {
+                            counter.incrementAndGet();
+                            snapshotEvent.set(isSnapshot);
+                        });
 
         // A record routable to "item1" and "item2"
-        this.record = Records.Record(TEST_TOPIC, 0, "a-1");
+        this.record = Records.ConsumerRecord(TEST_TOPIC, 0, "a-1");
 
         // The collection of subscribable items
         this.subscribedItems = new HashSet<>();
 
         // The RecordProcessor instance
-        this.processor = defaultRecordProcessor();
-    }
-
-    private RecordProcessor<String, String> defaultRecordProcessor() {
-        return new RecordConsumerSupport.DefaultRecordProcessor<>(
-                mapper, subscribedItems, listener);
-    }
-
-    private RecordProcessor<String, String> commandRecordProcessor() {
-        return new RecordConsumerSupport.CommandRecordProcessor<>(
-                mapper, subscribedItems, listener);
+        this.processor =
+                new RecordConsumerSupport.DefaultRecordProcessor<>(
+                        mapper, SubscribedItems.of(subscribedItems), listener);
     }
 
     @Test
@@ -99,9 +104,13 @@ public class RecordProcessorTest {
 
         // Verify that the real-time update has been routed
         assertThat(counter.get()).isEqualTo(1);
+        // Verify that the update has NOT been routed as a snapshot
+        assertThat(snapshotEvent.get()).isFalse();
 
         // Reset the counter
         counter.set(0);
+        // Reset the snapshot flag
+        snapshotEvent.set(false);
 
         // Add subscription "item2" and process the record
         subscribedItems.add(Items.subscribedFrom("item2", new Object()));
@@ -121,12 +130,7 @@ public class RecordProcessorTest {
     }
 
     @Test
-    public void shouldDefaultRecordProcessorNotBeCommandEnforceEnabled() {
+    public void shouldNotBeCommandEnforceEnabled() {
         assertThat(processor.isCommandEnforceEnabled()).isFalse();
-    }
-
-    @Test
-    public void shouldCommandRecordProcessorBeCommandEnforceEnabled() {
-        assertThat(commandRecordProcessor().isCommandEnforceEnabled()).isTrue();
     }
 }
