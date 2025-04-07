@@ -153,7 +153,7 @@ public class AdapterSetTest {
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         connectorDataAdapter2.init(
                 ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(ConnectorConfig.RECORD_COMMAND_ENABLE, "true")),
+                        Map.of(ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true")),
                 adapterDir.toFile());
         connectorDataAdapter2.setListener(new Mocks.MockItemEventListener());
         assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
