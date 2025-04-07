@@ -1238,7 +1238,7 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
-##### Evaluate As Command `fields.evaluate.as.command.enable`
+##### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
 _Optional_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
