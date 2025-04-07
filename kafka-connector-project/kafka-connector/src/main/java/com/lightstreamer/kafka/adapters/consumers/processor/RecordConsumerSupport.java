@@ -305,7 +305,6 @@ class RecordConsumerSupport {
             boolean contains(Map<String, String> input) {
                 return input.containsKey(key);
             }
-
         }
 
         private static String SNAPSHOT = "snapshot";
@@ -324,8 +323,7 @@ class RecordConsumerSupport {
                         .log(
                                 "Discarding record due to command mode fields not properly valued: key {} - command {}",
                                 CommandKey.KEY.lookUp(updates),
-                                CommandKey.COMMAND.lookUp(updates)
-                                );
+                                CommandKey.COMMAND.lookUp(updates));
                 return;
             }
 
