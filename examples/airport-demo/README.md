@@ -51,10 +51,13 @@ In the [`connector`](connector/) folder, we found the configuration files needed
     <data_provider name="AirportDemo">
       ...
 
-      <!-- Extraction of the record key mapped to the field "key". -->
-      <param name="field.key">#{KEY}</param>
+      <!-- Enable support for COMMAND mode. -->
+      <param name="fields.evaluate.as.command.enable">true</param>
 
       <!-- Extraction of the record value attributes mapped to corresponding field names. -->
+      <param name="field.key">#{KEY}</param>
+      <param name="field.command">#{VALUE.command}</param>
+
       <param name="field.destination">#{VALUE.destination}</param>
       <param name="field.departure">#{VALUE.departure}</param>
       <param name="field.flightNo">#{VALUE.flightNo}</param>
