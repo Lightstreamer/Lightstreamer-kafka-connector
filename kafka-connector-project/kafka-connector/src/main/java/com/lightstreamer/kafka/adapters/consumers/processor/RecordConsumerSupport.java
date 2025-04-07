@@ -313,8 +313,9 @@ class RecordConsumerSupport {
             if (!checkInput(updates)) {
                 log.atWarn()
                         .log(
-                                "Discarding record due to command mode fields not properly valued: {}",
-                                updates.get("key"));
+                                "Discarding record due to command mode fields not properly valued: key {} - command {}",
+                                updates.get("key"),
+                                updates.get("command"));
                 return;
             }
 
@@ -355,9 +356,14 @@ class RecordConsumerSupport {
                 return false;
             }
 
-            log.atDebug().log("key {} - command {}", input.get("key"), input.get("command"));
+            if (key.equals("snapshot")) {
+                return switch (command) {
+                    case "CS", "EOS" -> true;
+                    default -> false;
+                };
+            }
             return switch (command) {
-                case "ADD", "DELETE", "UPDATE", "CS", "EOS" -> true;
+                case "ADD", "DELETE", "UPDATE" -> true;
                 default -> false;
             };
         }
@@ -376,10 +382,7 @@ class RecordConsumerSupport {
                     sub.setSnapshot(false);
                 }
                 default -> {
-                    log.atWarn()
-                            .log(
-                                    "Discarding record due to command mode field not properly valued: {}",
-                                    command);
+                    log.atWarn().log("Shouldn't have happened! Discarding record");
                 }
             }
         }
@@ -391,10 +394,7 @@ class RecordConsumerSupport {
                     listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
                 }
                 default -> {
-                    log.atWarn()
-                            .log(
-                                    "Discarding record due to command mode field not properly valued: {}",
-                                    command);
+                    log.atWarn().log("Shouldn't have happened! Discarding record");
                 }
             }
         }
