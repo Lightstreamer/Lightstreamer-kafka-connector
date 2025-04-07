@@ -38,6 +38,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,19 @@ public class Items {
         boolean isSnapshot();
 
         void setSnapshot(boolean flag);
+    }
+
+    /**
+     * Represents a collection of {@link SubscribedItem} objects that can be iterated over. This
+     * interface extends {@link Iterable}, allowing for iteration through the subscribed items.
+     *
+     * <p>Provides a static factory method {@code of} to create an instance of {@code
+     * SubscribedItems} from a given {@link Collection} of {@link SubscribedItem}.
+     */
+    public interface SubscribedItems extends Iterable<SubscribedItem> {
+        static SubscribedItems of(Collection<SubscribedItem> items) {
+            return () -> items.iterator();
+        }
     }
 
     public interface ItemTemplates<K, V> {
