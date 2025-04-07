@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
@@ -284,7 +284,7 @@ public class ConnectorConfiguratorTest {
         Map<String, String> config =
                 minimalConfigWith(
                         Map.of(
-                                RECORD_COMMAND_ENABLE,
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 String.valueOf(threads)));
