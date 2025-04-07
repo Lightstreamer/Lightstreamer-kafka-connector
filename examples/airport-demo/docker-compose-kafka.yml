@@ -79,9 +79,11 @@ configs:
               <param name="record.consume.from">EARLIEST</param>
               <param name="record.key.evaluator.type">STRING</param>
               <param name="record.value.evaluator.type">JSON</param>
-              <param name="record.command.enable">true</param>
 
               <param name="map.Flights.to">flights-board</param>
+
+              <!-- Enable support for COMMAND mode. -->
+              <param name="fields.evaluate.as.command.enable">true</param>
 
               <!-- Extraction of the record value attributes mapped to corresponding field names. -->
               <param name="field.key">#{KEY}</param>
@@ -94,20 +96,13 @@ configs:
               <param name="field.status">#{VALUE.status}</param>
               <param name="field.airline">#{VALUE.airline}</param>
               <param name="field.currentTime">#{VALUE.currentTime}</param>
-
-              <!-- Extraction of the record timestamp to the field "ts". -->
               <param name="field.ts">#{TIMESTAMP}</param>
-
-              <!-- Extraction of the record partition mapped to the field "partition". -->
               <param name="field.partition">#{PARTITION}</param>
-
-              <!-- Extraction of the record offset mapped to the field "offset". -->
               <param name="field.offset">#{OFFSET}</param>
           </data_provider>
       </adapters_conf>
   log4j.properties:
     content: |
-      log4j.rootLogger=DEBUG, stdout
       log4j.logger.org.apache.kafka=WARN, stdout
       log4j.logger.AirportDemo=TRACE, AirportDemo
 
@@ -115,11 +110,6 @@ configs:
       log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
       log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
       log4j.appender.stdout.Target=System.out
-
-      log4j.appender.stderr=org.apache.log4j.ConsoleAppender
-      log4j.appender.stderr.layout=org.apache.log4j.PatternLayout
-      log4j.appender.stderr.layout.ConversionPattern=[%d] [%t-%c] %p %m%n
-      log4j.appender.stderr.Target=System.err
 
       # Airport logger appender
       log4j.appender.AirportDemo=org.apache.log4j.ConsoleAppender
