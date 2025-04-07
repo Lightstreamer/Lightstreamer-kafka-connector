@@ -25,14 +25,37 @@ import java.util.Map;
 
 public interface DataExtractor<K, V> {
 
+    /**
+     * Extracts schema and values from the given Kafka record.
+     *
+     * @param record the Kafka record containing the key and value to be processed
+     * @return a {@link SchemaAndValues} object representing the extracted schema and values
+     */
     SchemaAndValues extractData(KafkaRecord<K, V> record);
 
+    /**
+     * Retrieves the schema associated with the data extractor.
+     *
+     * @return the {@link Schema} object representing the structure of the data.
+     */
     Schema schema();
 
+    /**
+     * Determines whether the operation should be skipped in case of a failure. By default, this
+     * method returns {@code false}, indicating that the operation should not be skipped on failure.
+     *
+     * @return {@code true} if the operation should be skipped on failure, {@code false} otherwise
+     */
     default boolean skipOnFailure() {
         return false;
     }
 
+    /**
+     * Determines whether non-scalar values should be mapped. By default, this method returns {@code
+     * false}, indicating that non-scalar values are not mapped.
+     *
+     * @return {@code true} if non-scalar values should be mapped, {@code false} otherwise
+     */
     default boolean mapNonScalars() {
         return false;
     }
