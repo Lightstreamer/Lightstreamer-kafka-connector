@@ -1265,8 +1265,10 @@ A Kafka record must be structured to allow the Kafka Connector to map the values
 
 Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
 
-- **`CS` (_Clear Snapshot_)**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-- **`EOS` (_End-of-Snapshot_)**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+- `key` must contain the special value `snapshot`.
+- `command` can contain:
+  - **`CS` (_Clear Snapshot_)**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
+  - **`EOS` (_End-of-Snapshot_)**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
 
