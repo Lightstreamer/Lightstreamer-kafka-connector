@@ -32,6 +32,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithO
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -44,12 +45,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class RecordConsumerSupport {
 
@@ -90,7 +94,7 @@ class RecordConsumerSupport {
             implements StartBuildingProcessor<K, V> {
 
         protected RecordMapper<K, V> mapper;
-        protected Collection<SubscribedItem> subscribed;
+        protected SubscribedItems subscribed;
         protected ItemEventListener listener;
         protected boolean enforceCommandMode;
 
@@ -99,8 +103,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WithSubscribedItems<K, V> subscribedItems(
-                Collection<SubscribedItem> subscribedItems) {
+        public WithSubscribedItems<K, V> subscribedItems(SubscribedItems subscribedItems) {
             this.subscribed = subscribedItems;
             return new WithSubscribedItemsImpl<>(this);
         }
@@ -227,13 +230,13 @@ class RecordConsumerSupport {
             permits CommandRecordProcessor {
 
         protected final RecordMapper<K, V> recordMapper;
-        protected final Collection<SubscribedItem> subscribedItems;
+        protected final SubscribedItems subscribedItems;
         protected final ItemEventListener listener;
         protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
-                Collection<SubscribedItem> subscribedItems,
+                SubscribedItems subscribedItems,
                 ItemEventListener listener) {
             this.recordMapper = recordMapper;
             this.subscribedItems = subscribedItems;
@@ -278,16 +281,36 @@ class RecordConsumerSupport {
 
     static final class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
 
+        enum Command {
+            ADD,
+            DELETE,
+            UPDATE,
+            CS,
+            EOS;
+
+            static Map<String, Command> NAME_CACHE = new HashMap<>();
+
+            static {
+                NAME_CACHE =
+                        Stream.of(values())
+                                .collect(Collectors.toMap(Command::toString, Function.identity()));
+            }
+
+            public static Command fromName(String name) {
+                return NAME_CACHE.get(name);
+            }
+        }
+
         CommandRecordProcessor(
                 RecordMapper<K, V> recordMapper,
-                Collection<SubscribedItem> subscribedItems,
+                SubscribedItems subscribedItems,
                 ItemEventListener listener) {
             super(recordMapper, subscribedItems, listener);
         }
 
         @Override
         protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
-            if (!checkCommand(updates)) {
+            if (!checkInput(updates)) {
                 log.atWarn()
                         .log(
                                 "Discarding record due to command mode fields not properly valued: {}",
@@ -295,14 +318,15 @@ class RecordConsumerSupport {
                 return;
             }
 
+            Command command = Command.valueOf(updates.get("command"));
             for (SubscribedItem sub : routable) {
                 log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                log.atDebug().log("Enforce·COMMAND·mode·semantic·of·records·read:");
+                log.atDebug().log("Enforce COMMAND mode semantic of records read");
 
                 if (updates.get("key").equals("snapshot")) {
-                    handleSnapshot(updates, sub);
+                    handleSnapshot(command, updates, sub);
                 } else {
-                    handleCommand(updates, sub);
+                    handleCommand(command, updates, sub);
                 }
             }
         }
@@ -312,12 +336,13 @@ class RecordConsumerSupport {
             return true;
         }
 
-        private boolean checkCommand(Map<String, String> input) {
+        boolean checkInput(Map<String, String> input) {
             if (input == null) {
                 return false;
             }
 
-            if (!input.containsKey("key") || input.get("key") == null) {
+            String key = input.get("key");
+            if (key == null || key.isBlank()) {
                 return false;
             }
 
@@ -337,38 +362,38 @@ class RecordConsumerSupport {
             };
         }
 
-        private void handleSnapshot(Map<String, String> updates, SubscribedItem sub) {
-            switch (updates.get("command")) {
-                case "CS" -> {
-                    log.atDebug().log("Sending clearsnapshot");
+        private void handleSnapshot(
+                Command command, Map<String, String> updates, SubscribedItem sub) {
+            switch (command) {
+                case CS -> {
+                    log.atDebug().log("Sending clearSnapshot");
                     listener.smartClearSnapshot(sub.itemHandle());
                     sub.setSnapshot(true);
                 }
-                case "EOS" -> {
-                    log.atDebug().log("Sending endofsnapshot");
+                case EOS -> {
+                    log.atDebug().log("Sending endOfSnapshot");
                     listener.smartEndOfSnapshot(sub.itemHandle());
                     sub.setSnapshot(false);
                 }
                 default -> {
                     log.atWarn()
                             .log(
-                                    "Discarding record due to command mode fields not properly valued: {}",
-                                    updates.get("key"));
+                                    "Discarding record due to command mode field not properly valued: {}",
+                                    command);
                 }
             }
         }
 
-        private void handleCommand(Map<String, String> updates, SubscribedItem sub) {
-            String command = updates.get("command");
+        void handleCommand(Command command, Map<String, String> updates, SubscribedItem sub) {
             switch (command) {
-                case "ADD", "DELETE", "UPDATE" -> {
+                case ADD, DELETE, UPDATE -> {
                     log.atDebug().log("Sending {} command", command);
                     listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
                 }
                 default -> {
                     log.atWarn()
                             .log(
-                                    "Discarding record due to command mode fields not properly valued: {}",
+                                    "Discarding record due to command mode field not properly valued: {}",
                                     command);
                 }
             }
