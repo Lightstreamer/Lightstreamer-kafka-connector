@@ -1272,7 +1272,7 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
 
-Can be one of the following:
+The parameter can be one of the following:
 - `true`
 - `false`
 
