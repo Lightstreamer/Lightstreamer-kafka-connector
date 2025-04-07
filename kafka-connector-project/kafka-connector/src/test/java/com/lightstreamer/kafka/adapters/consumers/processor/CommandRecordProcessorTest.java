@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -37,6 +36,8 @@ import com.lightstreamer.kafka.test_utils.Records;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.CsvSources;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -117,60 +118,52 @@ public class CommandRecordProcessorTest {
         assertThat(processor.isCommandEnforceEnabled()).isTrue();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"ADD", "DELETE", "UPDATE", "CS", "EOS"})
-    void shouldCheckWithValidInput(String commandString) {
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                        KEY        | COMMAND     | EXPECTED
+                        aKey       | ADD         | true
+                        aKey       | UPDATE      | true
+                        aKey       | DELETE      | true
+                        aKey       | UNKNOWN     | false
+                        aKey       | <NOCOMMAND> | false
+                        aKey       | <EMPTY>     | false
+                        aKey       | CS          | false
+                        aKey       | EOS         | false
+                        aKey       | <NULL>      | false
+                        <NOKEY>    | ADD         | false
+                        <NULL>     | ADD         | false
+                        <NULL>     | UPDATE      | false
+                        <NULL>     | DELETE      | false
+                        <EMPTY>    | DELETE      | false
+                        snapshot   | CS          | true
+                        snapshot   | EOS         | true
+                        snapshot   | ADD         | false
+                        snapshot   | DELETE      | false
+                        snapshot   | UPDATE      | false
+                        snapshot   | UNKNOWN     | false
+                        """)
+    void shouldCheckInvalidInput(String key, String command, boolean expected) {
         Map<String, String> input = new HashMap<>();
-        input.put("key", "aKey");
-        input.put("command", commandString);
-        assertThat(processor.checkInput(input)).isTrue();
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" ", "  ", "\t"})
-    void shouldNotCheckInputWithValidCommandButInvalidKey(String key) {
-        Map<String, String> input = new HashMap<>();
-        input.put("key", key);
-        for (Command cmd : Command.values()) {
-            String commandString = cmd.toString();
-            input.put("command", commandString);
-            assertThat(processor.checkInput(input)).isFalse();
+        switch (key) {
+            case "<NOKEY>" -> {}
+            case "<EMPTY>" -> input.put("key", "");
+            case "<NULL>" -> input.put("key", null);
+            default -> input.put("key", key);
         }
-    }
 
-    @Test
-    void shouldNotCheckInputWithValidCommandButNoKey() {
-        Map<String, String> input = new HashMap<>();
-        for (Command cmd : Command.values()) {
-            String commandString = cmd.toString();
-            input.put("command", commandString);
-            assertThat(processor.checkInput(input)).isFalse();
+        switch (command) {
+            case "<NOCOMMAND>" -> {}
+            case "<EMPTY>" -> input.put("command", "");
+            case "<NULL>" -> input.put("command", null);
+            default -> input.put("command", command);
         }
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"INVALID", "UNKNOWN", " ", "  ", "\t"})
-    void shouldNotCheckInputWithValidKeyButInvalidCommand(String commandString) {
-        Map<String, String> input = new HashMap<>();
-        input.put("key", "aKey");
-        input.put("command", commandString);
-        assertThat(processor.checkInput(input)).isFalse();
-    }
-
-    @Test
-    void shouldNotCheckInputWithValidKeyButNoCommand() {
-        Map<String, String> input = new HashMap<>();
-        input.put("key", "aKey");
-        assertThat(processor.checkInput(input)).isFalse();
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    public void shouldNotCheckEmptyOrNullInput(Map<String, String> input) {
-        assertThat(processor.checkInput(input)).isFalse();
-    }
+        
+        assertThat(processor.checkInput(input)).isEqualTo(expected);
+    }    
 
     @Test
     public void shouldDeliverCommand() {
