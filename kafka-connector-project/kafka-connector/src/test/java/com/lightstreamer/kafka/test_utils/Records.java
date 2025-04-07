@@ -96,22 +96,26 @@ public class Records {
     }
 
     public static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
-        return KafkaRecord.from(
-                new ConsumerRecord<>(
-                        topic,
-                        150,
-                        120,
-                        ConsumerRecord.NO_TIMESTAMP,
-                        TimestampType.NO_TIMESTAMP_TYPE,
-                        ConsumerRecord.NULL_SIZE,
-                        ConsumerRecord.NULL_SIZE,
-                        key,
-                        value,
-                        new RecordHeaders(),
-                        Optional.empty()));
+        return KafkaRecord.from(ConsumerRecord(topic, key, value));
     }
 
-    public static ConsumerRecord<String, String> Record(String topic, int partition, String id) {
+    public static <K, V> ConsumerRecord<K, V> ConsumerRecord(String topic, K key, V value) {
+        return new ConsumerRecord<>(
+                topic,
+                150,
+                120,
+                ConsumerRecord.NO_TIMESTAMP,
+                TimestampType.NO_TIMESTAMP_TYPE,
+                ConsumerRecord.NULL_SIZE,
+                ConsumerRecord.NULL_SIZE,
+                key,
+                value,
+                new RecordHeaders(),
+                Optional.empty());
+    }
+
+    public static ConsumerRecord<String, String> ConsumerRecord(
+            String topic, int partition, String id) {
         String[] tokens = id.split("-");
         String key = tokens[0];
         long offset = Long.parseLong(tokens[1]);
