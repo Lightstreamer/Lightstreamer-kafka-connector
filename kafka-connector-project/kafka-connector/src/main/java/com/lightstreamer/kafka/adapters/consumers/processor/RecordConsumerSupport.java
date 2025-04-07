@@ -327,12 +327,12 @@ class RecordConsumerSupport {
                 return;
             }
 
-            String snapshotOrCommand = updates.get(CommandKey.COMMAND.key);
+            String snapshotOrCommand = CommandKey.COMMAND.lookUp(updates);
             for (SubscribedItem sub : routable) {
                 log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 log.atDebug().log("Enforce COMMAND mode semantic of records read");
 
-                if (SNAPSHOT.equals(updates.get(CommandKey.KEY.key))) {
+                if (SNAPSHOT.equals(CommandKey.KEY.lookUp(updates))) {
                     handleSnapshot(Snapshot.valueOf(snapshotOrCommand), sub);
                 } else {
                     handleCommand(Command.valueOf(snapshotOrCommand), updates, sub);
