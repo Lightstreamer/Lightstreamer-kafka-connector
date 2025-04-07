@@ -1267,8 +1267,8 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
 
 - `key` must contain the special value `snapshot`.
 - `command` can contain:
-  - **`CS` (_Clear Snapshot_)**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-  - **`EOS` (_End-of-Snapshot_)**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+  - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
+  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
 
