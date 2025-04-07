@@ -1290,6 +1290,46 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
+##### Evaluate As Command (`fields.evaluate.as.command.enable`)
+
+_Optional_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+
+- **`ADD`**: Insert a new element into the item.
+- **`UPDATE`**: Modify an existing element of the item.
+- **`DELETE`**: Remove an existing element from the item.
+
+To utilize _COMMAND_ mode, the Lightstreamer Broker requires the following mandatory field names in the item's schema:
+
+- **`key`**: Identifies the unique key for each element in the list generated from the item.
+- **`command`**: Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
+
+A Kafka record must be structured to allow the Kafka Connector to map the values for the `key` and `command` fields. For example:
+
+```xml
+<param name="fields.evaluate.as.command.enable">true</param>
+<param name="field.key">#{KEY}</param>
+<param name="field.command">#{VALUE.command}</param>
+...
+```
+
+> [!TIP]
+> The `key` and `command` fields can be mapped from any part of the Kafka record.
+
+Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
+
+- `key` must contain the special value `snapshot`.
+- `command` can contain:
+  - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
+  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
+
+The parameter can be one of the following:
+- `true`
+- `false`
+
+Default value : `false`.
+
 #### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
