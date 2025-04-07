@@ -111,7 +111,7 @@ public class RecordMapperBenchmark {
     }
 
     @Benchmark
-    public void misureMap(Blackhole bh) throws ExtractionException {
+    public void measureMap(Blackhole bh) throws ExtractionException {
         for (int i = 0; i < numOfRecords; i++) {
             MappedRecord map = mapper.map(records.get(i));
             bh.consume(map);
@@ -120,7 +120,7 @@ public class RecordMapperBenchmark {
     }
 
     // @Benchmark
-    // public void misureMapOriginal(Blackhole bh) throws ExtractionException {
+    // public void measureMapOriginal(Blackhole bh) throws ExtractionException {
     //     for (int i = 0; i < numOfRecords; i++) {
     //         MappedRecord map = mapper.mapOriginal(records.get(i));
     //         bh.consume(map);
@@ -129,7 +129,7 @@ public class RecordMapperBenchmark {
     // }
 
     // @Benchmark
-    public void misureMapAndFilter(Blackhole bh) throws ExtractionException {
+    public void measureMapAndFilter(Blackhole bh) throws ExtractionException {
         for (int i = 0; i < numOfRecords; i++) {
             MappedRecord map = mapper.map(records.get(i));
             Map<String, String> filtered = map.fieldsMap();
@@ -137,8 +137,8 @@ public class RecordMapperBenchmark {
         }
     }
 
-    // @Benchmark
-    public void route(Blackhole bh) {
+    @Benchmark
+    public void measureRoute(Blackhole bh) {
         Set<SubscribedItem> routed = mappedRecord.route(subscribedItems);
         bh.consume(routed);
     }
@@ -155,7 +155,7 @@ public class RecordMapperBenchmark {
         //                 "Today's password is swordfish. I understand instantiating Blackholes
         benchmark.numOfRecords = 1000;
         benchmark.setUp();
-        benchmark.misureMap(bh);
+        benchmark.measureMap(bh);
         // // benchmark.misureMapAndFilter(bh);
         // for (int i = 0; i < 1_000; i++) {
         //     benchmark.route(bh);
