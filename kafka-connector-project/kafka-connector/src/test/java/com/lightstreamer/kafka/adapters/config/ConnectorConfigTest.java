@@ -267,7 +267,6 @@ public class ConnectorConfigTest {
         assertThat(fieldEvaluateCommandEnabled.defaultValue()).isEqualTo("false");
         assertThat(fieldEvaluateCommandEnabled.type()).isEqualTo(ConfType.BOOL);
 
-
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
@@ -1034,7 +1033,8 @@ public class ConnectorConfigTest {
                                 ConnectorConfigProvider.minimalWith(
                                         Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "invalid")));
         assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [fields.evaluate.as.command.enable]");
+                .isEqualTo(
+                        "Specify a valid value for parameter [fields.evaluate.as.command.enable]");
 
         // Requires that exactly one consumer thread is set
         ce =
