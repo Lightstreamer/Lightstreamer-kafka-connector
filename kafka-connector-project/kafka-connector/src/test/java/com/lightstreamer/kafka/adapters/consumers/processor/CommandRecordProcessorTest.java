@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -22,7 +23,6 @@ import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandRecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandRecordProcessor.Command;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -37,8 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.CsvSources;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
@@ -161,9 +159,9 @@ public class CommandRecordProcessorTest {
             case "<NULL>" -> input.put("command", null);
             default -> input.put("command", command);
         }
-        
+
         assertThat(processor.checkInput(input)).isEqualTo(expected);
-    }    
+    }
 
     @Test
     public void shouldDeliverCommand() {
