@@ -40,12 +40,12 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_S
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_FIELD;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
@@ -258,6 +258,16 @@ public class ConnectorConfigTest {
         assertThat(fieldsMapNonScalarValuesEnable.defaultValue()).isEqualTo("false");
         assertThat(fieldsMapNonScalarValuesEnable.type()).isEqualTo(ConfType.BOOL);
 
+        ConfParameter fieldEvaluateCommandEnabled =
+                configSpec.getParameter(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+        assertThat(fieldEvaluateCommandEnabled.name()).isEqualTo(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+        assertThat(fieldEvaluateCommandEnabled.required()).isFalse();
+        assertThat(fieldEvaluateCommandEnabled.multiple()).isFalse();
+        assertThat(fieldEvaluateCommandEnabled.mutable()).isTrue();
+        assertThat(fieldEvaluateCommandEnabled.defaultValue()).isEqualTo("false");
+        assertThat(fieldEvaluateCommandEnabled.type()).isEqualTo(ConfType.BOOL);
+
+
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
@@ -347,14 +357,6 @@ public class ConnectorConfigTest {
         assertThat(valueKvpKeyValueSeparator.mutable()).isTrue();
         assertThat(valueKvpKeyValueSeparator.defaultValue()).isEqualTo("=");
         assertThat(valueKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
-
-        ConfParameter commandModeEnabled = configSpec.getParameter(RECORD_COMMAND_ENABLE);
-        assertThat(commandModeEnabled.name()).isEqualTo(RECORD_COMMAND_ENABLE);
-        assertThat(commandModeEnabled.required()).isFalse();
-        assertThat(commandModeEnabled.multiple()).isFalse();
-        assertThat(commandModeEnabled.mutable()).isTrue();
-        assertThat(commandModeEnabled.defaultValue()).isEqualTo("false");
-        assertThat(commandModeEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
@@ -1013,11 +1015,15 @@ public class ConnectorConfigTest {
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
         // Checks value "false"
-        config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "false"));
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "false"));
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
         // Checks value "true"
-        config = ConnectorConfigProvider.minimalWith(Map.of(RECORD_COMMAND_ENABLE, "true"));
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true"));
         assertThat(config.isCommandEnforceEnabled()).isTrue();
 
         // Checks invalid values
@@ -1026,9 +1032,9 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
-                                        Map.of(RECORD_COMMAND_ENABLE, "invalid")));
+                                        Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "invalid")));
         assertThat(ce.getMessage())
-                .isEqualTo("Specify a valid value for parameter [record.command.enable]");
+                .isEqualTo("Specify a valid value for parameter [fields.evaluate.as.command.enable]");
 
         // Requires that exactly one consumer thread is set
         ce =
@@ -1037,7 +1043,7 @@ public class ConnectorConfigTest {
                         () ->
                                 ConnectorConfigProvider.minimalWith(
                                         Map.of(
-                                                RECORD_COMMAND_ENABLE,
+                                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                                 "true",
                                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                                 "2")));
