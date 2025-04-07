@@ -58,7 +58,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class Mocks {
 
@@ -344,16 +344,27 @@ public class Mocks {
 
     public static class MockItemEventListener implements ItemEventListener {
 
-        private static Consumer<Map<String, String>> NOPConsumer = m -> {};
+        private static BiConsumer<Map<String, String>, Boolean> NOPConsumer = (m, s) -> {};
 
-        private Consumer<Map<String, String>> consumer;
+        private BiConsumer<Map<String, String>, Boolean> consumer;
 
-        public MockItemEventListener(Consumer<Map<String, String>> consumer) {
+        boolean smartClearSnapshotCalled = false;
+        boolean smartEndOfSnapshotCalled = false;
+
+        public MockItemEventListener(BiConsumer<Map<String, String>, Boolean> consumer) {
             this.consumer = consumer;
         }
 
         public MockItemEventListener() {
             this(NOPConsumer);
+        }
+
+        public boolean smartClearSnapshotCalled() {
+            return smartClearSnapshotCalled;
+        }
+
+        public boolean smartEndOfSnapshotCalled() {
+            return smartEndOfSnapshotCalled;
         }
 
         @Override
@@ -388,7 +399,7 @@ public class Mocks {
 
         @Override
         public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
-            consumer.accept(event);
+            consumer.accept(event, isSnapshot);
         }
 
         @Override
@@ -403,7 +414,7 @@ public class Mocks {
 
         @Override
         public void smartEndOfSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartEndOfSnapshot'");
+            this.smartEndOfSnapshotCalled = true;
         }
 
         @Override
@@ -413,7 +424,7 @@ public class Mocks {
 
         @Override
         public void smartClearSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartClearSnapshot'");
+            this.smartClearSnapshotCalled = true;
         }
 
         @Override
