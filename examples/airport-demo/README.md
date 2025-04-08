@@ -29,8 +29,8 @@ The table is then kept sorted by departure time by setting the [setSort](https:/
 The mapping between Kafka topic and Lightstreamer item is one-to-one.
 
 ```xml
-        <!-- Map the topic "Flights" to the "flights-board" item. -->
-        <param name="map.Flights.to">flights-board</param>
+<!-- Map the topic "Flights" to the "flights-board" item. -->
+<param name="map.Flights.to">flights-board</param>
 ```
 
 To optimally manage subscriptions in **COMMAND** mode, the special configuration `fields.evaluate.as.command.enable` is used. This activates the automatic verification that the `key` and `command` fields, necessary for this subscription mode, are present and have consistent values.
