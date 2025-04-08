@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTrigge
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -47,7 +48,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -95,7 +95,7 @@ public class RecordConsumerBenchmark {
 
     AtomicInteger iterations = new AtomicInteger();
 
-    private Collection<SubscribedItem> subscribedItem;
+    private SubscribedItems subscribedItems;
 
     @Setup(Level.Trial)
     public void setUpTrial(Blackhole bh) {
@@ -113,10 +113,11 @@ public class RecordConsumerBenchmark {
         RecordMapper<String, JsonNode> recordMapper = newRecordMapper(config);
 
         // Make the RecordConsumer.
-        subscribedItem = subscriptions(subscriptions);
+        subscribedItems = subscriptions(subscriptions);
         this.recordConsumer =
                 RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
-                        .subscribedItems(subscribedItem)
+                        .subscribedItems(subscribedItems)
+                        .enforceCommandMode(false)
                         .eventListener(listener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
@@ -145,7 +146,7 @@ public class RecordConsumerBenchmark {
         listener.show();
     }
 
-    private Collection<SubscribedItem> subscriptions(int subscriptions) {
+    private SubscribedItems subscriptions(int subscriptions) {
         Map<String, SubscribedItem> items = new HashMap<>();
         for (int i = 0; i < subscriptions; i++) {
             // String key = i == 0 ? String.valueOf(i) : "-" + i;
@@ -153,7 +154,7 @@ public class RecordConsumerBenchmark {
             String input = newItem(key, key, key + "-son");
             items.put(input, Items.subscribedFrom(input, new Object()));
         }
-        return items.values();
+        return SubscribedItems.of(items.values());
     }
 
     private static String newItem(String key, String tag, String sonTag) {

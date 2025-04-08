@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -43,7 +44,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.Console;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,7 +76,7 @@ public class RecordMapperBenchmark {
     boolean regex;
 
     int numOfSubscriptions = 5000;
-    private Collection<SubscribedItem> subscribedItems = subscriptions(numOfSubscriptions);
+    private SubscribedItems subscribedItems = subscriptions(numOfSubscriptions);
     private MappedRecord mappedRecord;
 
     @Setup(Level.Iteration)
@@ -96,14 +96,14 @@ public class RecordMapperBenchmark {
                 .build();
     }
 
-    private Collection<SubscribedItem> subscriptions(int subscriptions) {
+    private SubscribedItems subscriptions(int subscriptions) {
         ConcurrentHashMap<String, SubscribedItem> items = new ConcurrentHashMap<>();
         for (int i = 0; i < subscriptions; i++) {
             String key = i == 0 ? String.valueOf(i) : "-" + i;
             String input = newItem(key, key, key + "-son");
             items.put(input, Items.subscribedFrom(input, new Object()));
         }
-        return items.values();
+        return SubscribedItems.of(items.values());
     }
 
     private static String newItem(String key, String tag, String sonTag) {

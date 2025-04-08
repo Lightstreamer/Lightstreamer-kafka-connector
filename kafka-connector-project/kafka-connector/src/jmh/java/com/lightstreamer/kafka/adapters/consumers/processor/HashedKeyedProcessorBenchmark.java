@@ -25,6 +25,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -45,7 +46,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -123,7 +123,7 @@ public class HashedKeyedProcessorBenchmark {
                 .build();
     }
 
-    private Collection<SubscribedItem> subscriptions(int subscriptions) {
+    private SubscribedItems subscriptions(int subscriptions) {
         ConcurrentHashMap<String, SubscribedItem> items = new ConcurrentHashMap<>();
         for (int i = 0; i < subscriptions; i++) {
             // String key = String.valueOf(new SecureRandom().nextInt(0, keySize));
@@ -131,7 +131,7 @@ public class HashedKeyedProcessorBenchmark {
             String input = newItem(key, key, key + "-son");
             items.put(input, Items.subscribedFrom(input, new Object()));
         }
-        return items.values();
+        return SubscribedItems.of(items.values());
     }
 
     private static String newItem(String key, String tag, String sonTag) {
