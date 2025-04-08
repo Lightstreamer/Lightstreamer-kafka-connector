@@ -26,11 +26,11 @@ import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
-import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -43,7 +43,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
 
     private final ConsumerTriggerConfig<K, V> config;
     private final MetadataListener metadataListener;
-    private final Function<Collection<SubscribedItem>, ConsumerWrapper<K, V>> consumerWrapper;
+    private final Function<SubscribedItems, ConsumerWrapper<K, V>> consumerWrapper;
     private final Logger log;
     private final ExecutorService pool;
     private final ConcurrentHashMap<String, SubscribedItem> subscribedItems;
@@ -65,7 +65,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     ConsumerTriggerImpl(
             ConsumerTriggerConfig<K, V> config,
             MetadataListener metadataListener,
-            Function<Collection<SubscribedItem>, ConsumerWrapper<K, V>> consumerWrapper) {
+            Function<SubscribedItems, ConsumerWrapper<K, V>> consumerWrapper) {
         this.config = config;
         this.metadataListener = metadataListener;
         this.consumerWrapper = consumerWrapper;
@@ -78,6 +78,11 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
 
     public final int getItemsCounter() {
         return itemsCounter.get();
+    }
+
+    @Override
+    public boolean isSnapshotAvailable() {
+        return config.isCommandEnforceEnabled();
     }
 
     @Override
@@ -107,7 +112,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         consumerLock.lock();
         log.atTrace().log("Lock acquired...");
         try {
-            consumer = consumerWrapper.apply(subscribedItems.values());
+            consumer = consumerWrapper.apply(SubscribedItems.of(subscribedItems.values()));
             return CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");

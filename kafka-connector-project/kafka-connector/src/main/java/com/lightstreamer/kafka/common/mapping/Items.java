@@ -38,6 +38,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,23 @@ public class Items {
     public interface SubscribedItem extends Item {
 
         Object itemHandle();
+
+        boolean isSnapshot();
+
+        void setSnapshot(boolean flag);
+    }
+
+    /**
+     * Represents a collection of {@link SubscribedItem} objects that can be iterated over. This
+     * interface extends {@link Iterable}, allowing for iteration through the subscribed items.
+     *
+     * <p>Provides a static factory method {@code of} to create an instance of {@code
+     * SubscribedItems} from a given {@link Collection} of {@link SubscribedItem}.
+     */
+    public interface SubscribedItems extends Iterable<SubscribedItem> {
+        static SubscribedItems of(Collection<SubscribedItem> items) {
+            return () -> items.iterator();
+        }
     }
 
     public interface ItemTemplates<K, V> {
@@ -120,10 +138,12 @@ public class Items {
 
         private final Object itemHandle;
         private final DefaultItem wrappedItem;
+        private boolean snapshotFlag;
 
         DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
             this.wrappedItem = new DefaultItem(prefix, values);
             this.itemHandle = itemHandle;
+            this.snapshotFlag = true;
         }
 
         @Override
@@ -152,6 +172,16 @@ public class Items {
         @Override
         public Object itemHandle() {
             return itemHandle;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return snapshotFlag;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            this.snapshotFlag = flag;
         }
 
         @Override

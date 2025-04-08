@@ -434,10 +434,37 @@
 
              the value of "complexAttribute" will be mapped as generic text (e.g. JSON string) to the "structured" Lightstreamer field.
 
+             Can be one of the following:
+             - true
+             - false
+
              Default value: false. -->
         <!--
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
+
+        <!-- Optional. Enables support for the COMMAND mode. 
+             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key` and "command" fields:
+             - "key": Identifies the unique key for each element in the list generated from the item.
+             - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
+
+             For example:
+
+             <param name="field.key">#{KEY}</param>
+             <param name="field.command">#{VALUE.command}</param>
+             
+             When "key" is set to "snapshot", the command can be one of the following:
+             - "CS": Clears the current snapshot.
+             - "EOS": Marks the end of the snapshot.
+
+             The parameter can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="fields.evaluate.as.command.enable">true</param>
+        -->        
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 

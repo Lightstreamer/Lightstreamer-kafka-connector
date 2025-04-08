@@ -25,6 +25,9 @@ public class FlightInfo {
     @JsonProperty
     public String currentTime;
 
+    @JsonProperty
+    public String command;
+
     public FlightInfo() {
     }
 
@@ -38,5 +41,7 @@ public class FlightInfo {
         this.airline = airline;
 
         this.currentTime = "";
+        this.command = "UPDTAE";
     }
+
 }

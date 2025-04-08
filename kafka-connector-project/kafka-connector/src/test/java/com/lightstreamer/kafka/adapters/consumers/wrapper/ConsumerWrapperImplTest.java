@@ -27,7 +27,7 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminI
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -46,7 +46,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +64,7 @@ public class ConsumerWrapperImplTest {
 
     private MockMetadataListener metadataListener;
     private MockItemEventListener itemEventListener;
-    private Collection<SubscribedItem> subscribedItems = Collections.emptyList();
+    private final SubscribedItems subscribedItems = SubscribedItems.of(Collections.emptyList());
     private MockConsumer<String, String> mockConsumer;
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
 
@@ -102,7 +101,9 @@ public class ConsumerWrapperImplTest {
         return (ConsumerWrapperImpl<String, String>)
                 ConsumerWrapper.create(
                         new Mocks.MockTriggerConfig(
-                                makeTopicsConfig(enableSubscriptionPattern), makeProperties()),
+                                makeTopicsConfig(enableSubscriptionPattern),
+                                makeProperties(),
+                                false),
                         itemEventListener,
                         metadataListener,
                         subscribedItems,

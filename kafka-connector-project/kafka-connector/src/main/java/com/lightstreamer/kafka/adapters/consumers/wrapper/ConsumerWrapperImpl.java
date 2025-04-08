@@ -30,7 +30,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
 import org.apache.kafka.clients.admin.ListTopicsOptions;
@@ -41,7 +41,6 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -70,7 +69,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
             MetadataListener metadataListener,
-            Collection<SubscribedItem> subscribedItems,
+            SubscribedItems subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier,
             Function<Properties, AdminInterface> admin)
             throws KafkaException {
@@ -97,9 +96,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
         Concurrency concurrency = config.concurrency();
+        // this.recordConsumer = RecordConsumer.<K,V>recordProcessor(null).
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
+                        .enforceCommandMode(config.isCommandEnforceEnabled())
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())

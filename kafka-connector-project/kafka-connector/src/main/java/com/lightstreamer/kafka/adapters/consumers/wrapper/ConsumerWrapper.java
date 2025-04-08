@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
@@ -28,7 +28,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
@@ -72,7 +71,7 @@ public interface ConsumerWrapper<K, V> extends Runnable {
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
             MetadataListener metadataListener,
-            Collection<SubscribedItem> subscribedItems) {
+            SubscribedItems subscribedItems) {
         return create(
                 config,
                 eventListener,
@@ -90,7 +89,7 @@ public interface ConsumerWrapper<K, V> extends Runnable {
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
             MetadataListener metadataListener,
-            Collection<SubscribedItem> subscribedItems,
+            SubscribedItems subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier) {
         return create(
                 config,
@@ -105,7 +104,7 @@ public interface ConsumerWrapper<K, V> extends Runnable {
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
             MetadataListener metadataListener,
-            Collection<SubscribedItem> subscribedItems,
+            SubscribedItems subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier,
             Function<Properties, AdminInterface> adminFactory) {
         return new ConsumerWrapperImpl<>(

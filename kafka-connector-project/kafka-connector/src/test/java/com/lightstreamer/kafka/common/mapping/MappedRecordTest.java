@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 import static java.util.Collections.emptyMap;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
@@ -110,13 +111,18 @@ public class MappedRecordTest {
 
         assertThat(
                         record.route(
-                                Set.of(
-                                        matchingItem1,
-                                        matchingItem2,
-                                        notMatchingBindParameters,
-                                        notMatchingSchema)))
+                                SubscribedItems.of(
+                                        Set.of(
+                                                matchingItem1,
+                                                matchingItem2,
+                                                notMatchingBindParameters,
+                                                notMatchingSchema))))
                 .containsExactly(matchingItem1, matchingItem2);
-        assertThat(record.route(Set.of(notMatchingBindParameters, notMatchingSchema))).isEmpty();
+        assertThat(
+                        record.route(
+                                SubscribedItems.of(
+                                        Set.of(notMatchingBindParameters, notMatchingSchema))))
+                .isEmpty();
     }
 
     @Test
@@ -132,7 +138,10 @@ public class MappedRecordTest {
         SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
         SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
         SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
-        assertThat((record.route(Set.of(matchingItem1, matchingItem2, notMatchingItem))))
+        assertThat(
+                        (record.route(
+                                SubscribedItems.of(
+                                        Set.of(matchingItem1, matchingItem2, notMatchingItem)))))
                 .containsExactly(matchingItem1, matchingItem2);
     }
 }
