@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.4] (2025-04-08)
+
+**Improvements**
+
+- Added support for [COMMAND mode](README.md#evaluate-as-command-fieldsevaluateascommandenable). ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
+- Updated the [Airport demo](examples/airport-demo/) to use COMMAND mode. ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
+
+
 ## [1.2.3] (2025-04-01)
 
 **Improvements**
@@ -7,6 +15,7 @@
 - Added support for the [KVP format](README.md#support-for-key-value-pairs-kvp). ([#45](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/45), [#46](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/46))
 - Upgraded _Gradle_ to version 8.13. ([#47](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/47))
 - Upgraded dependency on _Spotless plugin for Gradle_ to version 7.0.2. ([#48](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/48))
+
 
 ## [1.2.2] (2025-03-28)
 
@@ -20,17 +29,13 @@
 - Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
 - Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
 
-## [1.2.1-command] (UNRELEASED)
-
-- Added explicit support for COMMAND mode subscriptions, including the new configuration parameter "record.command.enable" to enable this feature.
-
-- Updated the Airport demo to use COMMAND mode.
 
 ## [1.2.1] (2025-03-03)
 
 **Bug Fixes**
 
 - Fixing spelling issues in documentation, examples, and comments in the configuration file. ([#40](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/40)), ([#41](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/41)), ([#42](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/42))
+
 
 ## [1.2.0] (2025-01-02)
 
