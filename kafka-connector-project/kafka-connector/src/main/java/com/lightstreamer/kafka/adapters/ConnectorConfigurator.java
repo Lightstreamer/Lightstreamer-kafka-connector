@@ -55,6 +55,7 @@ public class ConnectorConfigurator {
             DataExtractor<K, V> fieldsExtractor,
             KeyValueDeserializers<K, V> deserializers,
             RecordErrorHandlingStrategy errorHandlingStrategy,
+            boolean isCommandEnforceEnabled,
             Concurrency concurrency)
             implements ConsumerTriggerConfig<K, V> {}
 
@@ -113,6 +114,7 @@ public class ConnectorConfigurator {
                 fieldsExtractor,
                 sSuppliers.deserializers(),
                 config.getRecordExtractionErrorHandlingStrategy(),
+                config.isCommandEnforceEnabled(),
                 new ConcurrencyConfig(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));

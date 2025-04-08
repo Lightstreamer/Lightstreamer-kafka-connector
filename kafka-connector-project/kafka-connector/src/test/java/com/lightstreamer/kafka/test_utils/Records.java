@@ -96,27 +96,31 @@ public class Records {
     }
 
     public static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
-        return KafkaRecord.from(
-                new ConsumerRecord<>(
-                        topic,
-                        150,
-                        120,
-                        ConsumerRecord.NO_TIMESTAMP,
-                        TimestampType.NO_TIMESTAMP_TYPE,
-                        ConsumerRecord.NULL_SIZE,
-                        ConsumerRecord.NULL_SIZE,
-                        key,
-                        value,
-                        new RecordHeaders(),
-                        Optional.empty()));
+        return KafkaRecord.from(ConsumerRecord(topic, key, value));
     }
 
-    public static ConsumerRecord<String, String> Record(String topic, int partition, String id) {
+    public static <K, V> ConsumerRecord<K, V> ConsumerRecord(String topic, K key, V value) {
+        return new ConsumerRecord<>(
+                topic,
+                150,
+                120,
+                ConsumerRecord.NO_TIMESTAMP,
+                TimestampType.NO_TIMESTAMP_TYPE,
+                ConsumerRecord.NULL_SIZE,
+                ConsumerRecord.NULL_SIZE,
+                key,
+                value,
+                new RecordHeaders(),
+                Optional.empty());
+    }
+
+    public static ConsumerRecord<String, String> ConsumerRecord(
+            String topic, int partition, String id) {
         String[] tokens = id.split("-");
         String key = tokens[0];
         long offset = Long.parseLong(tokens[1]);
         String value = offset + key;
-        return new ConsumerRecord<String, String>(topic, partition, offset, key, value);
+        return new ConsumerRecord<>(topic, partition, offset, key, value);
     }
 
     public static KafkaRecord<Object, Object> sinkFromValue(
@@ -174,9 +178,9 @@ public class Records {
         // Generate the records list
         for (int i = 0; i < size; i++) {
             String recordKey = null;
-            String recordValue = null;
+            String recordValue;
             String eventCounterKey = "noKey";
-            int partition = 0;
+            int partition;
 
             if (keys.size() > 0) {
                 // Select randomly one of the passed keys

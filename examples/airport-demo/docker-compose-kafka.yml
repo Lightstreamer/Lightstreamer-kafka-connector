@@ -25,7 +25,7 @@ services:
       - broker
     build:
       context: producer
-    command: ["broker:29092", "Flights", "1000"]      
+    command: ["broker:29092", "Flights", "1000"]
 
   broker:
     image: apache/kafka
@@ -59,7 +59,7 @@ services:
     command: /opt/kafka/bin/kafka-topics.sh --create --topic Flights --bootstrap-server broker:29092 --config cleanup.policy=compact
     depends_on:
         broker:
-            condition: service_started      
+            condition: service_started
 
 configs:
   adapters.xml:
@@ -80,13 +80,18 @@ configs:
               <param name="record.key.evaluator.type">STRING</param>
               <param name="record.value.evaluator.type">JSON</param>
 
-              <param name="item-template.flights">flights-#{key=KEY}</param>
-              <param name="map.Flights.to">item-template.flights</param>
+              <param name="map.Flights.to">flights-board</param>
 
+              <!-- Enable support for COMMAND mode. -->
+              <param name="fields.evaluate.as.command.enable">true</param>
+
+              <!-- Extraction of the record value attributes mapped to corresponding field names. -->
               <param name="field.key">#{KEY}</param>
+              <param name="field.command">#{VALUE.command}</param>
+
               <param name="field.destination">#{VALUE.destination}</param>
               <param name="field.departure">#{VALUE.departure}</param>
-              <param name="field.flightNo">#{VALUE.flightNo}</param>
+              <param name="field.flightNo">#{KEY}</param>
               <param name="field.terminal">#{VALUE.terminal}</param>
               <param name="field.status">#{VALUE.status}</param>
               <param name="field.airline">#{VALUE.airline}</param>
@@ -98,7 +103,6 @@ configs:
       </adapters_conf>
   log4j.properties:
     content: |
-      log4j.rootLogger=DEBUG, stdout
       log4j.logger.org.apache.kafka=WARN, stdout
       log4j.logger.AirportDemo=TRACE, AirportDemo
 
@@ -106,11 +110,6 @@ configs:
       log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
       log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
       log4j.appender.stdout.Target=System.out
-
-      log4j.appender.stderr=org.apache.log4j.ConsoleAppender
-      log4j.appender.stderr.layout=org.apache.log4j.PatternLayout
-      log4j.appender.stderr.layout.ConversionPattern=[%d] [%t-%c] %p %m%n
-      log4j.appender.stderr.Target=System.err
 
       # Airport logger appender
       log4j.appender.AirportDemo=org.apache.log4j.ConsoleAppender

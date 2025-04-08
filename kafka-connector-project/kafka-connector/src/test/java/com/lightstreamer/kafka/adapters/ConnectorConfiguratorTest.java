@@ -20,6 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
 
@@ -29,6 +31,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
@@ -172,6 +175,10 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerTriggerConfig.deserializers().valueDeserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
 
+        assertThat(consumerTriggerConfig.errorHandlingStrategy())
+                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
+        assertThat(consumerTriggerConfig.isCommandEnforceEnabled()).isFalse();
+
         Concurrency concurrency = consumerTriggerConfig.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
         assertThat(concurrency.orderStrategy())
@@ -269,6 +276,25 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo("WrapperKafkaAvroDeserializer");
         assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 2})
+    public void shouldNotCreateDueToIncompatibleCommandModeAndParallelism(int threads) {
+        Map<String, String> config =
+                minimalConfigWith(
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                String.valueOf(threads)));
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new ConnectorConfigurator(config, ADAPTER_DIR));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
     }
 
     @ParameterizedTest

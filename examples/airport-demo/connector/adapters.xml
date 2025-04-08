@@ -47,40 +47,33 @@
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
-		<param name="record.key.evaluator.type">STRING</param>
-		<param name="record.value.evaluator.type">JSON</param>
+        <param name="record.key.evaluator.type">STRING</param>
+        <param name="record.value.evaluator.type">JSON</param>
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
-        <!-- The "Flights" item template, which defines the format of the items the Lightstreamer Clients 
-             must subscribe to to receive real-time updates. -->
-        <param name="item-template.flights">flights-#{key=KEY}</param>
-
-        <!-- Map the topic "Flights" to the previously defined "flights" item template. -->
-        <param name="map.Flights.to">item-template.flights</param>
+        <!-- Map the topic "Flights" to the "flights-board" item. -->
+        <param name="map.Flights.to">flights-board</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
-        <!-- Extraction of the record key mapped to the field "key". -->
-        <param name="field.key">#{KEY}</param>
+        <!-- Enable support for COMMAND mode. -->
+        <param name="fields.evaluate.as.command.enable">true</param>
 
         <!-- Extraction of the record value attributes mapped to corresponding field names. -->
+        <param name="field.key">#{KEY}</param>
+        <param name="field.command">#{VALUE.command}</param>
+
         <param name="field.destination">#{VALUE.destination}</param>
-		<param name="field.departure">#{VALUE.departure}</param>
-		<param name="field.flightNo">#{VALUE.flightNo}</param>
-		<param name="field.terminal">#{VALUE.terminal}</param>
-		<param name="field.status">#{VALUE.status}</param>
-		<param name="field.airline">#{VALUE.airline}</param>
-		<param name="field.currentTime">#{VALUE.currentTime}</param>
-		
-        <!-- Extraction of the record timestamp to the field "ts". -->
+        <param name="field.departure">#{VALUE.departure}</param>
+        <param name="field.flightNo">#{KEY}</param>
+        <param name="field.terminal">#{VALUE.terminal}</param>
+        <param name="field.status">#{VALUE.status}</param>
+        <param name="field.airline">#{VALUE.airline}</param>
+        <param name="field.currentTime">#{VALUE.currentTime}</param>
         <param name="field.ts">#{TIMESTAMP}</param>
-
-        <!-- Extraction of the record partition mapped to the field "partition". -->
         <param name="field.partition">#{PARTITION}</param>
-
-        <!-- Extraction of the record offset mapped to the field "offset". -->
         <param name="field.offset">#{OFFSET}</param>
-    </data_provider>
 
+    </data_provider>
 </adapters_conf>

@@ -35,7 +35,7 @@ public class OffsetStoreTest {
     private static String TEST_TOPIC = "topic";
 
     static ConsumerRecord<?, ?> Record(int partition, String id) {
-        return Records.Record(TEST_TOPIC, partition, id);
+        return Records.ConsumerRecord(TEST_TOPIC, partition, id);
     }
 
     private OffsetStore repo;

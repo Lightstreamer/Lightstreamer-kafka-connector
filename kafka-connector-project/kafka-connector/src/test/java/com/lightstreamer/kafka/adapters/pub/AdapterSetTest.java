@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,6 +142,30 @@ public class AdapterSetTest {
     }
 
     @Test
+    public void shouldHandleSnapshot() throws Exception {
+        doInit();
+
+        KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
+        connectorDataAdapter1.setListener(new Mocks.MockItemEventListener());
+        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
+
+        KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter2.init(
+                ConnectorConfigProvider.minimalConfigWith(
+                        Map.of(
+                                ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}")),
+                adapterDir.toFile());
+        connectorDataAdapter2.setListener(new Mocks.MockItemEventListener());
+        assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
+    }
+
+    @Test
     void shouldDenyNotRegisteredConnection() throws Exception {
         doInit();
 
@@ -158,25 +183,6 @@ public class AdapterSetTest {
                                         "user", "sessionId", tables));
         assertThat(ce.getClientErrorCode()).isEqualTo(-1);
         assertThat(ce.getMessage()).isEqualTo("Connection [CONNECTOR] not enabled");
-    }
-
-    @Test
-    void shouldDenyCommandSubscription() throws Exception {
-        doInit();
-
-        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
-        connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
-
-        TableInfo[] tables = mkTable("CONNECTOR", Mode.COMMAND);
-        CreditsException ce =
-                assertThrows(
-                        CreditsException.class,
-                        () ->
-                                connectorMetadataAdapter.notifyNewTables(
-                                        "user", "sessionId", tables));
-        assertThat(ce.getClientErrorCode()).isEqualTo(-2);
-        assertThat(ce.getMessage()).isEqualTo("Subscription mode [COMMAND] not allowed");
     }
 
     @Test

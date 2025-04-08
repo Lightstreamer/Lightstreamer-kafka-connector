@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.test_utils.Records.Record;
+import static com.lightstreamer.kafka.test_utils.Records.ConsumerRecord;
 
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST;
@@ -175,9 +175,9 @@ public class OffsetServiceTest {
         MockOffsetStore store = (MockOffsetStore) offsetService.offsetStore().get();
         assertThat(store.getRecords()).isEmpty();
 
-        ConsumerRecord<?, ?> record1 = Record(TOPIC, 0, "A-0");
+        ConsumerRecord<?, ?> record1 = ConsumerRecord(TOPIC, 0, "A-0");
         offsetService.updateOffsets(record1);
-        ConsumerRecord<?, ?> record2 = Record(TOPIC, 0, "B-10");
+        ConsumerRecord<?, ?> record2 = ConsumerRecord(TOPIC, 0, "B-10");
         offsetService.updateOffsets(record2);
         assertThat(store.getRecords()).containsExactly(record1, record2);
     }
@@ -213,9 +213,9 @@ public class OffsetServiceTest {
         mockConsumer.schedulePollTask(
                 () -> {
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 0, "A-15"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 1, "B-16"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
                 });
         org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
@@ -265,9 +265,9 @@ public class OffsetServiceTest {
         mockConsumer.schedulePollTask(
                 () -> {
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 0, "A-15"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 1, "B-16"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
                 });
         org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
@@ -298,9 +298,9 @@ public class OffsetServiceTest {
         mockConsumer.schedulePollTask(
                 () -> {
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 0, "A-15"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) Record(TOPIC, 1, "B-16"));
+                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
                 });
         org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
@@ -333,9 +333,9 @@ public class OffsetServiceTest {
         // The following three records have their offset stored in the metadata
         List<ConsumerRecord<?, ?>> havePendingOffsets =
                 List.of(
-                        Record(TOPIC, 0, "A-11"),
-                        Record(TOPIC, 0, "A-14"),
-                        Record(TOPIC, 0, "A-20"));
+                        ConsumerRecord(TOPIC, 0, "A-11"),
+                        ConsumerRecord(TOPIC, 0, "A-14"),
+                        ConsumerRecord(TOPIC, 0, "A-20"));
 
         for (ConsumerRecord<?, ?> record : havePendingOffsets) {
             assertThat(offsetService.notHasPendingOffset(record)).isFalse();
@@ -344,16 +344,16 @@ public class OffsetServiceTest {
         // The following records do not have their offsets stored as pending in the metadata
         List<ConsumerRecord<?, ?>> haveNoPendingOffsets =
                 List.of(
-                        Record(TOPIC, 0, "A-10"),
-                        Record(TOPIC, 0, "A-12"),
-                        Record(TOPIC, 0, "A-13"),
-                        Record(TOPIC, 0, "A-15"),
-                        Record(TOPIC, 0, "A-16"),
-                        Record(TOPIC, 0, "A-17"),
-                        Record(TOPIC, 0, "A-18"),
-                        Record(TOPIC, 0, "A-19"),
-                        Record(TOPIC, 0, "A-21"),
-                        Record(TOPIC, 1, "B-21"));
+                        ConsumerRecord(TOPIC, 0, "A-10"),
+                        ConsumerRecord(TOPIC, 0, "A-12"),
+                        ConsumerRecord(TOPIC, 0, "A-13"),
+                        ConsumerRecord(TOPIC, 0, "A-15"),
+                        ConsumerRecord(TOPIC, 0, "A-16"),
+                        ConsumerRecord(TOPIC, 0, "A-17"),
+                        ConsumerRecord(TOPIC, 0, "A-18"),
+                        ConsumerRecord(TOPIC, 0, "A-19"),
+                        ConsumerRecord(TOPIC, 0, "A-21"),
+                        ConsumerRecord(TOPIC, 1, "B-21"));
         for (ConsumerRecord<?, ?> record : haveNoPendingOffsets) {
             assertThat(offsetService.notHasPendingOffset(record)).isTrue();
         }

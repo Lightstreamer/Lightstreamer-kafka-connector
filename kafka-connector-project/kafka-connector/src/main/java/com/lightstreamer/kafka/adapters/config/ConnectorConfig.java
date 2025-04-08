@@ -104,6 +104,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
             "fields.map.non.scalar.values.enable";
 
+    public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
+            "fields.evaluate.as.command.enable";
+
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
             "record.key.evaluator.schema.path";
@@ -229,6 +232,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
+                        .add(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
                         .add(RECORD_KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -400,6 +409,7 @@ public final class ConnectorConfig extends AbstractConfig {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
         checkTopicMappingRegex();
+        checkCommandMode();
     }
 
     private void checkAvroSchemaConfig(boolean isKey) {
@@ -440,6 +450,26 @@ public final class ConnectorConfig extends AbstractConfig {
                                                 .formatted(t));
                             }
                         });
+    }
+
+    private void checkCommandMode() {
+        if (isCommandEnforceEnabled()) {
+            if (getRecordConsumeWithNumThreads() != 1) {
+                throw new ConfigException(
+                        "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
+                                .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
+            }
+            if (fieldConfigs.getExpression("key") == null) {
+                throw new ConfigException(
+                        "Command mode requires a key field. Parameter [%s] must be set"
+                                .formatted("field.key"));
+            }
+            if (fieldConfigs.getExpression("command") == null) {
+                throw new ConfigException(
+                        "Command mode requires a command field. Parameter [%s] must be set"
+                                .formatted("field.command"));
+            }
+        }
     }
 
     private Properties initProps() {
@@ -511,6 +541,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final EvaluatorType getEvaluator(String configKey) {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
+    }
+
+    public boolean isCommandEnforceEnabled() {
+        return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {

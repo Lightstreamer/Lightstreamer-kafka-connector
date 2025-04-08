@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.common.mapping;
 import static java.util.Collections.emptySet;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -42,15 +43,51 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * The RecordMapper interface provides a mechanism for mapping Kafka records into a structured
+ * format that can be processed and routed to Lightstreamer clients. It defines methods for
+ * extracting data, mapping records, and managing extractors for topic subscriptions.
+ *
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
+ */
 public interface RecordMapper<K, V> {
 
+    /**
+     * Defines the structure for a record that can be expanded into multiple schema-value pairs and
+     * provides a mapping of its fields to their corresponding values. It also includes
+     * functionality to route the record based on subscribed items.
+     */
     interface MappedRecord {
 
+        /**
+         * Expands the current record into a set of {@link SchemaAndValues} objects. This method is
+         * used to decompose a record into multiple schema-value pairs, which can be processed or
+         * mapped individually.
+         *
+         * @return a set of {@link SchemaAndValues} representing the expanded record
+         */
         Set<SchemaAndValues> expanded();
 
+        /**
+         * Retrieves a map representing the fields and their corresponding values. The keys in the
+         * map represent the field names, and the values represent the associated data for those
+         * fields. This method guarantees that a non-null map is always returned, even this mapped
+         * record contains no data.
+         *
+         * @return a non-null a map containing field names as keys and their corresponding values as
+         *     strings
+         */
         Map<String, String> fieldsMap();
 
-        Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribed);
+        /**
+         * Determines the set of subscribed items that match the current records' value to be routed
+         * to the Lightstreamer clients.
+         *
+         * @param subscribed the set of subscribed items to be checked against the record
+         * @return a set of subscribed items that match the record's value
+         */
+        Set<SubscribedItem> route(SubscribedItems subscribed);
     }
 
     Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
@@ -192,10 +229,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         return templateExtractors.get(topicName);
     }
 
+    @Override
     public boolean hasExtractors() {
         return !templateExtractors.isEmpty();
     }
 
+    @Override
     public boolean hasFieldExtractor() {
         return fieldExtractor != Builder.NOP;
     }
@@ -235,7 +274,7 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     DefaultMappedRecord(Set<SchemaAndValues> expandedTemplates, SchemaAndValues fieldsMap) {
-        this.indexedTemplates = expandedTemplates.toArray(new SchemaAndValues[] {});
+        this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
         this.fieldsMap = fieldsMap;
     }
 
@@ -245,7 +284,7 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Set<SubscribedItem> route(Collection<? extends SubscribedItem> subscribedItems) {
+    public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
         Set<SubscribedItem> result = new HashSet<>();
 
         // The following seems the most performant way

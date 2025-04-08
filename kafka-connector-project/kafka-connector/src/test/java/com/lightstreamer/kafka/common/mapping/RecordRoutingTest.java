@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -45,7 +46,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,9 +94,11 @@ public class RecordRoutingTest {
 
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
-            List<SubscribedItem> all =
-                    Stream.concat(routable.stream(), nonRoutable.stream()).toList();
-
+            SubscribedItems all =
+                    () ->
+                            Stream.concat(routable.stream(), nonRoutable.stream())
+                                    .toList()
+                                    .iterator();
             Set<SubscribedItem> routed = mapped.route(all);
             assertThat(routed).containsExactlyElementsIn(routable);
         }
@@ -171,9 +173,10 @@ public class RecordRoutingTest {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             List<SubscribedItem> routableForTopic = routable.get(topic);
             List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
-
-            List<SubscribedItem> all = new ArrayList<>(routableForTopic);
-            all.addAll(nonRoutableForTopic);
+            SubscribedItems all =
+                    SubscribedItems.of(
+                            Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream())
+                                    .toList());
 
             Set<SubscribedItem> routed = mapped.route(all);
             assertThat(routed).containsExactlyElementsIn(routableForTopic);
@@ -220,7 +223,8 @@ public class RecordRoutingTest {
         ObjectMapper om = new ObjectMapper();
         JsonNode jsonNode = om.readTree(jsonString);
         MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
-        List<SubscribedItem> all = Stream.concat(routable.stream(), nonRoutable.stream()).toList();
+        SubscribedItems all =
+                SubscribedItems.of(Stream.concat(routable.stream(), nonRoutable.stream()).toList());
         Set<SubscribedItem> routed = mapped.route(all);
         assertThat(routed).containsExactlyElementsIn(routable);
     }
@@ -246,7 +250,7 @@ public class RecordRoutingTest {
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
-        Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
+        Set<SubscribedItem> routed = mapped.route(SubscribedItems.of(Set.of(subscribedItem)));
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {
@@ -275,7 +279,7 @@ public class RecordRoutingTest {
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
-        Set<SubscribedItem> routed = mapped.route(Set.of(subscribedItem));
+        Set<SubscribedItem> routed = mapped.route(SubscribedItems.of(Set.of(subscribedItem)));
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {
