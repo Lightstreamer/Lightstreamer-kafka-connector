@@ -4,7 +4,7 @@ This project includes the resources needed to develop the Kafka Connector Airpor
 
 ![Infrastructure](infrastructure.png)<br>
 
-The Demo simulates a basic departures board consisting of ten rows, each representing flight departure information from a hypothetical airport.
+The Demo simulates a basic departures board consisting of a few rows, each representing flight departure information from a hypothetical airport.
 The simulated data, inputted into a [Kafka cluster](https://kafka.apache.org/), is fetched and injected into the Lightstreamer server via [Kafka Connector](https://github.com/Lightstreamer/Lightstreamer-kafka-connector).
 
 The demo project consists of:
@@ -19,28 +19,36 @@ The web client, contained in the folder [`client/web`](client/web/) uses the [We
 ![Demo ScreenShot](screen_large.png)<br>
 ### [![](http://demos.lightstreamer.com/site/img/play.png) View live demo](https://demos.lightstreamer.com/AirportDemo/)
 
-The demo basically executes a single [Subscription](https://lightstreamer.com/api/ls-web-client/latest/Subscription.html) with ten items subscribed to in **MERGE** mode feeding a [DynaGrid](https://lightstreamer.com/api/ls-web-client/latest/DynaGrid.html) with the current list and status of the next departing flights (according to the simulated time).
-The list of the ten Items to subscribe to is as follows:
+The demo basically executes a single [Subscription](https://lightstreamer.com/api/ls-web-client/latest/Subscription.html) with a item subscribed to in **COMMAND** mode feeding a [DynaGrid](https://lightstreamer.com/api/ls-web-client/latest/DynaGrid.html) with the current list and status of the next departing flights (according to the simulated time).
+The subdcribed item is:
 ```javascript
-itemsList = ["flights-[key=10]", "flights-[key=1]", "flights-[key=2]", "flights-[key=3]", "flights-[key=4]", "flights-[key=5]", "flights-[key=6]", "flights-[key=7]", "flights-[key=8]", "flights-[key=9]" ];
+itemsList = [ "flights-board" ];
 ```
-each representing a row on the board. The table is then kept sorted by departure time by setting the [setSort](https://sdk.lightstreamer.com/ls-web-client/9.2.0/api/DynaGrid.html#setSort) call of the DynaGrid object.
+The table is then kept sorted by departure time by setting the [setSort](https://lightstreamer.com/api/ls-web-client/latest/DynaGrid.html#setSort) call of the DynaGrid object.
 
-As you can see, items have been expressed in a parameterized format to activate the [_filter routing_](../../README.md#filtered-record-routing-item-templatetemplate-name) as per the _item template_ defined as [follows](connector/adapters.xml#L57):
+The mapping between Kafka topic and Lightstreamer item is one-to-one.
 
 ```xml
-<param name="item-template.flights">flights-#{key=KEY}</param>
+        <!-- Map the topic "Flights" to the "flights-board" item. -->
+        <param name="map.Flights.to">flights-board</param>
 ```
 
-which requires every subscription to include a filtering value for the _bind parameter_ `key`.
-Upon consuming an incoming message, the Kafka Connector will then route the record if the subscribed item has specified a filtering value that matches the record key.
+To optimally manage subscriptions in **COMMAND** mode, the special configuration `fields.evaluate.as.command.enable` is used. This activates the automatic verification that the `key` and `command` fields, necessary for this subscription mode, are present and have consistent values.
+
+```xml
+<!-- Enable support for COMMAND mode. -->
+<param name="fields.evaluate.as.command.enable">true</param>
+```
+
+And then the Lightstreamer client library automatically manages the board's updates based on the 'ADD', 'DELETE', and 'UPDATE' types of the received updates.
 
 ## The Producer
 
 The source code of the producer is basically contained in the `producer` package, which generates random information for the flights and acts as the producer versus the Kafka cluster. In particular, the following classes are defined:
 
-- `DemoPublisher.java`: class that implements the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed simply of a number representing the row in the table to which the information refers.
+- `DemoPublisher.java`: class that implements the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed of the flight number to which the information refers.
 - `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message.
+- `Snapshot.java`: class that defines a specific type of message used for snapshot management. In particular, it contains a 'command' field which can take the following values: 'CS', indicating a clear snapshot operation used to simulate the end of the day, and 'EOS', used to indicate the end of the messages required to reconstruct the snapshot image for the item. 
 
 ## Connector Configurations
 
