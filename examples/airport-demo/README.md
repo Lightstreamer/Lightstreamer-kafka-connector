@@ -48,7 +48,10 @@ The source code of the producer is basically contained in the `producer` package
 
 - `DemoPublisher.java`: class that implements the simulator generating and sending flight monitor data to a Kafka topic; the messages sent to Kafka will also have a key composed of the flight number to which the information refers.
 - `FlightInfo.java`: class that defines all the flight-related information to be displayed on the departure board, and will be serialized into JSON format as a Kafka message.
-- `Snapshot.java`: class that defines a specific type of message used for snapshot management. In particular, it contains a 'command' field which can take the following values: 'CS', indicating a clear snapshot operation used to simulate the end of the day, and 'EOS', used to indicate the end of the messages required to reconstruct the snapshot image for the item. 
+
+In addition to the usual commands for COMMAND mode, the demo also shows the use of specific commands introduced to manage the snapshot. In particular:
+ - `CS`, indicating a clear snapshot operation used to simulate the end of the day.
+ - `EOS`, used to indicate the end of the messages required to reconstruct the snapshot image for the item. 
 
 ## Connector Configurations
 
