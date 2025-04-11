@@ -17,12 +17,14 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor.Type;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.expressions.Constant;
@@ -88,6 +90,12 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    interface NonScalerNode extends ProtoNode {
+        default boolean isScalar() {
+            return false;
+        }
+    }
+
     static class MessageNode implements ProtoNode {
         private final Message message;
         private Descriptor descriptor;
@@ -149,15 +157,16 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         public String asText() {
-            return container.toString();
+            return TextFormat.printer()
+                    .printFieldToString(fieldDescriptor, container.getField(fieldDescriptor));
         }
     }
 
     static class MapNode implements ProtoNode {
         private final Message container;
-        private final FieldDescriptor fieldDescriptor;
         private final Map<String, Object> map = new HashMap<>();
         private final FieldDescriptor fieldValueDescriptor;
+        private FieldDescriptor fieldDescriptor;
 
         MapNode(Message container, FieldDescriptor fieldDescriptor) {
             this.container = container;
@@ -186,7 +195,8 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         public String asText() {
-            return "";
+            return TextFormat.printer()
+                    .printFieldToString(fieldDescriptor, container.getField(fieldDescriptor));
         }
     }
 
@@ -207,7 +217,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public String asText() {
             if (fieldDescriptor.getType().equals(Type.BYTES)) {
-                return "";
+                return ((ByteString) value).toStringUtf8();
             }
             return value.toString();
         }
