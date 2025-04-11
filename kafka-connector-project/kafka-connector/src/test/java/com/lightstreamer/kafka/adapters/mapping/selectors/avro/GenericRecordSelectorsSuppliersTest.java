@@ -23,8 +23,6 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
-import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.RECORD;
-import static com.lightstreamer.kafka.test_utils.GenericRecordProvider.SIMPLE_RECORD;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -41,6 +39,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -64,6 +63,11 @@ public class GenericRecordSelectorsSuppliersTest {
                             AVRO.toString(),
                             RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                             "value.avsc"));
+
+    static GenericRecord RECORD =
+            SampleMessageProviders.SampleGenericRecordProvider().sampleMessage();
+    static GenericRecord SIMPLE_RECORD =
+            SampleMessageProviders.SampleGenericRecordProvider().sampleMessageV2();
 
     static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
             throws ExtractionException {

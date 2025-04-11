@@ -21,9 +21,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
-import static com.lightstreamer.kafka.test_utils.JsonNodeProvider.RECORD;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -63,6 +63,7 @@ public class JsonNodeSelectorsSuppliersTest {
                             JSON.toString(),
                             RECORD_VALUE_EVALUATOR_TYPE,
                             JSON.toString()));
+    static JsonNode RECORD = SampleJsonNodeProvider().sampleMessage();
 
     static ValueSelector<JsonNode> valueSelector(ExtractionExpression expression)
             throws ExtractionException {
