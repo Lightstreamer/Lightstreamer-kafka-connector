@@ -46,9 +46,59 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implements selector suppliers for Protocol Buffers DynamicMessage objects in Kafka records.
+ *
+ * <p>This class provides the infrastructure to create selectors that can extract data from Protocol
+ * Buffers DynamicMessage objects stored in Kafka record keys and values. The extraction is based on
+ * path expressions that allow navigation through the hierarchical structure of Protocol Buffer
+ * messages.
+ *
+ * <p>The class implements a navigable tree structure for Protocol Buffer messages:
+ *
+ * <ul>
+ *   <li>Regular message fields are accessed through the {@link MessageNode}
+ *   <li>Repeated fields (arrays) are handled by {@link RepeatedNode}
+ *   <li>Map fields are processed by {@link MapNode}
+ *   <li>Scalar values are represented by {@link ScalarNode}
+ * </ul>
+ *
+ * <p>The selector suppliers created by this class will provide selectors that:
+ *
+ * <ul>
+ *   <li>Can navigate through the Protocol Buffer message structure
+ *   <li>Extract values based on configured expressions
+ *   <li>Convert the extracted values to the appropriate representation
+ * </ul>
+ *
+ * <p>
+ *
+ * @see com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker
+ * @see com.google.protobuf.DynamicMessage
+ */
 public class DynamicMessageSelectorSuppliers
         implements KeyValueSelectorSuppliersMaker<DynamicMessage> {
 
+    /**
+     * Represents a node in a Protocol Buffer message structure.
+     *
+     * <p>This interface provides a tree-like navigation model for Protobuf messages, allowing
+     * hierarchical access to fields, nested messages, and repeated elements. Default
+     * implementations are provided for most methods, which subclasses can override based on their
+     * specific node type.
+     *
+     * <p>The interface supports:
+     *
+     * <ul>
+     *   <li>Property access via names
+     *   <li>Array/repeated field access via indices
+     *   <li>Type checking capabilities
+     *   <li>Value extraction
+     * </ul>
+     *
+     * <p>Use the {@link #newNode(Object, FieldDescriptor)} factory method to create appropriate
+     * node implementations based on the Protobuf field type.
+     */
     interface ProtoNode extends Node<ProtoNode> {
 
         default boolean has(String propertyname) {
@@ -81,6 +131,14 @@ public class DynamicMessageSelectorSuppliers
 
         String asText();
 
+        /**
+         * Creates a new ProtoNode instance based on the provided value and field descriptor.
+         *
+         * @param value the value to be wrapped in a ProtoNode
+         * @param fieldDescriptor the descriptor of the field which provides type information
+         * @return a new ProtoNode instance, either a {@link MessageNode} if the field type is
+         *     MESSAGE, or a {@link ScalarNode} for all other field types
+         */
         static ProtoNode newNode(Object value, FieldDescriptor fieldDescriptor) {
             Type type = fieldDescriptor.getType();
             return switch (type) {
@@ -90,15 +148,24 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
-    interface NonScalerNode extends ProtoNode {
-        default boolean isScalar() {
-            return false;
-        }
-    }
-
+    /**
+     * Implementation of {@link ProtoNode} that wraps a Protocol Buffer Message. This class provides
+     * access to the fields of a Protobuf message through the ProtoNode interface, allowing for
+     * navigation through the message structure.
+     *
+     * <p>The node handles different field types appropriately:
+     *
+     * <ul>
+     *   <li>Map fields are wrapped in a {@link MapNode}
+     *   <li>Repeated fields are wrapped in a {@link RepeatedNode}
+     *   <li>Regular fields are converted to appropriate ProtoNode implementations based on their
+     *       type
+     * </ul>
+     */
     static class MessageNode implements ProtoNode {
+
         private final Message message;
-        private Descriptor descriptor;
+        private final Descriptor descriptor;
 
         MessageNode(Message message) {
             this.message = message;
@@ -130,7 +197,19 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * Implementation of {@link ProtoNode} that handles repeated fields in Protocol Buffers
+     * messages.
+     *
+     * <p>A repeated field in Protocol Buffers is similar to an array, containing multiple values of
+     * the same type. This class provides access to the elements within the repeated field and
+     * allows traversal through the repeated field structure.
+     *
+     * <p>This node always returns true for {@link #isArray()} and provides methods to access the
+     * number of elements and retrieve individual nodes at specific indices.
+     */
     static class RepeatedNode implements ProtoNode {
+
         private final Message container;
         private final FieldDescriptor fieldDescriptor;
 
@@ -162,11 +241,21 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * Implementation of {@link ProtoNode} that handles Protocol Buffers map fields.
+     *
+     * <p>This class provides access to entries of a map field in a Protocol Buffers message. It
+     * extracts the map entries from the container message and allows access to values by key
+     * through the {@link ProtoNode} interface.
+     *
+     * @see ProtoNode
+     */
     static class MapNode implements ProtoNode {
+
         private final Message container;
         private final Map<String, Object> map = new HashMap<>();
         private final FieldDescriptor fieldValueDescriptor;
-        private FieldDescriptor fieldDescriptor;
+        private final FieldDescriptor fieldDescriptor;
 
         MapNode(Message container, FieldDescriptor fieldDescriptor) {
             this.container = container;
@@ -200,7 +289,16 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * A node implementation that represents a scalar (non-composite) value in a Protocol Buffer
+     * message. This class handles primitive fields and properly formats them for text
+     * representation.
+     *
+     * <p>Scalar nodes always return true for {@link #isScalar()} and provide string representation
+     * of their values through the {@link #asText()} method, with special handling for binary data.
+     */
     static class ScalarNode implements ProtoNode {
+
         private final Object value;
         private final FieldDescriptor fieldDescriptor;
 
@@ -223,6 +321,14 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * A supplier implementation for creating key selectors that work with Protocol Buffers'
+     * DynamicMessage objects.
+     *
+     * <p>This class provides the means to create key selectors for extracting data from
+     * DynamicMessage values in Kafka records. It maintains a deserializer instance that can convert
+     * Kafka record keys into DynamicMessage objects.
+     */
     private static class DynamicMessageKeySelectorSupplier
             implements KeySelectorSupplier<DynamicMessage> {
 
@@ -244,6 +350,17 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * A selector implementation for extracting key values from Protobuf DynamicMessage objects.
+     *
+     * <p>This class extends {@link StructuredBaseSelector} to provide functionality for selecting
+     * and extracting data from Protobuf DynamicMessage keys in Kafka records according to the
+     * provided expression.
+     *
+     * @see StructuredBaseSelector
+     * @see KeySelector
+     * @see DynamicMessage
+     */
     private static final class DynamicMessageKeySelector extends StructuredBaseSelector<ProtoNode>
             implements KeySelector<DynamicMessage> {
 
@@ -260,6 +377,14 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * A supplier implementation for creating value selectors that work with Protocol Buffers'
+     * DynamicMessage objects.
+     *
+     * <p>This class provides the means to create value selectors for extracting data from
+     * DynamicMessage values in Kafka records. It maintains a deserializer instance that can convert
+     * Kafka record values into DynamicMessage objects.
+     */
     private static class DynamicMessageValueSelectorSupplier
             implements ValueSelectorSupplier<DynamicMessage> {
 
@@ -281,6 +406,19 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    /**
+     * A selector implementation for extracting data from Protocol Buffers DynamicMessage values in
+     * Kafka records.
+     *
+     * <p>This selector operates specifically on the value portion of a Kafka record when the value
+     * is a Protocol Buffers DynamicMessage. It creates a structured representation of the message
+     * and delegates to the base extraction functionality.
+     *
+     * @see StructuredBaseSelector
+     * @see ValueSelector
+     * @see ProtoNode
+     * @see DynamicMessage
+     */
     private static final class DynamicMessageValueSelector extends StructuredBaseSelector<ProtoNode>
             implements ValueSelector<DynamicMessage> {
 
