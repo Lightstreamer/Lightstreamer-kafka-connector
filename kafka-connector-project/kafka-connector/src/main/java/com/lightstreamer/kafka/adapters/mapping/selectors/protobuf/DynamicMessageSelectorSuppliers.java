@@ -335,7 +335,7 @@ public class DynamicMessageSelectorSuppliers
         private final Deserializer<DynamicMessage> deserializer;
 
         DynamicMessageKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = DynamicRecordDeserializers.KeyDeserializer(config);
+            this.deserializer = DynamicMessageDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -391,7 +391,7 @@ public class DynamicMessageSelectorSuppliers
         private final Deserializer<DynamicMessage> deserializer;
 
         DynamicMessageValueSelectorSupplier(ConnectorConfig config) {
-            this.deserializer = DynamicRecordDeserializers.ValueDeserializer(config);
+            this.deserializer = DynamicMessageDeserializers.ValueDeserializer(config);
         }
 
         @Override
