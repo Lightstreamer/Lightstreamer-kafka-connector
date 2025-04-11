@@ -27,7 +27,7 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
-public class DynamicRecordDeserializers {
+public class DynamicMessageDeserializers {
 
     private static Deserializer<DynamicMessage> configuredDeserializer(
             ConnectorConfig config, boolean isKey) {
