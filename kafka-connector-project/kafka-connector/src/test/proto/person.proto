@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package model;
+
+option java_multiple_files = true;
+option java_package = "com.lightstreamer.example";
+option java_outer_classname = "PersonProto";
+
+message Address {
+  string city = 1;
+  string zip = 2;
+  string street = 3; 
+}
+
+message Car {
+  string brand = 1;
+}
+
+enum Job {
+  UNSPECIFIED = 0;
+  EMPLOYEE = 1;
+  ARTIST = 2;
+}
+message Person {
+  string name = 1;
+  int32 age = 2;
+  string email = 3;
+  Address mainAddress = 4;
+  Car car = 5;
+  repeated string phoneNumbers = 6;
+  repeated Person friends = 7;
+  map<string, Address> otherAddresses = 8;
+  bytes signature = 9;
+  Job job = 10;
+  
+}
