@@ -20,8 +20,6 @@ package com.lightstreamer.kafka.connect.mapping.selectors;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromKey;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromValue;
-import static com.lightstreamer.kafka.test_utils.SchemaAndValueProvider.SIMPLE_STRUCT;
-import static com.lightstreamer.kafka.test_utils.SchemaAndValueProvider.STRUCT;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -33,6 +31,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -83,6 +82,9 @@ public class ConnectSelectorsSuppliersTest {
                     .field("complexMap", OPTIONAL_COMPLEX_MAP_SCHEMA)
                     .field("mapOfMap", OPTIONAL_MAP_OF_MAP_SCHEMA)
                     .build();
+
+    static Struct STRUCT = SampleMessageProviders.SampleStructProvider().sampleMessage();
+    static Struct SIMPLE_STRUCT = SampleMessageProviders.SampleStructProvider().sampleMessageV2();
 
     private ConnectSelectorsSuppliers connectSelectorsSuppliers;
 

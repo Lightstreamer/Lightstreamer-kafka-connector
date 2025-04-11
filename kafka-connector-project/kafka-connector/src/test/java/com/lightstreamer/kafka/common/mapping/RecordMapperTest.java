@@ -22,6 +22,9 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
 import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleStructProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
@@ -35,12 +38,10 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
-import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
-import com.lightstreamer.kafka.test_utils.SchemaAndValueProvider;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -315,7 +316,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
         assertThat(expandedFromTestsTopic)
@@ -330,7 +331,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_2, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -343,7 +344,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, JsonNode> kafkaRecord3 =
-                Records.record("undefinedTopic", "", JsonNodeProvider.RECORD);
+                Records.record("undefinedTopic", "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -377,7 +378,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         // The childSignature filed has been skipped
         assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
@@ -410,7 +411,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
         assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
     }
@@ -442,7 +443,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", JsonNodeProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
         assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
     }
@@ -489,7 +490,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", GenericRecordProvider.RECORD);
+                Records.record(TEST_TOPIC_1, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
         assertThat(expandedFromTestsTopic)
@@ -504,7 +505,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "", GenericRecordProvider.RECORD);
+                Records.record(TEST_TOPIC_2, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -517,7 +518,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
-                Records.record("undefinedTopic", "", GenericRecordProvider.RECORD);
+                Records.record("undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -564,11 +565,9 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         // Record published to topic "topic": mapping
+        Struct message = SampleStructProvider().sampleMessage();
         KafkaRecord<Object, Object> kafkaRecord =
-                Records.sinkFromValue(
-                        TEST_TOPIC_1,
-                        SchemaAndValueProvider.STRUCT.schema(),
-                        SchemaAndValueProvider.STRUCT);
+                Records.sinkFromValue(TEST_TOPIC_1, message.schema(), message);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
         assertThat(expandedFromTestsTopic)
@@ -583,10 +582,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<Object, Object> kafkaRecord2 =
-                Records.sinkFromValue(
-                        TEST_TOPIC_2,
-                        SchemaAndValueProvider.STRUCT.schema(),
-                        SchemaAndValueProvider.STRUCT);
+                Records.sinkFromValue(TEST_TOPIC_2, message.schema(), message);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
@@ -599,10 +595,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<Object, Object> kafkaRecord3 =
-                Records.record(
-                        "undefinedTopic",
-                        SchemaAndValueProvider.STRUCT.schema(),
-                        SchemaAndValueProvider.STRUCT);
+                Records.record("undefinedTopic", message.schema(), message);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();

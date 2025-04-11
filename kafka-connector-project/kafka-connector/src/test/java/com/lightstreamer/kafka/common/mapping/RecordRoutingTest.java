@@ -20,6 +20,8 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 import static com.lightstreamer.kafka.test_utils.Records.record;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -35,9 +37,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.test_utils.GenericRecordProvider;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
@@ -245,7 +245,10 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
-                record(TEST_TOPIC_1, GenericRecordProvider.RECORD, GenericRecordProvider.RECORD);
+                record(
+                        TEST_TOPIC_1,
+                        SampleGenericRecordProvider().sampleMessage(),
+                        SampleGenericRecordProvider().sampleMessage());
         MappedRecord mapped = mapper.map(incomingRecord);
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
@@ -274,7 +277,10 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                record(TEST_TOPIC_1, GenericRecordProvider.RECORD, JsonNodeProvider.RECORD);
+                record(
+                        TEST_TOPIC_1,
+                        SampleGenericRecordProvider().sampleMessage(),
+                        SampleJsonNodeProvider().sampleMessage());
         MappedRecord mapped = mapper.map(incomingRecord);
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
