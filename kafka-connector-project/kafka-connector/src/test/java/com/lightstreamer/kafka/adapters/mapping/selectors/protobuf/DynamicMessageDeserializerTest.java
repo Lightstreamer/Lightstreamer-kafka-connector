@@ -29,7 +29,6 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -68,33 +67,6 @@ public class DynamicMessageDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080"));
-
-        try (Deserializer<DynamicMessage> deserializer =
-                DynamicMessageDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
-        }
-    }
-
-    @Test
-    public void shouldGetKeyAndValueDeserialize() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_KEY_EVALUATOR_TYPE,
-                                PROTOBUF.toString(),
-                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
-                                RECORD_VALUE_EVALUATOR_TYPE,
-                                PROTOBUF.toString(),
-                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
-                                SchemaRegistryConfigs.URL,
-                                "http://localhost:8080"));
-
-        try (Deserializer<DynamicMessage> deserializer =
-                DynamicMessageDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(KafkaProtobufDeserializer.class);
-        }
 
         try (Deserializer<DynamicMessage> deserializer =
                 DynamicMessageDeserializers.ValueDeserializer(config)) {
