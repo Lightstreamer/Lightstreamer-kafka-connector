@@ -29,7 +29,6 @@ import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.truth.StringSubject;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
@@ -84,6 +83,12 @@ public class DynamicMessageSelectorSuppliersTest {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
                 .newSelector("name", expression);
+    }
+
+    static String getExpectedStr(String expected) {
+        return "<EMPTY>".equals(expected)
+                ? ""
+                : expected.replace("\\n", "\n").replace("\\\\", "\\");
     }
 
     @Test
@@ -157,23 +162,29 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                            |  EXPECTED
-                        VALUE.name                            |  joe
-                        VALUE.email                           | <EMPTY>
-                        VALUE.mainAddress.zip                 | <EMPTY>
-                        VALUE.otherAddresses['work'].city     | Milan
-                        VALUE.otherAddresses['club'].zip      | 96100
-                        VALUE.job                             |  EMPLOYEE
-                        VALUE.signature                        |  abcd
-                        VALUE.phoneNumbers[0]                | 012345
-                        VALUE.phoneNumbers[1]                | 123456
-                        VALUE.friends[0].name                |  mike
-                        VALUE.friends[1]['name']             |  john
+                        EXPRESSION                        | EXPECTED
+                        VALUE.name                        | joe
+                        VALUE.email                       | <EMPTY>
+                        VALUE.mainAddress.zip             | <EMPTY>
+                        VALUE.otherAddresses['work'].city | Milan
+                        VALUE.otherAddresses['club'].zip  | 96100
+                        VALUE.job                         | EMPLOYEE
+                        VALUE.signature                   | abcd
+                        VALUE.phoneNumbers[0]             | 012345
+                        VALUE.phoneNumbers[1]             | 123456
+                        VALUE.friends[0].name             | mike
+                        VALUE.friends[1]['name']          | john
+                        VALUE.simpleRoleName              | Software Architect
+                        VALUE.indexedAddresses['1'].city  | Rome
+                        VALUE.booleanAddresses['true'].city | Turin
+                        VALUE.booleanAddresses['false'].city | Florence
+                        VALUE.any.type_url                | type.googleapis.com/Car
+                        VALUE.any.value                   | \\n\\\\004FORD \n\004FORD
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
-        String expectedStr = "<EMPTY>".equals(expected) ? "" : expected;
+        String expectedStr = getExpectedStr(expected);
         assertThat(valueSelector(expression).extractValue(fromValue(SAMPLE_MESSAGE)).text())
                 .isEqualTo(expectedStr);
     }
@@ -202,7 +213,7 @@ public class DynamicMessageSelectorSuppliersTest {
 
         String text =
                 valueSelector(expression).extractValue(fromValue(SAMPLE_MESSAGE_V2), false).text();
-        assertThat(text).isEqualTo(expected);
+        assertThat(text).isEqualTo(getExpectedStr(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -248,34 +259,26 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
-                        EXPRESSION                          | EXPECTED
-                        KEY.name                            | joe
-                        KEY.preferences['pref1']            | pref_value1
-                        KEY.preferences['pref2']            | pref_value2
-                        KEY.documents['id'].doc_id          | ID123
-                        KEY.documents['id'].doc_type        | ID
-                        KEY.type                            | TYPE1
-                        KEY.signature                       | [97, 98, 99, 100]
-                        KEY.children[0].name                | alex
-                        KEY.children[0]['name']             | alex
-                        KEY.children[0].signature           | NULL
-                        KEY.children[1].name                | anna
-                        KEY.children[2].name                | serena
-                        KEY.children[3]                     | NULL
-                        KEY.children[1].children[0].name    | gloria
-                        KEY.children[1].children[1].name    | terence
-                        KEY.children[1].children[1]['name'] | terence
-                        KEY.nullArray                       | NULL
+                        EXPRESSION                      | EXPECTED
+                        KEY.name                        | joe
+                        KEY.email                       | <EMPTY>
+                        KEY.mainAddress.zip             | <EMPTY>
+                        KEY.otherAddresses['work'].city | Milan
+                        KEY.otherAddresses['club'].zip  | 96100
+                        KEY.job                         | EMPLOYEE
+                        KEY.signature                   | abcd
+                        KEY.phoneNumbers[0]             | 012345
+                        KEY.phoneNumbers[1]             | 123456
+                        KEY.friends[0].name             | mike
+                        KEY.friends[1]['name']          | john
+                        KEY.simpleRoleName              | Software Architect
+                        KEY.any.type_url                | type.googleapis.com/model.Car
+                        KEY.any.value                   | \\n\\004FORD
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
-        StringSubject subject =
-                assertThat(keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+        String text = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false).text();
+        assertThat(text).isEqualTo(getExpectedStr(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -301,7 +304,7 @@ public class DynamicMessageSelectorSuppliersTest {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
 
         String text = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false).text();
-        assertThat(text).isEqualTo(expected);
+        assertThat(text).isEqualTo(getExpectedStr(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
