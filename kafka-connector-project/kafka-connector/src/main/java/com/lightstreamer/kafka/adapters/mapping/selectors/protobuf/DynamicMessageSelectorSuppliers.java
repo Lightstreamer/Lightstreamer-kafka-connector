@@ -57,10 +57,10 @@ import java.util.Map;
  * <p>The class implements a navigable tree structure for Protocol Buffer messages:
  *
  * <ul>
- *   <li>Regular message fields are accessed through the {@link MessageNode}
- *   <li>Repeated fields (arrays) are handled by {@link RepeatedNode}
- *   <li>Map fields are processed by {@link MapNode}
- *   <li>Scalar values are represented by {@link ScalarNode}
+ *   <li>Regular message fields are accessed through the {@link MessageWrapperNode}
+ *   <li>Repeated fields (arrays) are handled by {@link RepeatedFieldNode}
+ *   <li>Map fields are processed by {@link MapFieldNode}
+ *   <li>Scalar values are represented by {@link ScalarFieldNode}
  * </ul>
  *
  * <p>The selector suppliers created by this class will provide selectors that:
@@ -137,14 +137,14 @@ public class DynamicMessageSelectorSuppliers
          *
          * @param value the value to be wrapped in a {@link ProtobufNode}
          * @param fieldDescriptor the descriptor of the field which provides type information
-         * @return a new {@link ProtobufNode} instance, either a {@link MessageNode} if the field
-         *     type is {@code MESSAGE}, or a {@link ScalarNode} for all other field types
+         * @return a new {@link ProtobufNode} instance, either a {@link MessageWrapperNode} if the
+         *     field type is {@code MESSAGE}, or a {@link ScalarFieldNode} for all other field types
          */
         static ProtobufNode newNode(Object value, FieldDescriptor fieldDescriptor) {
             Type type = fieldDescriptor.getType();
             return switch (type) {
-                case MESSAGE -> new MessageNode((Message) value);
-                default -> new ScalarNode(value, fieldDescriptor);
+                case MESSAGE -> new MessageWrapperNode((Message) value);
+                default -> new ScalarFieldNode(value, fieldDescriptor);
             };
         }
     }
@@ -156,12 +156,12 @@ public class DynamicMessageSelectorSuppliers
      * fields. It handles different field types, including map fields and repeated fields, by
      * wrapping them in appropriate node implementations.
      */
-    static class MessageNode implements ProtobufNode {
+    static class MessageWrapperNode implements ProtobufNode {
 
         private final Message message;
         private final Descriptor descriptor;
 
-        MessageNode(Message message) {
+        MessageWrapperNode(Message message) {
             this.message = message;
             this.descriptor = message.getDescriptorForType();
         }
@@ -175,10 +175,10 @@ public class DynamicMessageSelectorSuppliers
         public ProtobufNode get(String name) {
             FieldDescriptor fieldDescriptor = descriptor.findFieldByName(name);
             if (fieldDescriptor.isMapField()) {
-                return new MapNode(message, fieldDescriptor);
+                return new MapFieldNode(message, fieldDescriptor);
             }
             if (fieldDescriptor.isRepeated()) {
-                return new RepeatedNode(message, fieldDescriptor);
+                return new RepeatedFieldNode(message, fieldDescriptor);
             }
 
             Object value = message.getField(fieldDescriptor);
@@ -202,13 +202,13 @@ public class DynamicMessageSelectorSuppliers
      * <p>This node always returns true for {@link #isArray()} and provides methods to access the
      * number of elements and retrieve individual nodes at specific indices.
      */
-    static class RepeatedNode implements ProtobufNode {
+    static class RepeatedFieldNode implements ProtobufNode {
 
-        private final Message container;
+        private final Message containing;
         private final FieldDescriptor fieldDescriptor;
 
-        RepeatedNode(Message container, FieldDescriptor fieldDescriptor) {
-            this.container = container;
+        RepeatedFieldNode(Message containing, FieldDescriptor fieldDescriptor) {
+            this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
         }
 
@@ -219,19 +219,19 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         public int size() {
-            return container.getRepeatedFieldCount(fieldDescriptor);
+            return containing.getRepeatedFieldCount(fieldDescriptor);
         }
 
         @Override
         public ProtobufNode get(int index) {
-            Object value = container.getRepeatedField(fieldDescriptor, index);
+            Object value = containing.getRepeatedField(fieldDescriptor, index);
             return ProtobufNode.newNode(value, fieldDescriptor);
         }
 
         @Override
         public String asText() {
             return TextFormat.printer()
-                    .printFieldToString(fieldDescriptor, container.getField(fieldDescriptor));
+                    .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
     }
 
@@ -244,20 +244,20 @@ public class DynamicMessageSelectorSuppliers
      *
      * @see ProtobufNode
      */
-    static class MapNode implements ProtobufNode {
+    static class MapFieldNode implements ProtobufNode {
 
-        private final Message container;
+        private final Message containing;
         private final Map<String, Object> map = new HashMap<>();
         private final FieldDescriptor fieldValueDescriptor;
         private final FieldDescriptor fieldDescriptor;
 
-        MapNode(Message container, FieldDescriptor fieldDescriptor) {
-            this.container = container;
+        MapFieldNode(Message containing, FieldDescriptor fieldDescriptor) {
+            this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
 
             @SuppressWarnings("unchecked")
             List<MapEntry<?, ?>> entries =
-                    (List<MapEntry<?, ?>>) container.getField(fieldDescriptor);
+                    (List<MapEntry<?, ?>>) containing.getField(fieldDescriptor);
             for (MapEntry<?, ?> entry : entries) {
                 map.put(entry.getKey().toString(), entry.getValue());
             }
@@ -279,7 +279,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public String asText() {
             return TextFormat.printer()
-                    .printFieldToString(fieldDescriptor, container.getField(fieldDescriptor));
+                    .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
     }
 
@@ -296,12 +296,12 @@ public class DynamicMessageSelectorSuppliers
      * @implSpec For {@code BYTES} type fields, the value is converted from {@link ByteString} to
      *     UTF-8 string when requesting text representation.
      */
-    static class ScalarNode implements ProtobufNode {
+    static class ScalarFieldNode implements ProtobufNode {
 
         private final Object value;
         private final FieldDescriptor fieldDescriptor;
 
-        ScalarNode(Object value, FieldDescriptor fieldDescriptor) {
+        ScalarFieldNode(Object value, FieldDescriptor fieldDescriptor) {
             this.value = value;
             this.fieldDescriptor = fieldDescriptor;
         }
@@ -371,7 +371,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            MessageNode node = new MessageNode(record.key());
+            MessageWrapperNode node = new MessageWrapperNode(record.key());
             return super.eval(node, checkScalar);
         }
     }
@@ -429,7 +429,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            MessageNode node = new MessageNode(record.value());
+            MessageWrapperNode node = new MessageWrapperNode(record.value());
             return super.eval(node, checkScalar);
         }
     }
