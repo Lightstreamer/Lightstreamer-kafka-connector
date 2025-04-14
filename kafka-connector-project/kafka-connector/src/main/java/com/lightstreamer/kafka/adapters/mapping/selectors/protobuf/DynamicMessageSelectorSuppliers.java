@@ -99,13 +99,13 @@ public class DynamicMessageSelectorSuppliers
      * <p>Use the {@link #newNode(Object, FieldDescriptor)} factory method to create appropriate
      * node implementations based on the Protobuf field type.
      */
-    interface ProtoNode extends Node<ProtoNode> {
+    interface ProtobufNode extends Node<ProtobufNode> {
 
         default boolean has(String propertyname) {
             return false;
         }
 
-        default ProtoNode get(String propertyname) {
+        default ProtobufNode get(String propertyname) {
             return null;
         }
 
@@ -117,7 +117,7 @@ public class DynamicMessageSelectorSuppliers
             return 0;
         }
 
-        default ProtoNode get(int index) {
+        default ProtobufNode get(int index) {
             return null;
         }
 
@@ -132,14 +132,15 @@ public class DynamicMessageSelectorSuppliers
         String asText();
 
         /**
-         * Creates a new ProtoNode instance based on the provided value and field descriptor.
+         * Creates a new {@link ProtobufNode} instance based on the provided value and field
+         * descriptor.
          *
-         * @param value the value to be wrapped in a ProtoNode
+         * @param value the value to be wrapped in a {@link ProtobufNode}
          * @param fieldDescriptor the descriptor of the field which provides type information
-         * @return a new ProtoNode instance, either a {@link MessageNode} if the field type is
-         *     MESSAGE, or a {@link ScalarNode} for all other field types
+         * @return a new {@link ProtobufNode} instance, either a {@link MessageNode} if the field
+         *     type is {@code MESSAGE}, or a {@link ScalarNode} for all other field types
          */
-        static ProtoNode newNode(Object value, FieldDescriptor fieldDescriptor) {
+        static ProtobufNode newNode(Object value, FieldDescriptor fieldDescriptor) {
             Type type = fieldDescriptor.getType();
             return switch (type) {
                 case MESSAGE -> new MessageNode((Message) value);
@@ -149,20 +150,13 @@ public class DynamicMessageSelectorSuppliers
     }
 
     /**
-     * Implementation of {@link ProtoNode} that wraps a Protocol Buffer Message. This class provides
-     * access to the fields of a Protobuf message through the ProtoNode interface, allowing for
-     * navigation through the message structure.
+     * Implementation of the {@link ProtobufNode} interface for Protocol Buffer Message objects.
      *
-     * <p>The node handles different field types appropriately:
-     *
-     * <ul>
-     *   <li>Map fields are wrapped in a {@link MapNode}
-     *   <li>Repeated fields are wrapped in a {@link RepeatedNode}
-     *   <li>Regular fields are converted to appropriate ProtoNode implementations based on their
-     *       type
-     * </ul>
+     * <p>This class wraps a Protocol Buffer {@link Message} and provides structured access to its
+     * fields. It handles different field types, including map fields and repeated fields, by
+     * wrapping them in appropriate node implementations.
      */
-    static class MessageNode implements ProtoNode {
+    static class MessageNode implements ProtobufNode {
 
         private final Message message;
         private final Descriptor descriptor;
@@ -178,7 +172,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtoNode get(String name) {
+        public ProtobufNode get(String name) {
             FieldDescriptor fieldDescriptor = descriptor.findFieldByName(name);
             if (fieldDescriptor.isMapField()) {
                 return new MapNode(message, fieldDescriptor);
@@ -188,7 +182,7 @@ public class DynamicMessageSelectorSuppliers
             }
 
             Object value = message.getField(fieldDescriptor);
-            return ProtoNode.newNode(value, fieldDescriptor);
+            return ProtobufNode.newNode(value, fieldDescriptor);
         }
 
         @Override
@@ -198,7 +192,7 @@ public class DynamicMessageSelectorSuppliers
     }
 
     /**
-     * Implementation of {@link ProtoNode} that handles repeated fields in Protocol Buffers
+     * Implementation of {@link ProtobufNode} that handles repeated fields in Protocol Buffers
      * messages.
      *
      * <p>A repeated field in Protocol Buffers is similar to an array, containing multiple values of
@@ -208,7 +202,7 @@ public class DynamicMessageSelectorSuppliers
      * <p>This node always returns true for {@link #isArray()} and provides methods to access the
      * number of elements and retrieve individual nodes at specific indices.
      */
-    static class RepeatedNode implements ProtoNode {
+    static class RepeatedNode implements ProtobufNode {
 
         private final Message container;
         private final FieldDescriptor fieldDescriptor;
@@ -229,9 +223,9 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtoNode get(int index) {
+        public ProtobufNode get(int index) {
             Object value = container.getRepeatedField(fieldDescriptor, index);
-            return ProtoNode.newNode(value, fieldDescriptor);
+            return ProtobufNode.newNode(value, fieldDescriptor);
         }
 
         @Override
@@ -242,15 +236,15 @@ public class DynamicMessageSelectorSuppliers
     }
 
     /**
-     * Implementation of {@link ProtoNode} that handles Protocol Buffers map fields.
+     * Implementation of {@link ProtobufNode} that handles Protocol Buffers map fields.
      *
      * <p>This class provides access to entries of a map field in a Protocol Buffers message. It
      * extracts the map entries from the container message and allows access to values by key
-     * through the {@link ProtoNode} interface.
+     * through the {@link ProtobufNode} interface.
      *
-     * @see ProtoNode
+     * @see ProtobufNode
      */
-    static class MapNode implements ProtoNode {
+    static class MapNode implements ProtobufNode {
 
         private final Message container;
         private final Map<String, Object> map = new HashMap<>();
@@ -277,9 +271,9 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtoNode get(String propertyname) {
+        public ProtobufNode get(String propertyname) {
             Object value = map.get(propertyname);
-            return ProtoNode.newNode(value, fieldValueDescriptor);
+            return ProtobufNode.newNode(value, fieldValueDescriptor);
         }
 
         @Override
@@ -290,14 +284,19 @@ public class DynamicMessageSelectorSuppliers
     }
 
     /**
-     * A node implementation that represents a scalar (non-composite) value in a Protocol Buffer
-     * message. This class handles primitive fields and properly formats them for text
-     * representation.
+     * Represents a scalar (primitive) value node in a Protocol Buffer message structure. This class
+     * handles individual scalar values extracted from a Protobuf message, along with their
+     * associated field descriptors.
      *
-     * <p>Scalar nodes always return true for {@link #isScalar()} and provide string representation
-     * of their values through the {@link #asText()} method, with special handling for binary data.
+     * <p>This implementation provides methods to determine node type and convert the scalar value
+     * to a string representation.
+     *
+     * <p>
+     *
+     * @implSpec For {@code BYTES} type fields, the value is converted from {@link ByteString} to
+     *     UTF-8 string when requesting text representation.
      */
-    static class ScalarNode implements ProtoNode {
+    static class ScalarNode implements ProtobufNode {
 
         private final Object value;
         private final FieldDescriptor fieldDescriptor;
@@ -361,8 +360,8 @@ public class DynamicMessageSelectorSuppliers
      * @see KeySelector
      * @see DynamicMessage
      */
-    private static final class DynamicMessageKeySelector extends StructuredBaseSelector<ProtoNode>
-            implements KeySelector<DynamicMessage> {
+    private static final class DynamicMessageKeySelector
+            extends StructuredBaseSelector<ProtobufNode> implements KeySelector<DynamicMessage> {
 
         DynamicMessageKeySelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
@@ -416,11 +415,11 @@ public class DynamicMessageSelectorSuppliers
      *
      * @see StructuredBaseSelector
      * @see ValueSelector
-     * @see ProtoNode
+     * @see ProtobufNode
      * @see DynamicMessage
      */
-    private static final class DynamicMessageValueSelector extends StructuredBaseSelector<ProtoNode>
-            implements ValueSelector<DynamicMessage> {
+    private static final class DynamicMessageValueSelector
+            extends StructuredBaseSelector<ProtobufNode> implements ValueSelector<DynamicMessage> {
 
         DynamicMessageValueSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
