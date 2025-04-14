@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -32,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -64,9 +64,9 @@ public class GenericRecordSelectorsSuppliersTest {
                             RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                             "value.avsc"));
 
-    static GenericRecord RECORD =
+    static GenericRecord SAMPLE_MESSAGE =
             SampleMessageProviders.SampleGenericRecordProvider().sampleMessage();
-    static GenericRecord SIMPLE_RECORD =
+    static GenericRecord SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleGenericRecordProvider().sampleMessageV2();
 
     static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
@@ -173,9 +173,11 @@ public class GenericRecordSelectorsSuppliersTest {
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
-                assertThat(valueSelector(expression).extractValue(fromValue(RECORD)).text());
+                assertThat(
+                        valueSelector(Expression(expressionStr))
+                                .extractValue(fromValue(SAMPLE_MESSAGE))
+                                .text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -203,11 +205,11 @@ public class GenericRecordSelectorsSuppliersTest {
                         """)
     public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-
-        String text =
-                valueSelector(expression).extractValue(fromValue(SIMPLE_RECORD), false).text();
-        assertThat(text).isEqualTo(expected);
+        String extractedData =
+                valueSelector(Expression(expressionStr))
+                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -236,11 +238,13 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> valueSelector(expression).extractValue(fromValue(RECORD)).text());
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -270,9 +274,11 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.nullArray                       | NULL
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
-                assertThat(keySelector(expression).extractKey(fromKey(RECORD)).text());
+                assertThat(
+                        keySelector(Expression(expressionStr))
+                                .extractKey(fromKey(SAMPLE_MESSAGE))
+                                .text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -300,10 +306,11 @@ public class GenericRecordSelectorsSuppliersTest {
                         """)
     public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-
-        String text = keySelector(expression).extractKey(fromKey(SIMPLE_RECORD), false).text();
-        assertThat(text).isEqualTo(expected);
+        String extractedData =
+                keySelector(Expression(expressionStr))
+                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -330,11 +337,13 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(RECORD)).text());
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -351,9 +360,9 @@ public class GenericRecordSelectorsSuppliersTest {
                         VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -370,9 +379,9 @@ public class GenericRecordSelectorsSuppliersTest {
                         KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }
