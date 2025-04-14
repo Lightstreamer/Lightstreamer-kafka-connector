@@ -149,23 +149,19 @@ public class SampleMessageProviders {
     }
 
     /**
-     * Implementation of {@link SampleMessageProvider} that generates sample {@link DynamicMessage}
-     * messages.
+     * Implementation of {@link SampleMessageProvider} that provides a sample {@link DynamicMessage}
+     * containing a complex Protocol Buffer message structure representing a Person.
      *
-     * <p>This implementation creates a fixed {@link DynamicMessage} instance based on the Protocol
-     * Buffers {@code Person} message type. The sample message includes:
+     * <p>The sample message includes various Protocol Buffers data types and structures including:
      *
      * <ul>
-     *   <li>Basic string fields (name)
-     *   <li>Enum fields (job)
+     *   <li>Simple string fields (name, simpleRoleName)
+     *   <li>Enumeration (job)
      *   <li>Repeated fields (phoneNumbers, friends)
      *   <li>Map fields (otherAddresses)
-     *   <li>ByteString field (signature)
-     *   <li>Nested message field (car)
+     *   <li>Nested messages (Address, Car)
+     *   <li>ByteString (signature)
      * </ul>
-     *
-     * <p>The created DynamicMessage is constructed once during instantiation and returned for all
-     * subsequent calls to {@link #sampleMessage()}.
      */
     private static class SampleDynamicMessageProvider
             implements SampleMessageProvider<DynamicMessage> {
@@ -177,6 +173,7 @@ public class SampleMessageProviders {
                     Person.newBuilder()
                             .setName("joe")
                             .setJob(Job.EMPLOYEE)
+                            .setSimpleRoleName("Software Architect")
                             .addPhoneNumbers("012345")
                             .addPhoneNumbers("123456")
                             .addFriends(Person.newBuilder().setName("mike").build())
