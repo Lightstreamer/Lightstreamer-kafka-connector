@@ -365,10 +365,6 @@ public class SampleMessageProviders {
      *   <li>A 2D array representing extended family members
      * </ul>
      *
-     * <p>This class is useful for testing JSON serialization/deserialization and JSON data
-     * processing with a complex nested structure that includes arrays, nested objects, and null
-     * values.
-     *
      * @implSpec The JSON structure is created using an inner class {@code Value} and converted to a
      *     JsonNode using Jackson's ObjectMapper.
      */
