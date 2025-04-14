@@ -78,7 +78,11 @@ public class ProtobufNodeTest {
             }
             signature: "abcd"
             job: EMPLOYEE
-            simpleRoleName: "architect"
+            simpleRoleName: "Software Architect"
+            any {
+              type_url: "type.googleapis.com/model.Car"
+              value: "\\n\\004FORD"
+            }
             """);
     }
 
@@ -278,5 +282,23 @@ public class ProtobufNodeTest {
         assertThat(complexRoleMessageNode.isScalar()).isFalse();
         assertThat(complexRoleMessageNode.get("name").asText()).isEqualTo("Head of Development");
         assertThat(complexRoleMessageNode.get("scope").asText()).isEqualTo("Engineering");
+    }
+
+    @Test
+    public void shouldGetAnyValues() {
+        MessageNode personMessageNode = new MessageNode(MESSAGE);
+        ProtobufNode anyNode = personMessageNode.get("any");
+        assertThat(anyNode).isInstanceOf(MessageNode.class);
+        MessageNode anyMessageNode = (MessageNode) anyNode;
+        assertThat(anyMessageNode.isArray()).isFalse();
+        assertThat(anyMessageNode.size()).isEqualTo(0);
+        assertThat(anyMessageNode.isNull()).isFalse();
+        assertThat(anyMessageNode.isScalar()).isFalse();
+        assertThat(anyMessageNode.asText())
+                .isEqualTo(
+                        """
+            type_url: "type.googleapis.com/model.Car"
+            value: "\\n\\004FORD"
+            """);
     }
 }
