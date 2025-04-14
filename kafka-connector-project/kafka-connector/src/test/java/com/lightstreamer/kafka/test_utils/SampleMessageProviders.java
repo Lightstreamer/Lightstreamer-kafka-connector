@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.example.Address;
@@ -189,6 +190,7 @@ public class SampleMessageProviders {
                                             .build())
                             .setSignature(ByteString.copyFromUtf8("abcd"))
                             .setCar(Car.newBuilder().setBrand("BMW").build())
+                            .setAny(Any.pack(Car.newBuilder().setBrand("FORD").build()))
                             .build();
 
             message = DynamicMessage.newBuilder(person).build();
