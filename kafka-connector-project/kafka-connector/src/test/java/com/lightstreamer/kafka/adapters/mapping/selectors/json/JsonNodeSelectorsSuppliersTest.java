@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -34,7 +35,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -63,7 +63,7 @@ public class JsonNodeSelectorsSuppliersTest {
                             JSON.toString(),
                             RECORD_VALUE_EVALUATOR_TYPE,
                             JSON.toString()));
-    static JsonNode RECORD = SampleJsonNodeProvider().sampleMessage();
+    static JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
 
     static ValueSelector<JsonNode> valueSelector(ExtractionExpression expression)
             throws ExtractionException {
@@ -148,12 +148,10 @@ public class JsonNodeSelectorsSuppliersTest {
         Deserializer<JsonNode> keyDeserializer =
                 new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
-        // assertThat(JsonNodeDeserializer.class.cast(keyDeserializer).isKey()).isTrue();
 
-        // Deserializer<JsonNode> valueDeserializer =
-        //         new JsonNodeSelectorsSuppliers(CONFIG).makeValueSelectorSupplier().deseralizer();
-        // assertThat(valueDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
-        // assertThat(JsonNodeDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
+        Deserializer<JsonNode> valueDeserializer =
+                new JsonNodeSelectorsSuppliers(CONFIG).makeValueSelectorSupplier().deserializer();
+        assertThat(valueDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -180,9 +178,11 @@ public class JsonNodeSelectorsSuppliersTest {
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
-                assertThat(valueSelector(expression).extractValue(fromValue(RECORD)).text());
+                assertThat(
+                        valueSelector(Expression(expressionStr))
+                                .extractValue(fromValue(SAMPLE_MESSAGE))
+                                .text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -212,11 +212,13 @@ public class JsonNodeSelectorsSuppliersTest {
                         VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> valueSelector(expression).extractValue(fromValue(RECORD)).text());
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -249,9 +251,11 @@ public class JsonNodeSelectorsSuppliersTest {
                 }
                 """);
 
-        ExtractionExpression expression = Expressions.Expression(expressionString);
-        String text = valueSelector(expression).extractValue(fromValue(message), false).text();
-        assertThat(text).isEqualTo(expected);
+        String extractedData =
+                valueSelector(Expression(expressionString))
+                        .extractValue(fromValue(message), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(expected);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -273,9 +277,11 @@ public class JsonNodeSelectorsSuppliersTest {
                         KEY.children[1].children[1]['name'], terence
                         """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
-                assertThat(keySelector(expression).extractKey(fromKey(RECORD)).text());
+                assertThat(
+                        keySelector(Expression(expressionStr))
+                                .extractKey(fromKey(SAMPLE_MESSAGE))
+                                .text());
         if (expected.equals("NULL")) {
             subject.isNull();
         } else {
@@ -312,8 +318,10 @@ public class JsonNodeSelectorsSuppliersTest {
                 }
                 """);
 
-        ExtractionExpression expression = Expressions.Expression(expressionString);
-        String text = keySelector(expression).extractKey(fromKey(message), false).text();
+        String text =
+                keySelector(Expression(expressionString))
+                        .extractKey(fromKey(message), false)
+                        .text();
         assertThat(text).isEqualTo(expected);
     }
 
@@ -339,11 +347,13 @@ public class JsonNodeSelectorsSuppliersTest {
                         KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(RECORD)).text());
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -360,9 +370,9 @@ public class JsonNodeSelectorsSuppliersTest {
                         VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -379,9 +389,9 @@ public class JsonNodeSelectorsSuppliersTest {
                         KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }
