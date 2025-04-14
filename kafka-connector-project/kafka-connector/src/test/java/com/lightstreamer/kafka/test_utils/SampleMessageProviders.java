@@ -189,8 +189,10 @@ public class SampleMessageProviders {
                                             .setZip("96100")
                                             .build())
                             .putIndexedAddresses(1, Address.newBuilder().setCity("Rome").build())
-                            .putBooleanAddresses(true, Address.newBuilder().setCity("Turin").build())
-                            .putBooleanAddresses(false, Address.newBuilder().setCity("Florence").build())
+                            .putBooleanAddresses(
+                                    true, Address.newBuilder().setCity("Turin").build())
+                            .putBooleanAddresses(
+                                    false, Address.newBuilder().setCity("Florence").build())
                             .putData("data", -13.3f)
                             .setSignature(ByteString.copyFromUtf8("abcd"))
                             .setCar(Car.newBuilder().setBrand("BMW").build())
