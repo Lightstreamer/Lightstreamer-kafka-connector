@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -30,9 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.TextFormat;
+import com.google.protobuf.TextFormat.InvalidEscapeSequenceException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -85,10 +87,16 @@ public class DynamicMessageSelectorSuppliersTest {
                 .newSelector("name", expression);
     }
 
-    static String getExpectedStr(String expected) {
-        return "<EMPTY>".equals(expected)
-                ? ""
-                : expected.replace("\\n", "\n").replace("\\\\", "\\");
+    static String maybeEmpty(String expected) {
+        return "<EMPTY>".equals(expected) ? "" : unescape(expected);
+    }
+
+    static String unescape(String expected) {
+        try {
+            return TextFormat.unescapeBytes(expected).toStringUtf8();
+        } catch (InvalidEscapeSequenceException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -146,14 +154,12 @@ public class DynamicMessageSelectorSuppliersTest {
                         .makeKeySelectorSupplier()
                         .deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaProtobufDeserializer.class);
-        // assertThat(DynamicMessageDeserializers.class.cast(keyDeserializer).isKey()).isTrue();
 
         Deserializer<DynamicMessage> valueDeserializer =
                 new DynamicMessageSelectorSuppliers(CONFIG)
                         .makeValueSelectorSupplier()
                         .deserializer();
         assertThat(valueDeserializer).isInstanceOf(KafkaProtobufDeserializer.class);
-        // assertThat(GenericRecordDeserializer.class.cast(valueDeserializer).isKey()).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -162,31 +168,34 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                        | EXPECTED
-                        VALUE.name                        | joe
-                        VALUE.email                       | <EMPTY>
-                        VALUE.mainAddress.zip             | <EMPTY>
-                        VALUE.otherAddresses['work'].city | Milan
-                        VALUE.otherAddresses['club'].zip  | 96100
-                        VALUE.job                         | EMPLOYEE
-                        VALUE.signature                   | abcd
-                        VALUE.phoneNumbers[0]             | 012345
-                        VALUE.phoneNumbers[1]             | 123456
-                        VALUE.friends[0].name             | mike
-                        VALUE.friends[1]['name']          | john
-                        VALUE.simpleRoleName              | Software Architect
-                        VALUE.indexedAddresses['1'].city  | Rome
-                        VALUE.booleanAddresses['true'].city | Turin
-                        VALUE.booleanAddresses['false'].city | Florence
-                        VALUE.any.type_url                | type.googleapis.com/Car
-                        VALUE.any.value                   | \\n\\\\004FORD \n\004FORD
+                        EXPRESSION                                | EXPECTED
+                        VALUE.name                                | joe
+                        VALUE.email                               | <EMPTY>
+                        VALUE.mainAddress.zip                     | <EMPTY>
+                        VALUE.mainAddress.country.name            | <EMPTY>
+                        VALUE.otherAddresses['work'].city         | Milan
+                        VALUE.otherAddresses['work'].country.name | Italy
+                        VALUE.otherAddresses['club'].zip          | 96100
+                        VALUE.job                                 | EMPLOYEE
+                        VALUE.signature                           | abcd
+                        VALUE.phoneNumbers[0]                     | 012345
+                        VALUE.phoneNumbers[1]                     | 123456
+                        VALUE.friends[0].name                     | mike
+                        VALUE.friends[1]['name']                  | john
+                        VALUE.simpleRoleName                      | Software Architect
+                        VALUE.indexedAddresses['1'].city          | Rome
+                        VALUE.booleanAddresses['true'].city       | Turin
+                        VALUE.booleanAddresses['false'].city      | Florence
+                        VALUE.any.type_url                        | type.googleapis.com/Car
+                        VALUE.any.value                           | \\n\\004FORD
                         """)
     public void shouldExtractValue(String expressionStr, String expected)
-            throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-        String expectedStr = getExpectedStr(expected);
-        assertThat(valueSelector(expression).extractValue(fromValue(SAMPLE_MESSAGE)).text())
-                .isEqualTo(expectedStr);
+            throws ExtractionException, ValueException {
+        String extractedData =
+                valueSelector(Expression(expressionStr))
+                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                        .text();
+        assertThat(extractedData).isEqualTo(maybeEmpty(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -195,25 +204,20 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                      | EXPECTED
-                        VALUE                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                        VALUE.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
-                        VALUE.documents.id.doc_id       | ID123
-                        VALUE.documents['id'].doc_id    | ID123
-                        VALUE.documents['id']['doc_id'] | ID123
-                        VALUE.preferences               | {pref1=pref_value1, pref2=pref_value2}
-                        VALUE.preferences['pref1']      | pref_value1
-                        VALUE.preferences['pref2']      | pref_value2
-                        VALUE.type                      | TYPE1
-                        VALUE.emptyArray                | []
+                        EXPRESSION         | EXPECTED
+                        VALUE              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                        VALUE.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                        VALUE.friends      | friends {\\n  name: "alex"\\n}\\n
+                        VALUE.friends[0]   | name: "alex"\\n
+                        VALUE.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                         """)
     public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-
-        String text =
-                valueSelector(expression).extractValue(fromValue(SAMPLE_MESSAGE_V2), false).text();
-        assertThat(text).isEqualTo(getExpectedStr(expected));
+        String extractedData =
+                valueSelector(Expression(expressionStr))
+                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(unescape(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -221,33 +225,27 @@ public class DynamicMessageSelectorSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                        VALUE,                       The expression [VALUE] must evaluate to a non-complex object
-                        VALUE.no_attrib,             Field [no_attrib] not found
-                        VALUE.children[0].no_attrib, Field [no_attrib] not found
-                        VALUE.no_children[0],        Field [no_children] not found
-                        VALUE.name[0],               Field [name] is not indexed
-                        VALUE.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                        VALUE.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                        VALUE.preferences,           The expression [VALUE.preferences] must evaluate to a non-complex object
-                        VALUE.documents,             The expression [VALUE.documents] must evaluate to a non-complex object
-                        VALUE.children,              The expression [VALUE.children] must evaluate to a non-complex object
-                        VALUE.children[0]['no_key'], Field [no_key] not found
-                        VALUE.children[0],           The expression [VALUE.children[0]] must evaluate to a non-complex object
-                        VALUE.children[3].name,      Cannot retrieve field [name] from a null object
-                        VALUE.children[4],           Field not found at index [4]
-                        VALUE.children[4].name,      Field not found at index [4]
-                        VALUE.type.attrib,           Cannot retrieve field [attrib] from a scalar object
-                        VALUE.emptyArray[0],         Field not found at index [0]
-                        VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                        EXPRESSION,                     EXPECTED_ERROR_MESSAGE
+                        VALUE,                          The expression [VALUE] must evaluate to a non-complex object
+                        VALUE.no_attrib,                Field [no_attrib] not found
+                        VALUE.friends[0].no_attrib,     Field [no_attrib] not found
+                        VALUE.no_children[0],           Field [no_children] not found
+                        VALUE.name[0],                  Field [name] is not indexed
+                        VALUE.name['no_key'],           Cannot retrieve field [no_key] from a scalar object
+                        VALUE.name.no_key,              Cannot retrieve field [no_key] from a scalar object
+                        VALUE.phoneNumbers,             The expression [VALUE.phoneNumbers] must evaluate to a non-complex object
+                        VALUE.otherAddresses,           The expression [VALUE.otherAddresses] must evaluate to a non-complex object
+                        VALUE.otherAddresses['no_key'], Field [no_key] not found
+                        VALUE.mainAddress,              The expression [VALUE.mainAddress] must evaluate to a non-complex object
+                        VALUE.friends[4],               Field not found at index [4]
+                        VALUE.friends[4].name,          Field not found at index [4]
                         """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expression)
+                                valueSelector(Expression(expressionStr))
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -256,55 +254,59 @@ public class DynamicMessageSelectorSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input KEY.signature
+            delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION                      | EXPECTED
-                        KEY.name                        | joe
-                        KEY.email                       | <EMPTY>
-                        KEY.mainAddress.zip             | <EMPTY>
-                        KEY.otherAddresses['work'].city | Milan
-                        KEY.otherAddresses['club'].zip  | 96100
-                        KEY.job                         | EMPLOYEE
-                        KEY.signature                   | abcd
-                        KEY.phoneNumbers[0]             | 012345
-                        KEY.phoneNumbers[1]             | 123456
-                        KEY.friends[0].name             | mike
-                        KEY.friends[1]['name']          | john
-                        KEY.simpleRoleName              | Software Architect
-                        KEY.any.type_url                | type.googleapis.com/model.Car
-                        KEY.any.value                   | \\n\\004FORD
+                        EXPRESSION                              | EXPECTED
+                        KEY.name                                | joe
+                        KEY.email                               | <EMPTY>
+                        KEY.mainAddress.zip                     | <EMPTY>
+                        KEY.mainAddress.country.name            | <EMPTY>
+                        KEY.otherAddresses['work'].city         | Milan
+                        KEY.otherAddresses['work'].country.name | Italy
+                        KEY.otherAddresses['club'].zip          | 96100
+                        KEY.job                                 | EMPLOYEE
+                        KEY.signature                           | abcd
+                        KEY.phoneNumbers[0]                     | 012345
+                        KEY.phoneNumbers[1]                     | 123456
+                        KEY.friends[0].name                     | mike
+                        KEY.friends[1]['name']                  | john
+                        KEY.simpleRoleName                      | Software Architect
+                        KEY.indexedAddresses['1'].city          | Rome
+                        KEY.booleanAddresses['true'].city       | Turin
+                        KEY.booleanAddresses['false'].city      | Florence
+                        KEY.any.type_url                        | type.googleapis.com/Car
+                        KEY.any.value                           | \\n\\004FORD
                         """)
-    public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-        String text = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false).text();
-        assertThat(text).isEqualTo(getExpectedStr(expected));
+    public void shouldExtractKey(String expressionStr, String expected)
+            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+        String extractedData =
+                keySelector(Expression(expressionStr))
+                        .extractKey(fromKey(SAMPLE_MESSAGE), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(maybeEmpty(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION                    | EXPECTED
-                        KEY                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                        KEY.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
-                        KEY.documents.id.doc_id       | ID123
-                        KEY.documents['id'].doc_id    | ID123
-                        KEY.documents['id']['doc_id'] | ID123
-                        KEY.preferences               | {pref1=pref_value1, pref2=pref_value2}
-                        KEY.preferences['pref1']      | pref_value1
-                        KEY.preferences['pref2']      | pref_value2
-                        KEY.type                      | TYPE1
-                        KEY.emptyArray                | []
+                        EXPRESSION       | EXPECTED
+                        KEY              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                        KEY.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                        KEY.friends      | friends {\\n  name: "alex"\\n}\\n
+                        KEY.friends[0]   | name: "alex"\\n
+                        KEY.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                         """)
     public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
-
-        String text = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false).text();
-        assertThat(text).isEqualTo(getExpectedStr(expected));
+            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+        String extractedData =
+                keySelector(Expression(expressionStr))
+                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(unescape(expected));
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -312,30 +314,29 @@ public class DynamicMessageSelectorSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                        KEY,                       The expression [KEY] must evaluate to a non-complex object
-                        KEY.no_attrib,             Field [no_attrib] not found
-                        KEY.children[0].no_attrib, Field [no_attrib] not found
-                        KEY.no_children[0],        Field [no_children] not found
-                        KEY.name[0],               Field [name] is not indexed
-                        KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                        KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                        KEY.preferences,           The expression [KEY.preferences] must evaluate to a non-complex object
-                        KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
-                        KEY.children[0]['no_key'], Field [no_key] not found
-                        KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
-                        KEY.children[3].name,      Cannot retrieve field [name] from a null object
-                        KEY.children[4],           Field not found at index [4]
-                        KEY.children[4].name,      Field not found at index [4]
-                        KEY.type.attrib,           Cannot retrieve field [attrib] from a scalar object
-                        KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                        EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                        KEY,                          The expression [KEY] must evaluate to a non-complex object
+                        KEY.no_attrib,                Field [no_attrib] not found
+                        KEY.friends[0].no_attrib,     Field [no_attrib] not found
+                        KEY.no_children[0],           Field [no_children] not found
+                        KEY.name[0],                  Field [name] is not indexed
+                        KEY.name['no_key'],           Cannot retrieve field [no_key] from a scalar object
+                        KEY.name.no_key,              Cannot retrieve field [no_key] from a scalar object
+                        KEY.phoneNumbers,             The expression [KEY.phoneNumbers] must evaluate to a non-complex object
+                        KEY.otherAddresses,           The expression [KEY.otherAddresses] must evaluate to a non-complex object
+                        KEY.otherAddresses['no_key'], Field [no_key] not found
+                        KEY.mainAddress,              The expression [KEY.mainAddress] must evaluate to a non-complex object
+                        KEY.friends[4],               Field not found at index [4]
+                        KEY.friends[4].name,          Field not found at index [4]
                         """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -352,9 +353,9 @@ public class DynamicMessageSelectorSuppliersTest {
                         VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -371,9 +372,9 @@ public class DynamicMessageSelectorSuppliersTest {
                         KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expression));
+                assertThrows(
+                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 }
