@@ -74,6 +74,9 @@ public class ProtobufNodeTest {
               value {
                 city: "Milan"
                 zip: "20124"
+                country {
+                  name: "Italy"
+                }
               }
             }
             indexedAddresses {
@@ -258,9 +261,12 @@ public class ProtobufNodeTest {
               value {
                 city: "Milan"
                 zip: "20124"
+                country {
+                  name: "Italy"
+                }
               }
             }
-            """);
+                        """);
 
         ProtobufNode elemNode1 = otherAddressesMapNode.get("work");
         assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
