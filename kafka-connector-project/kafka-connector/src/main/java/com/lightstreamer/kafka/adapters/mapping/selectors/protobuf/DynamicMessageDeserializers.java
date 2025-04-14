@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
 
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -49,20 +49,21 @@ public class DynamicMessageDeserializers {
         if (isProtobufValueEvaluator(config, isKey)) {
             return;
         }
+        throw new IllegalArgumentException("Evaluator type is not PROTOBUF");
     }
 
     private static boolean isProtobufKeyEvaluator(ConnectorConfig config, boolean isKey) {
         if (!isKey) {
             return false;
         }
-        return config.getKeyEvaluator().is(AVRO);
+        return config.getKeyEvaluator().is(PROTOBUF);
     }
 
     private static boolean isProtobufValueEvaluator(ConnectorConfig config, boolean isKey) {
         if (isKey) {
             return false;
         }
-        return config.getValueEvaluator().is(AVRO);
+        return config.getValueEvaluator().is(PROTOBUF);
     }
 
     static Deserializer<DynamicMessage> ValueDeserializer(ConnectorConfig config) {
