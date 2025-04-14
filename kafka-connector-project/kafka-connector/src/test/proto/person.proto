@@ -1,16 +1,18 @@
 syntax = "proto3";
 import "google/protobuf/any.proto";
 
-package model;
-
 option java_multiple_files = true;
 option java_package = "com.lightstreamer.example";
 option java_outer_classname = "PersonProto";
 
 message Address {
+  message Country {
+    string name = 1;
+  }
   string city = 1;
   string zip = 2;
-  string street = 3; 
+  string street = 3;
+  Country country = 4;
 }
 
 message Car {
@@ -37,12 +39,15 @@ message Person {
   repeated string phoneNumbers = 6;
   repeated Person friends = 7;
   map<string, Address> otherAddresses = 8;
-  bytes signature = 9;
-  Job job = 10;
+  map<int32, Address> indexedAddresses = 9;
+  map<bool, Address> booleanAddresses = 10;
+  map<string, float> data = 11;
+  bytes signature = 12;
+  Job job = 13;
   oneof role {
-    string simpleRoleName = 11;
-    Role complexRole = 12;
+    string simpleRoleName = 14;
+    Role complexRole = 15;
   }
 
-  google.protobuf.Any any = 13;
+  google.protobuf.Any any = 16;
 }
