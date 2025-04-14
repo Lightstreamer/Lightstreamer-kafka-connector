@@ -25,6 +25,7 @@ import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.example.Address;
+import com.lightstreamer.example.Address.Country;
 import com.lightstreamer.example.Car;
 import com.lightstreamer.example.Job;
 import com.lightstreamer.example.Person;
@@ -168,43 +169,80 @@ public class SampleMessageProviders {
             implements SampleMessageProvider<DynamicMessage> {
 
         private final DynamicMessage message;
+        private final DynamicMessage message2;
 
         private SampleDynamicMessageProvider() {
-            Person person =
-                    Person.newBuilder()
-                            .setName("joe")
-                            .setJob(Job.EMPLOYEE)
-                            .setSimpleRoleName("Software Architect")
-                            .addPhoneNumbers("012345")
-                            .addPhoneNumbers("123456")
-                            .addFriends(Person.newBuilder().setName("mike").build())
-                            .addFriends(Person.newBuilder().setName("john").build())
-                            .putOtherAddresses(
-                                    "work",
-                                    Address.newBuilder().setCity("Milan").setZip("20124").build())
-                            .putOtherAddresses(
-                                    "club",
-                                    Address.newBuilder()
-                                            .setCity("Siracusa")
-                                            .setZip("96100")
-                                            .build())
-                            .putIndexedAddresses(1, Address.newBuilder().setCity("Rome").build())
-                            .putBooleanAddresses(
-                                    true, Address.newBuilder().setCity("Turin").build())
-                            .putBooleanAddresses(
-                                    false, Address.newBuilder().setCity("Florence").build())
-                            .putData("data", -13.3f)
-                            .setSignature(ByteString.copyFromUtf8("abcd"))
-                            .setCar(Car.newBuilder().setBrand("BMW").build())
-                            .setAny(Any.pack(Car.newBuilder().setBrand("FORD").build()))
-                            .build();
+            message = buildMessage1();
+            message2 = buildMessage2();
+        }
 
-            message = DynamicMessage.newBuilder(person).build();
+        private DynamicMessage buildMessage2() {
+            return DynamicMessage.newBuilder(
+                            Person.newBuilder()
+                                    .setName("mike")
+                                    .setJob(Job.ARTIST)
+                                    .addPhoneNumbers("111111")
+                                    .addPhoneNumbers("222222")
+                                    .addFriends(Person.newBuilder().setName("alex").build())
+                                    .setMainAddress(
+                                            Address.newBuilder()
+                                                    .setCity("London")
+                                                    .setCountry(
+                                                            Country.newBuilder()
+                                                                    .setName("England")
+                                                                    .build()))
+                                    .build())
+                    .build();
+        }
+
+        private DynamicMessage buildMessage1() {
+            return DynamicMessage.newBuilder(
+                            Person.newBuilder()
+                                    .setName("joe")
+                                    .setJob(Job.EMPLOYEE)
+                                    .setSimpleRoleName("Software Architect")
+                                    .addPhoneNumbers("012345")
+                                    .addPhoneNumbers("123456")
+                                    .addFriends(Person.newBuilder().setName("mike").build())
+                                    .addFriends(Person.newBuilder().setName("john").build())
+                                    .putOtherAddresses(
+                                            "work",
+                                            Address.newBuilder()
+                                                    .setCity("Milan")
+                                                    .setZip("20124")
+                                                    .setCountry(
+                                                            Country.newBuilder()
+                                                                    .setName("Italy")
+                                                                    .build())
+                                                    .build())
+                                    .putOtherAddresses(
+                                            "club",
+                                            Address.newBuilder()
+                                                    .setCity("Siracusa")
+                                                    .setZip("96100")
+                                                    .build())
+                                    .putIndexedAddresses(
+                                            1, Address.newBuilder().setCity("Rome").build())
+                                    .putBooleanAddresses(
+                                            true, Address.newBuilder().setCity("Turin").build())
+                                    .putBooleanAddresses(
+                                            false, Address.newBuilder().setCity("Florence").build())
+                                    .putData("data", -13.3f)
+                                    .setSignature(ByteString.copyFromUtf8("abcd"))
+                                    .setCar(Car.newBuilder().setBrand("BMW").build())
+                                    .setAny(Any.pack(Car.newBuilder().setBrand("FORD").build()))
+                                    .build())
+                    .build();
         }
 
         @Override
         public DynamicMessage sampleMessage() {
             return message;
+        }
+
+        @Override
+        public DynamicMessage sampleMessageV2() {
+            return message2;
         }
     }
 
