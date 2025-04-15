@@ -21,10 +21,7 @@ services:
       context: ../quickstart-producer
       args:
         VERSION: ${version}
-    configs:
-      - source: producer.properties
-        target: /usr/app/producer.properties        
-    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
+    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
 
   broker:
     image: apache/kafka
@@ -50,9 +47,3 @@ services:
       KAFKA_REST_HOST_NAME: rest-proxy
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
       KAFKA_REST_LISTENERS: 'http://0.0.0.0:8082'
-
-configs:
-  producer.properties:
-    content: |
-      # JSON serializer
-      value.serializer=io.confluent.kafka.serializers.KafkaJsonSerializer
