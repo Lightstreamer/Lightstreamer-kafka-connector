@@ -162,33 +162,33 @@ public class DynamicMessageSelectorSuppliersTest {
         assertThat(valueDeserializer).isInstanceOf(KafkaProtobufDeserializer.class);
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
-            textBlock =
-                    """
-                        EXPRESSION                                | EXPECTED
-                        VALUE.name                                | joe
-                        VALUE.email                               | <EMPTY>
-                        VALUE.mainAddress.zip                     | <EMPTY>
-                        VALUE.mainAddress.country.name            | <EMPTY>
-                        VALUE.otherAddresses['work'].city         | Milan
-                        VALUE.otherAddresses['work'].country.name | Italy
-                        VALUE.otherAddresses['club'].zip          | 96100
-                        VALUE.job                                 | EMPLOYEE
-                        VALUE.signature                           | abcd
-                        VALUE.phoneNumbers[0]                     | 012345
-                        VALUE.phoneNumbers[1]                     | 123456
-                        VALUE.friends[0].name                     | mike
-                        VALUE.friends[1]['name']                  | john
-                        VALUE.simpleRoleName                      | Software Architect
-                        VALUE.indexedAddresses['1'].city          | Rome
-                        VALUE.booleanAddresses['true'].city       | Turin
-                        VALUE.booleanAddresses['false'].city      | Florence
-                        VALUE.any.type_url                        | type.googleapis.com/Car
-                        VALUE.any.value                           | \\n\\004FORD
-                        """)
+        @ParameterizedTest(name = "[{index}] {arguments}")
+        @CsvSource(
+                useHeadersInDisplayName = true,
+                delimiter = '|', // Required because of the expected value for input VALUE.signature
+                textBlock =
+                        """
+                                EXPRESSION                                | EXPECTED
+                                VALUE.name                                | joe
+                                VALUE.email                               | <EMPTY>
+                                VALUE.mainAddress.zip                     | <EMPTY>
+                                VALUE.mainAddress.country.name            | <EMPTY>
+                                VALUE.otherAddresses['work'].city         | Milan
+                                VALUE.otherAddresses['work'].country.name | Italy
+                                VALUE.otherAddresses['club'].zip          | 96100
+                                VALUE.job                                 | EMPLOYEE
+                                VALUE.signature                           | abcd
+                                VALUE.phoneNumbers[0]                     | 012345
+                                VALUE.phoneNumbers[1]                     | 123456
+                                VALUE.friends[0].name                     | mike
+                                VALUE.friends[1]['name']                  | john
+                                VALUE.simpleRoleName                      | Software Architect
+                                VALUE.indexedAddresses['1'].city          | Rome
+                                VALUE.booleanAddresses['true'].city       | Turin
+                                VALUE.booleanAddresses['false'].city      | Florence
+                                VALUE.any.type_url                        | type.googleapis.com/Car
+                                VALUE.any.value                           | \\n\\004FORD
+                                """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException, ValueException {
         String extractedData =
