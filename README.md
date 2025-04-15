@@ -837,16 +837,17 @@ The Kafka Connector can deserialize Kafka records from the following formats:
 
 - _Apache Avro_
 - _JSON_
+- _Protobuf_
 - _String_
 - _Integer_
 - _Float_
 
 and other scalar types (see [the complete list](#recordkeyevaluatortype-and-recordvalueevaluatortype)).
 
-In particular, the Kafka Connector supports message validation for _Avro_ and _JSON_, which can be specified through:
+In particular, the Kafka Connector supports message validation for _Avro_, _JSON_, and _Protobuf_ which can be specified through:
 
-- Local schema files
-- The _Confluent Schema Registry_
+- Local schema files (_Avro_ and _JSON_ only): Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
+- The _Confluent Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
@@ -926,6 +927,7 @@ _Optional_. The format to be used to deserialize respectively the key and value 
 
 - `AVRO`
 - `JSON`
+- `PROTOBUF`
 - `STRING`
 - `INTEGER`
 - `BOOLEAN`
