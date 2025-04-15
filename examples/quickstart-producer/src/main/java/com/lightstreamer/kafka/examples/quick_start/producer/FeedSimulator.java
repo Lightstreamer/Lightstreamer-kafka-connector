@@ -252,7 +252,7 @@ public class FeedSimulator {
          */
         public Map<String, String> getCurrentValues() {
             HashMap<String, String> event = new HashMap<String, String>();
-            event.put("stock_name", name);
+            event.put("name", name);
 
             LocalDateTime now = LocalDateTime.now();
             event.put("time", now.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
