@@ -21,8 +21,6 @@ import com.lightstreamer.kafka.examples.quick_start.producer.json.JsonStock;
 import com.lightstreamer.kafka.examples.quick_start.producer.protobuf.ProtobufStock;
 
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
-import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -43,20 +41,25 @@ import java.util.Properties;
 
 public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
 
+    /**
+     * Enum representing the different types of serializers that can be used for serializing data in
+     * the Kafka producer. The serializer type is determined based on the class name of the value
+     * serializer specified in the configuration.
+     */
     enum SerializerType {
         PROTOBUF,
         JSON,
         JSON_SCHEMA;
 
         public static SerializerType fromString(String className) {
-            if (KafkaProtobufSerializer.class.getName().equals(className)) {
-                return PROTOBUF;
-            } else if (KafkaJsonSerializer.class.getName().equals(className)) {
-                return JSON;
-            } else if (KafkaJsonSchemaSerializer.class.getName().equals(className)) {
-                return JSON_SCHEMA;
-            }
-            throw new IllegalArgumentException("Unknown serializer class: " + className);
+            return switch (className) {
+                case "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer" -> PROTOBUF;
+                case "io.confluent.kafka.serializers.KafkaJsonSerializer" -> JSON;
+                case "io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer" -> JSON_SCHEMA;
+                default ->
+                        throw new IllegalArgumentException(
+                                "Unknown serializer class: " + className);
+            };
         }
     }
 
@@ -93,20 +96,21 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
     @Override
     public void run() {
         // Create producer configs
-        Properties properties = getProperties();
+        Properties configs = loadProperties();
 
-        configure(properties);
+        configure(configs);
 
         // Create the producer
-        producer = new KafkaProducer<>(properties);
+        producer = new KafkaProducer<>(configs);
 
-        // Create and start the feed simulator.
+        // Create and start the feed simulator
         FeedSimulator simulator = new FeedSimulator(this);
         simulator.start();
     }
 
-    private Properties getProperties() {
+    private Properties loadProperties() {
         Properties properties = new Properties();
+
         if (configFile != null) {
             if (!Files.exists(Paths.get(configFile))) {
                 System.err.println("Unable to find the specified configuration file " + configFile);
@@ -122,21 +126,22 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
         return properties;
     }
 
-    void configure(Properties properties) {
-        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        properties.setProperty(
+    void configure(Properties config) {
+        config.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.setProperty(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-        if (!properties.containsKey(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)) {
-            throw new RuntimeException(
-                    "Please specify the value serializer class in the configuration file");
-        }
+        // Set the default serializer class
+        config.putIfAbsent(
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
+
         serializerType =
                 SerializerType.fromString(
-                        properties.getProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+                        config.getProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
     }
 
     @Override
     public void onEvent(int stockIndex, Map<String, String> stockEvent) {
+        System.out.printf("Receiving event for stock %d: %s%n", stockIndex, stockEvent.toString());
         ProducerRecord<Integer, Object> record =
                 new ProducerRecord<>(this.topic, stockIndex, toRecord(stockEvent));
         producer.send(
@@ -148,7 +153,7 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
                             System.err.println("Send failed");
                             return;
                         }
-                        String reducedValueStr = record.value().toString().substring(0, 35) + "...";
+                        String reducedValueStr = record.value().toString();
                         System.out.printf(
                                 "Sent record [key = %2d, offset = %6d, value = %s]%n",
                                 record.key(), metadata.offset(), reducedValueStr);
