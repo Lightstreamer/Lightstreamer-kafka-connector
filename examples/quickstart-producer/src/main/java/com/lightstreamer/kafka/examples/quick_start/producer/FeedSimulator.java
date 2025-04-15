@@ -1,5 +1,6 @@
+
 /*
- * Copyright (C) 2024 Lightstreamer Srl
+ * Copyright (C) 2025 Lightstreamer Srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +22,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Simulates an external data feed that supplies quote values for all the stocks needed for the
@@ -37,9 +35,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class FeedSimulator {
 
+    /**
+     * A listener interface for receiving events from an external feed simulator. Implementations of
+     * this interface can be registered with a feed simulator to be notified when new stock events
+     * are generated.
+     */
     public interface ExternalFeedListener {
 
-        void onEvent(int stockIndex, Stock stock);
+        /**
+         * Callback method invoked when a stock event occurs.
+         *
+         * @param stockIndex the index of the stock that generated the event
+         * @param event a map containing the event data as key-value pairs
+         */
+        void onEvent(int stockIndex, Map<String, String> event);
     }
 
     private static final Random random = new Random();
@@ -82,16 +91,19 @@ public class FeedSimulator {
         2.29, 13.20, 6.20, 17.25, 13.62, 17.65, 11.30, 5.55, 15.31, 14.97, 17.70, 5.42, 13.95,
         16.84, 7.05, 11.29,
     };
+
     private static final double[] minprices = {
         3.09, 15.78, 7.15, 3.62, 7.53, 2.28, 15.60, 5.23, 4.89, 7.70, 10.36, 3.90, 6.81, 26.74,
         2.29, 13.09, 5.78, 17.15, 13.62, 17.53, 11.28, 5.60, 15.23, 14.89, 17.70, 5.36, 13.90,
         16.81, 6.74, 11.29,
     };
+
     private static final double[] maxprices = {
         3.19, 16.20, 7.26, 3.71, 7.65, 2.30, 15.89, 5.31, 4.97, 7.86, 10.50, 3.95, 6.87, 27.05,
         2.31, 13.19, 6.20, 17.26, 13.71, 17.65, 11.30, 5.89, 15.31, 14.97, 17.86, 5.50, 13.95,
         16.87, 7.05, 11.31,
     };
+
     private static final String[] stockNames = {
         "Anduct", "Ations Europe",
         "Bagies Consulting", "BAY Corporation",
@@ -145,8 +157,7 @@ public class FeedSimulator {
                     long nextWaitTime;
                     synchronized (stockProducer) {
                         stockProducer.computeNewValues();
-                        listener.onEvent(
-                                stockProducer.index + 1, stockProducer.getCurrentValues(true));
+                        listener.onEvent(stockProducer.index + 1, stockProducer.getCurrentValues());
 
                         nextWaitTime = stockProducer.computeNextWaitTime();
                     }
@@ -158,6 +169,7 @@ public class FeedSimulator {
 
     /** Manages the current state and generates update events for a single stock. */
     private static class StockProducer {
+
         private final int index;
         private final int open, ref;
         private final double mean, stddev;
@@ -195,7 +207,7 @@ public class FeedSimulator {
         /** Changes the current data for the stock. */
         public void computeNewValues() {
             // this stuff is to ensure that new prices follow a random
-            // but nondivergent path, centered around the reference price
+            // but non-divergent path, centered around the reference price
             double limit = ref / 4.0;
             int jump = ref / 100;
             double relDist = (last - ref) / limit;
@@ -238,8 +250,9 @@ public class FeedSimulator {
          * false, then only the fields whose value is just changed are considered (though this check
          * is not strict).
          */
-        public Stock getCurrentValues(boolean fullData) {
+        public Map<String, String> getCurrentValues() {
             HashMap<String, String> event = new HashMap<String, String>();
+            event.put("stock_name", name);
 
             LocalDateTime now = LocalDateTime.now();
             event.put("time", now.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
@@ -261,34 +274,15 @@ public class FeedSimulator {
 
             double var = (last - ref) / (double) ref * 100;
             addDecField("pct_change", (int) (var * 100), event);
-            if ((last == min) || fullData) {
-                addDecField("min", min, event);
-            }
-            if ((last == max) || fullData) {
-                addDecField("max", max, event);
-            }
-            if (fullData) {
-                event.put("stock_name", name);
-                addDecField("ref_price", ref, event);
-                addDecField("open_price", open, event);
-                // since it's a simulator the item is always active
-                event.put("item_status", "active");
-            }
-            return new Stock(
-                    name,
-                    event.get("time"),
-                    event.get("timestamp"),
-                    event.get("last_price"),
-                    event.get("ask"),
-                    event.get("bid"),
-                    event.get("bid_quantity"),
-                    event.get("ask_quantity"),
-                    event.get("pct_change"),
-                    event.get("min"),
-                    event.get("max"),
-                    event.get("ref_price"),
-                    event.get("open_price"),
-                    event.get("item_status"));
+            addDecField("min", min, event);
+            addDecField("max", max, event);
+
+            addDecField("ref_price", ref, event);
+            addDecField("open_price", open, event);
+            // since it's a simulator the item is always active
+            event.put("item_status", "active");
+
+            return event;
         }
 
         private void addDecField(String fld, int val100, HashMap<String, String> target) {
@@ -306,42 +300,5 @@ public class FeedSimulator {
             int base = random.nextInt(max + 1 - min);
             return base + min;
         }
-    }
-
-    public static record Stock(
-            @JsonProperty String name,
-            @JsonProperty String time,
-            @JsonProperty String timestamp,
-            @JsonProperty String last_price,
-            @JsonProperty String ask,
-            @JsonProperty String bid,
-            @JsonProperty String bid_quantity,
-            @JsonProperty String ask_quantity,
-            @JsonProperty String pct_change,
-            @JsonProperty String min,
-            @JsonProperty String max,
-            @JsonProperty String ref_price,
-            @JsonProperty String open_price,
-            @JsonProperty String item_status) {}
-
-    public static void main(String[] args) {
-        Set<Integer> st = new HashSet<>();
-        FeedSimulator sim =
-                new FeedSimulator(
-                        new ExternalFeedListener() {
-
-                            @Override
-                            public void onEvent(int stockIndex, Stock stock) {
-                                if (st.add(stockIndex)) {
-                                    System.out.println("Added stockIndex " + stockIndex);
-                                }
-                                System.out.println(stock);
-                                if (st.size() == 10) {
-                                    System.out.println("Complete!");
-                                    // System.exit(0);
-                                }
-                            }
-                        });
-        sim.start();
     }
 }
