@@ -22,7 +22,7 @@ services:
       - broker
       - schema-registry
     build:
-      context: quickstart-producer
+      context: ../quickstart-producer
       args:
         VERSION: ${version}
     configs:
