@@ -22,16 +22,19 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
 import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleDynamicMessageProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleStructProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.ProtoValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -519,6 +522,83 @@ public class RecordMapperTest {
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
                 Records.record("undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
+        MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
+        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.fieldsMap()).isEmpty();
+    }
+
+    @Test
+    public void shouldMapProtobufRecordWithMatchingTopic() throws ExtractionException {
+        RecordMapper<String, DynamicMessage> mapper =
+                RecordMapper.<String, DynamicMessage>builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(ProtoValue(), Template("test-#{name=VALUE.name}")))
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(
+                                        ProtoValue(),
+                                        Template("test-#{firstFriendName=VALUE.friends[0].name}")))
+                        .withTemplateExtractor(
+                                TEST_TOPIC_1,
+                                extractor(
+                                        ProtoValue(),
+                                        Template(
+                                                "test-#{secondFriendName=VALUE.friends[1].name,otherName=VALUE.friends[1].friends[0].name}")))
+                        .withTemplateExtractor(
+                                TEST_TOPIC_2,
+                                extractor(
+                                        ProtoValue(),
+                                        Template(
+                                                "test-#{phoneNumber=VALUE.phoneNumbers[0],country=VALUE.otherAddresses['work'].country.name}")))
+                        .withFieldExtractor(
+                                extractor(
+                                        ProtoValue(),
+                                        "fields",
+                                        Map.of(
+                                                "firstName",
+                                                Wrapped("#{VALUE.name}"),
+                                                "friendSignature",
+                                                Wrapped(
+                                                        "#{VALUE.friends[1].friends[0].signature}")),
+                                        false,
+                                        false))
+                        .build();
+        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+
+        // Record published to topic "topic": mapping
+        KafkaRecord<String, DynamicMessage> kafkaRecord =
+                Records.record(TEST_TOPIC_1, "", SampleDynamicMessageProvider().sampleMessage());
+        MappedRecord mappedRecord = mapper.map(kafkaRecord);
+        Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord.expanded();
+        assertThat(expandedFromTestsTopic)
+                .containsExactly(
+                        SchemaAndValues.from("test", Map.of("name", "joe")),
+                        SchemaAndValues.from("test", Map.of("firstFriendName", "mike")),
+                        SchemaAndValues.from(
+                                "test", Map.of("secondFriendName", "john", "otherName", "robert")));
+        assertThat(mappedRecord.fieldsMap())
+                .containsExactly("firstName", "joe", "friendSignature", "abcd");
+
+        // Record published to topic "anotherTopic": mapping
+        KafkaRecord<String, DynamicMessage> kafkaRecord2 =
+                Records.record(TEST_TOPIC_2, "", SampleDynamicMessageProvider().sampleMessage());
+        MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
+        Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
+        assertThat(expandedFromAnotherTopic)
+                .containsExactly(
+                        SchemaAndValues.from(
+                                "test", Map.of("phoneNumber", "012345", "country", "Italy")));
+
+        assertThat(mappedRecord2.fieldsMap())
+                .containsExactly("firstName", "joe", "friendSignature", "abcd");
+
+        // Record published to topic "undefinedTopic": no mapping
+        KafkaRecord<String, DynamicMessage> kafkaRecord3 =
+                Records.record(
+                        "undefinedTopic", "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.expanded()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
