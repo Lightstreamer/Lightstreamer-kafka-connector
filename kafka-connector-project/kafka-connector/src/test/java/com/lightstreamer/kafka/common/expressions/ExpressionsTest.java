@@ -155,7 +155,7 @@ public class ExpressionsTest {
             textBlock =
                     """
                 EXPRESSION                          $ EXPECTED_ERROR_MESSAGE
-                                                        $ Invalid template expression
+                                                    $ Invalid template expression
                 ''                                  $ Invalid template expression
                 -                                   $ Invalid template expression
                 \\                                  $ Invalid template expression
