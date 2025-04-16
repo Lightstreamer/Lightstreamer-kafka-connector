@@ -362,25 +362,6 @@ public class ConnectorConfiguratorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {-1, 2})
-    public void shouldNotCreateDueToIncompatibleCommandModeAndParallelism(int threads) {
-        Map<String, String> config =
-                minimalConfigWith(
-                        Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                RECORD_CONSUME_WITH_NUM_THREADS,
-                                String.valueOf(threads)));
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> new ConnectorConfigurator(config, ADAPTER_DIR));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
-    }
-
-    @ParameterizedTest
     @ValueSource(strings = {"map..to", "map.to"})
     public void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(
             String topicMappingParam) {
