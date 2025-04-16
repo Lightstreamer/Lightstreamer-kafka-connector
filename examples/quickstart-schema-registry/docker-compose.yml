@@ -18,6 +18,7 @@ services:
 
   producer:
     container_name: producer
+    restart: always
     depends_on:
       - broker
       - schema-registry
