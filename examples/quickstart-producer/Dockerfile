@@ -12,7 +12,7 @@ COPY settings.gradle .
 COPY gradle.properties .
 
 # Generate the jar file
-RUN gradle build
+RUN gradle spotlessApply build
 
 # Use the official Eclipse Temurin image
 FROM eclipse-temurin:21-jdk
