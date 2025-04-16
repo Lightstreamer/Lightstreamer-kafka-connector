@@ -116,6 +116,8 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+        // Configure the key evaluator type, but leave default settings for
+        // RECORD_VALUE_EVALUATOR_TYPE (String)        
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
@@ -140,6 +142,8 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        // Configure the value evaluator type, but leave default settings for
+        // RECORD_VALUE_EVALUATOR_TYPE (String)     
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
