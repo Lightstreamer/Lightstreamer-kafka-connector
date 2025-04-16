@@ -138,7 +138,8 @@ public class SampleMessageProviders {
     }
 
     /**
-     * Returns a singleton instance of a sample message provider for {@link DynamicMessage} objects.
+     * Returns a singleton instance of a {@link SampleMessageProvider} for {@link DynamicMessage}
+     * objects.
      *
      * @return a sample message provider that creates {@link DynamicMessage} instances
      */
@@ -146,6 +147,11 @@ public class SampleMessageProviders {
         return DYNAMIC_MESSAGE_PROVIDER;
     }
 
+    /**
+     * Returns a singleton instance of a {@link SampleMessageProvider} for {@link Struct}> objects.
+     *
+     * @return a sample message provider that creates {@link Struct} instances
+     */
     public static SampleMessageProvider<Struct> SampleStructProvider() {
         return SCHEMA_AND_VALUE_PROVIDER;
     }
