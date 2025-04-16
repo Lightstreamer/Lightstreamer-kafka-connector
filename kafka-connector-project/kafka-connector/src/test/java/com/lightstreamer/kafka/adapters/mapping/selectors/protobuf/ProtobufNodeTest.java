@@ -120,11 +120,11 @@ public class ProtobufNodeTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        FIELD,     VALUE
-                        name,      joe
-                        signature, abcd
-                        email,     <EMPTY>
-                        """)
+                    FIELD,     VALUE
+                    name,      joe
+                    signature, abcd
+                    email,     <EMPTY>
+                    """)
     public void shouldGetStringScalarField(String field, String value) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
         ProtobufNode fieldNode = personMessageWrapperNode.get(field);
@@ -144,10 +144,10 @@ public class ProtobufNodeTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        FIELD,       VALUE
-                        mainAddress, <EMPTY>
-                        car,         brand: "BMW"
-                        """)
+                    FIELD,       VALUE
+                    mainAddress, <EMPTY>
+                    car,         brand: "BMW"
+                    """)
     public void shouldGetMessageValue(String field, String value) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
         ProtobufNode node = personMessageWrapperNode.get(field);

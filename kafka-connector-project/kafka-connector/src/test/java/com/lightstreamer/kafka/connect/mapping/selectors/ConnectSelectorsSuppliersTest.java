@@ -111,19 +111,19 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION                             |  EXPECTED
-                        VALUE.name                             |  joe
-                        VALUE.signature                        |  [97, 98, 99, 100]
-                        VALUE.children[0].name                 |  alex
-                        VALUE.children[0]['name']              |  alex
-                        VALUE.children[0].signature            |  NULL
-                        VALUE.children[1].name                 |  anna
-                        VALUE.children[2].name                 |  serena
-                        VALUE.children[3]                      |  NULL
-                        VALUE.children[1].children[0].name     |  gloria
-                        VALUE.children[1].children[1].name     |  terence
-                        VALUE.children[1].children[1]['name']  |  terence
-                        """)
+                EXPRESSION                             |  EXPECTED
+                VALUE.name                             |  joe
+                VALUE.signature                        |  [97, 98, 99, 100]
+                VALUE.children[0].name                 |  alex
+                VALUE.children[0]['name']              |  alex
+                VALUE.children[0].signature            |  NULL
+                VALUE.children[1].name                 |  anna
+                VALUE.children[2].name                 |  serena
+                VALUE.children[3]                      |  NULL
+                VALUE.children[1].children[0].name     |  gloria
+                VALUE.children[1].children[1].name     |  terence
+                VALUE.children[1].children[1]['name']  |  terence
+                    """)
     public void shouldExtractValue(String expression, String expected) throws ExtractionException {
         StringSubject subject =
                 assertThat(
@@ -143,11 +143,11 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION     |  EXPECTED
-                        VALUE          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                        VALUE.children | []
-                        VALUE.name     | joe
-                        """)
+                EXPRESSION     |  EXPECTED
+                VALUE          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                VALUE.children | []
+                VALUE.name     | joe
+                    """)
     public void shouldExtractValueWithNonScalars(String expression, String expected)
             throws ExtractionException {
         String text =
@@ -164,22 +164,22 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                   EXPECTED_ERROR_MESSAGE
-                        VALUE,                        The expression [VALUE] must evaluate to a non-complex object
-                        VALUE.no_attrib,              Field [no_attrib] not found
-                        VALUE.children[0].no_attrib,  Field [no_attrib] not found
-                        VALUE.no_children[0],         Field [no_children] not found
-                        VALUE.name[0],                Field [name] is not indexed
-                        VALUE.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
-                        VALUE.name.no_key,            Cannot retrieve field [no_key] from a scalar object
-                        VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
-                        VALUE.children[0]['no_key'],  Field [no_key] not found
-                        VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
-                        VALUE.children[3].name,       Cannot retrieve field [name] from a null object
-                        VALUE.children[4],            Field not found at index [4]
-                        VALUE.children[4].name,       Field not found at index [4]
-                        VALUE.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
-                        """)
+                EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                VALUE,                        The expression [VALUE] must evaluate to a non-complex object
+                VALUE.no_attrib,              Field [no_attrib] not found
+                VALUE.children[0].no_attrib,  Field [no_attrib] not found
+                VALUE.no_children[0],         Field [no_children] not found
+                VALUE.name[0],                Field [name] is not indexed
+                VALUE.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key,            Cannot retrieve field [no_key] from a scalar object
+                VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
+                VALUE.children[0]['no_key'],  Field [no_key] not found
+                VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
+                VALUE.children[3].name,       Cannot retrieve field [name] from a null object
+                VALUE.children[4],            Field not found at index [4]
+                VALUE.children[4].name,       Field not found at index [4]
+                VALUE.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
+                    """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
@@ -208,19 +208,19 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
-                        EXPRESSION                           | EXPECTED
-                        KEY.name                             | joe
-                        KEY.signature                        | [97, 98, 99, 100]
-                        KEY.children[0].name                 | alex
-                        KEY.children[0]['name']              | alex
-                        KEY.children[0].signature            | NULL
-                        KEY.children[1].name                 | anna
-                        KEY.children[2].name                 | serena
-                        KEY.children[3]                      | NULL
-                        KEY.children[1].children[0].name     | gloria
-                        KEY.children[1].children[1].name     | terence
-                        KEY.children[1].children[1]['name']  | terence
-                        """)
+                EXPRESSION                           | EXPECTED
+                KEY.name                             | joe
+                KEY.signature                        | [97, 98, 99, 100]
+                KEY.children[0].name                 | alex
+                KEY.children[0]['name']              | alex
+                KEY.children[0].signature            | NULL
+                KEY.children[1].name                 | anna
+                KEY.children[2].name                 | serena
+                KEY.children[3]                      | NULL
+                KEY.children[1].children[0].name     | gloria
+                KEY.children[1].children[1].name     | terence
+                KEY.children[1].children[1]['name']  | terence
+                    """)
     public void shouldExtractKey(String expression, String expected) throws ExtractionException {
         StringSubject subject =
                 assertThat(
@@ -240,11 +240,11 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                        EXPRESSION   |  EXPECTED
-                        KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                        KEY.children |  []
-                        KEY.name     |  joe
-                        """)
+                EXPRESSION   |  EXPECTED
+                KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                KEY.children |  []
+                KEY.name     |  joe
+                    """)
     public void shouldExtractKeyWithNonScalars(String expression, String expected)
             throws ExtractionException {
         String text =
@@ -260,22 +260,22 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                 EXPECTED_ERROR_MESSAGE
-                        KEY,                        The expression [KEY] must evaluate to a non-complex object
-                        KEY.no_attrib,              Field [no_attrib] not found
-                        KEY.children[0].no_attrib,  Field [no_attrib] not found
-                        KEY.no_children[0],         Field [no_children] not found
-                        KEY.name[0],                Field [name] is not indexed
-                        KEY.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
-                        KEY.name.no_key,            Cannot retrieve field [no_key] from a scalar object
-                        KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
-                        KEY.children[0]['no_key'],  Field [no_key] not found
-                        KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
-                        KEY.children[3].name,       Cannot retrieve field [name] from a null object
-                        KEY.children[4],            Field not found at index [4]
-                        KEY.children[4].name,       Field not found at index [4]
-                        KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
-                        """)
+                EXPRESSION,                 EXPECTED_ERROR_MESSAGE
+                KEY,                        The expression [KEY] must evaluate to a non-complex object
+                KEY.no_attrib,              Field [no_attrib] not found
+                KEY.children[0].no_attrib,  Field [no_attrib] not found
+                KEY.no_children[0],         Field [no_children] not found
+                KEY.name[0],                Field [name] is not indexed
+                KEY.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key,            Cannot retrieve field [no_key] from a scalar object
+                KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children[0]['no_key'],  Field [no_key] not found
+                KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name,       Cannot retrieve field [name] from a null object
+                KEY.children[4],            Field not found at index [4]
+                KEY.children[4].name,       Field not found at index [4]
+                KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
+                    """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
@@ -291,12 +291,12 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                        VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                        VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                EXPRESSION,          EXPECTED_ERROR_MESSAGE
+                VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
+                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
@@ -309,12 +309,12 @@ public class ConnectSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                        KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                        KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                EXPRESSION,        EXPECTED_ERROR_MESSAGE
+                KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
+                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =

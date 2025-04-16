@@ -113,24 +113,24 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,      EXPECTED
-                        VALUE.QCHARTTOT, 2032
-                        VALUE.TRow,      12790
-                        VALUE.QV,        9
-                        VALUE.PV,        43
-                        VALUE.TMSTMP,    2024-04-3013:23:07
-                        VALUE.QCHART,    1
-                        VALUE.VTOT,      81316
-                        VALUE.QTOT,      2032
-                        VALUE.O,         30/04/2024-13:23:07
-                        VALUE.QA,        9012
-                        VALUE.Q,         1
-                        VALUE.PA,        40
-                        VALUE.PCHART,    43
-                        VALUE.NTRAD,     106
-                        VALUE.NOVALUE,   <EMPTY>
-                        VALUE.NOVALUE2,  <EMPTY>
-                        """)
+                EXPRESSION,      EXPECTED
+                VALUE.QCHARTTOT, 2032
+                VALUE.TRow,      12790
+                VALUE.QV,        9
+                VALUE.PV,        43
+                VALUE.TMSTMP,    2024-04-3013:23:07
+                VALUE.QCHART,    1
+                VALUE.VTOT,      81316
+                VALUE.QTOT,      2032
+                VALUE.O,         30/04/2024-13:23:07
+                VALUE.QA,        9012
+                VALUE.Q,         1
+                VALUE.PA,        40
+                VALUE.PCHART,    43
+                VALUE.NTRAD,     106
+                VALUE.NOVALUE,   <EMPTY>
+                VALUE.NOVALUE2,  <EMPTY>
+                    """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -148,15 +148,15 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                        VALUE,                     The expression [VALUE] must evaluate to a non-complex object
-                        VALUE.no_attrib,           Field [no_attrib] not found
-                        VALUE.no_children[0],      Field [no_children] not found
-                        VALUE.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
-                        VALUE.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
-                        VALUE.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
-                        VALUE.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
-                        """)
+                EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                VALUE,                     The expression [VALUE] must evaluate to a non-complex object
+                VALUE.no_attrib,           Field [no_attrib] not found
+                VALUE.no_children[0],      Field [no_children] not found
+                VALUE.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
+                VALUE.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
+                VALUE.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
+                VALUE.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
+                    """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
@@ -172,11 +172,11 @@ public class KvpNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION | EXPECTED
-                        VALUE      | {A=1, B=2}
-                        VALUE.A    | 1
-                        VALUE.B    | 2
-                        """)
+                EXPRESSION | EXPECTED
+                VALUE      | {A=1, B=2}
+                VALUE.A    | 1
+                VALUE.B    | 2
+                    """)
     public void shouldExtractValueWithNonDefaultSettings(String expressionString, String expected)
             throws ExtractionException {
         ConnectorConfig config =
@@ -201,24 +201,24 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,    EXPECTED
-                        KEY.QCHARTTOT, 2032
-                        KEY.TRow,      12790
-                        KEY.QV,        9
-                        KEY.PV,        43
-                        KEY.TMSTMP,    2024-04-3013:23:07
-                        KEY.QCHART,    1
-                        KEY.VTOT,      81316
-                        KEY.QTOT,      2032
-                        KEY.O,         30/04/2024-13:23:07
-                        KEY.QA,        9012
-                        KEY.Q,         1
-                        KEY.PA,        40
-                        KEY.PCHART,    43
-                        KEY.NTRAD,     106
-                        KEY.NOVALUE,   <EMPTY>
-                        KEY.NOVALUE2,  <EMPTY>
-                        """)
+                EXPRESSION,    EXPECTED
+                KEY.QCHARTTOT, 2032
+                KEY.TRow,      12790
+                KEY.QV,        9
+                KEY.PV,        43
+                KEY.TMSTMP,    2024-04-3013:23:07
+                KEY.QCHART,    1
+                KEY.VTOT,      81316
+                KEY.QTOT,      2032
+                KEY.O,         30/04/2024-13:23:07
+                KEY.QA,        9012
+                KEY.Q,         1
+                KEY.PA,        40
+                KEY.PCHART,    43
+                KEY.NTRAD,     106
+                KEY.NOVALUE,   <EMPTY>
+                KEY.NOVALUE2,  <EMPTY>
+                    """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
         StringSubject subject =
@@ -235,14 +235,14 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,              EXPECTED_ERROR_MESSAGE
-                        KEY.no_attrib,           Field [no_attrib] not found
-                        KEY.no_children[0],      Field [no_children] not found
-                        KEY.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
-                        KEY.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
-                        KEY.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
-                        KEY.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
-                        """)
+                EXPRESSION,              EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib,           Field [no_attrib] not found
+                KEY.no_children[0],      Field [no_children] not found
+                KEY.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
+                KEY.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
+                KEY.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
+                KEY.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
+                    """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
         ValueException ve =
@@ -258,11 +258,11 @@ public class KvpNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                        EXPRESSION | EXPECTED
-                        KEY        | {A=1, B=2}
-                        KEY.A      | 1
-                        KEY.B      | 2
-                        """)
+                EXPRESSION | EXPECTED
+                KEY        | {A=1, B=2}
+                KEY.A      | 1
+                KEY.B      | 2
+                    """)
     public void shouldExtractKeyWithNonDefaultSettings(String expressionString, String expected)
             throws ExtractionException {
         ConnectorConfig config =
@@ -286,12 +286,12 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                        VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                        VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                        VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                        VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                EXPRESSION,         EXPECTED_ERROR_MESSAGE
+                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
+                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
@@ -305,12 +305,12 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                        KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                        KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                        KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                        KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                EXPRESSION,       EXPECTED_ERROR_MESSAGE
+                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
+                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expressions.Expression(expressionStr);
