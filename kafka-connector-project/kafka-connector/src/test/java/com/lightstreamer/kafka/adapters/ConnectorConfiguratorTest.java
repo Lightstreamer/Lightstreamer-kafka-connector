@@ -42,6 +42,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.BooleanDeserializer;
@@ -96,6 +97,11 @@ public class ConnectorConfiguratorTest {
                 Arguments.of(
                         "INTEGER",
                         Serdes.Integer().deserializer().getClass(),
+                        "PROTOBUF",
+                        KafkaProtobufDeserializer.class),
+                Arguments.of(
+                        "INTEGER",
+                        Serdes.Integer().deserializer().getClass(),
                         "KVP",
                         Serdes.String().deserializer().getClass()),
                 Arguments.of(
@@ -111,6 +117,11 @@ public class ConnectorConfiguratorTest {
                 Arguments.of(
                         "DOUBLE",
                         Serdes.Double().deserializer().getClass(),
+                        "BYTE_ARRAY",
+                        Serdes.ByteArray().deserializer().getClass()),
+                Arguments.of(
+                        "PROTOBUF",
+                        KafkaProtobufDeserializer.class,
                         "BYTE_ARRAY",
                         Serdes.ByteArray().deserializer().getClass()),
                 Arguments.of(
@@ -130,6 +141,16 @@ public class ConnectorConfiguratorTest {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, keyType);
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, valueType);
+        if (keyType.equals("PROTOBUF")) {
+            updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+            updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+        }
+        if (valueType.equals("PROTOBUF")) {
+            updatedConfigs.put(
+                    ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+            updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+        }
+
         ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
         WrapperKeyValueSelectorSuppliers<?, ?> wrapper =
                 ConnectorConfigurator.mkKeyValueSelectorSuppliers(config);
@@ -276,6 +297,68 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo("WrapperKafkaAvroDeserializer");
         assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
+    }
+
+    @Test
+    public void shouldConfigureWithComplexParametersProtoBuf() throws IOException {
+        Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
+        updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
+        updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
+        updatedConfigs.put("map.topic2.to", "item-template.template1");
+        updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF");
+        updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
+        updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
+        updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+
+        ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
+        ConsumerTriggerConfig<?, ?> config = configurator.configure();
+
+        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        Schema schema = fieldsExtractor.schema();
+        assertThat(schema.name()).isEqualTo("fields");
+        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+
+        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
+        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+
+        Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
+        assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
+
+        Set<Schema> schemasForTopic2 = itemTemplates.getExtractorSchemasByTopicName("topic2");
+        assertThat(schemasForTopic2.stream().map(Schema::name)).containsExactly("item1");
+
+        Set<Schema> schemasForTopic3 = itemTemplates.getExtractorSchemasByTopicName("topic3");
+        assertThat(schemasForTopic3.stream().map(Schema::name))
+                .containsExactly("simple-item1", "simple-item2");
+
+        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
+        assertThat(deserializers.keyDeserializer().getClass().getSimpleName())
+                .isEqualTo("KafkaProtobufDeserializer");
+        assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
+                .isEqualTo("KafkaProtobufDeserializer");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 2})
+    public void shouldNotCreateDueToIncompatibleCommandModeAndParallelism(int threads) {
+        Map<String, String> config =
+                minimalConfigWith(
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                RECORD_CONSUME_WITH_NUM_THREADS,
+                                String.valueOf(threads)));
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new ConnectorConfigurator(config, ADAPTER_DIR));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
     }
 
     @ParameterizedTest

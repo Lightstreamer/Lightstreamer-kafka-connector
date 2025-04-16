@@ -93,10 +93,8 @@ public class Expressions {
 
     private static Pattern TEMPLATE_GLOBAL =
             Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$");
-    private static Pattern TEMPLATE_LOCAL =
-            Pattern.compile("(([a-zA-Z\\._]\\w*)=([a-zA-Z0-9_\\.\\[\\]\\*]+)),?");
     private static Pattern SUBSCRIBED_GLOBAL = Pattern.compile("([a-zA-Z0-9_-]+)(-\\[(.*)\\])?");
-    private static Pattern SUBSCRIBED_LOCAL = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
+    private static Pattern PARAM = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
     private static Pattern FIELD = Pattern.compile(SELECTION_REGEX);
 
     private static final Expressions EXPRESSIONS = new Expressions();
@@ -138,7 +136,7 @@ public class Expressions {
         String prefix = globalMatcher.group(1);
         String queryString = globalMatcher.group(3);
         if (queryString != null) {
-            Matcher localMatcher = TEMPLATE_LOCAL.matcher(queryString);
+            Matcher localMatcher = PARAM.matcher(queryString);
             int previousEnd = 0;
             while (localMatcher.find()) {
                 if (localMatcher.start() != previousEnd) {
@@ -168,7 +166,7 @@ public class Expressions {
         String prefix = globalMatcher.group(1);
         String queryString = globalMatcher.group(3);
         if (queryString != null) {
-            Matcher localMatcher = SUBSCRIBED_LOCAL.matcher(queryString);
+            Matcher localMatcher = PARAM.matcher(queryString);
             int previousEnd = 0;
             while (localMatcher.find()) {
                 if (localMatcher.start() != previousEnd) {

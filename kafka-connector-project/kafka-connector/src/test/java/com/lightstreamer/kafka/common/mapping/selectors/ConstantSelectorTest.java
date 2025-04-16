@@ -60,13 +60,13 @@ public class ConstantSelectorTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        EXPRESSION,     VALUE
-                        KEY,            record-key
-                        VALUE,          record-value
-                        TIMESTAMP,      -1
-                        PARTITION,      150
-                        OFFSET,         120
-                        TOPIC,          record-topic
+                EXPRESSION,     VALUE
+                KEY,            record-key
+                VALUE,          record-value
+                TIMESTAMP,      -1
+                PARTITION,      150
+                OFFSET,         120
+                TOPIC,          record-topic
                     """)
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {

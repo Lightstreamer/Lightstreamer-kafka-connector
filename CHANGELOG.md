@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.5] (2025-04-16)
+
+**Improvements**
+
+- Added support for [Protocol Buffer format](README.md#protocol-buffer-format) for message deserialization, with updates to the [Producer for the Quickstart App](examples/quickstart-producer/) and [Quickstart Schema Registry](examples/quickstart-schema-registry/) examples. ([#50](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/50))
+
+**Bug Fixes**
+
+- Fixed an issue with template parsing where expressions containing string keys were not handled correctly. ([#51](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/51))
+
+
 ## [1.2.4] (2025-04-08)
 
 **Improvements**

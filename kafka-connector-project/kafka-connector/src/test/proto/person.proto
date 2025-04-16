@@ -1,0 +1,53 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+
+option java_multiple_files = true;
+option java_package = "com.lightstreamer.example";
+option java_outer_classname = "PersonProto";
+
+message Address {
+  message Country {
+    string name = 1;
+  }
+  string city = 1;
+  string zip = 2;
+  string street = 3;
+  Country country = 4;
+}
+
+message Car {
+  string brand = 1;
+}
+
+enum Job {
+  UNSPECIFIED = 0;
+  EMPLOYEE = 1;
+  ARTIST = 2;
+}
+
+message Role {
+  string name = 1;
+  string scope = 2;
+}
+
+message Person {
+  string name = 1;
+  int32 age = 2;
+  string email = 3;
+  Address mainAddress = 4;
+  Car car = 5;
+  repeated string phoneNumbers = 6;
+  repeated Person friends = 7;
+  map<string, Address> otherAddresses = 8;
+  map<int32, Address> indexedAddresses = 9;
+  map<bool, Address> booleanAddresses = 10;
+  map<string, float> data = 11;
+  bytes signature = 12;
+  Job job = 13;
+  oneof role {
+    string simpleRoleName = 14;
+    Role complexRole = 15;
+  }
+
+  google.protobuf.Any any = 16;
+}

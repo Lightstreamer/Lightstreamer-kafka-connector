@@ -103,31 +103,31 @@ public class ConfigSpecTest {
             delimiter = '|',
             textBlock =
                     """
-                        CONFIG        | SUFFIX | KEY                        | EXPECTED_INFIX
-                        field         |        | field.name                 | name
-                        field         |        | field.                     | ''
-                        field         |        | field..                    | '.'
-                        field         |        | field.name.                | name.
-                        field         |        | field.field                | field
-                        field         |        | field..field               | .field
-                        field         |        | myfield.name               | ''
-                        field         |        | field.my.name              | my.name
-                        field         |        | field.my.first.name        | my.first.name
-                        map           | to     | map.topic.to               | topic
-                        map           | to     | map...to                   | .
-                        map           | to     | map. . .to                 | ' . '
-                        map           | to     | map.topicprefix.topic.to   | topicprefix.topic
-                        map           | to     | map.topic                  | ''
-                        map           | to     | map.to                     | ''
-                        map           | to     | map.topic.                 | ''
-                        map           | to     | pam.topic.to               | ''
-                        map           | to     | map.map.my.topic.to.to     | map.my.topic.to
-                        item-template |        | item-template.template1    | template1
-                        item-template |        | myitem.template1           | ''
-                        item-template |        | item-template.my.template1 | my.template1
-                        item-template |        | item-template              | ''
-                        item-template |        | item-template.             | ''
-                        """)
+                CONFIG        | SUFFIX | KEY                        | EXPECTED_INFIX
+                field         |        | field.name                 | name
+                field         |        | field.                     | ''
+                field         |        | field..                    | '.'
+                field         |        | field.name.                | name.
+                field         |        | field.field                | field
+                field         |        | field..field               | .field
+                field         |        | myfield.name               | ''
+                field         |        | field.my.name              | my.name
+                field         |        | field.my.first.name        | my.first.name
+                map           | to     | map.topic.to               | topic
+                map           | to     | map...to                   | .
+                map           | to     | map. . .to                 | ' . '
+                map           | to     | map.topicprefix.topic.to   | topicprefix.topic
+                map           | to     | map.topic                  | ''
+                map           | to     | map.to                     | ''
+                map           | to     | map.topic.                 | ''
+                map           | to     | pam.topic.to               | ''
+                map           | to     | map.map.my.topic.to.to     | map.my.topic.to
+                item-template |        | item-template.template1    | template1
+                item-template |        | myitem.template1           | ''
+                item-template |        | item-template.my.template1 | my.template1
+                item-template |        | item-template              | ''
+                item-template |        | item-template.             | ''
+                    """)
     public void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
@@ -145,14 +145,14 @@ public class ConfigSpecTest {
             delimiter = '|',
             textBlock =
                     """
-                        CONFIG        | SUFFIX | KEY                    | VALUE
-                        field         |        | field.name             | name
-                        field         |        | field..                | name
-                        map           | to     | map.topic.to           | topic
-                        map           | to     | map...to               | topic
-                        item-template |        | item-template.template | my-template
-                        item-template |        | item-template..        | my-template
-                        """)
+                CONFIG        | SUFFIX | KEY                    | VALUE
+                field         |        | field.name             | name
+                field         |        | field..                | name
+                map           | to     | map.topic.to           | topic
+                map           | to     | map...to               | topic
+                item-template |        | item-template.template | my-template
+                item-template |        | item-template..        | my-template
+                    """)
     public void shouldPopulateMultipleParam(
             String config, String suffix, String key, String expectedValue) {
         ConfParameter param =
@@ -169,15 +169,15 @@ public class ConfigSpecTest {
             delimiter = '|',
             textBlock =
                     """
-                        CONFIG        | SUFFIX | KEY
-                        field         |        | field
-                        field         |        | field.
-                        map           | to     | map.to
-                        map           | to     | map..to
-                        map           | to     | map. .to
-                        item-template |        | item-template
-                        item-template |        | item-template.
-                        """)
+                CONFIG        | SUFFIX | KEY
+                field         |        | field
+                field         |        | field.
+                map           | to     | map.to
+                map           | to     | map..to
+                map           | to     | map. .to
+                item-template |        | item-template
+                item-template |        | item-template.
+                    """)
     public void shouldNotPopulateMultipleParamDueToMissingInfix(
             String config, String suffix, String key) {
         ConfParameter param =

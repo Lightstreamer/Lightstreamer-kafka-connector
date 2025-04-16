@@ -70,7 +70,9 @@ public class ExpressionsTest {
                 arguments("TIMESTAMP", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
                 arguments("PARTITION", Constant.PARTITION, Arrays.asList("PARTITION")),
                 arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
-                arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")));
+                arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments(
+                        "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")));
     }
 
     @ParameterizedTest
@@ -119,7 +121,15 @@ public class ExpressionsTest {
                 arguments(
                         "template-#{param1=VALUE.complex_attrib_name.child_1_}",
                         "template",
-                        Map.of("param1", "VALUE.complex_attrib_name.child_1_")));
+                        Map.of("param1", "VALUE.complex_attrib_name.child_1_")),
+                arguments(
+                        "indexed-template-#{param=VALUE.attrib[0]}",
+                        "indexed-template",
+                        Map.of("param", "VALUE.attrib[0]")),
+                arguments(
+                        "indexed-template-#{param=VALUE.attrib[''key'][}",
+                        "indexed-template",
+                        Map.of("param", "VALUE.attrib[''key'][")));
     }
 
     @ParameterizedTest
@@ -144,24 +154,26 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION                          $ EXPECTED_ERROR_MESSAGE
-                                                            $ Invalid template expression
-                        ''                                  $ Invalid template expression
-                        -                                   $ Invalid template expression
-                        \\                                  $ Invalid template expression
-                        @                                   $ Invalid template expression
-                        !                                   $ Invalid template expression
-                        |                                   $ Invalid template expression
-                        item-first                          $ Invalid template expression
-                        item_123_                           $ Invalid template expression
-                        item!                               $ Invalid template expression
-                        item@                               $ Invalid template expression
-                        item\\                              $ Invalid template expression
-                        item-                               $ Invalid template expression
-                        prefix-#                            $ Invalid template expression
-                        prefix-#{}                          $ Invalid template expression
-                        template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
+                EXPRESSION                          $ EXPECTED_ERROR_MESSAGE
+                                                    $ Invalid template expression
+                ''                                  $ Invalid template expression
+                -                                   $ Invalid template expression
+                \\                                  $ Invalid template expression
+                @                                   $ Invalid template expression
+                !                                   $ Invalid template expression
+                |                                   $ Invalid template expression
+                item-first                          $ Invalid template expression
+                item_123_                           $ Invalid template expression
+                item!                               $ Invalid template expression
+                item@                               $ Invalid template expression
+                item\\                              $ Invalid template expression
+                item-                               $ Invalid template expression
+                prefix-#                            $ Invalid template expression
+                prefix-#{}                          $ Invalid template expression
+                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
+                template-#{name=VALUE,par}          $ Invalid template expression
+                template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
                     """)
     void shouldNotCreateTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
@@ -189,6 +201,10 @@ public class ExpressionsTest {
                                 "a param with spaces",
                                 "param2",
                                 "another param with values")),
+                arguments(
+                        "item-[param1=a[0],param2=b[1],param3=c[2]]",
+                        "item",
+                        Map.of("param1", "a[0]", "param2", "b[1]", "param3", "c[2]")),
                 arguments("item-prefix-", "item-prefix-", Collections.emptyMap()),
                 arguments("item-prefix-[]", "item-prefix", Collections.emptyMap()));
     }
@@ -215,10 +231,10 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
-                                                           $ Invalid Item
-                        ''                                 $ Invalid Item
-                        template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
+                EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
+                                                        $ Invalid Item
+                ''                                 $ Invalid Item
+                template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
                     """)
     void shouldNotCreateSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
@@ -266,13 +282,13 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION               $ EXPECTED_ERROR_MESSAGE
-                                                 $ Invalid expression
-                        ''                       $ Invalid expression
-                        #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                EXPRESSION               $ EXPECTED_ERROR_MESSAGE
+                                                $ Invalid expression
+                ''                       $ Invalid expression
+                #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                     """)
     void shouldNotCreateFieldExpressionDueToInvalidExpression(
             String expressionStr, String expectedErrorMessage) {

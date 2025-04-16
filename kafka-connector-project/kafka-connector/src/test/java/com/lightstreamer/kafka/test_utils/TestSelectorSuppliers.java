@@ -20,16 +20,21 @@ package com.lightstreamer.kafka.test_utils;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.URL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
 
@@ -40,19 +45,19 @@ import java.util.Map;
 public interface TestSelectorSuppliers {
 
     public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> Avro() {
-        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(avroAvroConfig());
+        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(fullAvroConfig());
         return new WrapperKeyValueSelectorSuppliers<>(
                 g.makeKeySelectorSupplier(), g.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<String, GenericRecord> AvroValue() {
-        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(avroAvroConfig());
+        GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(fullAvroConfig());
         return new WrapperKeyValueSelectorSuppliers<>(
                 OthersSelectorSuppliers.StringKey(), g.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<GenericRecord, JsonNode> AvroKeyJsonValue() {
-        ConnectorConfig config = avroJsonConfig();
+        ConnectorConfig config = avroKeyJsonValueConfig();
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
         return new WrapperKeyValueSelectorSuppliers<>(
@@ -77,11 +82,18 @@ public interface TestSelectorSuppliers {
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
+    public static KeyValueSelectorSuppliers<String, DynamicMessage> ProtoValue() {
+        ConnectorConfig config = protoValueConfig();
+        DynamicMessageSelectorSuppliers d = new DynamicMessageSelectorSuppliers(config);
+        return new WrapperKeyValueSelectorSuppliers<>(
+                OthersSelectorSuppliers.StringKey(), d.makeValueSelectorSupplier());
+    }
+
     public static KeyValueSelectorSuppliers<Object, Object> Object() {
         return new ConnectSelectorsSuppliers();
     }
 
-    private static ConnectorConfig avroJsonConfig() {
+    private static ConnectorConfig avroKeyJsonValueConfig() {
         return ConnectorConfigProvider.minimalWith(
                 "src/test/resources",
                 Map.of(
@@ -93,7 +105,7 @@ public interface TestSelectorSuppliers {
                         JSON.toString()));
     }
 
-    private static ConnectorConfig avroAvroConfig() {
+    private static ConnectorConfig fullAvroConfig() {
         return ConnectorConfigProvider.minimalWith(
                 "src/test/resources",
                 Map.of(
@@ -105,5 +117,20 @@ public interface TestSelectorSuppliers {
                         AVRO.toString(),
                         RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                         "value.avsc"));
+    }
+
+    private static ConnectorConfig protoValueConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                Map.of(
+                        // RECORD_KEY_EVALUATOR_TYPE,
+                        // PROTOBUF.toString(),
+                        // RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        // "true",
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        PROTOBUF.toString(),
+                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        "true",
+                        URL,
+                        "http://localhost:8081"));
     }
 }

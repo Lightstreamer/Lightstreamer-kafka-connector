@@ -196,7 +196,7 @@
         <param name="authentication.mechanism">PLAIN</param>
         -->
 
-        <!-- Mandatory if authentication.mechanism is one of PLAIN, SCRAM-SHA-256, SCRAM-SHA-512. The credentials. -->
+        <!-- Mandatory if authentication.mechanism is one of "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512". The credentials. -->
         <!--
         <param name="authentication.username">authorized-kafka-user</param>
         <param name="authentication.password">authorized-kafka-user-password</param>
@@ -301,7 +301,7 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is AVRO and the Confluent Schema Registry is disabled. The path of the local schema
+        <!-- Mandatory if evaluator type is set to "AVRO" and the Confluent Schema Registry is disabled. The path of the local schema
              file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for
              message validation respectively of the key and the value. -->
         <!--
@@ -309,8 +309,8 @@
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Mandatory if evaluator type is AVRO and no local schema paths are specified. Enable the use of the Confluent Schema Registry for validation respectively of the key and
-             value. Can be one of the following:
+        <!-- Mandatory when the evaluator type is set to "AVRO" and no local schema paths are provided, or when the evaluator type is set to "PROTOBUF".
+             Enable the use of the Confluent Schema Registry for validation respectively of the key and value. Can be one of the following:
              - true
              - false
 

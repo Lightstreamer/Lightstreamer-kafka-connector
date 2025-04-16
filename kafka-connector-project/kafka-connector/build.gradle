@@ -4,6 +4,7 @@ plugins {
 	id 'maven-publish'
 	id 'project-report'
 	id 'distribution'
+	id 'com.google.protobuf' version '0.9.5'
 }
 
 publishing {
@@ -46,6 +47,7 @@ dependencies {
 	implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.7.0'
 	implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.7.0'
 	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
+	implementation group: 'io.confluent', name: 'kafka-protobuf-serializer', version:'7.7.0'
 
 	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
 	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
@@ -54,6 +56,8 @@ dependencies {
 	jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
 	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
 	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
+
+	testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
 }
 
 ext {
@@ -81,10 +85,33 @@ javadoc {
 	options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
 }
 
+protobuf {
+	protoc {
+		artifact = 'com.google.protobuf:protoc:3.24.0'
+	}
+	generateProtoTasks {
+		all().configureEach { task ->
+			task.generateDescriptorSet = true
+		}
+	}
+}
+
+sourceSets {
+	main {
+		proto {
+			srcDir 'src/main/proto'
+		}
+	}
+}
+
 processResources {
 	filesMatching("version.properties") {
 		expand([version:version])
 	}
+}
+
+processTestResources {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 distributions {

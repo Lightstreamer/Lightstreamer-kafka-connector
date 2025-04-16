@@ -18,11 +18,12 @@ services:
 
   producer:
     container_name: producer
+    restart: always
     depends_on:
       - broker
       - schema-registry
     build:
-      context: quickstart-producer
+      context: ../quickstart-producer
       args:
         VERSION: ${version}
     configs:
@@ -102,8 +103,8 @@ configs:
       ssl.keystore.password=producer-password
       ssl.key.password=producer-private-key-password
       ssl.endpoint.identification.algorithm=
-      # JSON serializer with support for the Schema Registry
-      value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+      # Protobuf serializer
+      value.serializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
       # Schema Registry URL
       schema.registry.url=https://schema-registry:8084
       # Trust store configuration to authenticate the Schema Registry
