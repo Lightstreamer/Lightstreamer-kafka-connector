@@ -210,7 +210,17 @@ public class SampleMessageProviders {
                                     .addPhoneNumbers("012345")
                                     .addPhoneNumbers("123456")
                                     .addFriends(Person.newBuilder().setName("mike").build())
-                                    .addFriends(Person.newBuilder().setName("john").build())
+                                    .addFriends(
+                                            Person.newBuilder()
+                                                    .setName("john")
+                                                    .addFriends(
+                                                            Person.newBuilder()
+                                                                    .setName("robert")
+                                                                    .setSignature(
+                                                                            ByteString.copyFromUtf8(
+                                                                                    "abcd"))
+                                                                    .build())
+                                                    .build())
                                     .putOtherAddresses(
                                             "work",
                                             Address.newBuilder()
