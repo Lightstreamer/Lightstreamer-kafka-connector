@@ -61,6 +61,10 @@ public class ProtobufNodeTest {
             }
             friends {
               name: "john"
+              friends {
+                name: "robert"
+                signature: "abcd"
+              }
             }
             otherAddresses {
               key: "club"
@@ -221,6 +225,10 @@ public class ProtobufNodeTest {
             }
             friends {
               name: "john"
+              friends {
+                name: "robert"
+                signature: "abcd"
+              }
             }
             """);
 
