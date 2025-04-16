@@ -951,7 +951,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
 Examples:
 
@@ -962,7 +962,7 @@ Examples:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is `AVRO` and no [local schema paths](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) are specified_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided, or when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF`_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
@@ -977,7 +977,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+_Optional but only effective if `record.key/value.evaluator.type` is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
         
 For example, in the following record value:
