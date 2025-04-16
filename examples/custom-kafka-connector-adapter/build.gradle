@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'com.lightstreamer.kafka', name: 'kafka-connector', 'version': '1.2.4'
+    implementation group: 'com.lightstreamer.kafka', name: 'kafka-connector', 'version': '1.2.5'
 }
 
 java {
