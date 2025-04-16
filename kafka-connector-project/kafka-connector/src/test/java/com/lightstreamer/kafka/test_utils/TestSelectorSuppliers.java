@@ -22,18 +22,14 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.URL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
 
-import java.util.Map;
-
-import org.apache.avro.generic.GenericRecord;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
@@ -41,6 +37,10 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorS
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
+
+import org.apache.avro.generic.GenericRecord;
+
+import java.util.Map;
 
 public interface TestSelectorSuppliers {
 
@@ -84,8 +84,7 @@ public interface TestSelectorSuppliers {
 
     public static KeyValueSelectorSuppliers<String, DynamicMessage> ProtoValue() {
         ConnectorConfig config = protoValueConfig();
-        DynamicMessageSelectorSuppliers d =
-                new DynamicMessageSelectorSuppliers(config);
+        DynamicMessageSelectorSuppliers d = new DynamicMessageSelectorSuppliers(config);
         return new WrapperKeyValueSelectorSuppliers<>(
                 OthersSelectorSuppliers.StringKey(), d.makeValueSelectorSupplier());
     }
@@ -130,6 +129,8 @@ public interface TestSelectorSuppliers {
                         RECORD_VALUE_EVALUATOR_TYPE,
                         PROTOBUF.toString(),
                         RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                        "true"));
-    }    
+                        "true",
+                        URL,
+                        "http://localhost:8081"));
+    }
 }
