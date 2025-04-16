@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -35,7 +36,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
-import com.lightstreamer.kafka.test_utils.JsonNodeProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -214,7 +214,9 @@ public class DataExtractorTest {
         // We expect that the whole extraction fails
         assertThrows(
                 ValueException.class,
-                () -> extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD)));
+                () ->
+                        extractor.extractData(
+                                Records.record("aKey", SampleJsonNodeProvider().sampleMessage())));
     }
 
     @Test
@@ -233,7 +235,8 @@ public class DataExtractorTest {
 
         // We expect that only the extraction related to the VALUE.undefined_attrib fails
         SchemaAndValues tryExtractData =
-                extractor.extractData(Records.record("aKey", JsonNodeProvider.RECORD));
+                extractor.extractData(
+                        Records.record("aKey", SampleJsonNodeProvider().sampleMessage()));
         assertThat(tryExtractData.values()).containsAtLeast("name", "joe");
     }
 

@@ -122,28 +122,28 @@ public class CommandRecordProcessorTest {
             delimiter = '|',
             textBlock =
                     """
-                        KEY        | COMMAND     | EXPECTED
-                        aKey       | ADD         | true
-                        aKey       | UPDATE      | true
-                        aKey       | DELETE      | true
-                        aKey       | UNKNOWN     | false
-                        aKey       | <NOCOMMAND> | false
-                        aKey       | <EMPTY>     | false
-                        aKey       | CS          | false
-                        aKey       | EOS         | false
-                        aKey       | <NULL>      | false
-                        <NOKEY>    | ADD         | false
-                        <NULL>     | ADD         | false
-                        <NULL>     | UPDATE      | false
-                        <NULL>     | DELETE      | false
-                        <EMPTY>    | DELETE      | false
-                        snapshot   | CS          | true
-                        snapshot   | EOS         | true
-                        snapshot   | ADD         | false
-                        snapshot   | DELETE      | false
-                        snapshot   | UPDATE      | false
-                        snapshot   | UNKNOWN     | false
-                        """)
+                    KEY        | COMMAND     | EXPECTED
+                    aKey       | ADD         | true
+                    aKey       | UPDATE      | true
+                    aKey       | DELETE      | true
+                    aKey       | UNKNOWN     | false
+                    aKey       | <NOCOMMAND> | false
+                    aKey       | <EMPTY>     | false
+                    aKey       | CS          | false
+                    aKey       | EOS         | false
+                    aKey       | <NULL>      | false
+                    <NOKEY>    | ADD         | false
+                    <NULL>     | ADD         | false
+                    <NULL>     | UPDATE      | false
+                    <NULL>     | DELETE      | false
+                    <EMPTY>    | DELETE      | false
+                    snapshot   | CS          | true
+                    snapshot   | EOS         | true
+                    snapshot   | ADD         | false
+                    snapshot   | DELETE      | false
+                    snapshot   | UPDATE      | false
+                    snapshot   | UNKNOWN     | false
+                    """)
     void shouldCheckInvalidInput(String key, String command, boolean expected) {
         Map<String, String> input = new HashMap<>();
         switch (key) {

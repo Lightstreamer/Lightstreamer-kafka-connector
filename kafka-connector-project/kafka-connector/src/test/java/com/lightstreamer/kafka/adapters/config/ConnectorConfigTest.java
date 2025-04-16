@@ -841,6 +841,7 @@ public class ConnectorConfigTest {
     @ValueSource(
             strings = {
                 "AVRO",
+                "PROTOBUF",
                 "STRING",
                 "KVP",
                 "JSON",
@@ -859,6 +860,11 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(RECORD_VALUE_EVALUATOR_TYPE, type);
+        if (type.equals("PROTOBUF")) {
+            updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+            updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+            updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+        }
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getValueEvaluator()).isEqualTo(EvaluatorType.valueOf(type));
@@ -928,6 +934,29 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Specify a valid value either for [record.value.evaluator.schema.path] or [record.value.evaluator.schema.registry.enable]");
+    }
+
+    @Test
+    public void shouldFailDueToMissingRegistrySchemaEnablement() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for [record.key.evaluator.schema.registry.enable]");
+
+        Map<String, String> configs2 = new HashMap<>();
+        configs2.put(RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
+
+        ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for [record.value.evaluator.schema.registry.enable]");
     }
 
     @Test

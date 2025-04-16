@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package com.lightstreamer.kafka.examples.quick_start.producer.protobuf;
+
+option java_multiple_files = true;
+option java_outer_classname = "StockProto";
+
+message Stock {
+  string name = 1;
+  string time = 2;
+  string timestamp = 3;
+  string last_price = 4;
+  string ask = 5;
+  string bid = 6;
+  string bid_quantity = 7;
+  string ask_quantity = 8;
+  string pct_change = 9;
+  string min = 10;
+  string max = 11;
+  string ref_price = 12;
+  string open_price = 13;
+  string item_status = 14;
+}

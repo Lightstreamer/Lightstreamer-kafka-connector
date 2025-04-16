@@ -13,5 +13,5 @@ which generates the `quickstart-producer-all.jar` file under the `build/libs` fo
 To run it:
 
 ```sh
-$ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+$ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <config.properties>
 ```

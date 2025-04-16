@@ -81,19 +81,6 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             return name;
         }
 
-        @Override
-        public Node<T> eval(Node<T> node) {
-            Node<T> result = getter.eval(node);
-            for (GeneralizedKey i : indexes) {
-                if (i.isIndex()) {
-                    result = get(i.index(), result);
-                } else {
-                    result = PropertyGetter.get(i.key(), result);
-                }
-            }
-            return result;
-        }
-
         Node<T> get(int index, Node<T> node) {
             if (node.isNull()) {
                 throw ValueException.nullObject(name, index);
@@ -107,6 +94,19 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
             } else {
                 throw ValueException.noIndexedField(name);
             }
+        }
+
+        @Override
+        public Node<T> eval(Node<T> node) {
+            Node<T> result = getter.eval(node);
+            for (GeneralizedKey i : indexes) {
+                if (i.isIndex()) {
+                    result = get(i.index(), result);
+                } else {
+                    result = PropertyGetter.get(i.key(), result);
+                }
+            }
+            return result;
         }
     }
 

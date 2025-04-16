@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 
 import org.apache.avro.generic.GenericRecord;
@@ -49,6 +50,14 @@ public class Records {
 
     public static KafkaRecord<?, GenericRecord> fromValue(GenericRecord value) {
         return record(null, value);
+    }
+
+    public static KafkaRecord<?, DynamicMessage> fromValue(DynamicMessage value) {
+        return record(null, value);
+    }
+
+    public static KafkaRecord<DynamicMessage, ?> fromKey(DynamicMessage key) {
+        return record(key, null);
     }
 
     public static KafkaRecord<JsonNode, ?> fromKey(JsonNode key) {

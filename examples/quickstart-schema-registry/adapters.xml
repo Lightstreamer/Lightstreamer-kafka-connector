@@ -28,7 +28,7 @@
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
-        <param name="record.value.evaluator.type">JSON</param>
+        <param name="record.value.evaluator.type">PROTOBUF</param>
         <param name="record.value.evaluator.schema.registry.enable">true</param>
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->

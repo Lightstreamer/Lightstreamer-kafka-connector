@@ -408,6 +408,8 @@ public final class ConnectorConfig extends AbstractConfig {
     protected final void postValidate() throws ConfigException {
         checkAvroSchemaConfig(true);
         checkAvroSchemaConfig(false);
+        checkProtoSchemaConfig(true);
+        checkProtoSchemaConfig(false);
         checkTopicMappingRegex();
         checkCommandMode();
     }
@@ -429,6 +431,20 @@ public final class ConnectorConfig extends AbstractConfig {
                             "Specify a valid value either for [%s] or [%s]"
                                     .formatted(schemaPathKey, schemaEnabledKey));
                 }
+            }
+        }
+    }
+
+    private void checkProtoSchemaConfig(boolean isKey) {
+        String evaluatorKey = isKey ? RECORD_KEY_EVALUATOR_TYPE : RECORD_VALUE_EVALUATOR_TYPE;
+        String schemaEnabledKey =
+                isKey
+                        ? RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
+                        : RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
+        if (getEvaluator(evaluatorKey).equals(EvaluatorType.PROTOBUF)) {
+            if (!getBoolean(schemaEnabledKey)) {
+                throw new ConfigException(
+                        "Specify a valid value for [%s]".formatted(schemaEnabledKey));
             }
         }
     }

@@ -154,26 +154,26 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION                          $ EXPECTED_ERROR_MESSAGE
-                                                            $ Invalid template expression
-                        ''                                  $ Invalid template expression
-                        -                                   $ Invalid template expression
-                        \\                                  $ Invalid template expression
-                        @                                   $ Invalid template expression
-                        !                                   $ Invalid template expression
-                        |                                   $ Invalid template expression
-                        item-first                          $ Invalid template expression
-                        item_123_                           $ Invalid template expression
-                        item!                               $ Invalid template expression
-                        item@                               $ Invalid template expression
-                        item\\                              $ Invalid template expression
-                        item-                               $ Invalid template expression
-                        prefix-#                            $ Invalid template expression
-                        prefix-#{}                          $ Invalid template expression
-                        template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
-                        template-#{name=VALUE,par}          $ Invalid template expression
-                        template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
+                EXPRESSION                          $ EXPECTED_ERROR_MESSAGE
+                                                    $ Invalid template expression
+                ''                                  $ Invalid template expression
+                -                                   $ Invalid template expression
+                \\                                  $ Invalid template expression
+                @                                   $ Invalid template expression
+                !                                   $ Invalid template expression
+                |                                   $ Invalid template expression
+                item-first                          $ Invalid template expression
+                item_123_                           $ Invalid template expression
+                item!                               $ Invalid template expression
+                item@                               $ Invalid template expression
+                item\\                              $ Invalid template expression
+                item-                               $ Invalid template expression
+                prefix-#                            $ Invalid template expression
+                prefix-#{}                          $ Invalid template expression
+                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
+                template-#{name=VALUE,par}          $ Invalid template expression
+                template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
                     """)
     void shouldNotCreateTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
@@ -231,10 +231,10 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
-                                                           $ Invalid Item
-                        ''                                 $ Invalid Item
-                        template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
+                EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
+                                                        $ Invalid Item
+                ''                                 $ Invalid Item
+                template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
                     """)
     void shouldNotCreateSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
@@ -282,13 +282,13 @@ public class ExpressionsTest {
             delimiter = '$',
             textBlock =
                     """
-                        EXPRESSION               $ EXPECTED_ERROR_MESSAGE
-                                                 $ Invalid expression
-                        ''                       $ Invalid expression
-                        #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                        #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                EXPRESSION               $ EXPECTED_ERROR_MESSAGE
+                                                $ Invalid expression
+                ''                       $ Invalid expression
+                #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                     """)
     void shouldNotCreateFieldExpressionDueToInvalidExpression(
             String expressionStr, String expectedErrorMessage) {

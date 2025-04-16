@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSele
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
@@ -128,6 +129,7 @@ public class ConnectorConfigurator {
                     return switch (type) {
                         case JSON -> new JsonNodeSelectorsSuppliers(config);
                         case AVRO -> new GenericRecordSelectorsSuppliers(config);
+                        case PROTOBUF -> new DynamicMessageSelectorSuppliers(config);
                         case KVP -> new KvpSelectorsSuppliers(config);
                         default -> new OthersSelectorSuppliers(config);
                     };
