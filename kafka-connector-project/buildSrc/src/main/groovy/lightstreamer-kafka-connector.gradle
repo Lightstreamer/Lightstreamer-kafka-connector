@@ -10,10 +10,10 @@ group = 'com.lightstreamer.kafka'
 spotless {
     groovyGradle {
         target '**/*.gradle'
+        greclipse()
         trimTrailingWhitespace()
         leadingTabsToSpaces()
         endWithNewline()
-        greclipse()
     }
     java {
         target 'src/main/**/*.java','src/test/**/*.java','src/jmh/**/*.java'
