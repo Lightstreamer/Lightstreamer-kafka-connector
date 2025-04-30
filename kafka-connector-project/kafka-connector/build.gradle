@@ -26,17 +26,17 @@ publishing {
 }
 
 sourceSets {
-	jmh {
-		java {
-			srcDir 'src/jmh'
-		}
-		compileClasspath += sourceSets.main.runtimeClasspath
-		runtimeClasspath += sourceSets.main.runtimeClasspath
-	}
+    jmh {
+        java {
+            srcDir 'src/jmh'
+        }
+        compileClasspath += sourceSets.main.runtimeClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
 }
 
 configurations {
-	jmh
+    jmh
 }
 
 dependencies {
@@ -49,12 +49,12 @@ dependencies {
     implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
     implementation group: 'io.confluent', name: 'kafka-protobuf-serializer', version:'7.7.0'
 
-	implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
-	implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
+    implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
+    implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
 
-	jmhImplementation group: 'org.openjdk.jmh', name:'jmh-core', version:'1.37'
-	jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
-	implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'	
+    jmhImplementation group: 'org.openjdk.jmh', name:'jmh-core', version:'1.37'
+    jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
+    implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
 
     testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
 }
@@ -174,8 +174,8 @@ distributions {
 }
 
 task jmh(type: JavaExec, description: 'Execute JMH benchmarks') {
-	classpath = sourceSets.jmh.runtimeClasspath
-	main = 'org.openjdk.jmh.Main'
+    classpath = sourceSets.jmh.runtimeClasspath
+    main = 'org.openjdk.jmh.Main'
 }
 
 build.dependsOn javadoc
