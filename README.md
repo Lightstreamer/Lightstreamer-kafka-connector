@@ -928,6 +928,7 @@ _Optional_. The format to be used to deserialize respectively the key and value 
 - `AVRO`
 - `JSON`
 - `PROTOBUF`
+- `KVP`
 - `STRING`
 - `INTEGER`
 - `BOOLEAN`
