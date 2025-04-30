@@ -339,7 +339,7 @@ public class FeedSimulator {
             this.ref = (int) Math.round(REF_PRICES[index] * 100);
             this.min = (int) Math.ceil(MIN_PRICES[index] * 100);
             this.max = (int) Math.floor(MAX_PRICES[index] * 100);
-            
+
             this.last = open;
             this.mean = UPDATE_TIME_MEANS[index];
             this.stdDev = UPDATE_TIME_STD_DEVS[index];
