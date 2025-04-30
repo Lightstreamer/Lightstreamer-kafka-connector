@@ -18,6 +18,6 @@ RUN gradle spotlessApply build
 FROM eclipse-temurin:21-jdk
 
 # Copy the Producer jar from the previous build stage
-COPY --from=builder /app/build/libs/quickstart-producer-all.jar /usr/app/producer.jar
+COPY --from=builder /app/build/libs/quickstart-producer-all-*.jar /usr/app/producer.jar
 
 ENTRYPOINT ["java", "-jar", "/usr/app/producer.jar"]
