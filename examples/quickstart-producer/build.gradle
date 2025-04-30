@@ -110,7 +110,6 @@ jar {
 		attributes 'Main-Class': "com.lightstreamer.kafka.examples.quick_start.producer.Producer"
 	}
 	archiveAppendix = appendix
-	archiveVersion = ''
 
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }

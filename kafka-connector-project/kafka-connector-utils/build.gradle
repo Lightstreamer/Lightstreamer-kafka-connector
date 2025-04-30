@@ -1,22 +1,22 @@
 plugins {
-	id 'lightstreamer-kafka-connector'
+    id 'lightstreamer-kafka-connector'
 }
 
 dependencies {
-	implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
-	implementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
+    implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
+    implementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
 }
 
 jar {
-	manifest {
-		attributes 'Main-Class': "com.lightstreamer.kafka.utils.consumer.Consumer"
-	}
-	archiveBaseName = "lightstreamer-${project.name}-consumer"
-	archiveAppendix = 'all'
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	from {
-		configurations.runtimeClasspath.collect {
-			it.isDirectory() ? it : zipTree(it)
-		}
-	}
+    manifest {
+        attributes 'Main-Class': "com.lightstreamer.kafka.utils.consumer.Consumer"
+    }
+    archiveBaseName = "lightstreamer-${project.name}-consumer"
+    archiveAppendix = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
 }
