@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -76,12 +77,12 @@ class RecordConsumerSupport {
         protected boolean preferSingleThread = false;
 
         StartBuildingConsumerImpl(RecordProcessor<K, V> processor) {
-            this.processor = processor;
+            this.processor = Objects.requireNonNull(processor, "RecordProcessor not set");
         }
 
         @Override
         public WithOffsetService<K, V> offsetService(OffsetService offsetService) {
-            this.offsetService = offsetService;
+            this.offsetService = Objects.requireNonNull(offsetService, "OffsetService not set");
             return new WithOffsetServiceImpl<>(this);
         }
     }
@@ -95,12 +96,12 @@ class RecordConsumerSupport {
         protected boolean enforceCommandMode;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
-            this.mapper = mapper;
+            this.mapper = Objects.requireNonNull(mapper, "RecordMapper not set");
         }
 
         @Override
         public WithSubscribedItems<K, V> subscribedItems(SubscribedItems subscribedItems) {
-            this.subscribed = subscribedItems;
+            this.subscribed = Objects.requireNonNull(subscribedItems, "SubscribedItems not set");
             return new WithSubscribedItemsImpl<>(this);
         }
     }
@@ -128,10 +129,9 @@ class RecordConsumerSupport {
 
         @Override
         public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
-            this.parentBuilder.listener = listener;
-            Objects.requireNonNull(this.parentBuilder.mapper, "RecordMapper not set");
-            Objects.requireNonNull(this.parentBuilder.subscribed, "SubscribedItems not set");
-            Objects.requireNonNull(this.parentBuilder.listener, "ItemEventListener not set");
+            this.parentBuilder.listener =
+                    Objects.requireNonNull(listener, "ItemEventListener not set");
+
             RecordProcessor<K, V> recordProcessor =
                     this.parentBuilder.enforceCommandMode
                             ? new CommandRecordProcessor<>(
@@ -156,7 +156,8 @@ class RecordConsumerSupport {
 
         @Override
         public WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy strategy) {
-            this.parentBuilder.errorStrategy = strategy;
+            this.parentBuilder.errorStrategy =
+                    Objects.requireNonNull(strategy, "ErrorStrategy not set");
             return new WithLoggerImpl<>(parentBuilder);
         }
     }
@@ -171,7 +172,7 @@ class RecordConsumerSupport {
 
         @Override
         public WithOptionals<K, V> logger(Logger logger) {
-            this.parentBuilder.logger = logger;
+            this.parentBuilder.logger = Objects.requireNonNull(logger, "Logger not set");
             return new WithOptionalsImpl<>(parentBuilder);
         }
     }
@@ -191,7 +192,8 @@ class RecordConsumerSupport {
 
         @Override
         public WithOptionals<K, V> ordering(OrderStrategy orderStrategy) {
-            this.parentBuilder.orderStrategy = orderStrategy;
+            this.parentBuilder.orderStrategy =
+                    Objects.requireNonNull(orderStrategy, "OrderStrategy not set");
             return this;
         }
 
@@ -203,11 +205,6 @@ class RecordConsumerSupport {
 
         @Override
         public RecordConsumer<K, V> build() {
-            Objects.requireNonNull(parentBuilder.processor, "RecordProcessor not set");
-            Objects.requireNonNull(parentBuilder.offsetService, "OffsetService not set");
-            Objects.requireNonNull(parentBuilder.errorStrategy, "ErrorStrategy not set");
-            Objects.requireNonNull(parentBuilder.logger, "Logger not set");
-            Objects.requireNonNull(parentBuilder.orderStrategy, "OrderStrategy not set");
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
             }
@@ -401,8 +398,8 @@ class RecordConsumerSupport {
 
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
-        protected final RecordErrorHandlingStrategy errorStrategy;
         protected final Logger logger;
+        private final RecordErrorHandlingStrategy errorStrategy;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
@@ -416,6 +413,16 @@ class RecordConsumerSupport {
         @Override
         public void close() {
             offsetService.commitSyncAndIgnoreErrors();
+        }
+
+        @Override
+        public boolean isCommandEnforceEnabled() {
+            return recordProcessor.isCommandEnforceEnabled();
+        }
+
+        @Override
+        public RecordErrorHandlingStrategy errorStrategy() {
+            return errorStrategy;
         }
     }
 
@@ -437,9 +444,9 @@ class RecordConsumerSupport {
                 offsetService.updateOffsets(record);
             } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
-                logger.atWarn().log("Applying the {} strategy", errorStrategy);
+                logger.atWarn().log("Applying the {} strategy", errorStrategy());
 
-                switch (errorStrategy) {
+                switch (errorStrategy()) {
                     case IGNORE_AND_CONTINUE -> {
                         // Log the error here to catch the stack trace
                         logger.atWarn().setCause(ve).log("Ignoring error");
@@ -491,6 +498,21 @@ class RecordConsumerSupport {
         }
 
         @Override
+        public int numOfThreads() {
+            return actualThreads;
+        }
+
+        @Override
+        public boolean isParallel() {
+            return true;
+        }
+
+        @Override
+        public Optional<OrderStrategy> orderStrategy() {
+            return Optional.of(orderStrategy);
+        }
+
+        @Override
         public void consumeRecords(ConsumerRecords<K, V> records) {
             List<ConsumerRecord<K, V>> allRecords = flatRecords(records);
             taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
@@ -515,7 +537,7 @@ class RecordConsumerSupport {
                 offsetService.updateOffsets(record);
             } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
-                logger.atWarn().log("Applying the {} strategy", errorStrategy);
+                logger.atWarn().log("Applying the {} strategy", errorStrategy());
                 handleError(record, ve);
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
@@ -524,7 +546,7 @@ class RecordConsumerSupport {
         }
 
         private void handleError(ConsumerRecord<K, V> record, ValueException ve) {
-            switch (errorStrategy) {
+            switch (errorStrategy()) {
                 case IGNORE_AND_CONTINUE -> {
                     logger.atWarn().log("Ignoring error");
                     offsetService.updateOffsets(record);

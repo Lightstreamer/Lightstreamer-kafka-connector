@@ -67,16 +67,15 @@ public class Offsets {
         return prefix + offset;
     }
 
-    public static OffsetService OffsetService(Consumer<?, ?> consumer) {
-        return new OffsetServiceImpl(consumer, LoggerFactory.getLogger(OffsetService.class));
+    public static OffsetService OffsetService(
+            Consumer<?, ?> consumer, boolean manageHoles, Logger log) {
+        return new OffsetServiceImpl(consumer, manageHoles, log);
     }
 
-    public static OffsetService OffsetService(Consumer<?, ?> consumer, Logger log) {
-        return new OffsetServiceImpl(consumer, log);
-    }
-
-    public static OffsetStore OffsetStore(Map<TopicPartition, OffsetAndMetadata> committed) {
-        return new OffsetStoreImpl(committed);
+    public static OffsetStore OffsetStore(
+            Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles) {
+        return new OffsetStoreImpl(
+                committed, manageHoles, LoggerFactory.getLogger(OffsetStore.class));
     }
 
     public interface OffsetStore {
@@ -93,7 +92,10 @@ public class Offsets {
         @FunctionalInterface
         interface OffsetStoreSupplier {
 
-            OffsetStore newOffsetStore(Map<TopicPartition, OffsetAndMetadata> offsets);
+            OffsetStore newOffsetStore(
+                    Map<TopicPartition, OffsetAndMetadata> offsets,
+                    boolean manageHoles,
+                    Logger logger);
         }
 
         default void initStore(boolean fromLatest) {
@@ -115,6 +117,8 @@ public class Offsets {
 
         boolean notHasPendingOffset(ConsumerRecord<?, ?> record);
 
+        boolean canManageHoles();
+
         void commitSync();
 
         void commitSyncAndIgnoreErrors();
@@ -134,6 +138,7 @@ public class Offsets {
 
         private volatile Throwable firstFailure;
         private final Consumer<?, ?> consumer;
+        private final boolean manageHoles;
         private final Logger log;
 
         // Initialize the OffsetStore with a NOP implementation
@@ -141,17 +146,22 @@ public class Offsets {
 
         private Map<TopicPartition, Collection<Long>> pendingOffsetsMap = new ConcurrentHashMap<>();
 
-        OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
+        OffsetServiceImpl(Consumer<?, ?> consumer, boolean manageHoles, Logger logger) {
             this.consumer = consumer;
+            this.manageHoles = manageHoles;
             this.log = logger;
+        }
+
+        @Override
+        public boolean canManageHoles() {
+            return manageHoles;
         }
 
         @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
             Set<TopicPartition> partitions = consumer.assignment();
-            // Retrieve the offset to start from, which has to be used in case no committed offset
-            // is
-            // available for a given partition.
+            // Retrieve the offset to start from, which has to be used in case no
+            // committed offset is available for a given partition.
             // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =
                     fromLatest
@@ -168,6 +178,8 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
+            log.atTrace().log("Start offsets: {}", startOffsets);
+            log.atTrace().log("Committed offsets map: {}", offsetRepo);
             // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
@@ -179,7 +191,8 @@ public class Offsets {
                 // parallel).
                 pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
             }
-            offsetStore = storeSupplier.newOffsetStore(offsetRepo);
+            log.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
+            offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, log);
         }
 
         @Override
@@ -199,7 +212,7 @@ public class Offsets {
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
             log.atWarn().log("Partitions revoked");
-            commitSync();
+            commitSyncAndIgnoreErrors();
         }
 
         @Override
@@ -215,7 +228,9 @@ public class Offsets {
         private void commitSync(boolean ignoreErrors) {
             try {
                 log.atDebug().log("Start committing offset synchronously");
-                consumer.commitSync(offsetStore.current());
+                Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.current();
+                log.atTrace().log("Offsets to commit: {}", offsets);
+                consumer.commitSync(offsets);
                 log.atInfo().log("Offsets committed");
             } catch (KafkaException e) {
                 log.atError().setCause(e).log("Unable to commit offsets");
@@ -223,6 +238,7 @@ public class Offsets {
                     log.atDebug().log("Rethrowing the error");
                     throw e;
                 }
+                log.atDebug().log("Ignoring the error");
             }
         }
 
@@ -255,10 +271,25 @@ public class Offsets {
 
     private static class OffsetStoreImpl implements OffsetStore {
 
-        private final Map<TopicPartition, OffsetAndMetadata> offsets;
+        private interface OffsetAndMetadataFactory {
 
-        OffsetStoreImpl(Map<TopicPartition, OffsetAndMetadata> committed) {
+            OffsetAndMetadata newOffsetAndMetadata(
+                    ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
+        }
+
+        private final Map<TopicPartition, OffsetAndMetadata> offsets;
+        private final Logger log;
+        private OffsetAndMetadataFactory factory;
+
+        OffsetStoreImpl(
+                Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles, Logger log) {
             this.offsets = new ConcurrentHashMap<>(committed);
+            this.log = log;
+            this.factory =
+                    manageHoles
+                            ? OffsetStoreImpl::mkNewOffsetAndMetadata
+                            : (record, offsetAndMetadata) ->
+                                    new OffsetAndMetadata(record.offset() + 1);
         }
 
         @Override
@@ -269,19 +300,24 @@ public class Offsets {
         @Override
         public void save(ConsumerRecord<?, ?> record) {
             TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
-            offsets.compute(topicPartition, (p, O) -> mkNewOffsetAndMetadata(record, O));
+            offsets.compute(
+                    topicPartition,
+                    (partition, offsetAndMetadata) ->
+                            factory.newOffsetAndMetadata(record, offsetAndMetadata));
         }
 
-        private OffsetAndMetadata mkNewOffsetAndMetadata(
+        private static OffsetAndMetadata mkNewOffsetAndMetadata(
                 ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
             String lastMetadata = lastOffsetAndMetadata.metadata();
             long lastOffset = lastOffsetAndMetadata.offset();
+            long newOffset = lastOffset;
+            String newMetadata = lastMetadata;
+
             long consumedOffset = record.offset();
             if (consumedOffset == lastOffset) {
                 Collection<Long> orderedConsumedList = decode(lastMetadata);
                 Iterator<Long> iterator = orderedConsumedList.iterator();
 
-                long newOffset = lastOffset;
                 while (iterator.hasNext()) {
                     long offset = iterator.next();
                     if (offset == newOffset + 1) {
@@ -291,12 +327,13 @@ public class Offsets {
                     }
                     break;
                 }
-                String newMetadata =
-                        newOffset == lastOffset ? lastMetadata : encode(orderedConsumedList);
-                return new OffsetAndMetadata(newOffset + 1, newMetadata);
+                newMetadata = newOffset == lastOffset ? lastMetadata : encode(orderedConsumedList);
+                newOffset = newOffset + 1;
+            } else {
+                newMetadata = append(lastMetadata, consumedOffset);
             }
-            String newMetadata = append(lastMetadata, consumedOffset);
-            return new OffsetAndMetadata(lastOffset, newMetadata);
+
+            return new OffsetAndMetadata(newOffset, newMetadata);
         }
     }
 

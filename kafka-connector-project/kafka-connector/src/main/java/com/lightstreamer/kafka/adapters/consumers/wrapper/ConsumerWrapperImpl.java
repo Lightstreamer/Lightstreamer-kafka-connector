@@ -91,12 +91,13 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.consumer = consumerSupplier.get();
         log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
-        this.offsetService = Offsets.OffsetService(consumer, log);
+        Concurrency concurrency = config.concurrency();
+        // Take care of holes in offset sequence only if parallel processing.
+        boolean manageHoles = concurrency.isParallel();
+        this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
-        Concurrency concurrency = config.concurrency();
-        // this.recordConsumer = RecordConsumer.<K,V>recordProcessor(null).
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
@@ -138,6 +139,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         }
     }
 
+    @Override
     public void close() {
         shutdown();
         if (this.hook != null) {
@@ -157,8 +159,23 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     // Only for testing purposes
+    Consumer<K, V> getConsumer() {
+        return consumer;
+    }
+
+    // Only for testing purposes
     OffsetService getOffsetService() {
         return offsetService;
+    }
+
+    // Only for testing purposes
+    RecordConsumer<K, V> getRecordConsumer() {
+        return recordConsumer;
+    }
+
+    // Only for testing purposes
+    RecordMapper<K, V> getRecordMapper() {
+        return recordMapper;
     }
 
     @Override
