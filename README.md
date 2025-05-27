@@ -854,8 +854,9 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
 
-> [!IMPORTANT]
-> For Avro, schema validation is mandatory, therefore either a local schema file must be provided or the Confluent Schema Registry must be enabled.
+> [!IMPORTANT] When using Avro or Protobuf formats, schema validation is mandatory:
+> - For Protobuf: The Confluent Schema Registry must be enabled as the only validation option.
+> - For Avro: You can either enable the Confluent Schema Registry or provide local schema files.
 
 #### Support for Key Value Pairs (KVP)
 
