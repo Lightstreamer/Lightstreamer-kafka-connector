@@ -891,6 +891,9 @@ _Optional_. The number of threads to be used for concurrent processing of the in
 
 Default value: `1`.
 
+> [!WARN]
+> Concurrent processing is not compatible with log compaction. When log compaction is enabled in Kafka (which retains only the latest value per key), using multiple processing threads can lead to metadata bloat. This occurs because the offset tracking mechanism accumulates metadata for all processed messages, including those that may later be compacted away. For reliable operation with compacted topics, use a single processing thread (`record.consume.with.num.threads` set to `1`).
+
 Example:
 
 ```xml
