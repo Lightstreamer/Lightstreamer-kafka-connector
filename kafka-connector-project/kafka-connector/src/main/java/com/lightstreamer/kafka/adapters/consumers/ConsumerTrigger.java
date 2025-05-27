@@ -54,6 +54,10 @@ public interface ConsumerTrigger {
             RecordConsumeWithOrderStrategy orderStrategy();
 
             int threads();
+
+            default boolean isParallel() {
+                return threads() != 1;
+            }
         }
     }
 

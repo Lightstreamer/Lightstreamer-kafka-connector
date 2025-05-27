@@ -57,7 +57,7 @@ public class ConsumerTriggerTest {
                                 fromDelimitedMappings(
                                         "aTopic", "anItemTemplate,anotherItemTemplate")));
         ConsumerTriggerConfig<String, String> config =
-                new Mocks.MockTriggerConfig(topicsConfig, new Properties(), enforceCommandMode);
+                new Mocks.MockTriggerConfig(topicsConfig, new Properties(), enforceCommandMode, 1);
 
         Function<SubscribedItems, ConsumerWrapper<String, String>> consumerWrapper =
                 items -> {

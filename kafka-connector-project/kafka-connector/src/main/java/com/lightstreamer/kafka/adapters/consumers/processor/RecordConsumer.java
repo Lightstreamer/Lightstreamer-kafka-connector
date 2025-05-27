@@ -34,6 +34,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -144,6 +145,22 @@ public interface RecordConsumer<K, V> {
     }
 
     void consumeRecords(ConsumerRecords<K, V> records);
+
+    default int numOfThreads() {
+        return 1;
+    }
+
+    default Optional<OrderStrategy> orderStrategy() {
+        return Optional.empty();
+    }
+
+    default boolean isParallel() {
+        return numOfThreads() > 1;
+    }
+
+    boolean isCommandEnforceEnabled();
+
+    RecordErrorHandlingStrategy errorStrategy();
 
     default void close() {}
 }

@@ -47,6 +47,8 @@ import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
@@ -62,23 +64,78 @@ import java.util.function.BiConsumer;
 
 public class Mocks {
 
+    public static record MockConsumerConcurrency(
+            RecordConsumeWithOrderStrategy orderStrategy, int threads)
+            implements ConsumerTriggerConfig.Concurrency {}
+
+    public static class MockConsumer<K, V>
+            extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
+
+        private KafkaException commitException;
+
+        public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
+            super(offsetResetStrategy);
+        }
+
+        public void setCommitException(KafkaException exception) {
+            this.commitException = exception;
+        }
+
+        @Override
+        public synchronized void commitSync(Map<TopicPartition, OffsetAndMetadata> offsets) {
+            if (commitException != null) {
+                throw commitException;
+            }
+            super.commitSync(offsets);
+        }
+    }
+
     public static class MockTriggerConfig implements ConsumerTriggerConfig<String, String> {
 
         private final TopicConfigurations topicsConfig;
         private final Properties consumerProperties;
         private final boolean enforceCommandMode;
+        private final int numOfThreads;
+        private final RecordConsumeWithOrderStrategy orderStrategy;
+        private final RecordErrorHandlingStrategy errorHandlingStrategy;
 
         public MockTriggerConfig(TopicConfigurations topicsConfig) {
-            this(topicsConfig, new Properties(), false);
+            this(
+                    topicsConfig,
+                    new Properties(),
+                    false,
+                    RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                    1,
+                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
         }
 
         public MockTriggerConfig(
                 TopicConfigurations topicsConfig,
                 Properties properties,
-                boolean enforceCommandMode) {
+                boolean enforceCommandMode,
+                int numOfThreads) {
+            this(
+                    topicsConfig,
+                    properties,
+                    enforceCommandMode,
+                    RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                    numOfThreads,
+                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
+        }
+
+        public MockTriggerConfig(
+                TopicConfigurations topicsConfig,
+                Properties properties,
+                boolean enforceCommandMode,
+                RecordErrorHandlingStrategy errorHandlingStrategy,
+                int numOfThreads,
+                RecordConsumeWithOrderStrategy orderStrategy) {
             this.topicsConfig = topicsConfig;
             this.consumerProperties = properties;
             this.enforceCommandMode = enforceCommandMode;
+            this.errorHandlingStrategy = errorHandlingStrategy;
+            this.numOfThreads = numOfThreads;
+            this.orderStrategy = orderStrategy;
         }
 
         @Override
@@ -121,19 +178,19 @@ public class Mocks {
 
                 @Override
                 public RecordConsumeWithOrderStrategy orderStrategy() {
-                    return RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION;
+                    return orderStrategy;
                 }
 
                 @Override
                 public int threads() {
-                    return 2;
+                    return numOfThreads;
                 }
             };
         }
 
         @Override
         public RecordErrorHandlingStrategy errorHandlingStrategy() {
-            return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+            return errorHandlingStrategy;
         }
 
         @Override
@@ -224,8 +281,11 @@ public class Mocks {
             }
         }
 
-        private List<ConsumedRecordInfo> records = Collections.synchronizedList(new ArrayList<>());
+        private final List<ConsumedRecordInfo> records =
+                Collections.synchronizedList(new ArrayList<>());
         private volatile Throwable firstFailure;
+
+        public MockOffsetService() {}
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {}
@@ -286,6 +346,11 @@ public class Mocks {
         public List<ConsumedRecordInfo> getConsumedRecords() {
             return records;
         }
+
+        @Override
+        public boolean canManageHoles() {
+            return false;
+        }
     }
 
     public static class MockOffsetStore implements OffsetStore {
@@ -293,7 +358,8 @@ public class Mocks {
         private final List<ConsumerRecord<?, ?>> records = new ArrayList<>();
         private final Map<TopicPartition, OffsetAndMetadata> topicMap;
 
-        public MockOffsetStore(Map<TopicPartition, OffsetAndMetadata> topicMap) {
+        public MockOffsetStore(
+                Map<TopicPartition, OffsetAndMetadata> topicMap, boolean parallel, Logger log) {
             this.topicMap = Collections.unmodifiableMap(topicMap);
         }
 
