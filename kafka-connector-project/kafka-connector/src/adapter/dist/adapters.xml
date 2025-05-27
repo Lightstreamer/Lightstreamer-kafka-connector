@@ -285,6 +285,8 @@
              Can be one of the following:
              - AVRO
              - JSON
+             - PROTOBUF
+             - KVP
              - STRING
              - INTEGER
              - BOOLEAN
