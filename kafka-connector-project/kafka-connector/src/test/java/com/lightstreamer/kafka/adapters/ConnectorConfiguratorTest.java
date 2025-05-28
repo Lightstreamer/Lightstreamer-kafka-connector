@@ -204,10 +204,12 @@ public class ConnectorConfiguratorTest {
         assertThat(concurrency.threads()).isEqualTo(1);
         assertThat(concurrency.orderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
+        assertThat(concurrency.isParallel()).isFalse();
     }
 
-    @Test
-    public void shouldConfigureWithComplexParameters() throws IOException {
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 4})
+    public void shouldConfigureWithComplexParameters(int threads) throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -217,7 +219,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
-        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, "4");
+        updatedConfigs.put(
+                ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(threads));
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, "UNORDERED");
         updatedConfigs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
         updatedConfigs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
@@ -252,8 +255,9 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo(KafkaJsonDeserializer.class);
 
         Concurrency concurrency = config.concurrency();
-        assertThat(concurrency.threads()).isEqualTo(4);
+        assertThat(concurrency.threads()).isEqualTo(threads);
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
+        assertThat(concurrency.isParallel()).isTrue();
     }
 
     @Test

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.6] (2025-05-27)
+
+**Improvements**
+
+- Updated the [Producer for the Quickstart App](examples/quickstart-producer/) example project to produce a Docker image which supports versioned JAR files. ([#52](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/52))
+
+**Bug Fixes**
+
+- Updated the [Airport demo](examples/airport-demo/) example to load the Lightstreamer library from _https_. ([#53](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/53))
+
+- Fixed consumer loop blockage that occurred when errors happened during the commit stage while being notified about partition revocation. ([#54](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/54))
+
+- Fixed indefinite growth of the committed metadata when using log compaction with the Connector configured for concurrent processing (also clarified in the [`README.md`](README.md) file). ([#54](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/54))
+
+- Updated the comments in the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file to clarify available deserialization formats. Corresponding changes also applied to the [`README.md`](README.md) file to maintain consistency in documentation. ([#55](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/55))
+
+
 ## [1.2.5] (2025-04-16)
 
 **Improvements**
@@ -24,7 +41,9 @@
 **Improvements**
 
 - Added support for the [KVP format](README.md#support-for-key-value-pairs-kvp). ([#45](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/45), [#46](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/46))
+
 - Upgraded _Gradle_ to version 8.13. ([#47](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/47))
+
 - Upgraded dependency on _Spotless plugin for Gradle_ to version 7.0.2. ([#48](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/48))
 
 
@@ -37,7 +56,9 @@
 **Bug Fixes**
 
 - Fixed an issue in concurrent processing where the topic name was not considered when using the ORDER_BY_PARTITION order strategy. ([#39](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/39))
+
 - Corrected various typos in the code base and spelling issues across multiple files. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43), [#44](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/44))
+
 - Fixed typos in the `README.md` file included in the distribution package. ([#43](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/43))
 
 

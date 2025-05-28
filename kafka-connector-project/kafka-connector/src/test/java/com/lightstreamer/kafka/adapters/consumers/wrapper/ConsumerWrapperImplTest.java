@@ -22,20 +22,25 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.junit.Assert.assertThrows;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.MockConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
@@ -43,6 +48,10 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -50,6 +59,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class ConsumerWrapperImplTest {
 
@@ -93,22 +104,112 @@ public class ConsumerWrapperImplTest {
     }
 
     ConsumerWrapperImpl<String, String> mkConsumerWrapper(AdminInterface admin) {
-        return mkConsumerWrapper(admin, false);
+        return mkConsumerWrapper(
+                admin,
+                false,
+                false,
+                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                2,
+                RecordConsumeWithOrderStrategy.UNORDERED);
     }
 
     ConsumerWrapperImpl<String, String> mkConsumerWrapper(
-            AdminInterface admin, boolean enableSubscriptionPattern) {
+            AdminInterface admin,
+            boolean enableSubscriptionPattern,
+            boolean enforceCommandMode,
+            RecordErrorHandlingStrategy errorHandlingStrategy,
+            int threads,
+            RecordConsumeWithOrderStrategy orderStrategy) {
         return (ConsumerWrapperImpl<String, String>)
                 ConsumerWrapper.create(
                         new Mocks.MockTriggerConfig(
                                 makeTopicsConfig(enableSubscriptionPattern),
                                 makeProperties(),
-                                false),
+                                enforceCommandMode,
+                                errorHandlingStrategy,
+                                threads,
+                                orderStrategy),
                         itemEventListener,
                         metadataListener,
                         subscribedItems,
                         () -> mockConsumer,
                         p -> admin);
+    }
+
+    static Stream<Arguments> wrapperArgs() {
+        return Stream.of(
+                Arguments.of(
+                        1,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
+                        false,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        false,
+                        OrderStrategy.ORDER_BY_PARTITION),
+                Arguments.of(
+                        1,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
+                        true,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        false,
+                        OrderStrategy.ORDER_BY_PARTITION),
+                Arguments.of(
+                        2,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
+                        false,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        true,
+                        OrderStrategy.ORDER_BY_KEY),
+                Arguments.of(
+                        -1,
+                        RecordConsumeWithOrderStrategy.UNORDERED,
+                        false,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        true,
+                        OrderStrategy.UNORDERED));
+    }
+
+    @ParameterizedTest
+    @MethodSource("wrapperArgs")
+    public void shouldCreateConsumerWrapper(
+            int threads,
+            RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
+            boolean enforceCommandMode,
+            RecordErrorHandlingStrategy errorHandlingStrategy,
+            boolean expectedParallelism,
+            OrderStrategy expectedOrderStrategy) {
+        ConsumerWrapperImpl<String, String> consumerWrapper =
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.emptySet()),
+                        false,
+                        enforceCommandMode,
+                        errorHandlingStrategy,
+                        threads,
+                        consumedWithOrderStrategy);
+
+        assertThat(consumerWrapper.getConsumer()).isSameInstanceAs(mockConsumer);
+
+        // Check the RecordConsumer
+        RecordConsumer<String, String> recordConsumer = consumerWrapper.getRecordConsumer();
+        if (threads == -1) {
+            assertThat(recordConsumer.numOfThreads()).isGreaterThan(1);
+        } else {
+            assertThat(recordConsumer.numOfThreads()).isEqualTo(threads);
+        }
+        Optional<OrderStrategy> orderStrategy = recordConsumer.orderStrategy();
+        if (threads > 1 || threads == -1) {
+            assertThat(orderStrategy).hasValue(expectedOrderStrategy);
+        } else {
+            assertThat(orderStrategy).isEmpty();
+        }
+        assertThat(recordConsumer.isParallel()).isEqualTo(expectedParallelism);
+        assertThat(recordConsumer.isCommandEnforceEnabled()).isEqualTo(enforceCommandMode);
+        assertThat(recordConsumer.errorStrategy()).isEqualTo(errorHandlingStrategy);
+
+        // Check the OffsetService
+        OffsetService offsetService = consumerWrapper.getOffsetService();
+        assertThat(offsetService.canManageHoles());
+
+        assertThat(consumerWrapper.getOffsetService().offsetStore()).isPresent();
     }
 
     @Test
@@ -144,7 +245,13 @@ public class ConsumerWrapperImplTest {
     @Test
     public void shouldSubscribeToPattern() {
         ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.emptySet()), true);
+                mkConsumerWrapper(
+                        new Mocks.MockAdminInterface(Collections.emptySet()),
+                        true,
+                        false,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        1,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
         assertThat(consumer.subscribed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
@@ -177,7 +284,7 @@ public class ConsumerWrapperImplTest {
         ConsumerRecords<String, String> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
-        // Invoke the method and verify that task has been actually invoked with the
+        // Invoke the method and verify that the task has been actually invoked with the
         // expected simulated records
         ConsumerRecords<String, String> filtered = consumer.initStoreAndConsume(records);
         assertThat(filtered.count()).isEqualTo(records.count() - 2);
@@ -516,7 +623,7 @@ public class ConsumerWrapperImplTest {
         // Trigger a KafkaException
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
         CompletionException ce = assertThrows(CompletionException.class, () -> completable.join());
-        assertThat(ce.getCause()).isInstanceOf(KafkaException.class);
+        assertThat(ce).hasCauseThat().isInstanceOf(KafkaException.class);
 
         assertThat(mockConsumer.closed());
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
@@ -528,8 +635,14 @@ public class ConsumerWrapperImplTest {
         assertThat(map.get(partition1).offset()).isGreaterThan(records.count() / 3);
     }
 
-    @Test
-    public void shouldClose() throws InterruptedException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldClose(boolean forceCommitException) throws InterruptedException {
+        if (forceCommitException) {
+            // Set the exception to be thrown when committing offsets
+            mockConsumer.setCommitException(new KafkaException("Fake Exception"));
+        }
+
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
