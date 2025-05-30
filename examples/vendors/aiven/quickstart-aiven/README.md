@@ -14,7 +14,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - Removal of the `broker` service, because replaced by the remote cluster.
 - _kafka-connector_:
-  - Definition of new environment variables to configure remote endpoint, credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint and credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
     ```yaml
     ...
     environment:
@@ -60,7 +60,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      volumes:
        - ./secrets:/usr/app/secrets
      ```
-   - Update of the parameter `--bootstrap-servers` fto the environment variable `bootstrap_server`
+   - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
    ```yaml
