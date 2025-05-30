@@ -793,6 +793,19 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
     }
 
+    public boolean isAwsMskIamEnabled() {
+        return authenticationMechanism().equals(SaslMechanism.AWS_MSK_IAM);
+    }
+
+    public String awsMskIamCredentialProfileName() {
+        if (!isAwsMskIamEnabled()) {
+            throw new ConfigException(
+                    "AWS_MSK_IAM is not configured. Check parameter [%s]"
+                            .formatted(BrokerAuthenticationConfigs.SASL_MECHANISM));
+        }
+        return getText(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
+    }
+
     private void checkSchemaRegistryEnabled() {
         if (!isSchemaRegistryEnabled()) {
             throw new ConfigException(
