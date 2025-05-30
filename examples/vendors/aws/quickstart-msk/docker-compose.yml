@@ -53,5 +53,5 @@ configs:
   aws_config:
     content: |
       [profile msk_client]
-      role_arn = arn:aws:iam::468819131509:role/kafka-cluster-role
+      role_arn = 
       source_profile = test-user
