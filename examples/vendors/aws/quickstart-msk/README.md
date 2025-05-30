@@ -165,8 +165,6 @@ $ bootstrap_server=<bootstrap_server> ./start.sh
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Apache Kafka service.
-- `username` and `password` are the credentials of the user automatically created from the _Aiven Console_.
-- `truststore_password` is the password of the trust store file.
+- `bootstrap_server` is the public endpoint associated with the IAM Authentication Type.
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
