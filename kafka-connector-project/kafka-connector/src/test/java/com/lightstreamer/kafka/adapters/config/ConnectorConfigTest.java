@@ -1841,6 +1841,9 @@ public class ConnectorConfigTest {
                         () -> config.authenticationPassword(),
                         () -> config.isAwsMskIamEnabled(),
                         () -> config.awsMskIamCredentialProfileName(),
+                        () -> config.awsMskIamRoleArn(),
+                        () -> config.awsMskIamRoleSessionName(),
+                        () -> config.awsMskIamStsRegion(),
                         () -> config.isGssapiEnabled(),
                         () -> config.gssapiKerberosServiceName(),
                         () -> config.gssapiKeyTab(),
@@ -1962,6 +1965,24 @@ public class ConnectorConfigTest {
                         "AWS_MSK_IAM",
                         SaslConfigs.SASL_JAAS_CONFIG,
                         "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName=\"profileName\";");
+
+        updatedConfig.remove(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
+
+        updatedConfig.put(
+                BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN,
+                "arn:aws:iam::123456789012:role/roleName");
+        updatedConfig.put(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME, "sessionName");
+        updatedConfig.put(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION, "us-west-2");
+
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.baseConsumerProps())
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        SecurityProtocol.SASL_SSL.toString(),
+                        SaslConfigs.SASL_MECHANISM,
+                        "AWS_MSK_IAM",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn=\"arn:aws:iam::123456789012:role/roleName\" awsRoleSessionName=\"sessionName\" awsStsRegion=\"us-west-2\";");
     }
 
     @Test

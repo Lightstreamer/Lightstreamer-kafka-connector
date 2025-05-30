@@ -33,14 +33,14 @@ public class BrokerAuthenticationConfigsTest {
     @Test
     void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = BrokerAuthenticationConfigs.spec();
-        ConfParameter salsMechanism =
+        ConfParameter saslMechanism =
                 configSpec.getParameter(BrokerAuthenticationConfigs.SASL_MECHANISM);
-        assertThat(salsMechanism.name()).isEqualTo(BrokerAuthenticationConfigs.SASL_MECHANISM);
-        assertThat(salsMechanism.required()).isFalse();
-        assertThat(salsMechanism.multiple()).isFalse();
-        assertThat(salsMechanism.mutable()).isTrue();
-        assertThat(salsMechanism.defaultValue()).isEqualTo("PLAIN");
-        assertThat(salsMechanism.type()).isEqualTo(SASL_MECHANISM);
+        assertThat(saslMechanism.name()).isEqualTo(BrokerAuthenticationConfigs.SASL_MECHANISM);
+        assertThat(saslMechanism.required()).isFalse();
+        assertThat(saslMechanism.multiple()).isFalse();
+        assertThat(saslMechanism.mutable()).isTrue();
+        assertThat(saslMechanism.defaultValue()).isEqualTo("PLAIN");
+        assertThat(saslMechanism.type()).isEqualTo(SASL_MECHANISM);
 
         ConfParameter username = configSpec.getParameter(BrokerAuthenticationConfigs.USERNAME);
         assertThat(username.name()).isEqualTo(BrokerAuthenticationConfigs.USERNAME);
@@ -113,5 +113,46 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(useTicketCache.mutable()).isTrue();
         assertThat(useTicketCache.defaultValue()).isEqualTo("false");
         assertThat(useTicketCache.type()).isEqualTo(BOOL);
+
+        ConfParameter awsMskIamCredentialProfileName =
+                configSpec.getParameter(
+                        BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
+        assertThat(awsMskIamCredentialProfileName.name())
+                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
+        assertThat(awsMskIamCredentialProfileName.required()).isFalse();
+        assertThat(awsMskIamCredentialProfileName.multiple()).isFalse();
+        assertThat(awsMskIamCredentialProfileName.mutable()).isTrue();
+        assertThat(awsMskIamCredentialProfileName.defaultValue()).isNull();
+        assertThat(awsMskIamCredentialProfileName.type()).isEqualTo(TEXT);
+
+        ConfParameter awsMskIamRoleArn =
+                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN);
+        assertThat(awsMskIamRoleArn.name())
+                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN);
+        assertThat(awsMskIamRoleArn.required()).isFalse();
+        assertThat(awsMskIamRoleArn.multiple()).isFalse();
+        assertThat(awsMskIamRoleArn.mutable()).isTrue();
+        assertThat(awsMskIamRoleArn.defaultValue()).isNull();
+        assertThat(awsMskIamRoleArn.type()).isEqualTo(TEXT);
+
+        ConfParameter awsMskIamRoleSessionName =
+                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+        assertThat(awsMskIamRoleSessionName.name())
+                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+        assertThat(awsMskIamRoleSessionName.required()).isFalse();
+        assertThat(awsMskIamRoleSessionName.multiple()).isFalse();
+        assertThat(awsMskIamRoleSessionName.mutable()).isTrue();
+        assertThat(awsMskIamRoleSessionName.defaultValue()).isNull();
+        assertThat(awsMskIamRoleSessionName.type()).isEqualTo(TEXT);
+
+        ConfParameter awsMskIamStsRegion =
+                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+        assertThat(awsMskIamStsRegion.name())
+                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+        assertThat(awsMskIamStsRegion.required()).isFalse();
+        assertThat(awsMskIamStsRegion.multiple()).isFalse();
+        assertThat(awsMskIamStsRegion.mutable()).isTrue();
+        assertThat(awsMskIamStsRegion.defaultValue()).isNull();
+        assertThat(awsMskIamStsRegion.type()).isEqualTo(TEXT);
     }
 }
