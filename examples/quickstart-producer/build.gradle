@@ -21,6 +21,7 @@ dependencies {
 	implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
 	implementation group: 'io.confluent', name: 'kafka-protobuf-serializer', version:'7.7.0'
 	implementation 'com.google.protobuf:protobuf-java:3.24.0'
+	implementation group: 'software.amazon.msk', name:'aws-msk-iam-auth', version:'2.3.2'
 
 	testImplementation "com.google.truth:truth:1.4.4"
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
