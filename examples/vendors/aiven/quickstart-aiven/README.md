@@ -85,8 +85,8 @@ $ bootstrap_server=<bootstrap_server> username=<username> password=<password> tr
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Apache Kafka service.
-- `username` and `password` are the credentials of the user automatically created from the _Aiven Console_.
-- `truststore_password` is the password of the trust store file.
+- `<bootstrap_server>` - The bootstrap server address of the Apache Kafka service
+- `<username>` and `<password>` - The credentials of the user automatically created from the _Aiven Console_
+- `<truststore_password>` - The password of the trust store file
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
