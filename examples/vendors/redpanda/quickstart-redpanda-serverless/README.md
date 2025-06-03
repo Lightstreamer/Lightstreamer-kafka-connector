@@ -72,8 +72,8 @@ $ bootstrap_server=<bootstrap_server> username=<username> password=<password> to
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Redpanda cluster.
-- `username` and `password` are the credentials of the user created from the _Redpanda Console_.
-- `topic` is the name of the topic created on the _rpk_ tool or from the _Redpanda Console_.
+- `<bootstrap_server>` - The bootstrap server address of the Redpanda cluster
+- `<username>` and `<password>` - The credentials of the user created from the _Redpanda Console_
+- `<topic>` - The name of the topic created on the _rpk_ tool or from the _Redpanda Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
