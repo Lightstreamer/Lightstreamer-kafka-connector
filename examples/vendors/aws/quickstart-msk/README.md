@@ -102,14 +102,20 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
    - Create the role:
      ```sh
-     aws iam create-role --role-name kafka-cluster-role  --assume-role-policy-document file://trust-kafka-policy.json
+     aws iam create-role \
+         --role-name kafka-cluster-role \
+         --assume-role-policy-document file://trust-kafka-policy.json
      ```
 
 4. Attach the policy created at step 2 to the IAM role:
 
    ```sh
-   aws iam attach-role-policy --role-name kafka-cluster-role --policy-arn arn:aws:iam::468819131509:policy/kafka-policy
+   aws iam attach-role-policy \
+       --role-name kafka-cluster-role 
+       --policy-arn arn:aws:iam::<Account-ID>:policy/kafka-policy
    ```
+
+   where you have to replace `<Account-ID>` with your 12-digit AWS account ID.
    
 ## Set Up the Docker Compose File
 
@@ -182,8 +188,6 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
      sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName="msk_client";
      sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
      ``` 
-
-
 
 ## Run
 
