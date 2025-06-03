@@ -190,6 +190,7 @@
              - SCRAM-SHA-256
              - SCRAM-SHA-512
              - GSSAPI
+             - IAM
 
              Default value: PLAIN.-->
         <!--
@@ -248,6 +249,14 @@
              Default value: false. -->
         <!--
         <param name="authentication.gssapi.ticket.cache.enable">true</param>
+        -->
+
+        <!-- ##### IAM AUTHENTICATION SETTINGS ##### -->
+        <!--
+        <param name="authentication.iam.credential.profile.name">true</param>
+        <param name="authentication.iam.role.arn">true</param>
+        <param name="authentication.iam.role.session.name">true</param>
+        <param name="authentication.iam.sts.region">true</param>
         -->
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
