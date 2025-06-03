@@ -86,10 +86,10 @@ $ bootstrap_server=<bootstrap_server> group_id=<group_id> username=<username> pa
 ```
 
 where:
-- `bootstrap_server` is the bootstrap server address of the Axual cluster.
-- `group_id` is the consumer group ID.
-- `username` and `password` are the authentication credentials.
-- `topic` is the name of the topic.
+- `<bootstrap_server>` - The bootstrap server address of the Axual cluster
+- `<group_id>` - The consumer group ID
+- `<username>` and `<password>` - The authentication credentials
+- `<topic>` - The name of the topic
 
 > [!TIP]
 > You can get the correct values for bootstrap_server, group_id, and topic by looking at the _Cluster connectivity Information_ of the `stocks-application` from the Axual _Self-service_ portal.
