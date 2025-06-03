@@ -190,7 +190,7 @@
              - SCRAM-SHA-256
              - SCRAM-SHA-512
              - GSSAPI
-             - IAM
+             - AWS_MSK_IAM
 
              Default value: PLAIN.-->
         <!--
