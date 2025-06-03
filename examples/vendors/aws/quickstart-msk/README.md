@@ -4,8 +4,8 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
 ## Requirements
 
-- AWS CLI installed and configured with appropriate permissions
-- Basic knowledge of AWS services, especially MSK
+- AWS CLI installed
+- AWS access keys of a temporary non-production IAM user with no specific permissions
 
 ## Set up the MSK Cluster
 
@@ -90,7 +90,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
              {
                  "Effect": "Allow",
                  "Principal": {
-                     "AWS": "arn:aws:iam::<Account-ID>:user/<Username"
+                     "AWS": "arn:aws:iam::<Account-ID>:user/<Username>"
                  },
                  "Action": "sts:AssumeRole"
              }
@@ -98,7 +98,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
      }
      ```
 
-     where you have to replace the `arn:aws:iam::<Account-ID>:user/<Username>` with your AWS user's ARN.
+     where you have to replace the `arn:aws:iam::<Account-ID>:user/<Username>` with the your AWS user's ARN.
 
    - Create the role:
      ```sh
@@ -117,13 +117,39 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
 
 - Removal of the `broker` service, because replaced by the remote cluster.
 - _kafka-connector_:
-  - Definition of new environment variables to configure remote endpoint and credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+
     ```yaml
     ...
     environment:
       - bootstrap_server=${bootstrap_server}
+      ...
     ...
     ```
+
+  - Definition of new environment variables to reference an AWS shared credentials file:
+  
+    ```yaml
+    environment:
+      ...
+      - AWS_SHARED_CREDENTIALS_FILE=/lightstreamer/aws_credentials
+      
+    ```
+
+  - Provisioning of the AWS shared credentials file to store the credentials of the IAM user along with the named profile referenced in the `adapters.xml` file:
+
+    ```yaml
+    aws_credentials:
+      content: |
+        [default]
+        aws_access_key_id = ${aws_access_key_id}
+        aws_secret_access_key = ${aws_secret_access_key}
+
+        [msk_client]
+        role_arn = ${role_arn}
+        source_profile = default
+    ```
+
   - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
       ```xml
@@ -140,31 +166,41 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">AWS_MSK_AWS</param>
-      <param name="authentication.iam.credential.profile.name">$env.username</param>
+      <param name="authentication.iam.credential.profile.name">msk_client</param>
       ```
 
 - _producer_:
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
-   - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
+   - Provisioning of the `producer.properties` configuration file to enable the AWS IAM for authentication:
     
-   ```yaml
-   # Configure SASL/SCRAM mechanism
-   sasl.mechanism=SCRAM-SHA-512
-   # Enable SSL encryption
-   security.protocol=SASL_SSL
-   # JAAS configuration
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
-   ```  
+     ```yaml
+     # Configure AWS_MSK_IAM mechanism
+     sasl.mechanism=SCRAM-SHA-512
+     # Enable SSL encryption
+     security.protocol=SASL_SSL
+     # JAAS configuration
+     sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName="msk_client";
+     sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
+     ``` 
+
+
 
 ## Run
 
 From this directory, run follow the command:
 
 ```sh
-$ bootstrap_server=<bootstrap_server> ./start.sh 
+$ bootstrap_server=<bootstrap_server> \
+  role_arn=<role_arn> \
+  aws_access_key_id=<aws_access_key_id> \
+  aws_secret_access_key=<aws_secret_access_key> \
+  ./start.sh 
 ```
 
 where:
-- `bootstrap_server` is the public endpoint associated with the IAM Authentication Type.
+- `<bootstrap_server>` - The public bootstrap server endpoint associated with the IAM Authentication Type
+- `<role_arn>` - The ARN of the IAM role you created at step 3 of the section [`Set Up the MSK Cluster`](#set-up-the-msk-cluster)
+- `<aws_access_key_id>` - The AWS access key ID of the test user
+- `<aws_secret_access_key>` - The AWS secret access key of the test user
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
