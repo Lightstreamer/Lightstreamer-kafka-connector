@@ -54,14 +54,14 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
    - Update of the parameter `--topic` from the environment variable `topic`
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
     
-   ```yaml
-   # Configure SASL/PLAIN mechanism
-   sasl.mechanism=SCRAM-SHA-256
-   # Enable SSL encryption
-   security.protocol=SASL_SSL
-   # JAAS configuration
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
-   ```  
+     ```yaml
+     # Configure SASL/PLAIN mechanism
+     sasl.mechanism=SCRAM-SHA-256
+     # Enable SSL encryption
+     security.protocol=SASL_SSL
+     # JAAS configuration
+     sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
+     ```  
 
 ## Run
 
