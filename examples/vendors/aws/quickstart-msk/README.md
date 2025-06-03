@@ -130,13 +130,13 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - Reduction of encryption settings with only basic parameters:
+    - Minimal encryption settings:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       ```
 
-    - Configuration of the authentication settings, with usage of the AWS_MSK_IAM mechanism and reference to an AWS credential profile name:
+    - Configuration of the authentication settings, with usage of the `AWS_MSK_IAM` mechanism and reference to an AWS credential profile name:
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">AWS_MSK_AWS</param>
