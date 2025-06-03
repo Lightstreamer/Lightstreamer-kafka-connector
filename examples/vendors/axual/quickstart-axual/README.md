@@ -1,6 +1,6 @@
 # Quick Start with Axual
 
-This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target Kafka cluster. You may follow the [_Getting started_](https://docs.axual.io/axual/2024.1/getting_started/index.html) on the Axual site to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use a _shared test cluster_ from [_Axual Platform_](https://axual.com/) as the target Kafka cluster. You may follow the [_Getting started_](https://d2-1pz04.eu1.hs-sales-engage.com/Ctc/ZV+23284/d2-1pz04/Jl22-6qcW7lCdLW6lZ3pJW4JD-dV9lv_NVW5RfzgR5G5Qz2W82dqYb3rM1mzN1qy_pspCYJ-W8r6c_51r7pqcW4ZY1tK3bwTs_W5Pg6cg53g8PlW8JVZ1y7CLwr-N927qSsMD9nSV-yPr561z79gW8wwG-73HZX2qW4SMQFd51XYtMW7s3T0P3hyLSrW4lDWsJ89T42wW4h7XtK4sgHbwW4S5cM43pM5mjW1SKj8K713JtsW3pMBf04HVVrnW6l9R804vWlXrW5VwCq-1LgX4FVchR7J4C_cXMW5G1LVY2lj-glW5ntKZm8rGP2VW7SJCXC6r6D76f7TsPJb04) on the Axual site to perform the following operations:
 
 - Add a new topic `stocks` with:
   -  String key type
@@ -17,7 +17,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 - Generate a new authentication credentials and take note of them.
 - Authorize the application to consume and produce data from/to the `stocks` topic.
 
-The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
+The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Axual Platform_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster
 - _kafka-connector_:
