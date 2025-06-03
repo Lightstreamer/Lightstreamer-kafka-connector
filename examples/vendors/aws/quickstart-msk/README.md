@@ -130,7 +130,7 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - Simplify the encryption settings with only basic settings:
+    - Reduction of encryption settings with only basic parameters:
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
