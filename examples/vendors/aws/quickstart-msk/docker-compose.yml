@@ -11,12 +11,9 @@ services:
     environment:
       - bootstrap_server=${bootstrap_server}
       - AWS_SHARED_CREDENTIALS_FILE=/lightstreamer/aws_credentials
-      - AWS_CONFIG_FILE=/lightstreamer/aws_config
     configs:
       - source: aws_credentials
         target: /lightstreamer/aws_credentials
-      - source: aws_config
-        target: /lightstreamer/aws_config
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
@@ -28,30 +25,32 @@ services:
       context: quickstart-producer
       args:
         VERSION: ${version}
+    environment:
+      - AWS_SHARED_CREDENTIALS_FILE=/usr/app/aws_credentials
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
       - source: aws_credentials
-        target: /root/.aws/credentials
-      - source: aws_config
-        target: /root/.aws/config
+        target: /usr/app/aws_credentials
     command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
 configs:
   producer.properties:
     content: |
+      # Configure AWS_MSK_IAM mechanism
       sasl.mechanism=AWS_MSK_IAM
       # Enable SSL encryption
       security.protocol=SASL_SSL
       # JAAS configuration
-      sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName="msk_client";
+      sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName="msk_client";
       sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
   
   aws_credentials:
     content: |
-      [test-user]
-  aws_config:
-    content: |
-      [profile msk_client]
-      role_arn = 
-      source_profile = test-user
+      [default]
+      aws_access_key_id = ${aws_access_key_id}
+      aws_secret_access_key = ${aws_secret_access_key}
+
+      [msk_client]
+      role_arn = ${role_arn}
+      source_profile = default
