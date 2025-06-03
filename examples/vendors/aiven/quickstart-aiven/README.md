@@ -63,18 +63,18 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
-   ```yaml
-   # Configure SASL/SCRAM mechanism
-   sasl.mechanism=SCRAM-SHA-256
-   # Enable SSL encryption
-   security.protocol=SASL_SSL
-   # JAAS configuration
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
-   # Trust store configuration to authenticate the broker
-   ssl.truststore.location=/usr/app/secrets/client.truststore.jks
-   ssl.truststore.password=password   
-   ssl.endpoint.identification.algorithm=
-   ```  
+     ```yaml
+     # Configure SASL/SCRAM mechanism
+     sasl.mechanism=SCRAM-SHA-256
+     # Enable SSL encryption
+     security.protocol=SASL_SSL
+     # JAAS configuration
+     sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
+     # Trust store configuration to authenticate the broker
+     ssl.truststore.location=/usr/app/secrets/client.truststore.jks
+     ssl.truststore.password=password   
+     ssl.endpoint.identification.algorithm=
+     ```  
 
 ## Run
 
