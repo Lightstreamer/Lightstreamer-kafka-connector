@@ -142,18 +142,12 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       
     ```
 
-  - Provisioning of the AWS shared credentials file to store the credentials of the IAM user along with the named profile referenced in the `adapters.xml` file:
+  - Configuration of the reference to the AWS shared credentials:
 
     ```yaml
-    aws_credentials:
-      content: |
-        [default]
-        aws_access_key_id = ${aws_access_key_id}
-        aws_secret_access_key = ${aws_secret_access_key}
-
-        [msk_client]
-        role_arn = ${role_arn}
-        source_profile = default
+    configs:
+      - source: aws_credentials
+        target: /lightstreamer/aws_credentials
     ```
 
   - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
@@ -177,7 +171,11 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
 
 - _producer_:
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
-   - Provisioning of the `producer.properties` configuration file to enable the AWS IAM for authentication:
+   - Reference to the AWS shared credential files for configuring the authentication to MSK
+  
+- _configs_:
+
+   - Provisioning of the `producer.properties` configuration file to enable the AWS IAM for authentication for the _producer_ service:
     
      ```yaml
      # Configure AWS_MSK_IAM mechanism
@@ -188,6 +186,20 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
      sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName="msk_client";
      sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
      ``` 
+
+  - Provisioning of the AWS shared credentials file to store the credentials of the IAM user along with the AWS credential profile name used by the _kafka-connector_ and _producer_ services:
+
+    ```yaml
+    aws_credentials:
+      content: |
+        [default]
+        aws_access_key_id = ${aws_access_key_id}
+        aws_secret_access_key = ${aws_secret_access_key}
+
+        [msk_client]
+        role_arn = ${role_arn}
+        source_profile = default
+    ```
 
 ## Run
 
