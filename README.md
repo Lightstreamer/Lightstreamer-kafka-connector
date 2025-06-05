@@ -852,7 +852,7 @@ When this mechanism is specified, you can configure the following authentication
 
 - `iam.role.session.name`
 
-   _Optional_ but only effective if `iam.role.arn` is set. Specifies a custom session name for the assumed role.
+   _Optional_ but only effective when `iam.role.arn` is set. Specifies a custom session name for the assumed role.
   
   Example:
 
@@ -870,7 +870,8 @@ When this mechanism is specified, you can configure the following authentication
   <param name="iam.sts.region">us-west-1<param>
   ```
 
-> [!IMPORTANT] **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
+> [!IMPORTANT]
+> **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
 #### Quick Start Confluent Cloud Example
 
