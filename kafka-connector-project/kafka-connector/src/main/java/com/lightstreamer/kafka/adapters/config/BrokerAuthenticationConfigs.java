@@ -226,11 +226,14 @@ public class BrokerAuthenticationConfigs {
         }
     }
 
-    public static class AwsMskIamJaas extends JaasConfig {
+    private static class AwsMskIamJaas extends JaasConfig {
 
         private String credentialProfileName;
+
         private String roleArn;
+
         private String roleSessionName;
+        
         private String stsRegion;
 
         AwsMskIamJaas() {
