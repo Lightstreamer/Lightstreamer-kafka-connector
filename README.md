@@ -830,39 +830,39 @@ The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Str
 
 When this mechanism is specified, you can configure the following authentication parameters:
 
-- `iam.credential.profile.name`
+- `authentication.iam.credential.profile.name`
 
   _Optional_. The name of the AWS credential profile to use for authentication. These profiles are defined in the [AWS shared credentials file](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html).
 
   Example:
 
   ```xml
-  <param name="iam.credential.profile.name">msk_client<param>
+  <param name="authentication.iam.credential.profile.name">msk_client<param>
   ```
 
-- `iam.role.arn`
+- `authentication.iam.role.arn`
 
   _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
 
   Example:
   
   ```xml
-  <param name="iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
+  <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
   ```
 
-- `iam.role.session.name`
+- `authentication.iam.role.session.name`
 
-   _Optional_ but only effective when `iam.role.arn` is set. Specifies a custom session name for the assumed role.
+   _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
   
   Example:
 
   ```xml
-  <param name="iam.role.session.name">consumer<param>
+  <param name="authentication.iam.role.session.name">consumer<param>
   ```
 
-- `iam.sts.region`
+- `authentication.iam.sts.region`
 
-  _Optional_ but only effective when `iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
+  _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
 
   Example:
 
