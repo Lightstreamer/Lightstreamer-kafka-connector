@@ -116,7 +116,9 @@ public interface ConfigTypes {
             }
         },
 
-        GSSAPI;
+        GSSAPI,
+
+        AWS_MSK_IAM;
 
         static Map<String, SaslMechanism> NAME_CACHE = new HashMap<>();
 
@@ -148,6 +150,7 @@ public interface ConfigTypes {
                 case SCRAM_256, SCRAM_512 ->
                         "org.apache.kafka.common.security.scram.ScramLoginModule";
                 case GSSAPI -> "com.sun.security.auth.module.Krb5LoginModule";
+                case AWS_MSK_IAM -> "software.amazon.msk.auth.iam.IAMLoginModule";
             };
         }
 

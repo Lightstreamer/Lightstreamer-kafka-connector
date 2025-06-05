@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.config;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.nested.AuthenticationConfigs;
+import com.lightstreamer.kafka.adapters.config.nested.AwsMskIamConfigs;
 import com.lightstreamer.kafka.adapters.config.nested.GssapiConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
@@ -48,11 +49,28 @@ public class BrokerAuthenticationConfigs {
     public static final String GSSAPI_TICKET_CACHE_ENABLE =
             adapt(GssapiConfigs.GSSAPI_TICKET_CACHE_ENABLE);
 
+    public static final String AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME =
+            adapt(AwsMskIamConfigs.CREDENTIAL_PROFILE_NAME);
+
+    public static final String AWS_MSK_IAM_ROLE_ARN = adapt(AwsMskIamConfigs.ROLE_ARN);
+
+    public static final String AWS_MSK_IAM_ROLE_SESSION_NAME =
+            adapt(AwsMskIamConfigs.ROLE_SESSION_NAME);
+
+    public static final String AWS_MSK_IAM_STS_REGION = adapt(AwsMskIamConfigs.STS_REGION);
+
+    private static final String AWS_MSK_IAM_CALLBACK_HANDLER_CLASS =
+            "software.amazon.msk.auth.iam.IAMClientCallbackHandler";
+
     private static ConfigsSpec CONFIG_SPEC =
             AuthenticationConfigs.cloneSpec()
                     .withEnabledChildConfigs(
                             GssapiConfigs.spec(),
                             (map, key) -> SaslMechanism.GSSAPI.toString().equals(map.get(key)),
+                            AuthenticationConfigs.SASL_MECHANISM)
+                    .withEnabledChildConfigs(
+                            AwsMskIamConfigs.spec(),
+                            (map, key) -> SaslMechanism.AWS_MSK_IAM.toString().equals(map.get(key)),
                             AuthenticationConfigs.SASL_MECHANISM)
                     .newSpecWithNameSpace(NAME_SPACE);
 
@@ -64,42 +82,101 @@ public class BrokerAuthenticationConfigs {
         return CONFIG_SPEC;
     }
 
-    public static void withAuthenticationConfigs(ConfigsSpec config, String enablingKey) {
-        config.withEnabledChildConfigs(CONFIG_SPEC, enablingKey);
-    }
-
     static Properties addAuthentication(ConnectorConfig config) {
         NonNullKeyProperties props = new NonNullKeyProperties();
         if (config.isAuthenticationEnabled()) {
             SaslMechanism mechanism = config.authenticationMechanism();
             props.setProperty(SaslConfigs.SASL_MECHANISM, mechanism.toString());
-            props.setProperty(SaslConfigs.SASL_JAAS_CONFIG, configuredWith(config));
+            props.setProperty(SaslConfigs.SASL_JAAS_CONFIG, jaasConfiguredWith(config));
             if (config.isGssapiEnabled()) {
                 props.setProperty(
                         SaslConfigs.SASL_KERBEROS_SERVICE_NAME, config.gssapiKerberosServiceName());
+            }
+            if (config.isAwsMskIamEnabled()) {
+                props.setProperty(
+                        SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
+                        AWS_MSK_IAM_CALLBACK_HANDLER_CLASS);
             }
         }
         return props.unmodifiable();
     }
 
-    static String configuredWith(ConnectorConfig config) {
-        if (config.isGssapiEnabled()) {
-            return new GssapiJaas()
-                    .useKeyTab(config.gssapiUseKeyTab())
-                    .storeKey(config.gssapiStoreKey())
-                    .keyTab(config.gssapiKeyTab())
-                    .principal(config.gssapiPrincipal())
-                    .useTicketCache(config.gssapiUseTicketCache())
-                    .build();
-        }
-        return new Jaas()
-                .withMechanism(config.authenticationMechanism())
-                .withUsername(config.authenticationUsername())
-                .withPassword(config.authenticationPassword())
-                .build();
+    static String jaasConfiguredWith(ConnectorConfig config) {
+        JaasConfig jaasConfig =
+                switch (config.authenticationMechanism()) {
+                    case PLAIN, SCRAM_256, SCRAM_512 ->
+                            new Jaas(config.authenticationMechanism())
+                                    .withUsername(config.authenticationUsername())
+                                    .withPassword(config.authenticationPassword());
+                    case GSSAPI ->
+                            new GssapiJaas()
+                                    .useKeyTab(config.gssapiUseKeyTab())
+                                    .storeKey(config.gssapiStoreKey())
+                                    .keyTab(config.gssapiKeyTab())
+                                    .principal(config.gssapiPrincipal())
+                                    .useTicketCache(config.gssapiUseTicketCache());
+                    case AWS_MSK_IAM ->
+                            new AwsMskIamJaas()
+                                    .withCredentialProfileName(
+                                            config.awsMskIamCredentialProfileName())
+                                    .withRoleArn(config.awsMskIamRoleArn())
+                                    .withRoleSessionName(config.awsMskIamRoleSessionName())
+                                    .withStsRegion(config.awsMskIamStsRegion());
+                };
+        return jaasConfig.build();
     }
 
-    private static class GssapiJaas {
+    private abstract static class JaasConfig {
+
+        private final SaslMechanism mechanism;
+
+        JaasConfig(SaslMechanism mechanism) {
+            this.mechanism = mechanism;
+        }
+
+        public String build() {
+            StringBuilder sb = new StringBuilder(mechanism.loginModule());
+            sb.append(" required");
+            doBuild(sb);
+            sb.append(";");
+            return sb.toString();
+        }
+
+        protected abstract void doBuild(StringBuilder sb);
+    }
+
+    private static class Jaas extends JaasConfig {
+
+        private String username;
+
+        private String password;
+
+        public Jaas(SaslMechanism mechanism) {
+            super(mechanism);
+        }
+
+        public Jaas withUsername(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public Jaas withPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        protected void doBuild(StringBuilder sb) {
+            Objects.requireNonNull(username);
+            Objects.requireNonNull(password);
+            sb.append(String.format(" username='%s' password='%s'", username, password));
+        }
+    }
+
+    private static class GssapiJaas extends JaasConfig {
+
+        GssapiJaas() {
+            super(SaslMechanism.GSSAPI);
+        }
 
         private boolean useKeyTab;
 
@@ -136,9 +213,7 @@ public class BrokerAuthenticationConfigs {
             return this;
         }
 
-        public String build() {
-            StringBuilder sb = new StringBuilder(SaslMechanism.GSSAPI.loginModule());
-            sb.append(" required");
+        protected void doBuild(StringBuilder sb) {
             if (useTicketCache) {
                 sb.append(" useTicketCache=%s".formatted(useTicketCache));
             } else {
@@ -148,41 +223,55 @@ public class BrokerAuthenticationConfigs {
                 }
                 sb.append(" principal='%s'".formatted(principal));
             }
-            sb.append(";");
-            return sb.toString();
         }
     }
 
-    private static class Jaas {
+    private static class AwsMskIamJaas extends JaasConfig {
 
-        private String username;
+        private String credentialProfileName;
 
-        private String password;
+        private String roleArn;
 
-        private SaslMechanism mechanism;
+        private String roleSessionName;
+        
+        private String stsRegion;
 
-        public Jaas withMechanism(SaslMechanism mechanism) {
-            this.mechanism = mechanism;
+        AwsMskIamJaas() {
+            super(SaslMechanism.AWS_MSK_IAM);
+        }
+
+        public AwsMskIamJaas withCredentialProfileName(String credentialProfileName) {
+            this.credentialProfileName = credentialProfileName;
             return this;
         }
 
-        public Jaas withUsername(String username) {
-            this.username = username;
+        public AwsMskIamJaas withRoleArn(String roleArn) {
+            this.roleArn = roleArn;
             return this;
         }
 
-        public Jaas withPassword(String password) {
-            this.password = password;
+        public AwsMskIamJaas withRoleSessionName(String roleSessionName) {
+            this.roleSessionName = roleSessionName;
             return this;
         }
 
-        public String build() {
-            Objects.requireNonNull(username);
-            Objects.requireNonNull(password);
-            Objects.requireNonNull(mechanism);
-            return String.format(
-                    "%s required username='%s' password='%s';",
-                    mechanism.loginModule(), username, password);
+        public AwsMskIamJaas withStsRegion(String stsRegion) {
+            this.stsRegion = stsRegion;
+            return this;
+        }
+
+        protected void doBuild(StringBuilder sb) {
+            if (credentialProfileName != null) {
+                sb.append(String.format(" awsProfileName=\"%s\"".formatted(credentialProfileName)));
+            } else if (roleArn != null) {
+                sb.append(String.format(" awsRoleArn=\"%s\"", roleArn));
+                if (roleSessionName != null) {
+                    sb.append(String.format(" awsRoleSessionName=\"%s\"", roleSessionName));
+                }
+                if (stsRegion != null) {
+                    sb.append(String.format(" awsStsRegion=\"%s\"", stsRegion));
+                }
+            }
         }
     }
 }
