@@ -95,7 +95,11 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 From this directory, run follow the command:
 
 ```sh
-$ bootstrap_server=<bootstrap_server> group_id=<group_id> username=<username> password=<password> topic=<topic> ./start.sh
+$ bootstrap_server=<bootstrap_server> \
+  group_id=<group_id> username=<username> \
+  password=<password> \
+  topic=<topic> \
+  ./start.sh
 ```
 
 where:
