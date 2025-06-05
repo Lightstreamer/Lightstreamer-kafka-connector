@@ -233,7 +233,7 @@ public class BrokerAuthenticationConfigs {
         private String roleArn;
 
         private String roleSessionName;
-        
+
         private String stsRegion;
 
         AwsMskIamJaas() {
