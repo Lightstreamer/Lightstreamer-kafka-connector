@@ -13,8 +13,11 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Aiven for Apache Kafka_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster.
+
 - _kafka-connector_:
+
   - Definition of new environment variables to configure remote endpoint and credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+
     ```yaml
     ...
     environment:
@@ -25,18 +28,23 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
     ...
     ```
   - Mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
+
     ```yaml
     volumes:
       ...
       - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following change:
+
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
+
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
-    - Configuration of the encryption settings, with the trust store password retrieved from the environment variable `truststore_password`
+    - Configuration of the encryption settings, with the trust store password retrieved from the environment variable `truststore_password`:
+
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
@@ -46,6 +54,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```
 
     - Configuration of the authentication settings, with the credentials retrieved from environment variables `username` and `password`:
+
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
@@ -54,13 +63,16 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```
 
 - _producer_:
+
    - Mounting of the local `secrets` folder to `/usr/app/secrets` in the container:
    
      ```yaml
      volumes:
        - ./secrets:/usr/app/secrets
      ```
+
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
+
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username, password, and trust store password retrieved from the environment variables `username`, `password`, and `truststore_password`:
     
      ```yaml
@@ -74,7 +86,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      ssl.truststore.location=/usr/app/secrets/client.truststore.jks
      ssl.truststore.password=password   
      ssl.endpoint.identification.algorithm=
-     ```  
+     ```
 
 ## Run
 

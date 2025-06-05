@@ -26,53 +26,56 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 2. Create an IAM policy for Kafka access permissions:
 
    - Create a file named `kafka-policy.json` with the following content:
-    ```json
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-          {
-              "Effect": "Allow",
-              "Action": [
-                  "kafka-cluster:Connect",
-                  "kafka-cluster:AlterCluster",
-                  "kafka-cluster:DescribeCluster"
-              ],
-              "Resource": [
-                  "<MSK Cluster ARN>"
-              ]
-          },
-          {
-              "Effect": "Allow",
-              "Action": [
-                  "kafka-cluster:*Topic*",
-                  "kafka-cluster:WriteData",
-                  "kafka-cluster:ReadData"
-              ],
-              "Resource": [
-                  "arn:aws:kafka:<region>:<Account-ID>:topic/<MSK Cluster Name>/*"
-              ]
-          },
-          {
-              "Effect": "Allow",
-              "Action": [
-                  "kafka-cluster:AlterGroup",
-                  "kafka-cluster:DescribeGroup"
-              ],
-              "Resource": [
-                  "arn:aws:kafka:<region>:<Account-ID>:group/<MSK Cluster Name>/*"
-              ]
-          }
-      ]
-    }
-    ```
+
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [
+           {
+               "Effect": "Allow",
+               "Action": [
+                   "kafka-cluster:Connect",
+                   "kafka-cluster:AlterCluster",
+                   "kafka-cluster:DescribeCluster"
+               ],
+               "Resource": [
+                   "<MSK Cluster ARN>"
+               ]
+           },
+           {
+               "Effect": "Allow",
+               "Action": [
+                   "kafka-cluster:*Topic*",
+                   "kafka-cluster:WriteData",
+                   "kafka-cluster:ReadData"
+               ],
+               "Resource": [
+                   "arn:aws:kafka:<region>:<Account-ID>:topic/<MSK Cluster Name>/*"
+               ]
+           },
+           {
+               "Effect": "Allow",
+               "Action": [
+                   "kafka-cluster:AlterGroup",
+                   "kafka-cluster:DescribeGroup"
+               ],
+               "Resource": [
+                   "arn:aws:kafka:<region>:<Account-ID>:group/<MSK Cluster Name>/*"
+               ]
+           }
+       ]
+     }
+     ```
 
     where you have to replace the following placeholders with your actual values:
+
     - `<MSK Cluster ARN>` - The full ARN of your MSK cluster
     - `<region>` - Your AWS region code (e.g., us-east-1)
     - `<Account-ID>` - Your 12-digit AWS account ID
     - `<MSK Cluster Name>` -  The name of your MSK cluster
 
    - Create the policy:
+
      ```sh
      aws iam create-policy \
          --policy-name kafka-policy \
@@ -81,7 +84,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
 3. Create an IAM role that can be assumed by your user:
 
-   - Create a file named `trust-kafka-policy.json` with this content::
+   - Create a file named `trust-kafka-policy.json` with this content:
 
      ```json
      {
@@ -101,6 +104,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
      where you have to replace the `arn:aws:iam::<Account-ID>:user/<Username>` with the your AWS user's ARN.
 
    - Create the role:
+
      ```sh
      aws iam create-role \
          --role-name kafka-cluster-role \
@@ -122,7 +126,9 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app, the [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Amazon MSK_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster.
+
 - _kafka-connector_:
+
   - Definition of new environment variables to configure remote endpoint in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
 
     ```yaml
@@ -142,7 +148,7 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       
     ```
 
-  - Configuration of the reference to the AWS shared credentials:
+  - Configuration of the reference to the AWS shared credentials file:
 
     ```yaml
     configs:
@@ -150,19 +156,23 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
         target: /lightstreamer/aws_credentials
     ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
+
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
     - Minimal encryption settings:
+
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       ```
 
     - Configuration of the authentication settings, with usage of the `AWS_MSK_IAM` mechanism and reference to an AWS credential profile name:
+
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">AWS_MSK_AWS</param>
@@ -170,7 +180,9 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
       ```
 
 - _producer_:
+
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
+
    - Reference to the AWS shared credential files for configuring the authentication to MSK
   
 - _configs_:
@@ -214,6 +226,7 @@ $ bootstrap_server=<bootstrap_server> \
 ```
 
 where:
+
 - `<bootstrap_server>` - The public bootstrap server endpoint associated with the IAM Authentication Type
 - `<role_arn>` - The ARN of the IAM role you created at step 3 of the section [`Set Up the MSK Cluster`](#set-up-the-msk-cluster)
 - `<aws_access_key_id>` - The AWS access key ID of the test user

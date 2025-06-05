@@ -20,8 +20,11 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Axual Platform_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster
+
 - _kafka-connector_:
+
   - Definition of new environment variables to configure remote endpoint, credentials, topic name, and consumer group in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+
     ```yaml
     ...
     environment:
@@ -32,18 +35,23 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - topic_mapping=map.${topic}.to
     ...
     ```
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following:
+
+  - Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
+
       ```xml
       <param name="bootstrap.servers">$env.bootstrap_server</param>
       ```
 
     - Update of the parameter `group.id` to the the environment variable `group_id`:
+
       ```xml
       <param name="group.id">$env.group_id</param>
       ```
 
     - Configuration of the encryption settings:
+
       ```xml
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.3</param>
@@ -51,6 +59,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       ```
 
     - Configuration of the authentication settings, with the credentials retrieved from environment variables `username` and `password`:
+
       ```xml
       <param name="authentication.enable">true</param>
       <param name="authentication.mechanism">SCRAM-SHA-256</param>
@@ -58,14 +67,18 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="authentication.password">$env.password</param>
       ```
 
-    - Update of the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`)
+    - Update of the parameter `map.<topic>.to` to the environment variable `topic_mapping` (which in turn is composed from env variable `topic`):
+    
       ```xml
       <param name="$env.topic_mapping">item-template.stock</param>
       ```      
 
 - _producer_:
+
    - Update of the parameter `--bootstrap-servers` to the environment variable `bootstrap_server`
+
    - Update of the parameter `--topic` to the environment variable `topic`
+   
    - Provisioning of the `producer.properties` configuration file to enable `SASL/SCRAM` over TLS, with username and password retrieved from the environment variables `username` and `password`:
     
      ```yaml
