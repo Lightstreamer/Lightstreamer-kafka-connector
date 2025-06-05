@@ -238,7 +238,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L519) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L555) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -780,7 +780,7 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 - `SCRAM-SHA-512`
 - `GSSAPI`
 
-In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
 - `authentication.username`: the username
 - `authentication.password`: the password
@@ -820,7 +820,7 @@ Example:
 
 ##### `GSSAPI`
 
-In the case of `GSSAPI` authentication mechanism, the following parameters will be part of the authentication configuration:
+When this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.gssapi.key.tab.enable`
 
@@ -881,7 +881,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L532) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L568) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -956,7 +956,7 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
 - `ORDER_BY_PARTITION`: maintain the order of records within each partition.
 
@@ -985,6 +985,7 @@ _Optional_. The format to be used to deserialize respectively the key and value 
 - `AVRO`
 - `JSON`
 - `PROTOBUF`
+- `KVP`
 - `STRING`
 - `INTEGER`
 - `BOOLEAN`
@@ -1034,7 +1035,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective if `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
         
 For example, in the following record value:
@@ -1054,7 +1055,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1234,7 +1235,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L548) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L584) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
