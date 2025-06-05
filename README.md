@@ -209,7 +209,6 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-
 - Configure topic and record mapping.
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
