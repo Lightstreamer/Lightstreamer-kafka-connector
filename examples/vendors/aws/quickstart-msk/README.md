@@ -13,7 +13,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
 
    - **Enabled public access** - Allows connections from outside the AWS network
 
-   - **Enable IAM role-based authentication** - Secures access using AWS Identity and Access Management
+   - **Enable IAM access control** - Secures access using IAM role-based authentication
 
    - **Custom cluster configuration:**:
 
