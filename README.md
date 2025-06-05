@@ -763,7 +763,7 @@ Example:
 
 ##### `GSSAPI`
 
-In the case of `GSSAPI` authentication mechanism, the following parameters will be part of the authentication configuration:
+When this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.gssapi.key.tab.enable`
 
@@ -828,14 +828,12 @@ Example of configuration with the use of a ticket cache:
 
 The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
 
-When specified, the following parameters will be part of the authentication configuration:
+When this mechanism is specified, you can configure the following authentication parameters:
 
 - `iam.credential.profile.name`
 
   _Optional_. The name of the AWS credential profile.
 
-  If not set, the profile name default
-  
   Example:
 
   ```xml
@@ -844,7 +842,9 @@ When specified, the following parameters will be part of the authentication conf
 
 - `iam.role.arn`
 
-  _Optional_. The ARN of the IAM role the Kafka Connector should use to authenticate with MSK.
+  _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+
+  Example:
   
   ```xml
   <param name="iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
@@ -852,7 +852,7 @@ When specified, the following parameters will be part of the authentication conf
 
 - `iam.role.session.name`
 
-   _Optional_ but only effective if `iam.role.arn` is set. The session name that the Kafka Connector should use while assuming the IAM role defined `iam.role.arn`.
+   _Optional_ but only effective if `iam.role.arn` is set. Specifies a custom session name for the assumed role.
   
   Example:
 
@@ -862,7 +862,7 @@ When specified, the following parameters will be part of the authentication conf
 
 - `iam.sts.region`
 
-  _Optional_ but only effective if `iam.role.arn` is set. The regional endpoint of AWS STS to use while the Kafka Connector assumes the IAM role defined in `iam.role.arn`.
+  _Optional_ but only effective if `iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
 
   Example:
 
@@ -870,15 +870,19 @@ When specified, the following parameters will be part of the authentication conf
   <param name="iam.sts.region">us-west-1<param>
   ```
 
-The `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
+> [!IMPORTANT] **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L532) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L541) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-#### Quick Start Redpanda Serverless Example
+#### Quick Start with Redpanda Serverless Example
 
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start with Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+
+#### Quick Start with MSK Example
+
+Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
 ### Record Evaluation
 
@@ -953,7 +957,7 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
 - `ORDER_BY_PARTITION`: maintain the order of records within each partition.
 
@@ -1032,7 +1036,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective if `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
         
 For example, in the following record value:
@@ -1052,7 +1056,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
