@@ -146,9 +146,9 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(awsMskIamRoleSessionName.type()).isEqualTo(TEXT);
 
         ConfParameter awsMskIamStsRegion =
-                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION);
         assertThat(awsMskIamStsRegion.name())
-                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+                .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION);
         assertThat(awsMskIamStsRegion.required()).isFalse();
         assertThat(awsMskIamStsRegion.multiple()).isFalse();
         assertThat(awsMskIamStsRegion.mutable()).isTrue();
