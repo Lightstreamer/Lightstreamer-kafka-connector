@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.7] (2025-06-05)
+
+**Improvements**
+
+- Added [IAM authentication support](README.md#aws_msk_iam) for Amazon MSK clusters, including updates to documentation, examples, and configuration files. ([#56](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/56))
+
+
 ## [1.2.6] (2025-05-27)
 
 **Improvements**
