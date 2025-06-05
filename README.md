@@ -862,7 +862,7 @@ When this mechanism is specified, you can configure the following authentication
 
 - `iam.sts.region`
 
-  _Optional_ but only effective if `iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
+  _Optional_ but only effective when `iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
 
   Example:
 
