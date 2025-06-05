@@ -721,8 +721,9 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 - `SCRAM-SHA-256`
 - `SCRAM-SHA-512`
 - `GSSAPI`
+- `AWS_MSK_IAM`
 
-In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameter:
 
 - `authentication.username`: the username
 - `authentication.password`: the password
@@ -822,6 +823,54 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
+
+##### `AWS_MSK_IAM`
+
+The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
+
+When specified, the following parameters will be part of the authentication configuration:
+
+- `iam.credential.profile.name`
+
+  _Optional_. The name of the AWS credential profile.
+
+  If not set, the profile name default
+  
+  Example:
+
+  ```xml
+  <param name="iam.credential.profile.name">msk_client<param>
+  ```
+
+- `iam.role.arn`
+
+  _Optional_. The ARN of the IAM role the Kafka Connector should use to authenticate with MSK.
+  
+  ```xml
+  <param name="iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
+  ```
+
+- `iam.role.session.name`
+
+   _Optional_ but only effective if `iam.role.arn` is set. The session name that the Kafka Connector should use while assuming the IAM role defined `iam.role.arn`.
+  
+  Example:
+
+  ```xml
+  <param name="iam.role.session.name">consumer<param>
+  ```
+
+- `iam.sts.region`
+
+  _Optional_ but only effective if `iam.role.arn` is set. The regional endpoint of AWS STS to use while the Kafka Connector assumes the IAM role defined in `iam.role.arn`.
+
+  Example:
+
+  ```xml
+  <param name="iam.sts.region">us-west-1<param>
+  ```
+
+The `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
 #### Quick Start Confluent Cloud Example
 
