@@ -187,7 +187,7 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
   
 - _configs_:
 
-   - Provisioning of the `producer.properties` configuration file to enable the AWS IAM for authentication for the _producer_ service:
+   - Provisioning of the `producer.properties` configuration file to enable the AWS_MSK_AIM authentication mechanism for the _producer_ service:
     
      ```yaml
      # Configure AWS_MSK_IAM mechanism
