@@ -826,13 +826,13 @@ Example of configuration with the use of a ticket cache:
 
 ##### `AWS_MSK_IAM`
 
-The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
+The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ clusters through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
 
 When this mechanism is specified, you can configure the following authentication parameters:
 
 - `iam.credential.profile.name`
 
-  _Optional_. The name of the AWS credential profile.
+  _Optional_. The name of the AWS credential profile to use for authentication. These profiles are defined in the [AWS shared credentials file](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html).
 
   Example:
 
