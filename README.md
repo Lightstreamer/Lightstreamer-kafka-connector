@@ -870,7 +870,7 @@ When this mechanism is specified, you can configure the following authentication
   <param name="iam.sts.region">us-west-1<param>
   ```
 
-> [!IMPORTANT]
+> [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
 #### Quick Start Confluent Cloud Example
