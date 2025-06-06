@@ -142,8 +142,8 @@ class DataExtractorSupport {
         private final Set<T> selectors;
         private final SelectorSupplier<T> selectorSupplier;
 
-        Appender(Set<T> set, SelectorSupplier<T> selectorSupplier) {
-            this.selectors = set;
+        Appender(Set<T> selectors, SelectorSupplier<T> selectorSupplier) {
+            this.selectors = selectors;
             this.selectorSupplier = selectorSupplier;
         }
 
