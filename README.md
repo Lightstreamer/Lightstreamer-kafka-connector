@@ -209,7 +209,6 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-
 - Configure topic and record mapping.
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
@@ -721,8 +720,9 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 - `SCRAM-SHA-256`
 - `SCRAM-SHA-512`
 - `GSSAPI`
+- `AWS_MSK_IAM`
 
-In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters (which are not allowed for `GSSAPI`):
+In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameter:
 
 - `authentication.username`: the username
 - `authentication.password`: the password
@@ -762,7 +762,7 @@ Example:
 
 ##### `GSSAPI`
 
-In the case of `GSSAPI` authentication mechanism, the following parameters will be part of the authentication configuration:
+When this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.gssapi.key.tab.enable`
 
@@ -823,13 +823,66 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
+##### `AWS_MSK_IAM`
+
+The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ clusters through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
+
+When this mechanism is specified, you can configure the following authentication parameters:
+
+- `authentication.iam.credential.profile.name`
+
+  _Optional_. The name of the AWS credential profile to use for authentication. These profiles are defined in the [AWS shared credentials file](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html).
+
+  Example:
+
+  ```xml
+  <param name="authentication.iam.credential.profile.name">msk_client<param>
+  ```
+
+- `authentication.iam.role.arn`
+
+  _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+
+  Example:
+  
+  ```xml
+  <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
+  ```
+
+- `authentication.iam.role.session.name`
+
+   _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
+  
+  Example:
+
+  ```xml
+  <param name="authentication.iam.role.session.name">consumer<param>
+  ```
+
+- `authentication.iam.sts.region`
+
+  _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
+
+  Example:
+
+  ```xml
+  <param name="iam.sts.region">us-west-1<param>
+  ```
+
+> [!NOTE]
+> **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
+
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L532) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L568) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-#### Quick Start Redpanda Serverless Example
+#### Quick Start with Redpanda Serverless Example
 
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start with Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+
+#### Quick Start with MSK Example
+
+Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
 ### Record Evaluation
 
@@ -904,7 +957,7 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
 - `ORDER_BY_PARTITION`: maintain the order of records within each partition.
 
@@ -983,7 +1036,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective if `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
         
 For example, in the following record value:
@@ -1003,7 +1056,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective if `record.key/value.evaluator.type` is set to `KVP`.
+_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1183,7 +1236,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L403) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L439) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...

@@ -1736,7 +1736,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyAuthenticationRequiredParameters() {
+    public void shouldSpecifyAuthenticationRequiredParametersWithDefaultPlain() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
 
@@ -1785,6 +1785,48 @@ public class ConnectorConfigTest {
         assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"SCRAM-SHA-256", "SCRAM-SHA-512"})
+    public void shouldSpecifyAuthenticationRequiredParametersWithSCRAM(String saslMechanism) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(AUTHENTICATION_ENABLE, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, saslMechanism);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.username]");
+
+        updatedConfig.put(USERNAME, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.username]");
+
+        updatedConfig.put(USERNAME, "username");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Missing required parameter [authentication.password]");
+
+        updatedConfig.put(PASSWORD, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce.getMessage())
+                .isEqualTo("Specify a valid value for parameter [authentication.password]");
+
+        updatedConfig.put(PASSWORD, "password");
+        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+    }
+
     @Test
     public void shouldNotAccessToAuthenticationSettings() {
         ConnectorConfig config =
@@ -1797,6 +1839,11 @@ public class ConnectorConfigTest {
                         () -> config.authenticationMechanism(),
                         () -> config.authenticationUsername(),
                         () -> config.authenticationPassword(),
+                        () -> config.isAwsMskIamEnabled(),
+                        () -> config.awsMskIamCredentialProfileName(),
+                        () -> config.awsMskIamRoleArn(),
+                        () -> config.awsMskIamRoleSessionName(),
+                        () -> config.awsMskIamStsRegion(),
                         () -> config.isGssapiEnabled(),
                         () -> config.gssapiKerberosServiceName(),
                         () -> config.gssapiKeyTab(),
@@ -1869,6 +1916,73 @@ public class ConnectorConfigTest {
                                 "org.apache.kafka.common.security.scram.ScramLoginModule required username='sasl-username' password='sasl-password';");
             }
         }
+    }
+
+    @Test
+    public void shouldOverrideAuthenticationSettingsWithIam() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(AUTHENTICATION_ENABLE, "true");
+        updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "AWS_MSK_IAM");
+        updatedConfig.put(ENCRYPTION_ENABLE, "true");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isAuthenticationEnabled()).isTrue();
+        assertThat(config.authenticationMechanism()).isEqualTo(SaslMechanism.AWS_MSK_IAM);
+
+        Properties properties = config.baseConsumerProps();
+        assertThat(properties)
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        SecurityProtocol.SASL_SSL.toString(),
+                        SaslConfigs.SASL_MECHANISM,
+                        "AWS_MSK_IAM",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "software.amazon.msk.auth.iam.IAMLoginModule required;");
+
+        updatedConfig.put(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME, "");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [authentication.iam.credential.profile.name]");
+
+        updatedConfig.put(
+                BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME, "profileName");
+
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isAuthenticationEnabled()).isTrue();
+        assertThat(config.authenticationMechanism()).isEqualTo(SaslMechanism.AWS_MSK_IAM);
+        properties = config.baseConsumerProps();
+        assertThat(properties)
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        SecurityProtocol.SASL_SSL.toString(),
+                        SaslConfigs.SASL_MECHANISM,
+                        "AWS_MSK_IAM",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName=\"profileName\";");
+
+        updatedConfig.remove(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
+
+        updatedConfig.put(
+                BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN,
+                "arn:aws:iam::123456789012:role/roleName");
+        updatedConfig.put(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME, "sessionName");
+        updatedConfig.put(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION, "us-west-2");
+
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.baseConsumerProps())
+                .containsAtLeast(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+                        SecurityProtocol.SASL_SSL.toString(),
+                        SaslConfigs.SASL_MECHANISM,
+                        "AWS_MSK_IAM",
+                        SaslConfigs.SASL_JAAS_CONFIG,
+                        "software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn=\"arn:aws:iam::123456789012:role/roleName\" awsRoleSessionName=\"sessionName\" awsStsRegion=\"us-west-2\";");
     }
 
     @Test

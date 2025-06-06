@@ -56,6 +56,8 @@ dependencies {
     jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
     implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
 
+    implementation group: 'software.amazon.msk', name:'aws-msk-iam-auth', version:'2.3.2'
+
     testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
 }
 

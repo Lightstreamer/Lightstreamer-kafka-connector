@@ -190,6 +190,7 @@
              - SCRAM-SHA-256
              - SCRAM-SHA-512
              - GSSAPI
+             - AWS_MSK_IAM
 
              Default value: PLAIN.-->
         <!--
@@ -204,8 +205,7 @@
 
         <!-- ##### GSSAPI AUTHENTICATION SETTINGS ##### -->
 
-        <!-- In the case of GSSAPI authentication mechanism, the following parameters will be part of
-             the authentication configuration. -->
+        <!-- When this mechanism is specified, you can configure the following authentication parameters: -->
 
         <!-- Optional. Enable the use of a keytab. Can be one of the following:
             - true
@@ -250,6 +250,42 @@
         <param name="authentication.gssapi.ticket.cache.enable">true</param>
         -->
 
+        <!-- ##### IAM AUTHENTICATION SETTINGS ##### -->
+
+        <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming for Apache Kafka (MSK) 
+             clusters through IAM access control.
+
+             When specified, the following parameters will be part of the authentication configuration:
+        -->
+
+        <!-- Optional. The name of the AWS credential profile to use for authentication. These profiles are defined in 
+             the AWS shared credentials file.
+        -->
+        <!--
+        <param name="authentication.iam.credential.profile.name">msk_client<param>
+        -->
+  
+        <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for 
+             authentication MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+        -->
+        <!--
+        <param name="authentication.iam.role.arn">true</param>
+        -->
+
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the session for the 
+             assumed IAM role.
+        -->
+        <!--
+        <param name="authentication.iam.role.session.name">true</param>
+        -->
+
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the AWS region of the STS 
+             endpoint to use when assuming the IAM role. 
+        -->
+        <!--
+        <param name="authentication.iam.sts.region">true</param>
+        -->
+
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
 
         <!-- Optional. Specifies where to start consuming events from:
@@ -268,7 +304,7 @@
         <param name="record.consume.with.num.threads">4</param>
         -->
 
-        <!-- Optional but only effective if "record.consume.with.num.threads" is set to a value greater than 1 (which includes the default value).
+        <!-- Optional but only effective when "record.consume.with.num.threads" is set to a value greater than 1 (which includes the default value).
              The order strategy to be used for concurrent processing of the incoming
              deserialized records. Can be one of the following:
 
@@ -322,7 +358,7 @@
         <param name="record.value.evaluator.schema.registry.enable">true</param>
         -->
 
-        <!-- Optional but only effective if "record.key/value.evaluator.type" is set to "KVP".
+        <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
              Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
           
              Default value: "=".
@@ -332,7 +368,7 @@
         <param name="record.value.evaluator.kvp.key-value.separator">@</param>
         -->  
 
-        <!-- Optional but only effective if "record.key/value.evaluator.type" is set to "KVP".
+        <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
              Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
           
              Default value: ",".
