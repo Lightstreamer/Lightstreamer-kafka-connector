@@ -38,7 +38,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
         }
 
         @Override
-        public Data extract(KafkaRecord<?, ?> record) {
+        public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
             Object data =
                     switch (constant) {
                         case TIMESTAMP -> String.valueOf(record.timestamp());
@@ -47,6 +47,8 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                         case TOPIC -> record.topic();
                         case KEY -> record.key();
                         case VALUE -> record.value();
+                        default ->
+                                throw new IllegalStateException("Unexpected constant: " + constant);
                     };
             return new SimpleData(name(), Objects.toString(data, null));
         }
