@@ -39,6 +39,8 @@ import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -119,12 +121,23 @@ public class DataExtractorTest {
                         false,
                         true,
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "topic")),
-                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")));
+                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
+                arguments(
+                        "mySchemaName",
+                        Map.of(
+                                "header1",
+                                Expression("HEADERS[0]"),
+                                "header2",
+                                Expression("HEADERS['header-key2']")),
+                        true,
+                        false,
+                        Schema.from("mySchemaName", Set.of("header1", "header2")),
+                        Map.of("header1", "header-value1", "header2", "header-value2")));
     }
 
     @ParameterizedTest
     @MethodSource("extractorFromExtractionExpressions")
-    public void shouldCreateAndExtractValuesExtractionExpressions(
+    public void shouldCreateAndExtractValuesFromExtractionExpressions(
             String schemaName,
             Map<String, ExtractionExpression> expressions,
             boolean skipOnFailure,
@@ -139,7 +152,12 @@ public class DataExtractorTest {
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(mapNonScalars);
 
-        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
+        Headers headers =
+                new RecordHeaders()
+                        .add("header-key1", "header-value1".getBytes())
+                        .add("header-key2", "header-value2".getBytes());
+        KafkaRecord<String, String> kafkaRecord =
+                Records.recordWithHeaders("aKey", "aValue", headers);
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
@@ -163,7 +181,12 @@ public class DataExtractorTest {
                         Template(
                                 "mySchemaName-#{timestamp=TIMESTAMP,partition=PARTITION,topic=TOPIC}"),
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "topic")),
-                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")));
+                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
+                arguments(
+                        Template(
+                                "mySchemaName-#{timestamp=TIMESTAMP,partition=PARTITION,headers=HEADERS[0]}"),
+                        Schema.from("mySchemaName", Set.of("timestamp", "partition", "headers")),
+                        Map.of("partition", "150", "timestamp", "-1", "headers", "header-value1")));
     }
 
     @ParameterizedTest
@@ -178,7 +201,10 @@ public class DataExtractorTest {
         assertThat(extractor.skipOnFailure()).isFalse();
         assertThat(extractor.mapNonScalars()).isFalse();
 
-        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
+        Headers headers = new RecordHeaders().add("header-key1", "header-value1".getBytes());
+        KafkaRecord<String, String> kafkaRecord =
+                Records.recordWithHeaders("aKey", "aValue", headers);
+
         SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
         Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
