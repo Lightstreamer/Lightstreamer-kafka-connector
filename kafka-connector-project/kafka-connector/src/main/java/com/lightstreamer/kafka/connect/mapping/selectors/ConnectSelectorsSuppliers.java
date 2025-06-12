@@ -189,7 +189,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
-        private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
                     new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
         }
@@ -219,7 +219,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             return eval(asNode((KafkaSinkRecord) record), checkScalar);
         }
 
-        private SchemaAndValueNode asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
                     new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
         }
