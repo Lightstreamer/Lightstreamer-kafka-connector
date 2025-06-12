@@ -17,7 +17,5 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-public interface ConstantSelector extends KeySelector<Object>, ValueSelector<Object> {
-
-    Data extract(KafkaRecord<?, ?> record) throws ValueException;
-}
+public interface ConstantSelector
+        extends GenericSelector, KeySelector<Object>, ValueSelector<Object> {}
