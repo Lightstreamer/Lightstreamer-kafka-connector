@@ -121,6 +121,6 @@ public class FieldConfigsTest {
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + fieldExpression
-                                + "] while evaluating [field1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]>");
+                                + "] while evaluating [field1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>");
     }
 }
