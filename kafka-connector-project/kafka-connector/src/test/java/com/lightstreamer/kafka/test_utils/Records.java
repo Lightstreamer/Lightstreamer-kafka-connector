@@ -94,9 +94,14 @@ public class Records {
     }
 
     public static <K, V> KafkaRecord<K, V> recordWithHeaders(K key, V value, Headers headers) {
+        return recordWithHeaders("record-topic", key, value, headers);
+    }
+
+    public static <K, V> KafkaRecord<K, V> recordWithHeaders(
+            String topic, K key, V value, Headers headers) {
         return KafkaRecord.from(
                 new ConsumerRecord<>(
-                        "record-topic",
+                        topic,
                         150,
                         120,
                         ConsumerRecord.NO_TIMESTAMP,
