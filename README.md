@@ -1106,18 +1106,18 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 - Expressions must be enclosed within `#{...}`
 - Expressions use _Extraction Keys_, a set of predefined constants that reference specific parts of the record structure:
 
-  - `#{KEY}`: the key
-  - `#{VALUE}`: the value
-  - `#{TOPIC}`: the topic
-  - `#{TIMESTAMP}`: the timestamp
-  - `#{PARTITION}`: the partition
-  - `#{OFFSET}`: the offset
-  - `#{HEADERS}`: the headers
+  - **`#{KEY}`**: the key
+  - **`#{VALUE}`**: the value
+  - **`#{TOPIC}`**: the topic
+  - **`#{TIMESTAMP}`**: the timestamp
+  - **`#{PARTITION}`**: the partition
+  - **`#{OFFSET}`**: the offset
+  - **`#{HEADERS}`**: the headers
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - *Record data*: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
-  - *Headers*: Retrieve values from record headers
+  - **Record data**: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
+  - **Headers**: Retrieve values from record headers
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -1134,7 +1134,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _square notation_ to access both indexed and key-based attributes:
 
-  - *Indexed attributes:*
+  - **Indexed attributes:**
 
     ```js
     KEY.attribute1Name[i].attribute2Name...
@@ -1144,7 +1144,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
     where `i` is a 0-indexed value.
 
-  - *Key-based attributes:*
+  - **Key-based attributes:**
 
     ```js
     KEY.attribute1Name['keyName'].attribute2Name...
