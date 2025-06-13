@@ -1158,8 +1158,8 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
   In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy), unless expressly [configured differently](#map-non-scalar-values-fieldsmapnonscalarvalues).
 
-  > [!NOTE]
-  > When used for mapping records to Lightstreamer fields, this behavior can be disabled by leveraging the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues).
+> [!NOTE]
+> When used for mapping records to Lightstreamer fields, this behavior can be disabled by leveraging the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues).
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
