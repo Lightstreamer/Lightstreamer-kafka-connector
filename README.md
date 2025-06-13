@@ -1112,6 +1112,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   - `#{TIMESTAMP}`: the timestamp
   - `#{PARTITION}`: the partition
   - `#{OFFSET}`: the offset
+  - `#{HEADERS}`: the headers
 
 - Expressions use the _dot notation_ to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
 
@@ -1155,7 +1156,10 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions must evaluate to a _scalar_ value
 
-  In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy).
+  In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy), unless expressly [configured differently](#map-non-scalar-values-fieldsmapnonscalarvalues).
+
+  > [!NOTE]
+  > When used for mapping records to Lightstreamer fields, this behavior can be disabled by leveraging the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues).
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
@@ -1277,7 +1281,7 @@ Example:
 
 _Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
-This can be useful when dealing with nested JSON/Avro objects or other complex data types.
+This can be useful when dealing with nested JSON/Avro/Protobuf objects or other complex data types.
 
 In the following example:
 
