@@ -1114,10 +1114,10 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   - `#{OFFSET}`: the offset
   - `#{HEADERS}`: the headers
 
-- Expressions use the _dot notation_ to access the following:
+- Expressions use the _dot notation_ to access nested data structures:
 
-  - Attributes or fields of record keys and record values serialized in JSON, Avro, and Protobuf formats:
-  - Headers
+  - *Record data*: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
+  - *Headers*: Retrieve values from record headers
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -1132,15 +1132,9 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
-   Furthermore, headers can be accessed in a similar wary:
+- Expressions use the _square notation_ to access both indexed and key-based attributes:
 
-   ```js
-   HEADERS.key
-   ```
-
-- Expressions use the _square notation_ to access:
-
-  - Indexed attributes:
+  - *Indexed attributes:*
 
     ```js
     KEY.attribute1Name[i].attribute2Name...
@@ -1150,7 +1144,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
     where `i` is a 0-indexed value.
 
-  - Key-based attributes:
+  - *Key-based attributes:*
 
     ```js
     KEY.attribute1Name['keyName'].attribute2Name...
@@ -1173,21 +1167,13 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > HEADERS.['myKey']
  > ```
 
-- Expressions must evaluate to a _scalar_ value
+- Expressions must evaluate to _scalar_ values
 
-  In case of non-scalar value, an error will be thrown during the extraction process and handled as per the [configured strategy](#recordextractionerrorstrategy), unless expressly [configured differently](#map-non-scalar-values-fieldsmapnonscalarvalues).
+  When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
 
-> [!NOTE]
-> When used for mapping records to Lightstreamer fields, this behavior can be disabled by leveraging the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues).
-
-- Headers can be evaluated  in the following ways:
-
-  - By key
+  When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
   
-    ```js
-    HEADERS.key
-    VALUE.attribute1Name.attribute2Name...
-  ```
+  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.  
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
