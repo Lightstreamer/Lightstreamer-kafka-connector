@@ -239,7 +239,68 @@ public interface KafkaRecord<K, V> {
 
         @Override
         public KafkaHeaders headers() {
-            throw new UnsupportedOperationException("Headers are not supported in SinkRecord");
+            return new KafkaConnectHeaders(record.headers());
+        }
+    }
+
+    final class KafkaConnectHeaders implements KafkaHeaders {
+
+        private final org.apache.kafka.connect.header.Headers headers;
+        private final List<org.apache.kafka.connect.header.Header> headersArray;
+
+        KafkaConnectHeaders(org.apache.kafka.connect.header.Headers headers) {
+            this.headers = headers;
+            this.headersArray = new ArrayList<>();
+            for (org.apache.kafka.connect.header.Header header : headers) {
+                headersArray.add(header);
+            }
+        }
+
+        @Override
+        public KafkaHeader lastHeader(String key) {
+            org.apache.kafka.connect.header.Header header = headers.lastWithName(key);
+            return header != null ? new KafkaRecordHeader(header) : null;
+        }
+
+        @Override
+        public KafkaHeader get(int index) {
+            org.apache.kafka.connect.header.Header header = headersArray.get(index);
+            return header != null ? new KafkaRecordHeader(header) : null;
+        }
+
+        @Override
+        public List<KafkaHeader> headers(String key) {
+            Iterator<org.apache.kafka.connect.header.Header> iterator = headers.allWithName(key);
+            List<KafkaHeader> headersArray = new ArrayList<>();
+            while (iterator.hasNext()) {
+                org.apache.kafka.connect.header.Header header = iterator.next();
+                headersArray.add(new KafkaRecordHeader(header));
+            }
+
+            return headersArray;
+        }
+
+        @Override
+        public int size() {
+            return headers.size();
+        }
+
+        @Override
+        public Iterator<KafkaHeader> iterator() {
+            return new Iterator<KafkaHeader>() {
+                private final Iterator<org.apache.kafka.connect.header.Header> iterator =
+                        headers.iterator();
+
+                @Override
+                public boolean hasNext() {
+                    return iterator.hasNext();
+                }
+
+                @Override
+                public KafkaHeader next() {
+                    return new KafkaRecordHeader(iterator.next());
+                }
+            };
         }
     }
 }
