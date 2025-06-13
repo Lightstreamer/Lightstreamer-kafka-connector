@@ -152,6 +152,22 @@ public class Records {
         return sink(topic, keySchema, key, null, null);
     }
 
+    public static KafkaRecord<Object, Object> sinkFromHeaders(
+            String topic, org.apache.kafka.connect.header.Headers headers) {
+        return KafkaRecord.from(
+                new SinkRecord(
+                        topic,
+                        150,
+                        null,
+                        null,
+                        null,
+                        null,
+                        120,
+                        (long) -1,
+                        TimestampType.NO_TIMESTAMP_TYPE,
+                        headers));
+    }
+
     public static KafkaRecord<Object, Object> sinkRecord(String topic, Object key, Object value) {
         return KafkaRecord.from(
                 new SinkRecord(
