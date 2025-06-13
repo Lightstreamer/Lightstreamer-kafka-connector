@@ -27,6 +27,7 @@ import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -34,16 +35,19 @@ import java.nio.charset.StandardCharsets;
 
 public class HeaderSelectorSupplierTest {
 
-    private static final Headers SAMPLE_HEADERS;
+    private static final Headers SAMPLE_RECORD_HEADERS =
+            new RecordHeaders()
+                    .add("name", "joe".getBytes(StandardCharsets.UTF_8))
+                    .add("signature", "YWJjZA==".getBytes(StandardCharsets.UTF_8))
+                    .add("accountId", "12345".getBytes(StandardCharsets.UTF_8))
+                    .add("accountId", "67890".getBytes(StandardCharsets.UTF_8));
 
-    static {
-        SAMPLE_HEADERS =
-                new RecordHeaders()
-                        .add("name", "joe".getBytes(StandardCharsets.UTF_8))
-                        .add("signature", "YWJjZA==".getBytes(StandardCharsets.UTF_8))
-                        .add("accountId", "12345".getBytes(StandardCharsets.UTF_8))
-                        .add("accountId", "67890".getBytes(StandardCharsets.UTF_8));
-    }
+    private static final org.apache.kafka.connect.header.Headers SAMPLE_CONNECT_HEADERS =
+            new ConnectHeaders()
+                    .addBytes("name", "joe".getBytes(StandardCharsets.UTF_8))
+                    .addBytes("signature", "YWJjZA==".getBytes(StandardCharsets.UTF_8))
+                    .addBytes("accountId", "12345".getBytes(StandardCharsets.UTF_8))
+                    .addBytes("accountId", "67890".getBytes(StandardCharsets.UTF_8));
 
     static GenericSelector headersSelector(ExtractionExpression expression)
             throws ExtractionException {
@@ -64,10 +68,32 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId[0], 12345
                 HEADERS.accountId[1], 67890
                         """)
-    public void shouldExtractHeaders(String expressionStr, String expected)
+    public void shouldExtractRecordHeaders(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_HEADERS);
+                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+        assertThat(headersSelector(Expression(expressionStr)).extract(record).text())
+                .isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,           EXPECTED
+                HEADERS.name,         joe
+                HEADERS[0],           joe
+                HEADERS['name'],      joe
+                HEADERS.signature,    YWJjZA==
+                HEADERS['signature'], YWJjZA==
+                HEADERS.accountId[0], 12345
+                HEADERS.accountId[1], 67890
+                        """)
+    public void shouldExtractConnectHeaders(String expressionStr, String expected)
+            throws ExtractionException {
+        KafkaRecord<Object, Object> record =
+                Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
         assertThat(headersSelector(Expression(expressionStr)).extract(record).text())
                 .isEqualTo(expected);
     }
@@ -87,9 +113,34 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId[0].account, Cannot retrieve field [account] from a scalar object
                 HEADERS['accountId'],         The expression [HEADERS['accountId']] must evaluate to a non-complex object
                             """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+    public void shouldNotExtractRecordHeader(String expressionStr, String errorMessage) {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_HEADERS);
+                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> headersSelector(Expression(expressionStr)).extract(record).text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,                   EXPECTED_ERROR_MESSAGE
+                HEADERS,                      The expression [HEADERS] must evaluate to a non-complex object
+                HEADERS.no_attrib,            Field [no_attrib] not found
+                HEADERS.no_children[0],       Field [no_children] not found
+                HEADERS.name[0],              Field [name] is not indexed
+                HEADERS.name['no_key'],       Cannot retrieve field [no_key] from a scalar object
+                HEADERS.accountId,            The expression [HEADERS.accountId] must evaluate to a non-complex object
+                HEADERS.accountId[0].account, Cannot retrieve field [account] from a scalar object
+                HEADERS['accountId'],         The expression [HEADERS['accountId']] must evaluate to a non-complex object
+                            """)
+    public void shouldNotExtractConnectHeader(String expressionStr, String errorMessage) {
+        KafkaRecord<Object, Object> record =
+                Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -107,10 +158,29 @@ public class HeaderSelectorSupplierTest {
                 HEADERS           | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890}
                 HEADERS.accountId | [12345, 67890]
                         """)
-    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
+    public void shouldExtractRecordHeaderWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_HEADERS);
+                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+
+        assertThat(headersSelector(Expression(expressionStr)).extract(record, false).text())
+                .isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION        | EXPECTED
+                HEADERS           | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890}
+                HEADERS.accountId | [12345, 67890]
+                        """)
+    public void shouldExtractConnectHeaderWithNonScalars(String expressionStr, String expected)
+            throws ExtractionException {
+        KafkaRecord<Object, Object> record =
+                Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
 
         assertThat(headersSelector(Expression(expressionStr)).extract(record, false).text())
                 .isEqualTo(expected);
