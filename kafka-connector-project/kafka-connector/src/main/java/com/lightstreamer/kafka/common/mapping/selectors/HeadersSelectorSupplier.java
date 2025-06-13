@@ -23,13 +23,19 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeader;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector> {
 
-    interface HeaderNode extends Node<HeaderNode> {}
+    interface HeaderNode extends Node<HeaderNode> {
+
+        static String toText(KafkaHeader header) {
+            return new String(header.value(), StandardCharsets.UTF_8);
+        }
+    }
 
     static class SingleHeaderNode implements HeaderNode {
 
@@ -41,7 +47,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
 
         @Override
         public String asText() {
-            return new String(header.value());
+            return HeaderNode.toText(header);
         }
 
         @Override
@@ -76,7 +82,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
         @Override
         public String asText() {
             return headers.stream()
-                    .map(k -> new String(k.value()))
+                    .map(HeaderNode::toText)
                     .collect(Collectors.joining(", ", "[", "]"));
         }
     }
@@ -131,7 +137,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
             Iterator<KafkaHeader> iter = headers.iterator();
             while (iter.hasNext()) {
                 KafkaHeader header = iter.next();
-                sb.append(header.key()).append("=").append(new String(header.value()));
+                sb.append(header.key()).append("=").append(HeaderNode.toText(header));
                 if (iter.hasNext()) {
                     sb.append(", ");
                 }
