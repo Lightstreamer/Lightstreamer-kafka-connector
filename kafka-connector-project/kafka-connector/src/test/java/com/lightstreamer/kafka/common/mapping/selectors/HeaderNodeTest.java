@@ -19,17 +19,28 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.ArrayHeaderNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.HeaderNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.HeadersNode;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaConnectHeaders;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaRecordHeaders;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
 public class HeaderNodeTest {
 
@@ -37,7 +48,7 @@ public class HeaderNodeTest {
     public void shouldCreateHeadersNode() {
         ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
         Headers headers = record.headers();
-        headers.add("key", "value".getBytes(StandardCharsets.UTF_8));
+        headers.add("key", "value".getBytes(UTF_8));
 
         HeadersNode headersNode =
                 new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
@@ -50,17 +61,30 @@ public class HeaderNodeTest {
         assertThat(headersNode.asText()).isEqualTo("{key=value}");
     }
 
-    @Test
-    public void shouldGetArrayNode() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
-        headers.add("key1", "value1ForKey1".getBytes(StandardCharsets.UTF_8));
-        headers.add("key2", "value1ForKey2".getBytes(StandardCharsets.UTF_8));
-        headers.add("key1", "value2ForKey1".getBytes(StandardCharsets.UTF_8));
-        headers.add("key2", "value2ForKey2".getBytes(StandardCharsets.UTF_8));
+    static Stream<Arguments> headersForArrayNode() {
+        return Stream.of(
+                arguments(
+                        new KafkaRecordHeaders(
+                                new RecordHeaders()
+                                        .add("key1", "value1ForKey1".getBytes(UTF_8))
+                                        .add("key2", "value1ForKey2".getBytes(UTF_8))
+                                        .add("key1", "value2ForKey1".getBytes(UTF_8))
+                                        .add("key2", "value2ForKey2".getBytes(UTF_8))),
+                        arguments(
+                                new KafkaConnectHeaders(
+                                        new ConnectHeaders()
+                                                .addBytes("key1", "value1ForKey1".getBytes(UTF_8))
+                                                .addBytes("key2", "value1ForKey2".getBytes(UTF_8))
+                                                .addBytes("key1", "value2ForKey1".getBytes(UTF_8))
+                                                .addBytes(
+                                                        "key2",
+                                                        "value2ForKey2".getBytes(UTF_8))))));
+    }
 
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("headersForArrayNode")
+    public void shouldGetArrayNode(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
         assertThat(headersNode.isArray()).isTrue();
         assertThat(headersNode.isScalar()).isFalse();
         assertThat(headersNode.isNull()).isFalse();
@@ -111,15 +135,26 @@ public class HeaderNodeTest {
         assertThat(singleNode2ForKey2.asText()).isEqualTo("value2ForKey2");
     }
 
-    @Test
-    public void shouldGetNullNodeFromAnyKeyInArrayNode() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
-        headers.add("key1", "value1ForKey1".getBytes(StandardCharsets.UTF_8));
-        headers.add("key1", "value2ForKey1".getBytes(StandardCharsets.UTF_8));
+    static Stream<Arguments> headersForArrayNode2() {
+        return Stream.of(
+                arguments(
+                        new KafkaRecordHeaders(
+                                new RecordHeaders()
+                                        .add("key1", "value1ForKey1".getBytes(UTF_8))
+                                        .add("key1", "value2ForKey1".getBytes(UTF_8))),
+                        arguments(
+                                new KafkaConnectHeaders(
+                                        new ConnectHeaders()
+                                                .addBytes("key1", "value1ForKey1".getBytes(UTF_8))
+                                                .addBytes(
+                                                        "key1",
+                                                        "value2ForKey1".getBytes(UTF_8))))));
+    }
 
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("headersForArrayNode2")
+    public void shouldGetNullNodeFromAnyKeyInArrayNode(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
 
         Node<HeaderNode> arrayNodeForKey1 = headersNode.get("key1");
         Node<HeaderNode> nonExistentNode = arrayNodeForKey1.get("non-existent-key");
@@ -128,13 +163,17 @@ public class HeaderNodeTest {
         assertThat(nonExistentNode.isNull()).isTrue();
     }
 
-    @Test
-    public void shouldGetNullNodeFromNonExistentKeyInHeadersNode() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
+    static Stream<Arguments> emptyHeaders() {
+        return Stream.of(
+                arguments(
+                        new KafkaRecordHeaders(new RecordHeaders()),
+                        arguments(new KafkaConnectHeaders(new ConnectHeaders()))));
+    }
 
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("emptyHeaders")
+    public void shouldGetNullNodeFromNonExistentKeyInHeadersNode(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
 
         Node<HeaderNode> headerNode = headersNode.get("non-existent-key");
         assertThat(headerNode.isArray()).isFalse();
@@ -142,14 +181,21 @@ public class HeaderNodeTest {
         assertThat(headerNode.isNull()).isTrue();
     }
 
-    @Test
-    public void shouldGetSingleNodeFromKey() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
-        headers.add("key", "value".getBytes(StandardCharsets.UTF_8));
+    static Stream<Arguments> simpleHeaders() {
+        return Stream.of(
+                arguments(
+                        new KafkaRecordHeaders(
+                                new RecordHeaders().add("key", "value".getBytes(UTF_8))),
+                        arguments(
+                                new KafkaConnectHeaders(
+                                        new ConnectHeaders()
+                                                .addBytes("key", "value".getBytes(UTF_8))))));
+    }
 
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("simpleHeaders")
+    public void shouldGetSingleNodeFromKey(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
 
         Node<HeaderNode> headerNode = headersNode.get("key");
         assertThat(headerNode.isArray()).isFalse();
@@ -158,14 +204,10 @@ public class HeaderNodeTest {
         assertThat(headerNode.asText()).isEqualTo("value");
     }
 
-    @Test
-    public void shouldGetSingleNodeFromIndex() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
-        headers.add("key", "value".getBytes(StandardCharsets.UTF_8));
-
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("simpleHeaders")
+    public void shouldGetSingleNodeFromIndex(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
 
         Node<HeaderNode> headerNode = headersNode.get(0);
         assertThat(headerNode.isArray()).isFalse();
@@ -174,14 +216,10 @@ public class HeaderNodeTest {
         assertThat(headerNode.asText()).isEqualTo("value");
     }
 
-    @Test
-    public void shouldGetNullNodeFromAnyKeyInSingleHeaderNode() {
-        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-        Headers headers = record.headers();
-        headers.add("key", "value".getBytes(StandardCharsets.UTF_8));
-
-        HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+    @ParameterizedTest
+    @MethodSource("simpleHeaders")
+    public void shouldGetNullNodeFromAnyKeyInSingleHeaderNode(KafkaHeaders headers) {
+        HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode(headers);
         Node<HeaderNode> singleNode = headersNode.get("key");
         Node<HeaderNode> node = singleNode.get("non-existent-property");
         assertThat(node.isNull()).isTrue();
