@@ -1130,6 +1130,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > - An [**object**](https://www.json.org/json-en.html), in the case of JSON format
  > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  > - A [**message**](https://protobuf.dev/programming-guides/proto3/), in the case of Protobuf format
+ > 
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
 - Expressions use the _square notation_ to access both indexed and key-based attributes:
