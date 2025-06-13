@@ -1114,11 +1114,15 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   - `#{OFFSET}`: the offset
   - `#{HEADERS}`: the headers
 
-- Expressions use the _dot notation_ to access attributes or fields of record keys and record values serialized in JSON or Avro formats:
+- Expressions use the _dot notation_ to access the following:
+
+  - Attributes or fields of record keys and record values serialized in JSON, Avro, and Protobuf formats:
+  - Headers
 
   ```js
   KEY.attribute1Name.attribute2Name...
   VALUE.attribute1Name.attribute2Name...
+  HEADERS.key
   ```
 
  > [!IMPORTANT]
@@ -1128,6 +1132,12 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
+   Furthermore, headers can be accessed in a similar wary:
+
+   ```js
+   HEADERS.key
+   ```
+
 - Expressions use the _square notation_ to access:
 
   - Indexed attributes:
@@ -1135,7 +1145,9 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
     ```js
     KEY.attribute1Name[i].attribute2Name...
     VALUE.attribute1Name[i].attribute2Name...
+    HEADERS[i]
     ```
+
     where `i` is a 0-indexed value.
 
   - Key-based attributes:
@@ -1143,15 +1155,22 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
     ```js
     KEY.attribute1Name['keyName'].attribute2Name...
     VALUE.attribute1Name['keyName'].attribute2Name...
+    HEADERS['keyName']
     ```
+
     where `keyName` is a string value.
 
  > [!TIP]
- > For JSON format, accessing a child attribute using either dot notation or square bracket notation is equivalent:
+ > Accessing a child attribute using either dot notation or square bracket notation is equivalent:
  >
  > ```js
  > VALUE.myProperty.myChild.childProperty
  > VALUE.myProperty['myChild'].childProperty
+ > ```
+ >
+ > ```js
+ > HEADERS.myKey
+ > HEADERS.['myKey']
  > ```
 
 - Expressions must evaluate to a _scalar_ value
@@ -1160,6 +1179,15 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 > [!NOTE]
 > When used for mapping records to Lightstreamer fields, this behavior can be disabled by leveraging the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues).
+
+- Headers can be evaluated  in the following ways:
+
+  - By key
+  
+    ```js
+    HEADERS.key
+    VALUE.attribute1Name.attribute2Name...
+  ```
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
