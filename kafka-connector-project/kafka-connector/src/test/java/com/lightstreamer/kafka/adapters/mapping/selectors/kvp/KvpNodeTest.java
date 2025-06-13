@@ -57,8 +57,8 @@ public class KvpNodeTest {
         assertThat(key1Value.isArray()).isFalse();
         assertThat(key1Value.isNull()).isFalse();
         assertThat(key1Value.has("anyProp")).isFalse();
-        assertThat(key1Value.get("anyProp")).isNull();
-        assertThat(key1Value.get(3)).isNull();
+        assertThat(key1Value.get("anyProp").isNull()).isTrue();
+        assertThat(key1Value.get(3).isNull()).isTrue();
         assertThat(key1Value.asText()).isEqualTo("value1");
 
         assertThat(kvpMap.has("key2")).isTrue();
@@ -69,8 +69,8 @@ public class KvpNodeTest {
         assertThat(key2Value.isArray()).isFalse();
         assertThat(key2Value.isNull()).isFalse();
         assertThat(key2Value.has("anyProp")).isFalse();
-        assertThat(key2Value.get("anyProp")).isNull();
-        assertThat(key2Value.get(3)).isNull();
+        assertThat(key2Value.get("anyProp").isNull()).isTrue();
+        assertThat(key2Value.get(3).isNull()).isTrue();
         assertThat(key2Value.asText()).isEqualTo("value2");
 
         assertThat(kvpMap.has("key3")).isFalse();

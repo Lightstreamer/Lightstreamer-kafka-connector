@@ -35,7 +35,8 @@ public enum Constant implements ExtractionExpression {
     TIMESTAMP,
     PARTITION,
     OFFSET,
-    TOPIC;
+    TOPIC,
+    HEADERS(true);
 
     private static final Map<String, Constant> NAME_CACHE;
 
@@ -49,7 +50,19 @@ public enum Constant implements ExtractionExpression {
                     .collect(Collectors.joining("|"));
 
     public static Constant from(String name) {
-        return NAME_CACHE.get(name);
+        boolean indexed = false;
+        if (name.endsWith("]") && name.contains("[")) {
+            indexed = true;
+            // Handle indexed constants like "KEY[0]"
+            name = name.substring(0, name.indexOf('['));
+        }
+        Constant constant = NAME_CACHE.get(name);
+        if (constant != null) {
+            if (!constant.allowIndex() && indexed) {
+                constant = null;
+            }
+        }
+        return constant;
     }
 
     static Set<Constant> all() {
@@ -57,9 +70,15 @@ public enum Constant implements ExtractionExpression {
     }
 
     private final String tokens[] = new String[1];
+    private final boolean allowIndex;
+
+    Constant(boolean allowIndex) {
+        this.allowIndex = allowIndex;
+        Arrays.fill(tokens, toString());
+    }
 
     Constant() {
-        Arrays.fill(tokens, toString());
+        this(false);
     }
 
     @Override
@@ -75,5 +94,9 @@ public enum Constant implements ExtractionExpression {
     @Override
     public String expression() {
         return toString();
+    }
+
+    public boolean allowIndex() {
+        return allowIndex;
     }
 }

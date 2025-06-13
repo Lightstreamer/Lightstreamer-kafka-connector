@@ -39,7 +39,15 @@ import java.util.Map;
 public class FieldConfigsTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"#{VALUE}", "#{OFFSET}", "#{PARTITION}", "#{OFFSET}", "#{TOPIC}"})
+    @ValueSource(
+            strings = {
+                "#{VALUE}",
+                "#{OFFSET}",
+                "#{PARTITION}",
+                "#{OFFSET}",
+                "#{TOPIC}",
+                "#{HEADERS}"
+            })
     void shouldCreateAndMakeExtractor(String expression) throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
@@ -80,7 +88,8 @@ public class FieldConfigsTest {
                 "#{OFFSET}",
                 "#{PARTITION}",
                 "#{OFFSET}",
-                "#{TOPIC}"
+                "#{TOPIC}",
+                "#{HEADERS}"
             })
     void shouldCreateAndMakeExtractorForComplexSupplier(String expression)
             throws ExtractionException {
@@ -121,6 +130,6 @@ public class FieldConfigsTest {
                 .isEqualTo(
                         "Found the invalid expression ["
                                 + fieldExpression
-                                + "] while evaluating [field1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]>");
+                                + "] while evaluating [field1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>");
     }
 }

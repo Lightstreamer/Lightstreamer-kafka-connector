@@ -90,10 +90,12 @@ public class Expressions {
     }
 
     private static final String SELECTION_REGEX = "\\#\\{(.+)\\}";
+    private static final String INDEX_REGEX = "\\[(.*)\\]";
 
     private static Pattern TEMPLATE_GLOBAL =
             Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$");
-    private static Pattern SUBSCRIBED_GLOBAL = Pattern.compile("([a-zA-Z0-9_-]+)(-\\[(.*)\\])?");
+    private static Pattern SUBSCRIBED_GLOBAL =
+            Pattern.compile("([a-zA-Z0-9_-]+)(-" + INDEX_REGEX + ")?");
     private static Pattern PARAM = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
     private static Pattern FIELD = Pattern.compile(SELECTION_REGEX);
 

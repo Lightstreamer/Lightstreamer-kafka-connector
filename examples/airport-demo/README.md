@@ -20,7 +20,7 @@ The web client, contained in the folder [`client/web`](client/web/) uses the [We
 ### [![](http://demos.lightstreamer.com/site/img/play.png) View live demo](https://demos.lightstreamer.com/AirportDemo/)
 
 The demo basically executes a single [Subscription](https://lightstreamer.com/api/ls-web-client/latest/Subscription.html) with a item subscribed to in **COMMAND** mode feeding a [DynaGrid](https://lightstreamer.com/api/ls-web-client/latest/DynaGrid.html) with the current list and status of the next departing flights (according to the simulated time).
-The subdcribed item is:
+The subscribed item is:
 ```javascript
 itemsList = [ "flights-board" ];
 ```

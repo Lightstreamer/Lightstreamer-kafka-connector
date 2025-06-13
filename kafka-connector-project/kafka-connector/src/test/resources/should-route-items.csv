@@ -15,6 +15,10 @@ complex-item-#{keyName=KEY.name,child=VALUE.children[1].children[1].name}      |
 complex-item-#{keyName=KEY.name,child=VALUE.children[1].children[1].name}      | complex-item-[keyName=joe,child=carol]         | true              | false
 complex-item-#{child=VALUE.children[1].children[1].name}                       | complex-item-[keyName=joe,child=terence]       | false             | false
 complex-item-#{child=VALUE.children[1].children[1].name}                       | complex-item-[child=terence]                   | true              | true
+complex-item-#{header=HEADERS.header-key1}                                     | complex-item-[header=header-value1]            | true              | true
+complex-item-#{header=HEADERS['header-key1']}                                  | complex-item-[header=header-value1]            | true              | true
+complex-item-#{header=HEADERS[1]}                                              | complex-item-[header=header-value]             | true              | false
+complex-item-#{header=HEADERS[1]}                                              | complex-item-[header=header-value2]            | true              | true
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[ts=-1]                                   | false             | false
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[partition=150]                           | false             | false
 item-#{ts=TIMESTAMP,partition=PARTITION}                                       | item-[partition=150,ts=-1]                     | true              | true

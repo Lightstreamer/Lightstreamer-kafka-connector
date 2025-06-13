@@ -73,6 +73,9 @@ class DataExtractorSupport {
             for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
                 this.extractors.add(record -> constantSelector.extract(record));
             }
+            for (GenericSelector headerSelector : wrapperSelectors.headersSelectors()) {
+                this.extractors.add(record -> headerSelector.extract(record));
+            }
         }
 
         @Override
@@ -128,10 +131,12 @@ class DataExtractorSupport {
                     wrapperSelectors.valueSelectors().stream().map(Selector::name);
             Stream<String> metaNames =
                     wrapperSelectors.metaSelectors().stream().map(Selector::name);
+            Stream<String> headerNames =
+                    wrapperSelectors.headersSelectors().stream().map(Selector::name);
 
             return Schema.from(
                     schemaName,
-                    Stream.of(metaNames, keyNames, valueNames)
+                    Stream.of(metaNames, keyNames, valueNames, headerNames)
                             .flatMap(Function.identity())
                             .collect(Collectors.toSet()));
         }
@@ -142,8 +147,8 @@ class DataExtractorSupport {
         private final Set<T> selectors;
         private final SelectorSupplier<T> selectorSupplier;
 
-        Appender(Set<T> set, SelectorSupplier<T> selectorSupplier) {
-            this.selectors = set;
+        Appender(Set<T> selectors, SelectorSupplier<T> selectorSupplier) {
+            this.selectors = selectors;
             this.selectorSupplier = selectorSupplier;
         }
 
@@ -158,10 +163,11 @@ class DataExtractorSupport {
     private static record WrapperSelectors<K, V>(
             Set<KeySelector<K>> keySelectors,
             Set<ValueSelector<V>> valueSelectors,
-            Set<ConstantSelector> metaSelectors) {
+            Set<ConstantSelector> metaSelectors,
+            Set<GenericSelector> headersSelectors) {
 
         WrapperSelectors() {
-            this(new HashSet<>(), new HashSet<>(), new HashSet<>());
+            this(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
         }
     }
 
@@ -183,6 +189,8 @@ class DataExtractorSupport {
                                 Constant.PARTITION,
                                 Constant.TIMESTAMP,
                                 Constant.TOPIC));
+        Appender<GenericSelector> hFiller =
+                new Appender<>(ws.headersSelectors(), new HeadersSelectorSupplier());
 
         for (Map.Entry<String, ExtractionExpression> boundExpression : expressions.entrySet()) {
             Constant root = boundExpression.getValue().constant();
@@ -190,6 +198,7 @@ class DataExtractorSupport {
                     switch (root) {
                         case KEY -> kFiller;
                         case VALUE -> vFiller;
+                        case HEADERS -> hFiller;
                         default -> mFiller;
                     };
             filler.append(boundExpression.getKey(), boundExpression.getValue());

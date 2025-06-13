@@ -44,6 +44,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Test;
 
@@ -161,7 +162,9 @@ public class RecordMapperTest {
                                                 "keyField",
                                                 Wrapped("#{KEY}"),
                                                 "valueField",
-                                                Wrapped("#{VALUE}")),
+                                                Wrapped("#{VALUE}"),
+                                                "headerValue",
+                                                Wrapped("#{HEADERS.header-key1}")),
                                         false,
                                         false))
                         .build();
@@ -169,7 +172,12 @@ public class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
 
         // Record published to topic "topic": mapping
-        KafkaRecord<String, String> kafkaRecord1 = Records.record(TEST_TOPIC_1, "aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord1 =
+                Records.recordWithHeaders(
+                        TEST_TOPIC_1,
+                        "aKey",
+                        "aValue",
+                        new RecordHeaders().add("header-key1", "header-value1".getBytes()));
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
         Set<SchemaAndValues> expandedFromTestsTopic = mappedRecord1.expanded();
         assertThat(expandedFromTestsTopic)
@@ -179,17 +187,28 @@ public class RecordMapperTest {
                         SchemaAndValues.from("prefix2", Map.of("topic", TEST_TOPIC_1)),
                         SchemaAndValues.from("prefix3", Map.of("key", "aKey")));
         assertThat(mappedRecord1.fieldsMap())
-                .containsExactly("keyField", "aKey", "valueField", "aValue");
+                .containsExactly(
+                        "keyField", "aKey", "valueField", "aValue", "headerValue", "header-value1");
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, String> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "anotherKey", "anotherValue");
+                Records.recordWithHeaders(
+                        TEST_TOPIC_2,
+                        "anotherKey",
+                        "anotherValue",
+                        new RecordHeaders().add("header-key1", "header-value1".getBytes()));
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         Set<SchemaAndValues> expandedFromAnotherTopic = mappedRecord2.expanded();
         assertThat(expandedFromAnotherTopic)
                 .containsExactly(SchemaAndValues.from("prefix3", Map.of("value", "anotherValue")));
         assertThat(mappedRecord2.fieldsMap())
-                .containsExactly("keyField", "anotherKey", "valueField", "anotherValue");
+                .containsExactly(
+                        "keyField",
+                        "anotherKey",
+                        "valueField",
+                        "anotherValue",
+                        "headerValue",
+                        "header-value1");
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, String> kafkaRecord3 =
@@ -200,7 +219,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldMapRecordWithMatchingPattern() throws ExtractionException {
+    public void shouldMapRecordWithMatchingTopicPattern() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .withTemplateExtractor(

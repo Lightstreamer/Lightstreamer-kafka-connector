@@ -72,7 +72,9 @@ public class ExpressionsTest {
                 arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
                 arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
                 arguments(
-                        "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")));
+                        "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments(
+                        "HEADERS['attrib']", Constant.HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
@@ -93,7 +95,8 @@ public class ExpressionsTest {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
-                .isEqualTo("Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]");
+                .isEqualTo(
+                        "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
     }
 
     @ParameterizedTest
@@ -170,10 +173,11 @@ public class ExpressionsTest {
                 item-                               $ Invalid template expression
                 prefix-#                            $ Invalid template expression
                 prefix-#{}                          $ Invalid template expression
-                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                 template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
                 template-#{name=VALUE,par}          $ Invalid template expression
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
+                template-#{name=VALUE[1]}           $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                     """)
     void shouldNotCreateTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
@@ -232,7 +236,7 @@ public class ExpressionsTest {
             textBlock =
                     """
                 EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
-                                                        $ Invalid Item
+                                                    $ Invalid Item
                 ''                                 $ Invalid Item
                 template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
                     """)
@@ -249,8 +253,16 @@ public class ExpressionsTest {
                 arguments("#{TIMESTAMP}", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
                 arguments("#{PARTITION}", Constant.PARTITION, Arrays.asList("PARTITION")),
                 arguments("#{KEY}", Constant.KEY, Arrays.asList("KEY")),
+                arguments("#{VALUE.attrib}", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("#{HEADERS}", Constant.HEADERS, Arrays.asList("HEADERS")),
                 arguments(
-                        "#{VALUE.attrib}", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")));
+                        "#{HEADERS.attrib}",
+                        Constant.HEADERS,
+                        Arrays.asList("HEADERS", ".", "attrib")),
+                arguments(
+                        "#{HEADERS['attrib']}",
+                        Constant.HEADERS,
+                        Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
@@ -273,7 +285,8 @@ public class ExpressionsTest {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
         assertThat(ee.getMessage())
-                .isEqualTo("Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]");
+                .isEqualTo(
+                        "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
     }
 
     @ParameterizedTest

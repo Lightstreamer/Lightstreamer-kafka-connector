@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2024 Lightstreamer Srl
+ * Copyright (C) 2025 Lightstreamer Srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,5 +17,11 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-public interface ConstantSelector
-        extends GenericSelector, KeySelector<Object>, ValueSelector<Object> {}
+public interface GenericSelector extends Selector {
+
+    default Data extract(KafkaRecord<?, ?> record) throws ValueException {
+        return extract(record, true);
+    }
+
+    Data extract(KafkaRecord<?, ?> record, boolean checkScalar);
+}

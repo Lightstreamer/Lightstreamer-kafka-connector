@@ -101,36 +101,6 @@ public class DynamicMessageSelectorSuppliers
      */
     interface ProtobufNode extends Node<ProtobufNode> {
 
-        default boolean has(String propertyname) {
-            return false;
-        }
-
-        default ProtobufNode get(String propertyname) {
-            return null;
-        }
-
-        default boolean isArray() {
-            return false;
-        }
-
-        default int size() {
-            return 0;
-        }
-
-        default ProtobufNode get(int index) {
-            return null;
-        }
-
-        default boolean isNull() {
-            return false;
-        }
-
-        default boolean isScalar() {
-            return false;
-        }
-
-        String asText();
-
         /**
          * Creates a new {@link ProtobufNode} instance based on the provided value and field
          * descriptor.
@@ -371,8 +341,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            MessageWrapperNode node = new MessageWrapperNode(record.key());
-            return super.eval(node, checkScalar);
+            return super.eval(new MessageWrapperNode(record.key()), checkScalar);
         }
     }
 
@@ -429,8 +398,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            MessageWrapperNode node = new MessageWrapperNode(record.value());
-            return super.eval(node, checkScalar);
+            return super.eval(new MessageWrapperNode(record.value()), checkScalar);
         }
     }
 

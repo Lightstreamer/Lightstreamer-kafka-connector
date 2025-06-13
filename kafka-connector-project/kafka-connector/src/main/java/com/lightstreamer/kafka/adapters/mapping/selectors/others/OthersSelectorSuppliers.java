@@ -51,7 +51,25 @@ import java.util.EnumMap;
 public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
     private static class BaseOthersSelectorSupplier<T> {
-        protected final Deserializer<T> deserializer;
+
+        private static EnumMap<EvaluatorType, Deserializer<?>> DESERIALIZERS =
+                new EnumMap<>(EvaluatorType.class);
+
+        static {
+            DESERIALIZERS.put(EvaluatorType.STRING, new StringDeserializer());
+            DESERIALIZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
+            DESERIALIZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
+            DESERIALIZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
+            DESERIALIZERS.put(EvaluatorType.BYTE_BUFFER, new ByteBufferDeserializer());
+            DESERIALIZERS.put(EvaluatorType.BYTES, new BytesDeserializer());
+            DESERIALIZERS.put(EvaluatorType.DOUBLE, new DoubleDeserializer());
+            DESERIALIZERS.put(EvaluatorType.FLOAT, new FloatDeserializer());
+            DESERIALIZERS.put(EvaluatorType.LONG, new LongDeserializer());
+            DESERIALIZERS.put(EvaluatorType.SHORT, new ShortDeserializer());
+            DESERIALIZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
+        }
+
+        private final Deserializer<T> deserializer;
 
         @SuppressWarnings("unchecked")
         BaseOthersSelectorSupplier(EvaluatorType type, Class<T> klass, Constant constant) {
@@ -99,37 +117,12 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         }
     }
 
-    private static EnumMap<EvaluatorType, Deserializer<?>> DESERIALIZERS =
-            new EnumMap<>(EvaluatorType.class);
-
-    static {
-        DESERIALIZERS.put(EvaluatorType.STRING, new StringDeserializer());
-        DESERIALIZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
-        DESERIALIZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
-        DESERIALIZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
-        DESERIALIZERS.put(EvaluatorType.BYTE_BUFFER, new ByteBufferDeserializer());
-        DESERIALIZERS.put(EvaluatorType.BYTES, new BytesDeserializer());
-        DESERIALIZERS.put(EvaluatorType.DOUBLE, new DoubleDeserializer());
-        DESERIALIZERS.put(EvaluatorType.FLOAT, new FloatDeserializer());
-        DESERIALIZERS.put(EvaluatorType.LONG, new LongDeserializer());
-        DESERIALIZERS.put(EvaluatorType.SHORT, new ShortDeserializer());
-        DESERIALIZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
-    }
-
     private final EvaluatorType keyEvaluatorType;
     private final EvaluatorType valueEvaluatorType;
 
     public OthersSelectorSuppliers(ConnectorConfig config) {
-        this(config.getKeyEvaluator(), config.getValueEvaluator());
-    }
-
-    public OthersSelectorSuppliers(EvaluatorType keyValueType) {
-        this(keyValueType, keyValueType);
-    }
-
-    public OthersSelectorSuppliers(EvaluatorType keyType, EvaluatorType valueType) {
-        this.keyEvaluatorType = keyType;
-        this.valueEvaluatorType = valueType;
+        this.keyEvaluatorType = config.getKeyEvaluator();
+        this.valueEvaluatorType = config.getValueEvaluator();
     }
 
     public EvaluatorType keyEvaluatorType() {

@@ -123,8 +123,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public Data extractKey(KafkaRecord<JsonNode, ?> record, boolean checkScalar)
                 throws ValueException {
-            JsonNodeNode node = new JsonNodeNode(record.key());
-            return super.eval(node, checkScalar);
+            return super.eval(new JsonNodeNode(record.key()), checkScalar);
         }
     }
 
@@ -163,8 +162,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public Data extractValue(KafkaRecord<?, JsonNode> record, boolean checkScalar)
                 throws ValueException {
-            JsonNodeNode node = new JsonNodeNode(record.value());
-            return super.eval(node, checkScalar);
+            return super.eval(new JsonNodeNode(record.value()), checkScalar);
         }
     }
 

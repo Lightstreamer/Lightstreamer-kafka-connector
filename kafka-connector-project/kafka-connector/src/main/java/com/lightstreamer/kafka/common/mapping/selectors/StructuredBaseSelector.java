@@ -124,10 +124,10 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
     }
 
     protected final Data eval(Node<T> node, boolean checkScalar) {
-        LinkedNodeEvaluator<T> currentEvaluator = evaluator;
-        while (currentEvaluator != null) {
-            node = currentEvaluator.current().eval(node);
-            currentEvaluator = currentEvaluator.next();
+        LinkedNodeEvaluator<T> current = evaluator;
+        while (current != null) {
+            node = current.eval(node);
+            current = current.next();
         }
 
         if (checkScalar && !node.isScalar()) {

@@ -33,10 +33,10 @@ import org.junit.jupiter.api.Test;
 
 class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
 
-    private Deserializer<T> deseralizer;
+    private Deserializer<T> deserializer;
 
     KeySelectorSupplierImpl(Deserializer<T> deserializer) {
-        this.deseralizer = deserializer;
+        this.deserializer = deserializer;
     }
 
     @Override
@@ -47,16 +47,16 @@ class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
 
     @Override
     public Deserializer<T> deserializer() {
-        return deseralizer;
+        return deserializer;
     }
 }
 
 class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
 
-    private Deserializer<T> deseralizer;
+    private Deserializer<T> deserializer;
 
     ValueSelectorSupplierImpl(Deserializer<T> deserializer) {
-        this.deseralizer = deserializer;
+        this.deserializer = deserializer;
     }
 
     @Override
@@ -67,7 +67,7 @@ class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
 
     @Override
     public Deserializer<T> deserializer() {
-        return deseralizer;
+        return deserializer;
     }
 }
 
