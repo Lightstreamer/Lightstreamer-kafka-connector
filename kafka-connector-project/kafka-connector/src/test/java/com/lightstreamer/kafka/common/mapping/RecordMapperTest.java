@@ -200,7 +200,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldMapRecordWithMatchingPattern() throws ExtractionException {
+    public void shouldMapRecordWithMatchingTopicPattern() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .withTemplateExtractor(
