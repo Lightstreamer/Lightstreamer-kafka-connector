@@ -40,6 +40,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,15 +62,54 @@ public class Items {
     }
 
     /**
-     * Represents a collection of {@link SubscribedItem} objects that can be iterated over. This
-     * interface extends {@link Iterable}, allowing for iteration through the subscribed items.
+     * Represents a collection of subscribed items.
      *
-     * <p>Provides a static factory method {@code of} to create an instance of {@code
-     * SubscribedItems} from a given {@link Collection} of {@link SubscribedItem}.
+     * <p>This interface extends {@link Iterable} to allow iterating over the contained {@link
+     * SubscribedItem} elements. It also provides factory methods to create instances from
+     * collections or to obtain a no-operation implementation. through a collection of {@link
+     * SubscribedItem} objects.
+     *
+     * @see SubscribedItem
      */
     public interface SubscribedItems extends Iterable<SubscribedItem> {
+
         static SubscribedItems of(Collection<SubscribedItem> items) {
             return () -> items.iterator();
+        }
+
+        /**
+         * Returns a no-operation implementation of the {@link SubscribedItems} interface.
+         *
+         * @return a singleton instance of a no-operation {@link SubscribedItems} implementation
+         */
+        static SubscribedItems nop() {
+            return NopSubscribedItems.NOP_SUBSCRIBED_ITEMS;
+        }
+
+        /**
+         * Determines if this mapping represents a no-operation (NOP) mapping.
+         *
+         * @return {@code false} as the default implementation indicates this is not a NOP mapping
+         */
+        public default boolean isNop() {
+            return false;
+        }
+    }
+
+    private static class NopSubscribedItems implements SubscribedItems {
+
+        private static final NopSubscribedItems NOP_SUBSCRIBED_ITEMS = new NopSubscribedItems();
+
+        NopSubscribedItems() {}
+
+        @Override
+        public boolean isNop() {
+            return true;
+        }
+
+        @Override
+        public Iterator<SubscribedItem> iterator() {
+            return Collections.emptyIterator();
         }
     }
 
@@ -190,6 +230,49 @@ public class Items {
         }
     }
 
+    private static class AutoSubscribedItem implements SubscribedItem {
+
+        private final SchemaAndValues schemaAndValues;
+
+        AutoSubscribedItem(SchemaAndValues schemaAndValues) {
+            this.schemaAndValues = schemaAndValues;
+        }
+
+        @Override
+        public Schema schema() {
+            return schemaAndValues.schema();
+        }
+
+        @Override
+        public Map<String, String> values() {
+            return schemaAndValues.values();
+        }
+
+        @Override
+        public Object itemHandle() {
+            return null;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return false;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {}
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(schemaAndValues);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            return obj instanceof SchemaAndValues other && Objects.equals(schemaAndValues, other);
+        }
+    }
+
     private static class ItemTemplate<K, V> {
 
         private final Schema schema;
@@ -282,25 +365,6 @@ public class Items {
         }
     }
 
-    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return subscribedFrom(input, input);
-    }
-
-    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
-            throws ExpressionException {
-        SubscriptionExpression result = Expressions.Subscription(input);
-        return subscribedFrom(itemHandle, result.prefix(), result.params());
-    }
-
-    public static SubscribedItem subscribedFrom(
-            Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultSubscribedItem(itemHandle, prefix, values);
-    }
-
-    public static Item itemFrom(String prefix, Map<String, String> values) {
-        return new DefaultItem(prefix, values);
-    }
-
     public static <K, V> ItemTemplates<K, V> templatesFrom(
             TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
@@ -315,6 +379,26 @@ public class Items {
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
+    }
+
+    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
+        return subscribedFrom(input, input);
+    }
+
+    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
+            throws ExpressionException {
+        SubscriptionExpression result = Expressions.Subscription(input);
+        return subscribedFrom(itemHandle, result.prefix(), result.params());
+    }
+
+    public static SubscribedItem subscribedFrom(SchemaAndValues schemaAndValues)
+            throws ExpressionException {
+        return new AutoSubscribedItem(schemaAndValues);
+    }
+
+    static SubscribedItem subscribedFrom(
+            Object itemHandle, String prefix, Map<String, String> values) {
+        return new DefaultSubscribedItem(itemHandle, prefix, values);
     }
 
     private Items() {}
