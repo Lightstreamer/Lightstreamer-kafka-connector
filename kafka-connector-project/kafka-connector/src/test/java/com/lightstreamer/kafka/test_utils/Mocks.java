@@ -18,6 +18,8 @@
 package com.lightstreamer.kafka.test_utils;
 
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
+import static com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs.empty;
+import static com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig.fromDelimitedMappings;
 
 import com.lightstreamer.interfaces.data.DiffAlgorithm;
 import com.lightstreamer.interfaces.data.IndexedItemEvent;
@@ -98,29 +100,37 @@ public class Mocks {
         private final int numOfThreads;
         private final RecordConsumeWithOrderStrategy orderStrategy;
         private final RecordErrorHandlingStrategy errorHandlingStrategy;
+        private final boolean consumeAtConnectorStartup;
 
-        public MockTriggerConfig(TopicConfigurations topicsConfig) {
-            this(
+        public static MockTriggerConfig create(
+                String topic,
+                String items,
+                boolean enforceCommandMode,
+                boolean consumeAtConnectionStartUp) {
+            TopicConfigurations topicsConfig =
+                    TopicConfigurations.of(empty(), List.of(fromDelimitedMappings(topic, items)));
+            return new MockTriggerConfig(
                     topicsConfig,
                     new Properties(),
-                    false,
-                    RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                    enforceCommandMode,
                     1,
-                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
+                    consumeAtConnectionStartUp);
         }
 
         public MockTriggerConfig(
                 TopicConfigurations topicsConfig,
                 Properties properties,
                 boolean enforceCommandMode,
-                int numOfThreads) {
+                int numOfThreads,
+                boolean consumeAtConnectionStartUp) {
             this(
                     topicsConfig,
                     properties,
                     enforceCommandMode,
                     RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                     numOfThreads,
-                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
+                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
+                    consumeAtConnectionStartUp);
         }
 
         public MockTriggerConfig(
@@ -129,13 +139,15 @@ public class Mocks {
                 boolean enforceCommandMode,
                 RecordErrorHandlingStrategy errorHandlingStrategy,
                 int numOfThreads,
-                RecordConsumeWithOrderStrategy orderStrategy) {
+                RecordConsumeWithOrderStrategy orderStrategy,
+                boolean consumeAtConnectionStartUp) {
             this.topicsConfig = topicsConfig;
             this.consumerProperties = properties;
             this.enforceCommandMode = enforceCommandMode;
             this.errorHandlingStrategy = errorHandlingStrategy;
             this.numOfThreads = numOfThreads;
             this.orderStrategy = orderStrategy;
+            this.consumeAtConnectorStartup = consumeAtConnectionStartUp;
         }
 
         @Override
@@ -196,6 +208,11 @@ public class Mocks {
         @Override
         public boolean isCommandEnforceEnabled() {
             return enforceCommandMode;
+        }
+
+        @Override
+        public boolean consumeAtConnectorStartup() {
+            return consumeAtConnectorStartup;
         }
     }
 
@@ -382,15 +399,28 @@ public class Mocks {
 
         private List<ConsumedRecordInfo> offsetTriggeringExceptions;
         private RuntimeException e;
+        private boolean allowConcurrentProcessing;
+
+        public MockRecordProcessor(
+                RuntimeException e,
+                List<ConsumedRecordInfo> offsetTriggeringExceptions,
+                boolean allowConcurrentProcessing) {
+            this.e = e;
+            this.offsetTriggeringExceptions = offsetTriggeringExceptions;
+            this.allowConcurrentProcessing = allowConcurrentProcessing;
+        }
 
         public MockRecordProcessor(
                 RuntimeException e, List<ConsumedRecordInfo> offsetTriggeringExceptions) {
-            this.e = e;
-            this.offsetTriggeringExceptions = offsetTriggeringExceptions;
+            this(e, offsetTriggeringExceptions, true);
+        }
+
+        public MockRecordProcessor(boolean allowConcurrentProcessing) {
+            this(null, Collections.emptyList(), allowConcurrentProcessing);
         }
 
         public MockRecordProcessor() {
-            this(null, Collections.emptyList());
+            this(null, Collections.emptyList(), true);
         }
 
         @Override
@@ -406,31 +436,55 @@ public class Mocks {
 
         @Override
         public void useLogger(Logger logger) {}
+
+        @Override
+        public boolean allowConcurrentProcessing() {
+            return allowConcurrentProcessing;
+        }
     }
 
     public static class MockItemEventListener implements ItemEventListener {
 
-        private static BiConsumer<Map<String, String>, Boolean> NOPConsumer = (m, s) -> {};
+        public static BiConsumer<Map<String, String>, Boolean> NOPConsumer = (m, s) -> {};
 
-        private BiConsumer<Map<String, String>, Boolean> consumer;
+        private final BiConsumer<Map<String, String>, Boolean> consumer;
+        private final BiConsumer<Map<String, String>, Boolean> legacyConsumer;
 
         boolean smartClearSnapshotCalled = false;
         boolean smartEndOfSnapshotCalled = false;
 
-        public MockItemEventListener(BiConsumer<Map<String, String>, Boolean> consumer) {
-            this.consumer = consumer;
+        boolean legacyClearSnapshotCalled = false;
+        boolean legacyEndOfSnapshotCalled = false;
+
+        public MockItemEventListener(BiConsumer<Map<String, String>, Boolean> smartConsumer) {
+            this(smartConsumer, NOPConsumer);
+        }
+
+        public MockItemEventListener(
+                BiConsumer<Map<String, String>, Boolean> smartConsumer,
+                BiConsumer<Map<String, String>, Boolean> legacyConsumer) {
+            this.consumer = smartConsumer;
+            this.legacyConsumer = legacyConsumer;
         }
 
         public MockItemEventListener() {
-            this(NOPConsumer);
+            this(NOPConsumer, NOPConsumer);
         }
 
         public boolean smartClearSnapshotCalled() {
             return smartClearSnapshotCalled;
         }
 
+        public boolean legacyEndOfSnapshotCalled() {
+            return legacyEndOfSnapshotCalled;
+        }
+
         public boolean smartEndOfSnapshotCalled() {
             return smartEndOfSnapshotCalled;
+        }
+
+        public boolean legacyClearSnapshotCalled() {
+            return legacyClearSnapshotCalled;
         }
 
         @Override
@@ -445,7 +499,7 @@ public class Mocks {
 
         @Override
         public void update(String itemName, Map event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
+            legacyConsumer.accept(event, isSnapshot);
         }
 
         @Override
@@ -475,7 +529,7 @@ public class Mocks {
 
         @Override
         public void endOfSnapshot(String itemName) {
-            throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
+            this.legacyEndOfSnapshotCalled = true;
         }
 
         @Override
@@ -485,7 +539,7 @@ public class Mocks {
 
         @Override
         public void clearSnapshot(String itemName) {
-            throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
+            this.legacyClearSnapshotCalled = true;
         }
 
         @Override
