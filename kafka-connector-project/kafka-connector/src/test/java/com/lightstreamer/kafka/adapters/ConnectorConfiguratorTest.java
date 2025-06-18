@@ -205,6 +205,8 @@ public class ConnectorConfiguratorTest {
         assertThat(concurrency.orderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
         assertThat(concurrency.isParallel()).isFalse();
+
+        assertThat(consumerTriggerConfig.consumeAtConnectorStartup()).isFalse();
     }
 
     @ParameterizedTest
@@ -224,6 +226,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, "UNORDERED");
         updatedConfigs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
         updatedConfigs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP, "true");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
@@ -258,6 +261,8 @@ public class ConnectorConfiguratorTest {
         assertThat(concurrency.threads()).isEqualTo(threads);
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
         assertThat(concurrency.isParallel()).isTrue();
+
+        assertThat(config.consumeAtConnectorStartup()).isTrue();
     }
 
     @Test
