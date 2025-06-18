@@ -44,7 +44,7 @@ public class MappedRecordTest {
         assertThat(record.fieldsMap()).containsExactly("field1", "value1");
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[{key=aKey}], fieldsMap=(fields-<{field1=value1}>)]");
+                        "MappedRecord [expandedTemplates=[schema-<key=aKey>], fieldsMap=fields-<field1=value1>]");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class MappedRecordTest {
                 .containsExactly("field1", "value1", "field2", "value2", "field3", null);
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[{key=aKey}, {}, {value=aValue, partition=aPartition}], fieldsMap=(fields-<{field1=value1, field2=value2, field3=null}>)]");
+                        "MappedRecord [expandedTemplates=[schema1-<key=aKey>, schema2, schema3-<partition=aPartition,value=aValue>], fieldsMap=fields-<field1=value1,field2=value2,field3=null>]");
     }
 
     @Test
@@ -85,7 +85,7 @@ public class MappedRecordTest {
         assertThat(DefaultMappedRecord.NOPRecord.expanded()).isEmpty();
         assertThat(DefaultMappedRecord.NOPRecord.fieldsMap()).isEmpty();
         assertThat(DefaultMappedRecord.NOPRecord.toString())
-                .isEqualTo("MappedRecord [expandedTemplates=[], fieldsMap=(NOSCHEMA-<{}>)]");
+                .isEqualTo("MappedRecord [expandedTemplates=[], fieldsMap=NOSCHEMA]");
     }
 
     @Test
