@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,9 +43,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * The RecordMapper interface provides a mechanism for mapping Kafka records into a structured
- * format that can be processed and routed to Lightstreamer clients. It defines methods for
- * extracting data, mapping records, and managing extractors for topic subscriptions.
+ * The {@code RecordMapper} interface provides a mechanism for mapping Kafka records into a
+ * structured format that can be processed and routed to Lightstreamer clients. It defines methods
+ * for extracting data, mapping records, and managing extractors for topic subscriptions.
  *
  * @param <K> the type of the key in the Kafka record
  * @param <V> the type of the value in the Kafka record
@@ -81,13 +80,21 @@ public interface RecordMapper<K, V> {
         Map<String, String> fieldsMap();
 
         /**
-         * Determines the set of subscribed items that match the current records' value to be routed
+         * Determines the set of subscribed items that match the current record's value to be routed
          * to the Lightstreamer clients.
          *
          * @param subscribed the set of subscribed items to be checked against the record
-         * @return a set of subscribed items that match the record's value
+         * @return a set of subscribed items that match the record's data
          */
         Set<SubscribedItem> route(SubscribedItems subscribed);
+
+        /**
+         * Returns all items that can be derived from the record, regardless of whether they match
+         * any specific subscription.
+         *
+         * @return a set of all subscribed items that can be derived from the record's value
+         */
+        Set<SubscribedItem> routeAll();
     }
 
     Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
@@ -267,20 +274,21 @@ final class DefaultMappedRecord implements MappedRecord {
     static final DefaultMappedRecord NOPRecord = new DefaultMappedRecord();
 
     private final SchemaAndValues fieldsMap;
-    private final SchemaAndValues[] indexedTemplates;
+    private final Set<SchemaAndValues> indexedTemplates;
 
     DefaultMappedRecord() {
         this(emptySet(), SchemaAndValues.nop());
     }
 
     DefaultMappedRecord(Set<SchemaAndValues> expandedTemplates, SchemaAndValues fieldsMap) {
-        this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
+        // this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
+        this.indexedTemplates = expandedTemplates;
         this.fieldsMap = fieldsMap;
     }
 
     @Override
     public Set<SchemaAndValues> expanded() {
-        return Set.of(indexedTemplates);
+        return indexedTemplates;
     }
 
     @Override
@@ -301,6 +309,17 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
+    public Set<SubscribedItem> routeAll() {
+        Set<SubscribedItem> result = new HashSet<>();
+
+        for (SchemaAndValues e : indexedTemplates) {
+            result.add(Items.subscribedFrom(e));
+        }
+
+        return result;
+    }
+
+    @Override
     public Map<String, String> fieldsMap() {
         return fieldsMap.values();
     }
@@ -308,10 +327,10 @@ final class DefaultMappedRecord implements MappedRecord {
     @Override
     public String toString() {
         String data =
-                Arrays.stream(indexedTemplates)
-                        .map(v -> v.values().toString())
+                indexedTemplates.stream()
+                        .map(SchemaAndValues::asText)
                         .collect(Collectors.joining(", "));
         return String.format(
-                "MappedRecord [expandedTemplates=[%s], fieldsMap=%s]", data, fieldsMap);
+                "MappedRecord [expandedTemplates=[%s], fieldsMap=%s]", data, fieldsMap.asText());
     }
 }
