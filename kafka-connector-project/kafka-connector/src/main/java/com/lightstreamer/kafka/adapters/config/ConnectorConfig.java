@@ -134,6 +134,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
 
+    public static final String RECORD_CONSUME_AT_CONNECTOR_STARTUP =
+            "record.consume.at.connector.startup";
+
     public static final String RECORD_CONSUME_WITH_ORDER_STRATEGY =
             "record.consume.with.order.strategy";
 
@@ -290,6 +293,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 ERROR_STRATEGY,
                                 defaultValue("IGNORE_AND_CONTINUE"))
+                        .add(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
                         .add(
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 false,
@@ -561,6 +570,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isCommandEnforceEnabled() {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+    }
+
+    public boolean consumeAtConnectorStartup() {
+        return getBoolean(RECORD_CONSUME_AT_CONNECTOR_STARTUP);
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {
