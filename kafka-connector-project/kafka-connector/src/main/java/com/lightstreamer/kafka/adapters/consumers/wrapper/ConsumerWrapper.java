@@ -90,21 +90,6 @@ public interface ConsumerWrapper<K, V> extends Runnable {
             ItemEventListener eventListener,
             MetadataListener metadataListener,
             SubscribedItems subscribedItems,
-            Supplier<Consumer<K, V>> consumerSupplier) {
-        return create(
-                config,
-                eventListener,
-                metadataListener,
-                subscribedItems,
-                consumerSupplier,
-                AdminInterface::newAdmin);
-    }
-
-    static <K, V> ConsumerWrapper<K, V> create(
-            ConsumerTriggerConfig<K, V> config,
-            ItemEventListener eventListener,
-            MetadataListener metadataListener,
-            SubscribedItems subscribedItems,
             Supplier<Consumer<K, V>> consumerSupplier,
             Function<Properties, AdminInterface> adminFactory) {
         return new ConsumerWrapperImpl<>(
