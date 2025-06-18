@@ -71,9 +71,7 @@ public interface RecordConsumer<K, V> {
 
         void useLogger(Logger logger);
 
-        default boolean isCommandEnforceEnabled() {
-            return false;
-        }
+        boolean allowConcurrentProcessing();
     }
 
     public interface StartBuildingProcessor<K, V> {
@@ -157,8 +155,6 @@ public interface RecordConsumer<K, V> {
     default boolean isParallel() {
         return numOfThreads() > 1;
     }
-
-    boolean isCommandEnforceEnabled();
 
     RecordErrorHandlingStrategy errorStrategy();
 
