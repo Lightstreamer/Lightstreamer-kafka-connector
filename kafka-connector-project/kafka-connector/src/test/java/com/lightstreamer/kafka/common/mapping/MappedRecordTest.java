@@ -144,4 +144,21 @@ public class MappedRecordTest {
                                         Set.of(matchingItem1, matchingItem2, notMatchingItem)))))
                 .containsExactly(matchingItem1, matchingItem2);
     }
+
+    @Test
+    public void shouldRouteAll() {
+        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
+        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
+        DefaultMappedRecord record =
+                new DefaultMappedRecord(
+                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
+
+        Set<SubscribedItem> routeAll = record.routeAll();
+        SubscribedItem autoSubscription1 = Items.subscribedFrom(expandedTemplate1);
+        SubscribedItem autoSubscription2 = Items.subscribedFrom(expandedTemplate2);
+        assertThat(routeAll)
+                .containsExactly(
+                        autoSubscription1,
+                        autoSubscription2);
+    }
 }
