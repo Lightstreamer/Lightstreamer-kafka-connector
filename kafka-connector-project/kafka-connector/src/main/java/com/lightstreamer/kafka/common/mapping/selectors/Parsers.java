@@ -74,7 +74,7 @@ public interface Parsers {
 
             private static final NullNode<?> INSTANCE = new NullNode<>();
 
-            public NullNode() {
+            private NullNode() {
                 // private constructor to prevent instantiation
             }
 
