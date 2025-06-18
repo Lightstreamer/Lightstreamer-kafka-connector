@@ -46,6 +46,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
@@ -382,6 +383,16 @@ public class ConnectorConfigTest {
         assertThat(recordExtractionErrorHandling.mutable()).isTrue();
         assertThat(recordExtractionErrorHandling.defaultValue()).isEqualTo("IGNORE_AND_CONTINUE");
         assertThat(recordExtractionErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
+
+        ConfParameter recordConsumeAtConnectorStartUp =
+                configSpec.getParameter(RECORD_CONSUME_AT_CONNECTOR_STARTUP);
+        assertThat(recordConsumeAtConnectorStartUp.name())
+                .isEqualTo(RECORD_CONSUME_AT_CONNECTOR_STARTUP);
+        assertThat(recordConsumeAtConnectorStartUp.required()).isFalse();
+        assertThat(recordConsumeAtConnectorStartUp.multiple()).isFalse();
+        assertThat(recordConsumeAtConnectorStartUp.mutable()).isTrue();
+        assertThat(recordConsumeAtConnectorStartUp.defaultValue()).isEqualTo("false");
+        assertThat(recordConsumeAtConnectorStartUp.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter recordConsumeWithOrderStrategy =
                 configSpec.getParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
@@ -1390,6 +1401,32 @@ public class ConnectorConfigTest {
                 .isEqualTo(
                         "Specify a valid value for parameter ["
                                 + RECORD_CONSUME_WITH_ORDER_STRATEGY
+                                + "]");
+    }
+
+    @Test
+    public void shouldGetRecordConsumeAtConnectorStartUp() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.consumeAtConnectorStartup()).isEqualTo(false);
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_CONSUME_AT_CONNECTOR_STARTUP, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.consumeAtConnectorStartup()).isEqualTo(true);
+    }
+
+    @Test
+    public void shouldFailDueToInvalidRecordConsumeAtConnectorStartUp() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_CONSUME_AT_CONNECTOR_STARTUP, "invalidType");
+        ConfigException e =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(e.getMessage())
+                .isEqualTo(
+                        "Specify a valid value for parameter ["
+                                + RECORD_CONSUME_AT_CONNECTOR_STARTUP
                                 + "]");
     }
 
