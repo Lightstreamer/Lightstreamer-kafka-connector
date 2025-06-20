@@ -572,7 +572,7 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
     }
 
-    public boolean consumeAtConnectorStartup() {
+    public boolean consumeAtStartup() {
         return getBoolean(RECORD_CONSUME_AT_CONNECTOR_STARTUP);
     }
 
