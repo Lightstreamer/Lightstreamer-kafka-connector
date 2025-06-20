@@ -246,6 +246,22 @@ public interface ConfigTypes {
         }
     }
 
+    enum CommandModeStrategy {
+        NONE,
+        ENFORCE,
+        TRANSFORM;
+
+        public static CommandModeStrategy from(boolean transform, boolean enforce) {
+            if (transform) {
+                return TRANSFORM;
+            }
+            if (enforce) {
+                return ENFORCE;
+            }
+            return NONE;
+        }
+    }
+
     private static Set<String> enumNames(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
     }
