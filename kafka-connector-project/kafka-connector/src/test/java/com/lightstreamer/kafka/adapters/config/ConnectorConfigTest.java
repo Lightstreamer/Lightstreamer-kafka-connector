@@ -1407,12 +1407,12 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetRecordConsumeAtConnectorStartUp() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.consumeAtConnectorStartup()).isEqualTo(false);
+        assertThat(config.consumeAtStartup()).isEqualTo(false);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_AT_CONNECTOR_STARTUP, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.consumeAtConnectorStartup()).isEqualTo(true);
+        assertThat(config.consumeAtStartup()).isEqualTo(true);
     }
 
     @Test
