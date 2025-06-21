@@ -230,11 +230,11 @@ public class Items {
         }
     }
 
-    private static class AutoSubscribedItem implements SubscribedItem {
+    private static class ImplicitSubscribedItem implements SubscribedItem {
 
         private final SchemaAndValues schemaAndValues;
 
-        AutoSubscribedItem(SchemaAndValues schemaAndValues) {
+        ImplicitSubscribedItem(SchemaAndValues schemaAndValues) {
             this.schemaAndValues = schemaAndValues;
         }
 
@@ -393,7 +393,7 @@ public class Items {
 
     public static SubscribedItem subscribedFrom(SchemaAndValues schemaAndValues)
             throws ExpressionException {
-        return new AutoSubscribedItem(schemaAndValues);
+        return new ImplicitSubscribedItem(schemaAndValues);
     }
 
     static SubscribedItem subscribedFrom(
