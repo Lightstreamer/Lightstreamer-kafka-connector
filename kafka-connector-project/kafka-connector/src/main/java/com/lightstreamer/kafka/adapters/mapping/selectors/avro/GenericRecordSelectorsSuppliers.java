@@ -215,8 +215,7 @@ public class GenericRecordSelectorsSuppliers
         @Override
         public Data extractKey(KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
                 throws ValueException {
-            Node<AvroNode> node = Node.checkNull(() -> record.key(), AvroNode::fromContainer);
-            return super.eval(node, checkScalar);
+            return super.eval(() -> record.key(), AvroNode::fromContainer, checkScalar);
         }
     }
 
@@ -252,8 +251,7 @@ public class GenericRecordSelectorsSuppliers
         @Override
         public Data extractValue(KafkaRecord<?, GenericRecord> record, boolean checkScalar)
                 throws ValueException {
-            Node<AvroNode> node = Node.checkNull(() -> record.value(), AvroNode::fromContainer);
-            return super.eval(node, checkScalar);
+            return super.eval(() -> record.value(), AvroNode::fromContainer, checkScalar);
         }
     }
 
