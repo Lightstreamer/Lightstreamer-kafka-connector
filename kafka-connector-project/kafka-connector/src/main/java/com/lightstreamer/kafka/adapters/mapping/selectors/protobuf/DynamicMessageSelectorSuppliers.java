@@ -341,8 +341,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            Node<ProtobufNode> node = Node.checkNull(() -> record.key(), MessageWrapperNode::new);
-            return super.eval(node, checkScalar);
+            return super.eval(() -> record.key(), MessageWrapperNode::new, checkScalar);
         }
     }
 
@@ -399,10 +398,7 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-
-            Node<ProtobufNode> node =
-                    Node.checkNull(() -> record.value(), MessageWrapperNode::new);
-            return super.eval(node, checkScalar);
+            return super.eval(() -> record.value(), MessageWrapperNode::new, checkScalar);
         }
     }
 
