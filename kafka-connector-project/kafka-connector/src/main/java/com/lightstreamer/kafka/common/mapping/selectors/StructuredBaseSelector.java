@@ -27,6 +27,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.Parsers.ParsingContext;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSelector {
 
@@ -123,7 +125,9 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         this.evaluator = parser.parse(ctx);
     }
 
-    protected final Data eval(Node<T> node, boolean checkScalar) {
+    protected final <P> Data eval(
+            Supplier<P> payloadSupplier, Function<P, Node<T>> nodeFactory, boolean checkScalar) {
+        Node<T> node = Node.checkNull(payloadSupplier, nodeFactory);
         LinkedNodeEvaluator<T> current = evaluator;
         while (current != null) {
             node = current.eval(node);
