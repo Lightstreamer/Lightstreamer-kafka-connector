@@ -263,6 +263,28 @@ public class JsonNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue(fromValue((JsonNode) null))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
                 EXPRESSION,                          EXPECTED
                 KEY.name,                            joe
                 KEY.signature,                       YWJjZA==
@@ -287,6 +309,38 @@ public class JsonNodeSelectorsSuppliersTest {
         } else {
             subject.isEqualTo(expected);
         }
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                KEY,                       The expression [KEY] must evaluate to a non-complex object
+                KEY.no_attrib,             Field [no_attrib] not found
+                KEY.children[0].no_attrib, Field [no_attrib] not found
+                KEY.no_children[0],        Field [no_children] not found
+                KEY.name[0],               Field [name] is not indexed
+                KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
+                KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children[0]['no_key'], Field [no_key] not found
+                KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name,      Cannot retrieve field [name] from a null object
+                KEY.children[4],           Field not found at index [4]
+                KEY.children[4].name,      Field not found at index [4]
+                KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                    """)
+    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -330,29 +384,19 @@ public class JsonNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                KEY,                       The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib,             Field [no_attrib] not found
-                KEY.children[0].no_attrib, Field [no_attrib] not found
-                KEY.no_children[0],        Field [no_children] not found
-                KEY.name[0],               Field [name] is not indexed
-                KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
-                KEY.children[0]['no_key'], Field [no_key] not found
-                KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
-                KEY.children[3].name,      Cannot retrieve field [name] from a null object
-                KEY.children[4],           Field not found at index [4]
-                KEY.children[4].name,      Field not found at index [4]
-                KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+            throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .extractKey(fromKey((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }

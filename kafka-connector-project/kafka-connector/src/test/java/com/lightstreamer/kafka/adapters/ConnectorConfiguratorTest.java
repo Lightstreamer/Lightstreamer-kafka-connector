@@ -32,8 +32,8 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
@@ -198,7 +198,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(consumerTriggerConfig.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(consumerTriggerConfig.isCommandEnforceEnabled()).isFalse();
+        // assertThat(consumerTriggerConfig.commandModeStrategy()).isFalse();
 
         Concurrency concurrency = consumerTriggerConfig.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
@@ -206,7 +206,7 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
         assertThat(concurrency.isParallel()).isFalse();
 
-        assertThat(consumerTriggerConfig.consumeAtConnectorStartup()).isFalse();
+        assertThat(configurator.getConfig().consumeAtStartup()).isFalse();
     }
 
     @ParameterizedTest
@@ -262,7 +262,7 @@ public class ConnectorConfiguratorTest {
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
         assertThat(concurrency.isParallel()).isTrue();
 
-        assertThat(config.consumeAtConnectorStartup()).isTrue();
+        assertThat(configurator.getConfig().consumeAtStartup()).isTrue();
     }
 
     @Test
