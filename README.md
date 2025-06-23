@@ -722,7 +722,7 @@ _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mech
 - `GSSAPI`
 - `AWS_MSK_IAM`
 
-In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameter:
+In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
 - `authentication.username`: the username
 - `authentication.password`: the password
