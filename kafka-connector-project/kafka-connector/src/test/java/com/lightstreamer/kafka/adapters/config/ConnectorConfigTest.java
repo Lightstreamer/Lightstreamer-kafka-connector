@@ -41,6 +41,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPT
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_TRANSFORM_TO_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_FIELD;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
@@ -91,6 +92,7 @@ import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfi
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
@@ -267,6 +269,15 @@ public class ConnectorConfigTest {
         assertThat(fieldEvaluateCommandEnabled.mutable()).isTrue();
         assertThat(fieldEvaluateCommandEnabled.defaultValue()).isEqualTo("false");
         assertThat(fieldEvaluateCommandEnabled.type()).isEqualTo(ConfType.BOOL);
+
+        ConfParameter transformToCommandEnabled =
+                configSpec.getParameter(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
+        assertThat(transformToCommandEnabled.name()).isEqualTo(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
+        assertThat(transformToCommandEnabled.required()).isFalse();
+        assertThat(transformToCommandEnabled.multiple()).isFalse();
+        assertThat(transformToCommandEnabled.mutable()).isTrue();
+        assertThat(transformToCommandEnabled.defaultValue()).isEqualTo("false");
+        assertThat(transformToCommandEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
@@ -1049,11 +1060,10 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetCommandMode() {
+    public void shouldGetCommandModeEnforce() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
-        // Checks value "false"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "false"));
@@ -1121,6 +1131,94 @@ public class ConnectorConfigTest {
         assertThat(ce.getMessage())
                 .isEqualTo(
                         "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
+    }
+
+    @Test
+    public void shouldGetTransformToCommandMode() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.isTransformToCommandEnabled()).isFalse();
+
+        // Checks value "false"
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "false"));
+        assertThat(config.isTransformToCommandEnabled()).isFalse();
+
+        // Checks value "true"
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true"));
+        assertThat(config.isTransformToCommandEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldGetCommandModeStrategy() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+
+        // Checks value "NONE"
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
+
+        // Checks value "NONE" with both fields explicitly set to false
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                "false",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "false"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
+
+        // Checks value "TRANSFORM"
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+
+        // Checks value "TRANSFORM" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+
+        // Checks value "TRANSFORM" with FIELDS_EVALUATE_AS_COMMAND_ENABLE explicitly set to false
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "false"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+
+        // Checks value "ENFORCE"
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{VALUE.aKey}",
+                                "field.command",
+                                "#{VALUE.aCommand}"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
+
+        // Checks value "ENFORCE" with FIELDS_TRANSFORM_TO_COMMAND_ENABLE explicitly set to false
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                "false",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{VALUE.aKey}",
+                                "field.command",
+                                "#{VALUE.aCommand}"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
     }
 
     @Test
