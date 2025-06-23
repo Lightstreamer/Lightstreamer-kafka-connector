@@ -400,7 +400,8 @@ public class DynamicMessageSelectorSuppliers
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
 
-            Node<ProtobufNode> node = Node.checkNull(() -> record.value(), MessageWrapperNode::new);
+            Node<ProtobufNode> node =
+                    Node.checkNull(() -> record.value(), MessageWrapperNode::new);
             return super.eval(node, checkScalar);
         }
     }
