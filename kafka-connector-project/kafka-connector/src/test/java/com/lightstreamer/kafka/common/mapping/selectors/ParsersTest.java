@@ -39,7 +39,10 @@ public class ParsersTest {
     static Stream<Arguments> args() {
         return Stream.of(
                 arguments("name", Expressions.Expression("VALUE"), Constant.VALUE),
-                arguments("name", Expressions.Expression("KEY.attrib"), Constant.KEY));
+                arguments("name", Expressions.Expression("KEY.attrib"), Constant.KEY),
+                arguments("name", Expressions.Expression("HEADERS"), Constant.HEADERS),
+                arguments("name", Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
+                arguments("name", Expressions.Expression("HEADERS['key']"), Constant.HEADERS));
     }
 
     @ParameterizedTest
@@ -70,7 +73,7 @@ public class ParsersTest {
     }
 
     @Test
-    void shouldOneTokenFollowingRoot() throws ExtractionException {
+    void shouldHaveOneTokenFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
                 new Parsers.ParsingContext(
                         "name", Expressions.Expression("VALUE.a"), Constant.VALUE);
@@ -81,7 +84,7 @@ public class ParsersTest {
     }
 
     @Test
-    void shouldMoreTokensFollowingRoot() throws ExtractionException {
+    void shouldHaveMoreTokensFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
                 new Parsers.ParsingContext(
                         "name", Expressions.Expression("VALUE.a.b"), Constant.VALUE);
@@ -90,6 +93,19 @@ public class ParsersTest {
         assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("b");
+        assertThat(p.hasNext()).isFalse();
+    }
+
+    @Test
+    void shouldHaveMoreTokensFollowingHeaders() throws ExtractionException {
+        Parsers.ParsingContext p =
+                new Parsers.ParsingContext(
+                        "name", Expressions.Expression("HEADERS.a"), Constant.HEADERS);
+        p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("HEADERS");
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isFalse();
     }
 }

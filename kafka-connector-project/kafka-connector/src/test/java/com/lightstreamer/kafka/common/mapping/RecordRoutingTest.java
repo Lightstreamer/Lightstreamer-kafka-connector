@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
-import static com.lightstreamer.kafka.test_utils.Records.record;
+import static com.lightstreamer.kafka.test_utils.Records.recordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
@@ -41,6 +41,7 @@ import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
@@ -245,10 +246,13 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
-                record(
+                Records.recordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
-                        SampleGenericRecordProvider().sampleMessage());
+                        SampleGenericRecordProvider().sampleMessage(),
+                        new RecordHeaders()
+                                .add("header-key1", "header-value1".getBytes())
+                                .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
@@ -277,10 +281,13 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                record(
+                recordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
-                        SampleJsonNodeProvider().sampleMessage());
+                        SampleJsonNodeProvider().sampleMessage(),
+                        new RecordHeaders()
+                                .add("header-key1", "header-value1".getBytes())
+                                .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
         SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
 
