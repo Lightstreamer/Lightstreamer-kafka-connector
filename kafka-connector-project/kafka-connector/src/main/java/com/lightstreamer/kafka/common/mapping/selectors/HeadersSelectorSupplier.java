@@ -157,8 +157,10 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
 
         @Override
         public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
-            Node<HeaderNode> headersNode = Node.rootNode(() -> new HeadersNode(record.headers()));
-            return super.eval(headersNode, checkScalar);
+            return super.eval(
+                    () -> record.headers(),
+                    h -> Node.rootNode(() -> new HeadersNode(h)),
+                    checkScalar);
         }
     }
 
