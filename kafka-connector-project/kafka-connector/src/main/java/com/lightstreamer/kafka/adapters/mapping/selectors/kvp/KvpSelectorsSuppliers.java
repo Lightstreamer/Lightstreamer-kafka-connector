@@ -161,12 +161,12 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static final class KvpNodeSelector extends StructuredBaseSelector<KvpNode>
             implements KeySelector<String>, ValueSelector<String> {
 
-        private final Function<KafkaRecord<?, ?>, KvpMap> kvpMapFactory;
+        private final Function<String, Node<KvpNode>> kvpMapFactory;
 
         KvpNodeSelector(
                 String name,
                 ExtractionExpression expression,
-                Function<KafkaRecord<?, ?>, KvpMap> kvpMapFactory,
+                Function<String, Node<KvpNode>> kvpMapFactory,
                 Constant constant)
                 throws ExtractionException {
             super(name, expression, constant);
@@ -175,22 +175,25 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public Data extractKey(KafkaRecord<String, ?> record, boolean checkScalar) {
-            return super.eval(kvpMapFactory.apply(record), checkScalar);
+            return super.eval(() -> (String) record.key(), kvpMapFactory, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, String> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(kvpMapFactory.apply(record), checkScalar);
+
+            return super.eval(() -> (String) record.value(), kvpMapFactory, checkScalar);
         }
     }
 
     private static class KvpNodeSelectorSupplier {
 
         private final Deserializer<String> deserializer;
+        protected final Function<String, Node<KvpNode>> kvpMapFactory;
 
-        KvpNodeSelectorSupplier() {
+        KvpNodeSelectorSupplier(Splitter pair, Splitter keyValue) {
             this.deserializer = Serdes.String().deserializer();
+            this.kvpMapFactory = recordPayload -> KvpMap.fromString(recordPayload, pair, keyValue);
         }
 
         public Deserializer<String> deserializer() {
@@ -201,11 +204,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static class KvpNodeValueSelectorSupplier extends KvpNodeSelectorSupplier
             implements ValueSelectorSupplier<String> {
 
-        private Function<KafkaRecord<?, ?>, KvpMap> kvpMapFactory;
-
         KvpNodeValueSelectorSupplier(Splitter pair, Splitter keyValue) {
-            this.kvpMapFactory =
-                    record -> KvpMap.fromString((String) record.value(), pair, keyValue);
+            super(pair, keyValue);
         }
 
         @Override
@@ -218,10 +218,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
     private static class KvpNodeKeySelectorSupplier extends KvpNodeSelectorSupplier
             implements KeySelectorSupplier<String> {
 
-        private Function<KafkaRecord<?, ?>, KvpMap> kvpMapFactory;
-
         KvpNodeKeySelectorSupplier(Splitter pair, Splitter keyValue) {
-            this.kvpMapFactory = record -> KvpMap.fromString((String) record.key(), pair, keyValue);
+            super(pair, keyValue);
         }
 
         @Override
