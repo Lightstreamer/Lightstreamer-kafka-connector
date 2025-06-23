@@ -331,7 +331,7 @@ public class ConnectSelectorsSuppliersTest {
                                                 sinkFromKey(
                                                         "topic", SIMPLE_STRUCT.schema(), null)));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }    
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
