@@ -65,6 +65,15 @@ public interface Parsers {
             return "";
         }
 
+        static <K, T extends Node<T>> Node<T> checkNull(
+                Supplier<K> obj, Function<K, Node<T>> nodeFactory) {
+            K object = obj.get();
+            if (object == null) {
+                return nullNode();
+            }
+            return nodeFactory.apply(object);
+        }
+
         @SuppressWarnings("unchecked")
         static <T extends Node<T>> Node<T> nullNode() {
             return (Node<T>) NullNode.INSTANCE;
@@ -74,7 +83,7 @@ public interface Parsers {
 
             private static final NullNode<?> INSTANCE = new NullNode<>();
 
-            public NullNode() {
+            private NullNode() {
                 // private constructor to prevent instantiation
             }
 
