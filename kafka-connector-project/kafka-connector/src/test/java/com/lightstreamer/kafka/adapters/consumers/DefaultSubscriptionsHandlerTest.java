@@ -45,7 +45,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -110,13 +109,11 @@ public class DefaultSubscriptionsHandlerTest {
         Object itemHandle2 = new Object();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
 
-        CompletableFuture<Void> consuming1 =
-                subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
-        CompletableFuture<Void> consuming2 =
-                subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
+        subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(2);
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
@@ -126,9 +123,6 @@ public class DefaultSubscriptionsHandlerTest {
         Item item2 = subscriptionHandler.getSubscribedItem("anotherItemTemplate");
         assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
 
-        assertThat(consuming1).isSameInstanceAs(consuming2);
-
-        consuming1.join();
         assertThat(kafkaConsumer.hasRan()).isTrue();
         assertThat(kafkaConsumer.isClosed()).isFalse();
     }
@@ -167,20 +161,14 @@ public class DefaultSubscriptionsHandlerTest {
         init(true, CommandModeStrategy.NONE);
         Object itemHandle = new Object();
 
-        CompletableFuture<Void> consuming =
-                subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
         Item item = subscriptionHandler.getSubscribedItem("anItemTemplate");
 
         assertThat(item).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle));
-        assertThat(consuming.isCompletedExceptionally()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(kafkaConsumer.hasRan()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-
-        // Since the exception might be temporary, tt is still possible to try a new subscription.
-        consuming = subscriptionHandler.subscribe("anItemTemplate", itemHandle);
-        assertThat(consuming.isCompletedExceptionally());
     }
 
     @Test
