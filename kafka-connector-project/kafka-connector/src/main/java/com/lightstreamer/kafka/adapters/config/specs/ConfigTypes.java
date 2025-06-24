@@ -260,6 +260,10 @@ public interface ConfigTypes {
             }
             return NONE;
         }
+
+        public boolean manageSnapshot() {
+            return this == ENFORCE;
+        }
     }
 
     private static Set<String> enumNames(Enum<?>[] e) {
