@@ -49,6 +49,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -106,6 +107,9 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
             "fields.evaluate.as.command.enable";
+
+    public static final String FIELDS_TRANSFORM_TO_COMMAND_ENABLE =
+            "fields.transform.to.command.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -237,6 +241,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
+                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -478,6 +488,10 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandMode() {
+        if (isTransformToCommandEnabled()) {
+            return;
+        }
+
         if (isCommandEnforceEnabled()) {
             if (getRecordConsumeWithNumThreads() != 1) {
                 throw new ConfigException(
@@ -570,6 +584,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isCommandEnforceEnabled() {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+    }
+
+    public boolean isTransformToCommandEnabled() {
+        return getBoolean(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
+    }
+
+    public CommandModeStrategy getCommandModeStrategy() {
+        return CommandModeStrategy.from(isTransformToCommandEnabled(), isCommandEnforceEnabled());
     }
 
     public boolean consumeAtStartup() {
