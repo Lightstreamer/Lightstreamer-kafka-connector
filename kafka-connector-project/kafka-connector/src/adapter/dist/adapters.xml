@@ -288,6 +288,18 @@
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
 
+        <!-- Optional. Specified when to consume records from the Kafka topics. Can be one of the following:
+             - true
+             - false
+
+             If set to `true`, the Kafka Connector will start consuming records immediately after 
+             initialization, before any Lightstreamer client subscription request.
+             If set to `false`, the Kafka Connector will conserve resources by waiting until at least
+             one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
+
+             Default value: false. -->
+        <param name="record.consume.at.connector.startup">false</param>
+
         <!-- Optional. Specifies where to start consuming events from:
              - LATEST: start consuming events from the end of the topic partition
              - EARLIEST: start consuming events from the beginning of the topic partition
@@ -482,7 +494,7 @@
         -->
 
         <!-- Optional. Enables support for the COMMAND mode. 
-             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key` and "command" fields:
+             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
              - "key": Identifies the unique key for each element in the list generated from the item.
              - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
 
@@ -503,6 +515,8 @@
         <!--
         <param name="fields.evaluate.as.command.enable">true</param>
         -->        
+
+        <param name="fields.transform.to.command.enable">true</param>
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 
