@@ -40,8 +40,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_S
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_TRANSFORM_TO_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_FIELD;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
@@ -271,8 +271,8 @@ public class ConnectorConfigTest {
         assertThat(fieldEvaluateCommandEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter transformToCommandEnabled =
-                configSpec.getParameter(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
-        assertThat(transformToCommandEnabled.name()).isEqualTo(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
+                configSpec.getParameter(FIELDS_AUTO_COMMAND_MODE_ENABLE);
+        assertThat(transformToCommandEnabled.name()).isEqualTo(FIELDS_AUTO_COMMAND_MODE_ENABLE);
         assertThat(transformToCommandEnabled.required()).isFalse();
         assertThat(transformToCommandEnabled.multiple()).isFalse();
         assertThat(transformToCommandEnabled.mutable()).isTrue();
@@ -1136,19 +1136,19 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetTransformToCommandMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.isTransformToCommandEnabled()).isFalse();
+        assertThat(config.isAutoCommandModeEnabled()).isFalse();
 
         // Checks value "false"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "false"));
-        assertThat(config.isTransformToCommandEnabled()).isFalse();
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "false"));
+        assertThat(config.isAutoCommandModeEnabled()).isFalse();
 
         // Checks value "true"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true", "field.key", "#{KEY}"));
-        assertThat(config.isTransformToCommandEnabled()).isTrue();
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"));
+        assertThat(config.isAutoCommandModeEnabled()).isTrue();
 
         // Check that field.key is set
         ConfigException ce =
@@ -1156,7 +1156,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
-                                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true")));
+                                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true")));
         assertThat(ce.getMessage())
                 .isEqualTo("Command mode requires a key field. Parameter [field.key] must be set");
     }
@@ -1172,7 +1172,7 @@ public class ConnectorConfigTest {
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 "false",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "false"));
@@ -1181,32 +1181,32 @@ public class ConnectorConfigTest {
         // Checks value "TRANSFORM"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true", "field.key", "#{KEY}"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"));
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
         // Checks value "TRANSFORM" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 "true",
                                 "field.key",
                                 "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
         // Checks value "TRANSFORM" with FIELDS_EVALUATE_AS_COMMAND_ENABLE explicitly set to false
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 "true",
                                 "field.key",
                                 "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "false"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
+        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
         // Checks value "ENFORCE"
         config =
@@ -1224,7 +1224,7 @@ public class ConnectorConfigTest {
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 "false",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
