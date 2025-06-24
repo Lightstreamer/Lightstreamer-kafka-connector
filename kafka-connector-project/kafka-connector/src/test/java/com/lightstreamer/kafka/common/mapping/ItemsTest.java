@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -134,5 +135,14 @@ public class ItemsTest {
         assertThat(item.schema().name()).isEqualTo("item");
         assertThat(item.schema().keys()).containsExactly(name1, name2);
         assertThat(item.values()).containsExactly(name1, val1, name2, value2);
+    }
+
+    @Test
+    public void shouldSubscribeMatchableItemsIrrespectiveOfTheParamOrders() {
+        SubscribedItem item1 =
+                Items.subscribedFrom("prefix-[name1=field1,mame2=field2]", new Object());
+        SubscribedItem item2 =
+                Items.subscribedFrom("prefix-[mame2=field2,name1=field1]", new Object());
+        assertThat(item1.matches(item2)).isTrue();
     }
 }
