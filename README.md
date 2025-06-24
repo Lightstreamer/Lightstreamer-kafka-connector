@@ -1395,11 +1395,6 @@ You only need to map the key field from your record structure:
 ...
 ```
 
-Furthermore, the following command will be also generated:
-
-- **`UPDATE`**: In case of a Kafka record with a key already processed
-- **`DELETE`**: In case of a Kafka record with a null message payload
-
 This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
 
 The parameter can be one of the following:
