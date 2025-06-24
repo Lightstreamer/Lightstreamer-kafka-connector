@@ -1147,8 +1147,18 @@ public class ConnectorConfigTest {
         // Checks value "true"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true"));
+                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true", "field.key", "#{KEY}"));
         assertThat(config.isTransformToCommandEnabled()).isTrue();
+
+        // Check that field.key is set
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true")));
+        assertThat(ce.getMessage())
+                .isEqualTo("Command mode requires a key field. Parameter [field.key] must be set");
     }
 
     @Test
@@ -1171,7 +1181,7 @@ public class ConnectorConfigTest {
         // Checks value "TRANSFORM"
         config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true"));
+                        Map.of(FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true", "field.key", "#{KEY}"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
 
         // Checks value "TRANSFORM" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
@@ -1180,6 +1190,8 @@ public class ConnectorConfigTest {
                         Map.of(
                                 FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
                                 "true",
+                                "field.key",
+                                "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
@@ -1190,6 +1202,8 @@ public class ConnectorConfigTest {
                         Map.of(
                                 FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
                                 "true",
+                                "field.key",
+                                "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "false"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.TRANSFORM);
