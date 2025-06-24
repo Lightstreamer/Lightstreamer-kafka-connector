@@ -27,7 +27,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.EventUpdater;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RouteAllStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.TransformToCommandProcessUpdatesStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -209,7 +208,7 @@ public class RecordProcessorTest {
         processor =
                 processor(
                         SubscribedItems.of(subscribedItems),
-                        new TransformToCommandProcessUpdatesStrategy());
+                        ProcessUpdatesStrategy.transformToCommandStrategy());
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
@@ -240,7 +239,7 @@ public class RecordProcessorTest {
         processor =
                 processor(
                         SubscribedItems.of(subscribedItems),
-                        new TransformToCommandProcessUpdatesStrategy());
+                        ProcessUpdatesStrategy.transformToCommandStrategy());
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
