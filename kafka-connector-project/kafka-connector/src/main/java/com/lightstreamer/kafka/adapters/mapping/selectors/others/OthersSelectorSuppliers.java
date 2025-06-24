@@ -29,7 +29,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -159,7 +158,7 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         return ValueSelectorSupplier(String.class);
     }
 
-    public static KeyValueSelectorSuppliers<String, String> String() {
+    public static WrapperKeyValueSelectorSuppliers<String, String> String() {
         return new WrapperKeyValueSelectorSuppliers<>(StringKey(), StringValue());
     }
 }
