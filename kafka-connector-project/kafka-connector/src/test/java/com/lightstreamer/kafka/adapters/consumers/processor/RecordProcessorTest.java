@@ -208,7 +208,7 @@ public class RecordProcessorTest {
         processor =
                 processor(
                         SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.transformToCommandStrategy());
+                        ProcessUpdatesStrategy.autoCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
@@ -239,7 +239,7 @@ public class RecordProcessorTest {
         processor =
                 processor(
                         SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.transformToCommandStrategy());
+                        ProcessUpdatesStrategy.autoCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
