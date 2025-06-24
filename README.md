@@ -1337,7 +1337,7 @@ Example:
 
 ##### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
-_Optional but ineffective if [`fields.transform.to.command.enable`](#transform-to-command-fieldstransformtocommandenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-mode-fieldsautocommandmodeenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
@@ -1375,7 +1375,7 @@ The parameter can be one of the following:
 
 Default value : `false`.
 
-##### Transform To Command (`fields.transform.to.command.enable`)
+##### Auto Command Mode (`fields.auto.command.mode.enable`)
 
 _Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
 
@@ -1390,7 +1390,7 @@ When enabled, the connector:
 You only need to map the `key` field from your record structure:
 
 ```xml
-<param name="fields.transform.to.command.enable">true</param>
+<param name="fields.auto.command.mode.enable">true</param>
 <param name="field.key">#{KEY}</param>
 ...
 ```
