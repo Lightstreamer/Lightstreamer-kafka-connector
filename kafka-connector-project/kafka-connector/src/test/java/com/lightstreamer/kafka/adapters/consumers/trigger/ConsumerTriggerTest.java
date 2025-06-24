@@ -67,7 +67,7 @@ public class ConsumerTriggerTest {
                     }
                     return kafkaConsumer;
                 };
-        return new ConsumerTriggerImpl<>(config, metadataListener, consumerWrapper);
+        return ConsumerTrigger.create(config, metadataListener, consumerWrapper);
     }
 
     @BeforeEach
@@ -84,6 +84,7 @@ public class ConsumerTriggerTest {
 
         CompletableFuture<Void> consuming2 = consumerTrigger.startConsuming(SubscribedItems.nop());
         assertThat(consuming1).isSameInstanceAs(consuming2);
+        assertThat(consumerTrigger.isConsuming()).isTrue();
 
         consuming1.join();
         assertThat(kafkaConsumer.hasRan()).isTrue();
