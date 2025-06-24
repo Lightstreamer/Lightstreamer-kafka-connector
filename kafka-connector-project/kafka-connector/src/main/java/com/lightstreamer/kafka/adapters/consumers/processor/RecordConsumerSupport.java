@@ -142,8 +142,8 @@ class RecordConsumerSupport {
             ProcessUpdatesStrategy processUpdatesStrategy =
                     switch (this.parentBuilder.commandModeStrategy) {
                         case NONE -> ProcessUpdatesStrategy.defaultStrategy();
-                        case ENFORCE -> new CommandProcessUpdatesStrategy();
-                        case TRANSFORM -> new TransformToCommandProcessUpdatesStrategy();
+                        case ENFORCE -> ProcessUpdatesStrategy.commandStrategy();
+                        case TRANSFORM -> ProcessUpdatesStrategy.transformToCommandStrategy();
                     };
 
             RecordRoutingStrategy recordRoutingStrategy =
@@ -341,55 +341,74 @@ class RecordConsumerSupport {
 
         default void processUpdates(
                 EventUpdater updater, MappedRecord record, Set<SubscribedItem> routable) {
-            Map<String, String> updates = record.fieldsMap();
+            Map<String, String> updates = getEvent(record);
+            getLogger().atDebug().log(() -> "Sending updates: %s".formatted(updates));
             doProcessUpdates(updater, updates, routable);
         }
 
-        default void doProcessUpdates(
+        default Map<String, String> getEvent(MappedRecord record) {
+            return record.fieldsMap();
+        }
+
+        void doProcessUpdates(
+                EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable);
+
+        boolean allowMultiThreads();
+
+        void useLogger(Logger logger);
+
+        Logger getLogger();
+
+        static ProcessUpdatesStrategy defaultStrategy() {
+            return new DefaultUpdatesStrategy();
+        }
+
+        static ProcessUpdatesStrategy commandStrategy() {
+            return new CommandProcessUpdatesStrategy();
+        }
+
+        static ProcessUpdatesStrategy transformToCommandStrategy() {
+            return new TransformToCommandProcessUpdatesStrategy();
+        }
+    }
+
+    static class DefaultUpdatesStrategy implements ProcessUpdatesStrategy {
+
+        private Logger log = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
+
+        public void doProcessUpdates(
                 EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable) {
             for (SubscribedItem sub : routable) {
                 updater.update(sub, updates, false);
             }
         }
 
-        default boolean allowMultiThreads() {
+        public boolean allowMultiThreads() {
             return true;
         }
 
-        default void useLogger(Logger logger) {
-            // Default implementation does nothing, subclasses can override if needed
-        }
-
-        static ProcessUpdatesStrategy defaultStrategy() {
-            return new ProcessUpdatesStrategy() {};
-        }
-    }
-
-    static class TransformToCommandProcessUpdatesStrategy implements ProcessUpdatesStrategy {
-
-        protected Logger log =
-                LoggerFactory.getLogger(TransformToCommandProcessUpdatesStrategy.class);
-
-        @Override
         public final void useLogger(Logger logger) {
             this.log = Objects.requireNonNullElse(logger, this.log);
         }
 
         @Override
-        public void processUpdates(
-                EventUpdater updater, MappedRecord record, Set<SubscribedItem> routable) {
-
-            Map<String, String> updates = getEvent(record);
-            doProcessUpdates(updater, updates, routable);
+        public Logger getLogger() {
+            return log;
         }
+    }
 
-        private Map<String, String> getEvent(MappedRecord record) {
+    static class TransformToCommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
+
+        @Override
+        public Map<String, String> getEvent(MappedRecord record) {
             Map<String, String> updates = record.fieldsMap();
             if (record.isPayloadNull()) {
                 // If the payload is null, just send a DELETE command
-                log.atDebug().log(
-                        "Payload is null, sending DELETE command for key: %s",
-                        Key.KEY.lookUp(updates));
+                getLogger()
+                        .atDebug()
+                        .log(
+                                "Payload is null, sending DELETE command for key: %s",
+                                Key.KEY.lookUp(updates));
                 return CommandMode.deleteEvent(updates);
             }
             return CommandMode.decorate(updates, Command.ADD);
@@ -453,16 +472,9 @@ class RecordConsumerSupport {
         }
     }
 
-    static final class CommandProcessUpdatesStrategy implements ProcessUpdatesStrategy {
-
-        protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
+    static final class CommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
 
         CommandProcessUpdatesStrategy() {}
-
-        @Override
-        public final void useLogger(Logger logger) {
-            this.log = Objects.requireNonNullElse(logger, this.log);
-        }
 
         @Override
         public boolean allowMultiThreads() {
@@ -474,7 +486,8 @@ class RecordConsumerSupport {
                 EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable) {
             Optional<Command> command = checkInput(updates);
             if (command.isEmpty()) {
-                log.atWarn()
+                getLogger()
+                        .atWarn()
                         .log(
                                 "Discarding record due to command mode fields not properly valued: key {} - command {}",
                                 Key.KEY.lookUp(updates),
@@ -484,13 +497,12 @@ class RecordConsumerSupport {
 
             Command cmd = command.get();
             for (SubscribedItem sub : routable) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                log.atDebug().log("Enforce COMMAND mode semantic of records read");
+                getLogger().atDebug().log("Enforce COMMAND mode semantic of records read");
 
                 if (cmd.isSnapshot()) {
                     handleSnapshot(updater, cmd, sub);
                 } else {
-                    log.atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
+                    getLogger().atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
                     updater.update(sub, updates, sub.isSnapshot());
                 }
             }
@@ -534,17 +546,18 @@ class RecordConsumerSupport {
         private void handleSnapshot(EventUpdater updater, Command snapshot, SubscribedItem sub) {
             switch (snapshot) {
                 case CS -> {
-                    log.atDebug().log("Sending clearSnapshot");
+                    getLogger().atDebug().log("Sending clearSnapshot");
                     updater.clearSnapshot(sub);
                     sub.setSnapshot(true);
                 }
                 case EOS -> {
-                    log.atDebug().log("Sending endOfSnapshot");
+                    getLogger().atDebug().log("Sending endOfSnapshot");
                     updater.endOfSnapshot(sub);
                     sub.setSnapshot(false);
                 }
                 default -> {
-                    log.atWarn()
+                    getLogger()
+                            .atWarn()
                             .log(
                                     "Unexpected command for snapshot key, expected CS or EOS, got {}",
                                     snapshot);
@@ -592,10 +605,7 @@ class RecordConsumerSupport {
             Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
             if (routable.size() > 0) {
                 log.atDebug().log(() -> "Filtering updates");
-                Map<String, String> updates = mappedRecord.fieldsMap();
-
                 log.atInfo().log(() -> "Routing record to %d items".formatted(routable.size()));
-                log.atDebug().log(() -> "Sending updates: %s ".formatted(updates));
                 processUpdatesStrategy.processUpdates(updater, mappedRecord, routable);
             } else {
                 log.atInfo().log("No routable items found");
