@@ -113,11 +113,15 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
      *
      * @param dataProviderName the name of the DataProvider
      * @param enabled indicates whether the calling DataProvider is enabled
+     * @param consumeAtStartup indicates whether the DataProvider should consume message at
+     *     connector startup
      * @return a new MetadataListener instance
      * @hidden
      */
-    public static final MetadataListener listener(String dataProviderName, boolean enabled) {
-        return new MetadataListenerImpl(METADATA_ADAPTER, dataProviderName, enabled);
+    public static final MetadataListener listener(
+            String dataProviderName, boolean enabled, boolean consumeAtStartup) {
+        return new MetadataListenerImpl(
+                METADATA_ADAPTER, dataProviderName, enabled, consumeAtStartup);
     }
 
     private void forceUnsubscriptionAll(String dataAdapterName) {
@@ -278,13 +282,19 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
         private final KafkaConnectorMetadataAdapter metadataAdapter;
 
+        private final boolean consumeAtStartup;
+
         private MetadataListenerImpl(
                 KafkaConnectorMetadataAdapter metadataAdapter,
                 String dataAdapter,
-                boolean enabled) {
+                boolean enabled,
+                boolean consumeAtStartup) {
             this.metadataAdapter = metadataAdapter;
             this.dataAdapter = dataAdapter;
-            this.metadataAdapter.notifyDataAdapter(dataAdapter, enabled);
+            this.consumeAtStartup = consumeAtStartup;
+            if (metadataAdapter != null) {
+                metadataAdapter.notifyDataAdapter(dataAdapter, enabled);
+            }
         }
 
         @Override
@@ -292,7 +302,9 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
         @Override
         public void forceUnsubscriptionAll() {
-            metadataAdapter.forceUnsubscriptionAll(dataAdapter);
+            if (!consumeAtStartup && metadataAdapter != null) {
+                metadataAdapter.forceUnsubscriptionAll(dataAdapter);
+            }
         }
     }
 }
