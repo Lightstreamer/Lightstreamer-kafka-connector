@@ -17,17 +17,22 @@
 
 package com.lightstreamer.kafka.test_utils;
 
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
+import static com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs.empty;
+import static com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig.fromDelimitedMappings;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Avro;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJsonValue;
 
 import static java.util.stream.Collectors.joining;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
@@ -55,8 +60,7 @@ public class ItemTemplatesUtils {
         for (String topic : topics) {
             // Add a new TopicMapping referencing the template
             topicMappings.add(
-                    TopicMappingConfig.fromDelimitedMappings(
-                            topic, getFullTemplateNames(templatesMap.keySet())));
+                    fromDelimitedMappings(topic, getFullTemplateNames(templatesMap.keySet())));
         }
 
         return mkItemTemplates(sSuppliers, topicMappings, ItemTemplateConfigs.from(templatesMap));
@@ -70,11 +74,11 @@ public class ItemTemplatesUtils {
         String delimitedItems = String.join(",", items);
         for (String topic : topics) {
             // Add a new TopicMapping referencing the item name
-            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(topic, delimitedItems));
+            topicMappings.add(fromDelimitedMappings(topic, delimitedItems));
         }
 
         // No template configuration required in this case
-        return mkItemTemplates(sSuppliers, topicMappings, ItemTemplateConfigs.empty());
+        return mkItemTemplates(sSuppliers, topicMappings, empty());
     }
 
     public static ItemTemplates<GenericRecord, GenericRecord> AvroAvroTemplates(
@@ -101,5 +105,23 @@ public class ItemTemplatesUtils {
             throws ExtractionException {
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, topicMappings);
         return Items.templatesFrom(topicsConfig, sSuppliers);
+    }
+
+    public static ItemTemplates<String, String> itemTemplates(String topic, String items) {
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(empty(), List.of(fromDelimitedMappings(topic, items)));
+        try {
+            return Items.templatesFrom(topicsConfig, String());
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static DataExtractor<String, String> fieldsExtractor() {
+        try {
+            return FieldConfigs.from(Map.of("field", "#{VALUE}")).extractor(String(), false, false);
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
