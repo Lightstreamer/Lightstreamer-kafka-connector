@@ -119,7 +119,7 @@
         -->
 
         <!-- Optional. The path of the trust store file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). 
+             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>).
              The trust store is used to validate the certificates provided by the Kafka brokers. -->
         <!--
         <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
@@ -252,35 +252,35 @@
 
         <!-- ##### IAM AUTHENTICATION SETTINGS ##### -->
 
-        <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming for Apache Kafka (MSK) 
+        <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming for Apache Kafka (MSK)
              clusters through IAM access control.
 
              When specified, the following parameters will be part of the authentication configuration:
         -->
 
-        <!-- Optional. The name of the AWS credential profile to use for authentication. These profiles are defined in 
+        <!-- Optional. The name of the AWS credential profile to use for authentication. These profiles are defined in
              the AWS shared credentials file.
         -->
         <!--
         <param name="authentication.iam.credential.profile.name">msk_client<param>
         -->
-  
-        <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for 
+
+        <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
              authentication MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">true</param>
         -->
 
-        <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the session for the 
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the session for the
              assumed IAM role.
         -->
         <!--
         <param name="authentication.iam.role.session.name">true</param>
         -->
 
-        <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the AWS region of the STS 
-             endpoint to use when assuming the IAM role. 
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the AWS region of the STS
+             endpoint to use when assuming the IAM role.
         -->
         <!--
         <param name="authentication.iam.sts.region">true</param>
@@ -288,24 +288,25 @@
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
 
-        <!-- Optional. Specifies where to start consuming events from:
-             - LATEST: start consuming events from the end of the topic partition
-             - EARLIEST: start consuming events from the beginning of the topic partition
+        <!-- Optional. Specifies where to start consuming events from. Can be one of the following:
+
+             - LATEST: Start consuming events from the end of the topic partition.
+             - EARLIEST: Start consuming events from the beginning of the topic partition.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
-        <!-- Optional. Specified when to consume records from the Kafka topics. Can be one of the following:
+        <!-- Optional. Specifies when to consume records from the Kafka topics. Can be one of the following:
              - true
              - false
 
-             If set to `true`, the Kafka Connector will start consuming records immediately after 
+             If set to `true`, the Kafka Connector will start consuming records immediately after
              initialization, before any Lightstreamer client subscription request.
              If set to `false`, the Kafka Connector will conserve resources by waiting until at least
              one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
 
              Default value: false. -->
-        <param name="record.consume.at.connector.startup">false</param>        
+        <param name="record.consume.at.connector.startup">false</param>
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
              incoming deserialized records. If set to `-1`, the number of threads will be automatically
@@ -372,23 +373,23 @@
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
              Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
-          
+
              Default value: "=".
         -->
         <!--
         <param name="record.key.evaluator.kvp.key-value.separator">-</param>
         <param name="record.value.evaluator.kvp.key-value.separator">@</param>
-        -->  
+        -->
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
              Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
-          
+
              Default value: ",".
         -->
         <!--
         <param name="record.key.evaluator.kvp.pairs.separator">;</param>
         <param name="record.value.evaluator.kvp.pairs.separator">;</param>
-        -->        
+        -->
 
         <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming
              deserialized records.
@@ -433,7 +434,7 @@
 
         <!-- Optional. Enable the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be treated as a regular expression
              rather than of a literal topic name.
-        --> 
+        -->
         <!--
         <parm name="map.regex.enable">true</param>
         -->
@@ -467,7 +468,7 @@
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
 
-        <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to 
+        <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
              Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. Can be one of the following:
              - true
              - false
@@ -477,9 +478,9 @@
         <param name="fields.skip.failed.mapping.enable">true</param>
         -->
 
-        <!-- Optional. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+        <!-- Optional. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
              For example, in the following mapping:
-             
+
              <param name="field.structured">#{VALUE.complexAttribute}</param>
 
              the value of "complexAttribute" will be mapped as generic text (e.g. JSON string) to the "structured" Lightstreamer field.
@@ -493,7 +494,7 @@
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
 
-        <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode. 
+        <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode.
              A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
              - "key": Identifies the unique key for each element in the list generated from the item.
              - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
@@ -502,7 +503,7 @@
 
              <param name="field.key">#{KEY}</param>
              <param name="field.command">#{VALUE.command}</param>
-             
+
              When "key" is set to "snapshot", the command can be one of the following:
              - "CS": Clears the current snapshot.
              - "EOS": Marks the end of the snapshot.
@@ -514,7 +515,7 @@
              Default value: false. -->
         <!--
         <param name="fields.evaluate.as.command.enable">true</param>
-        -->        
+        -->
 
         <!-- Optional. Enables automatic COMMAND mode support by generating appropriate command operations for Lightstreamer items
              without requiring your Kafka records to contain explicit command fields.
