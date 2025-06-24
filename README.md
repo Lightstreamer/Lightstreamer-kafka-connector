@@ -1358,7 +1358,7 @@ A Kafka record must be structured to allow the Kafka Connector to map the values
 ```
 
 > [!TIP]
-> The `key` and `command` fields can be mapped from any part of the Kafka record.
+> The `key` and `command` fields can be mapped from any part of the Kafka record structure.
 
 Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
 
@@ -1383,17 +1383,20 @@ When enabled, the connector:
 
 - Automatically adds a Lightstreamer command field to each update
 - Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new key (not previously processed)
-  - **`UPDATE`**: For records with a key that has been previously processed
+  - **`ADD`**: For records with a new mapped key (not previously processed)
+  - **`UPDATE`**: For records with a mapped key that has been previously processed
   - **`DELETE`**: For records with a null message payload (tombstone records)
 
-You only need to map the key field from your record structure:
+You only need to map the `key` field from your record structure:
 
 ```xml
 <param name="fields.transform.to.command.enable">true</param>
 <param name="field.key">#{KEY}</param>
 ...
 ```
+
+> [!TIP]
+> The `key` field can be mapped from any part of the Kafka record structure.
 
 This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
 
