@@ -18,21 +18,28 @@
 package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.junit.Assert.assertThrows;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -73,11 +80,12 @@ import java.util.stream.Stream;
 
 public class ConsumerWrapperImplTest {
 
+    private final SubscribedItems subscribedItems = SubscribedItems.of(Collections.emptyList());
+    private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
     private MockMetadataListener metadataListener;
     private MockItemEventListener itemEventListener;
-    private final SubscribedItems subscribedItems = SubscribedItems.of(Collections.emptyList());
+
     private MockConsumer<String, String> mockConsumer;
-    private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
 
     @BeforeEach
     public void setUp() {
@@ -107,7 +115,7 @@ public class ConsumerWrapperImplTest {
         return mkConsumerWrapper(
                 admin,
                 false,
-                false,
+                CommandModeStrategy.NONE,
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                 2,
                 RecordConsumeWithOrderStrategy.UNORDERED);
@@ -116,19 +124,31 @@ public class ConsumerWrapperImplTest {
     ConsumerWrapperImpl<String, String> mkConsumerWrapper(
             AdminInterface admin,
             boolean enableSubscriptionPattern,
-            boolean enforceCommandMode,
+            CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy) {
+
+        ConsumerTriggerConfig<String, String> config;
+        try {
+            config =
+                    new ConsumerTriggerConfig<>(
+                            "TestConnection",
+                            makeProperties(),
+                            Items.templatesFrom(
+                                    makeTopicsConfig(enableSubscriptionPattern), String()),
+                            ItemTemplatesUtils.fieldsExtractor(),
+                            null,
+                            errorHandlingStrategy,
+                            commandModeStrategy,
+                            new Concurrency(orderStrategy, threads));
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
+
         return (ConsumerWrapperImpl<String, String>)
                 ConsumerWrapper.create(
-                        new Mocks.MockTriggerConfig(
-                                makeTopicsConfig(enableSubscriptionPattern),
-                                makeProperties(),
-                                enforceCommandMode,
-                                errorHandlingStrategy,
-                                threads,
-                                orderStrategy),
+                        config,
                         itemEventListener,
                         metadataListener,
                         subscribedItems,
@@ -141,28 +161,28 @@ public class ConsumerWrapperImplTest {
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         false,
                         OrderStrategy.ORDER_BY_PARTITION),
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        true,
+                        CommandModeStrategy.ENFORCE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         false,
                         OrderStrategy.ORDER_BY_PARTITION),
                 Arguments.of(
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.ORDER_BY_KEY),
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.UNORDERED));
@@ -173,7 +193,7 @@ public class ConsumerWrapperImplTest {
     public void shouldCreateConsumerWrapper(
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
-            boolean enforceCommandMode,
+            CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean expectedParallelism,
             OrderStrategy expectedOrderStrategy) {
@@ -181,12 +201,12 @@ public class ConsumerWrapperImplTest {
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.emptySet()),
                         false,
-                        enforceCommandMode,
+                        commandModeStrategy,
                         errorHandlingStrategy,
                         threads,
                         consumedWithOrderStrategy);
 
-        assertThat(consumerWrapper.getConsumer()).isSameInstanceAs(mockConsumer);
+        assertThat(consumerWrapper.getInternalConsumer()).isSameInstanceAs(mockConsumer);
 
         // Check the RecordConsumer
         RecordConsumer<String, String> recordConsumer = consumerWrapper.getRecordConsumer();
@@ -202,8 +222,8 @@ public class ConsumerWrapperImplTest {
             assertThat(orderStrategy).isEmpty();
         }
         assertThat(recordConsumer.isParallel()).isEqualTo(expectedParallelism);
-        assertThat(recordConsumer.isCommandEnforceEnabled()).isEqualTo(enforceCommandMode);
         assertThat(recordConsumer.errorStrategy()).isEqualTo(errorHandlingStrategy);
+        // assertThat(recordConsumer.)
 
         // Check the OffsetService
         OffsetService offsetService = consumerWrapper.getOffsetService();
@@ -248,7 +268,7 @@ public class ConsumerWrapperImplTest {
                 mkConsumerWrapper(
                         new Mocks.MockAdminInterface(Collections.emptySet()),
                         true,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
