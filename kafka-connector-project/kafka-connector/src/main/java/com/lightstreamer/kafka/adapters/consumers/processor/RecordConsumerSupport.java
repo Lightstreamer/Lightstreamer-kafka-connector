@@ -143,7 +143,7 @@ class RecordConsumerSupport {
                     switch (this.parentBuilder.commandModeStrategy) {
                         case NONE -> ProcessUpdatesStrategy.defaultStrategy();
                         case ENFORCE -> ProcessUpdatesStrategy.commandStrategy();
-                        case TRANSFORM -> ProcessUpdatesStrategy.transformToCommandStrategy();
+                        case AUTO -> ProcessUpdatesStrategy.autoCommandModeStrategy();
                     };
 
             RecordRoutingStrategy recordRoutingStrategy =
@@ -367,8 +367,8 @@ class RecordConsumerSupport {
             return new CommandProcessUpdatesStrategy();
         }
 
-        static ProcessUpdatesStrategy transformToCommandStrategy() {
-            return new TransformToCommandProcessUpdatesStrategy();
+        static ProcessUpdatesStrategy autoCommandModeStrategy() {
+            return new AutoCommandModeProcessUpdatesStrategy();
         }
     }
 
@@ -397,7 +397,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static class TransformToCommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
+    static class AutoCommandModeProcessUpdatesStrategy extends DefaultUpdatesStrategy {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
