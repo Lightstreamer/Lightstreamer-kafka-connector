@@ -108,8 +108,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
             "fields.evaluate.as.command.enable";
 
-    public static final String FIELDS_TRANSFORM_TO_COMMAND_ENABLE =
-            "fields.auto.command.mode.enable";
+    public static final String FIELDS_AUTO_COMMAND_MODE_ENABLE = "fields.auto.command.mode.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -246,7 +245,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 BOOL,
                                 defaultValue("false"))
                         .add(
-                                FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -488,7 +487,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandMode() {
-        if (isTransformToCommandEnabled()) {
+        if (isAutoCommandModeEnabled()) {
             checkCommandKey();
             return;
         }
@@ -591,12 +590,12 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
     }
 
-    public boolean isTransformToCommandEnabled() {
-        return getBoolean(FIELDS_TRANSFORM_TO_COMMAND_ENABLE);
+    public boolean isAutoCommandModeEnabled() {
+        return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
     }
 
     public CommandModeStrategy getCommandModeStrategy() {
-        return CommandModeStrategy.from(isTransformToCommandEnabled(), isCommandEnforceEnabled());
+        return CommandModeStrategy.from(isAutoCommandModeEnabled(), isCommandEnforceEnabled());
     }
 
     public boolean consumeAtStartup() {
