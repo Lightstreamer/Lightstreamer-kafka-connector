@@ -130,7 +130,7 @@ public class DefaultSubscriptionsHandlerTest {
     static Stream<Arguments> snapshotHandlers() {
         return Stream.of(
                 arguments(CommandModeStrategy.NONE, false),
-                arguments(CommandModeStrategy.TRANSFORM, false),
+                arguments(CommandModeStrategy.AUTO, false),
                 arguments(CommandModeStrategy.ENFORCE, true));
     }
 
