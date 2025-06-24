@@ -44,7 +44,7 @@ public class MappedRecordTest {
         assertThat(record.fieldsMap()).containsExactly("field1", "value1");
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[schema-<key=aKey>], fieldsMap=fields-<field1=value1>]");
+                        "MappedRecord [expandedTemplates=[schema-[key=aKey]], fieldsMap=fields-[field1=value1]]");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class MappedRecordTest {
                 .containsExactly("field1", "value1", "field2", "value2", "field3", null);
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[schema1-<key=aKey>, schema2, schema3-<partition=aPartition,value=aValue>], fieldsMap=fields-<field1=value1,field2=value2,field3=null>]");
+                        "MappedRecord [expandedTemplates=[schema1-[key=aKey], schema2, schema3-[partition=aPartition,value=aValue]], fieldsMap=fields-[field1=value1,field2=value2,field3=null]]");
     }
 
     @Test
@@ -156,9 +156,6 @@ public class MappedRecordTest {
         Set<SubscribedItem> routeAll = record.routeAll();
         SubscribedItem autoSubscription1 = Items.subscribedFrom(expandedTemplate1);
         SubscribedItem autoSubscription2 = Items.subscribedFrom(expandedTemplate2);
-        assertThat(routeAll)
-                .containsExactly(
-                        autoSubscription1,
-                        autoSubscription2);
+        assertThat(routeAll).containsExactly(autoSubscription1, autoSubscription2);
     }
 }
