@@ -17,31 +17,17 @@
 
 package com.lightstreamer.kafka.test_utils;
 
-import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs.empty;
-import static com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig.fromDelimitedMappings;
-
 import com.lightstreamer.interfaces.data.DiffAlgorithm;
 import com.lightstreamer.interfaces.data.IndexedItemEvent;
 import com.lightstreamer.interfaces.data.ItemEvent;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
-import com.lightstreamer.kafka.common.config.FieldConfigs;
-import com.lightstreamer.kafka.common.config.TopicConfigurations;
-import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -60,15 +46,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class Mocks {
-
-    public static record MockConsumerConcurrency(
-            RecordConsumeWithOrderStrategy orderStrategy, int threads)
-            implements ConsumerTriggerConfig.Concurrency {}
 
     public static class MockConsumer<K, V>
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
@@ -89,130 +70,6 @@ public class Mocks {
                 throw commitException;
             }
             super.commitSync(offsets);
-        }
-    }
-
-    public static class MockTriggerConfig implements ConsumerTriggerConfig<String, String> {
-
-        private final TopicConfigurations topicsConfig;
-        private final Properties consumerProperties;
-        private final boolean enforceCommandMode;
-        private final int numOfThreads;
-        private final RecordConsumeWithOrderStrategy orderStrategy;
-        private final RecordErrorHandlingStrategy errorHandlingStrategy;
-        private final boolean consumeAtConnectorStartup;
-
-        public static MockTriggerConfig create(
-                String topic,
-                String items,
-                boolean enforceCommandMode,
-                boolean consumeAtConnectionStartUp) {
-            TopicConfigurations topicsConfig =
-                    TopicConfigurations.of(empty(), List.of(fromDelimitedMappings(topic, items)));
-            return new MockTriggerConfig(
-                    topicsConfig,
-                    new Properties(),
-                    enforceCommandMode,
-                    1,
-                    consumeAtConnectionStartUp);
-        }
-
-        public MockTriggerConfig(
-                TopicConfigurations topicsConfig,
-                Properties properties,
-                boolean enforceCommandMode,
-                int numOfThreads,
-                boolean consumeAtConnectionStartUp) {
-            this(
-                    topicsConfig,
-                    properties,
-                    enforceCommandMode,
-                    RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                    numOfThreads,
-                    RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                    consumeAtConnectionStartUp);
-        }
-
-        public MockTriggerConfig(
-                TopicConfigurations topicsConfig,
-                Properties properties,
-                boolean enforceCommandMode,
-                RecordErrorHandlingStrategy errorHandlingStrategy,
-                int numOfThreads,
-                RecordConsumeWithOrderStrategy orderStrategy,
-                boolean consumeAtConnectionStartUp) {
-            this.topicsConfig = topicsConfig;
-            this.consumerProperties = properties;
-            this.enforceCommandMode = enforceCommandMode;
-            this.errorHandlingStrategy = errorHandlingStrategy;
-            this.numOfThreads = numOfThreads;
-            this.orderStrategy = orderStrategy;
-            this.consumeAtConnectorStartup = consumeAtConnectionStartUp;
-        }
-
-        @Override
-        public Properties consumerProperties() {
-            return this.consumerProperties;
-        }
-
-        @Override
-        public DataExtractor<String, String> fieldsExtractor() {
-            try {
-                return FieldConfigs.from(Map.of("field", "#{VALUE}"))
-                        .extractor(String(), false, false);
-            } catch (ExtractionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public ItemTemplates<String, String> itemTemplates() {
-            try {
-                return Items.templatesFrom(topicsConfig, String());
-            } catch (ExtractionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String connectionName() {
-            return "TestConnection";
-        }
-
-        @Override
-        public KeyValueDeserializers<String, String> deserializers() {
-            return null;
-        }
-
-        @Override
-        public Concurrency concurrency() {
-            return new Concurrency() {
-
-                @Override
-                public RecordConsumeWithOrderStrategy orderStrategy() {
-                    return orderStrategy;
-                }
-
-                @Override
-                public int threads() {
-                    return numOfThreads;
-                }
-            };
-        }
-
-        @Override
-        public RecordErrorHandlingStrategy errorHandlingStrategy() {
-            return errorHandlingStrategy;
-        }
-
-        @Override
-        public boolean isCommandEnforceEnabled() {
-            return enforceCommandMode;
-        }
-
-        @Override
-        public boolean consumeAtConnectorStartup() {
-            return consumeAtConnectorStartup;
         }
     }
 
