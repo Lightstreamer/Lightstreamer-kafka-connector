@@ -99,7 +99,7 @@ public class ConnectorConfigurator {
                 sSuppliers.deserializers(),
                 config.getRecordExtractionErrorHandlingStrategy(),
                 CommandModeStrategy.from(
-                        config.isTransformToCommandEnabled(), config.isCommandEnforceEnabled()),
+                        config.isAutoCommandModeEnabled(), config.isCommandEnforceEnabled()),
                 new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));
