@@ -24,10 +24,10 @@ import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.ext
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.EventUpdater;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -41,16 +41,13 @@ import com.lightstreamer.kafka.test_utils.Records;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,7 +110,7 @@ public class RecordProcessorWithCommandModeTest {
         return new DefaultRecordProcessor<>(
                 mapper,
                 EventUpdater.create(listener, subscribedItems.isNop()),
-                new CommandProcessUpdatesStrategy(),
+                ProcessUpdatesStrategy.commandStrategy(),
                 new DefaultRoutingStrategy(subscribedItems));
     }
 
@@ -121,61 +118,6 @@ public class RecordProcessorWithCommandModeTest {
     public void shouldNotAllowConcurrentProcessing() {
         processor = processor(SubscribedItems.of(subscribedItems));
         assertThat(processor.allowConcurrentProcessing()).isFalse();
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                    KEY        | COMMAND     | EXPECTED
-                    aKey       | ADD         | true
-                    aKey       | UPDATE      | true
-                    aKey       | DELETE      | true
-                    aKey       | UNKNOWN     | false
-                    aKey       | <NOCOMMAND> | false
-                    aKey       | <EMPTY>     | false
-                    aKey       | CS          | false
-                    aKey       | EOS         | false
-                    aKey       | <NULL>      | false
-                    <NOKEY>    | ADD         | false
-                    <NULL>     | ADD         | false
-                    <NULL>     | UPDATE      | false
-                    <NULL>     | DELETE      | false
-                    <EMPTY>    | DELETE      | false
-                    snapshot   | CS          | true
-                    snapshot   | EOS         | true
-                    snapshot   | ADD         | false
-                    snapshot   | DELETE      | false
-                    snapshot   | UPDATE      | false
-                    snapshot   | UNKNOWN     | false
-                    snapshot   | <NOCOMMAND> | false
-                    """)
-    void shouldCheckValidInput(String key, String command, boolean expected) {
-        CommandProcessUpdatesStrategy commandStrategy = new CommandProcessUpdatesStrategy();
-        Map<String, String> input = new HashMap<>();
-        switch (key) {
-            case "<NOKEY>" -> {}
-            case "<EMPTY>" -> input.put("key", "");
-            case "<NULL>" -> input.put("key", null);
-            default -> input.put("key", key);
-        }
-
-        switch (command) {
-            case "<NOCOMMAND>" -> {}
-            case "<EMPTY>" -> input.put("command", "");
-            case "<NULL>" -> input.put("command", null);
-            default -> input.put("command", command);
-        }
-
-        Optional<Command> checkInput = commandStrategy.checkInput(input);
-        if (expected) {
-            assertThat(checkInput).isPresent();
-            assertThat(checkInput.get()).isEqualTo(Command.valueOf(command));
-        } else {
-            assertThat(checkInput).isEmpty();
-        }
     }
 
     @ParameterizedTest
