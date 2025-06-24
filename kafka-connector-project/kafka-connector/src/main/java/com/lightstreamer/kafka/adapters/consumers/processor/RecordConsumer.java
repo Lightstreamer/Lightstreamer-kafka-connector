@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
@@ -81,7 +82,7 @@ public interface RecordConsumer<K, V> {
 
     interface WithSubscribedItems<K, V> {
 
-        WithEnforceCommandMode<K, V> enforceCommandMode(boolean enforceCommandMode);
+        WithEnforceCommandMode<K, V> commandMode(CommandModeStrategy commandModeStrategy);
     }
 
     interface WithEnforceCommandMode<K, V> {
@@ -96,7 +97,7 @@ public interface RecordConsumer<K, V> {
 
     interface WithOffsetService<K, V> {
 
-        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy strategy);
+        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy errorHandlingStrategy);
     }
 
     interface WithLogger<K, V> {
