@@ -1036,7 +1036,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
         
 For example, in the following record value:
@@ -1056,7 +1056,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1320,7 +1320,7 @@ Example:
 
 ##### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
-_Optional_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional but ineffective if [`fields.transform.to.command.enable`](#transform-to-command-fieldstransformtocommandenable) is set_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
@@ -1352,6 +1352,27 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
 
+The parameter can be one of the following:
+- `true`
+- `false`
+
+Default value : `false`.
+
+##### Transform To Command (`fields.transform.to.command.enable`)
+
+_Optional_. Enables automatic _COMMAND_ mode support by adding a Lightstreamer `command` field with the value `ADD` to every update. This simplifies working with dynamic lists when your Kafka records don't already contain command operations.
+
+When enabled, you only need to map the `key` field from your record structure, and the connector will automatically insert the `ADD` command:
+
+```xml
+<param name="fields.transform.to.command.enable">true</param>
+<param name="field.key">#{KEY}</param>
+...
+```
+
+Unlike [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) (which requires records to contain command operations), this parameter generates commands automatically, allowing records without explicit command fields to be used in COMMAND mode.
+
+This parameter takes precedence over 
 The parameter can be one of the following:
 - `true`
 - `false`
