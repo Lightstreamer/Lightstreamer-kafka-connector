@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.apache.kafka.clients.admin.Admin;
