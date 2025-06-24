@@ -940,6 +940,23 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
+#### `record.consume.from`
+
+_Optional_. Specifies where to start consuming events from:
+
+- `LATEST`: start consuming events from the end of the topic partition
+- `EARLIEST`: start consuming events from the beginning of the topic partition
+
+The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+
+Default value: `LATEST`.
+
+Example:
+
+```xml
+<param name="record.consume.from">EARLIEST</param>
+```
+
 #### `record.consume.with.num.threads`
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
@@ -1360,9 +1377,17 @@ Default value : `false`.
 
 ##### Transform To Command (`fields.transform.to.command.enable`)
 
-_Optional_. Enables automatic _COMMAND_ mode support by adding a Lightstreamer `command` field with the value `ADD` to every update. This simplifies working with dynamic lists when your Kafka records don't already contain command operations.
+_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
 
-When enabled, you only need to map the `key` field from your record structure, and the connector will automatically insert the `ADD` command. For example:
+When enabled, the connector:
+
+- Automatically adds a Lightstreamer command field to each update
+- Assigns the appropriate command value based on the record state:
+  - **`ADD`**: For records with a new key (not previously processed)
+  - **`UPDATE`**: For records with a key that has been previously processed
+  - **`DELETE`**: For records with a null message payload (tombstone records)
+
+You only need to map the key field from your record structure:
 
 ```xml
 <param name="fields.transform.to.command.enable">true</param>
@@ -1370,7 +1395,12 @@ When enabled, you only need to map the `key` field from your record structure, a
 ...
 ```
 
-Unlike [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) (which requires records to contain command operations), this parameter generates commands automatically, allowing records without explicit command fields to be used in COMMAND mode.
+Furthermore, the following command will be also generated:
+
+- **`UPDATE`**: In case of a Kafka record with a key already processed
+- **`DELETE`**: In case of a Kafka record with a null message payload
+
+This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
 
 The parameter can be one of the following:
 - `true`
