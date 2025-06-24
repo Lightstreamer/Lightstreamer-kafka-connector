@@ -23,12 +23,12 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -50,7 +50,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
+public class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
     private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
 
@@ -65,7 +65,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     private final RecordConsumer<K, V> recordConsumer;
     private Thread hook;
 
-    ConsumerWrapperImpl(
+    public ConsumerWrapperImpl(
             ConsumerTriggerConfig<K, V> config,
             ItemEventListener eventListener,
             MetadataListener metadataListener,
@@ -101,7 +101,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
-                        .enforceCommandMode(config.isCommandEnforceEnabled())
+                        .commandMode(config.commandModeStrategy())
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
@@ -159,7 +159,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     // Only for testing purposes
-    Consumer<K, V> getConsumer() {
+    Consumer<K, V> getInternalConsumer() {
         return consumer;
     }
 
