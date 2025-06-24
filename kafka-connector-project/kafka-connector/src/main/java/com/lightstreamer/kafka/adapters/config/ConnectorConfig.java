@@ -109,7 +109,7 @@ public final class ConnectorConfig extends AbstractConfig {
             "fields.evaluate.as.command.enable";
 
     public static final String FIELDS_TRANSFORM_TO_COMMAND_ENABLE =
-            "fields.transform.to.command.enable";
+            "fields.auto.command.mode.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
