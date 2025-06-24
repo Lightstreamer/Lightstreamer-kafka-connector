@@ -21,7 +21,6 @@ import com.lightstreamer.kafka.common.expressions.Constant;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,18 +94,18 @@ class DataExtractorSupport {
 
         @Override
         public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
-            Map<String, String> values = new HashMap<>();
+            BuildableSchemaAndValues schemaAndValues = new BuildableSchemaAndValues(schema);
             for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
                 try {
                     Data data = extractor.apply(record);
-                    values.put(data.name(), data.text());
+                    schemaAndValues.addValueNoKeyCheck(data.name(), data.text());
                 } catch (ValueException ve) {
                     if (!skipOnFailure) {
                         throw ve;
                     }
                 }
             }
-            return new DefaultSchemaAndValues(schema, values);
+            return schemaAndValues;
         }
 
         @Override
