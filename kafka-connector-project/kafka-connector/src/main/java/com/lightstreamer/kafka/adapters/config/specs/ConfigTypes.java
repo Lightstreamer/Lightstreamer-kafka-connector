@@ -249,11 +249,11 @@ public interface ConfigTypes {
     enum CommandModeStrategy {
         NONE,
         ENFORCE,
-        TRANSFORM;
+        AUTO;
 
-        public static CommandModeStrategy from(boolean transform, boolean enforce) {
-            if (transform) {
-                return TRANSFORM;
+        public static CommandModeStrategy from(boolean auto, boolean enforce) {
+            if (auto) {
+                return AUTO;
             }
             if (enforce) {
                 return ENFORCE;
