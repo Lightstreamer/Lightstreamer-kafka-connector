@@ -168,7 +168,7 @@ public class AdapterSetTest {
         connectorDataAdapter3.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
-                                ConnectorConfig.FIELDS_TRANSFORM_TO_COMMAND_ENABLE,
+                                ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 "true",
                                 "field.key",
                                 "#{KEY}")),
