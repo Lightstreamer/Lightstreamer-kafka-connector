@@ -191,10 +191,15 @@ public class ConfigSpecTest {
     @Test
     public void shouldGetCommandModeStrategy() {
         assertThat(CommandModeStrategy.from(true, false)).isEqualTo(CommandModeStrategy.TRANSFORM);
-
         assertThat(CommandModeStrategy.from(true, true)).isEqualTo(CommandModeStrategy.TRANSFORM);
-
         assertThat(CommandModeStrategy.from(false, true)).isEqualTo(CommandModeStrategy.ENFORCE);
         assertThat(CommandModeStrategy.from(false, false)).isEqualTo(CommandModeStrategy.NONE);
+    }
+
+    @Test
+    public void shouldCommandModeStrategyMangeSnapshot() {
+        assertThat(CommandModeStrategy.TRANSFORM.manageSnapshot()).isFalse();
+        assertThat(CommandModeStrategy.ENFORCE.manageSnapshot()).isTrue();
+        assertThat(CommandModeStrategy.NONE.manageSnapshot()).isFalse();
     }
 }
