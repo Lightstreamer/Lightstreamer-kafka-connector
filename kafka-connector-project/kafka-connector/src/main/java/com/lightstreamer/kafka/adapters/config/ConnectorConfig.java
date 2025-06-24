@@ -489,6 +489,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     private void checkCommandMode() {
         if (isTransformToCommandEnabled()) {
+            checkCommandKey();
             return;
         }
 
@@ -498,16 +499,20 @@ public final class ConnectorConfig extends AbstractConfig {
                         "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
                                 .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
             }
-            if (fieldConfigs.getExpression("key") == null) {
-                throw new ConfigException(
-                        "Command mode requires a key field. Parameter [%s] must be set"
-                                .formatted("field.key"));
-            }
+            checkCommandKey();
             if (fieldConfigs.getExpression("command") == null) {
                 throw new ConfigException(
                         "Command mode requires a command field. Parameter [%s] must be set"
                                 .formatted("field.command"));
             }
+        }
+    }
+
+    private void checkCommandKey() {
+        if (fieldConfigs.getExpression("key") == null) {
+            throw new ConfigException(
+                    "Command mode requires a key field. Parameter [%s] must be set"
+                            .formatted("field.key"));
         }
     }
 
