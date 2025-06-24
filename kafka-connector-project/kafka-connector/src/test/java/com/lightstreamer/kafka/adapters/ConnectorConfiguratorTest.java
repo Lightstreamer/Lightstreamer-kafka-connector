@@ -220,6 +220,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
         updatedConfigs.put(ConnectorConfig.FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true");
+        updatedConfigs.put("field.key", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
@@ -239,7 +240,7 @@ public class ConnectorConfiguratorTest {
 
         Schema schema = fieldsExtractor.schema();
         assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+        assertThat(schema.keys()).containsExactly("key", "fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = consumerTriggerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
