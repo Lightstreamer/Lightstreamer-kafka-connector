@@ -288,6 +288,13 @@
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
 
+        <!-- Optional. Specifies where to start consuming events from:
+             - LATEST: start consuming events from the end of the topic partition
+             - EARLIEST: start consuming events from the beginning of the topic partition
+
+             Default value: LATEST. -->
+        <param name="record.consume.from">EARLIEST</param>
+
         <!-- Optional. Specified when to consume records from the Kafka topics. Can be one of the following:
              - true
              - false
@@ -298,14 +305,7 @@
              one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
 
              Default value: false. -->
-        <param name="record.consume.at.connector.startup">false</param>
-
-        <!-- Optional. Specifies where to start consuming events from:
-             - LATEST: start consuming events from the end of the topic partition
-             - EARLIEST: start consuming events from the beginning of the topic partition
-
-             Default value: LATEST. -->
-        <param name="record.consume.from">EARLIEST</param>
+        <param name="record.consume.at.connector.startup">false</param>        
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
              incoming deserialized records. If set to `-1`, the number of threads will be automatically
@@ -493,7 +493,7 @@
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
 
-        <!-- Optional. Enables support for the COMMAND mode. 
+        <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode. 
              A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
              - "key": Identifies the unique key for each element in the list generated from the item.
              - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
@@ -516,7 +516,30 @@
         <param name="fields.evaluate.as.command.enable">true</param>
         -->        
 
-        <param name="fields.transform.to.command.enable">true</param>
+        <!-- Optional. Enables automatic COMMAND mode support by generating appropriate command operations for Lightstreamer items
+             without requiring your Kafka records to contain explicit command fields.
+
+             When enabled, the connector:
+
+             - Automatically adds a Lightstreamer command field to each update
+             - Assigns the appropriate command value based on the record state:
+               - "ADD": For records with a new mapped key (not previously processed)
+               - "UPDATE": For records with a mapped key that has been previously processed
+               - "DELETE": For records with a null message payload (tombstone records)
+
+             You only need to map the `key` field from your record structure:
+
+             <param name="fields.auto.command.mode.enable">true</param>
+             <param name="field.key">#{KEY}</param>
+
+             The parameter can be one of the following:
+             - `true`
+             - `false`
+
+             Default value: false. -->
+        <!---
+        <param name="fields.auto.command.mode.enable">true</param>
+        -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 
