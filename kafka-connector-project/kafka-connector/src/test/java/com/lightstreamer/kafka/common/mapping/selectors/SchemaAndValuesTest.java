@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -101,23 +100,38 @@ public class SchemaAndValuesTest {
     }
 
     @Test
-    void shouldGenerateCorrectToString() {
+    void shouldReturnAsText() {
         Schema schema = Schema.from("schema", Set.of("field1", "field2"));
-        Map<String, String> values = new LinkedHashMap<>(); // Use LinkedHashMap for order
-        values.put("field1", "value1");
-        values.put("field2", "value2");
+        Map<String, String> values = new HashMap<>();
+        values.put("BField", "value1");
+        values.put("AField", "value2");
         SchemaAndValues schemaAndValues = SchemaAndValues.from(schema, values);
 
-        assertThat(schemaAndValues.toString())
-                .isEqualTo("(schema-<{field1=value1, field2=value2}>)");
+        // The order of keys in the output is granted to be alphabetical
+        assertThat(schemaAndValues.asText()).isEqualTo("schema-[AField=value2,BField=value1]");
     }
 
     @Test
-    void shouldGenerateCorrectToStringWithEmptyValues() {
+    void shouldReturnAsTextEmptyValues() {
         Schema schema = Schema.from("schema", Set.of("field1", "field2"));
         Map<String, String> values = Collections.emptyMap();
         SchemaAndValues schemaAndValues = SchemaAndValues.from(schema, values);
 
-        assertThat(schemaAndValues.toString()).isEqualTo("(schema-<{}>)");
+        assertThat(schemaAndValues.asText()).isEqualTo("schema-[]");
+    }
+
+    @Test
+    void shouldReturnAsTextEmptyValuesWithEmptyKeys() {
+        Schema schema = Schema.from("schema", Collections.emptySet());
+        Map<String, String> values = Collections.emptyMap();
+        SchemaAndValues schemaAndValues = SchemaAndValues.from(schema, values);
+
+        assertThat(schemaAndValues.asText()).isEqualTo("schema");
+    }
+
+    @Test
+    void shouldGenerateCorrectToStringWithNOP() {
+        SchemaAndValues nop = SchemaAndValues.nop();
+        assertThat(nop.asText()).isEqualTo("NOSCHEMA");
     }
 }
