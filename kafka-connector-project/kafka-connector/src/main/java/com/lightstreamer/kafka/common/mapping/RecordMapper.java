@@ -95,6 +95,15 @@ public interface RecordMapper<K, V> {
          * @return a set of all subscribed items that can be derived from the record's value
          */
         Set<SubscribedItem> routeAll();
+
+        /**
+         * Determines whether the payload of the record is null.
+         *
+         * @return {@code true} if the payload is null, {@code false} otherwise
+         */
+        default boolean isPayloadNull() {
+            return false;
+        }
     }
 
     Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
@@ -265,7 +274,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         }
 
         SchemaAndValues mappedFields = fieldExtractor.extractData(record);
-        return new DefaultMappedRecord(set, mappedFields);
+        return new DefaultMappedRecord(set, mappedFields, record.value() == null);
     }
 }
 
@@ -276,14 +285,24 @@ final class DefaultMappedRecord implements MappedRecord {
     private final SchemaAndValues fieldsMap;
     private final Set<SchemaAndValues> indexedTemplates;
 
+    private boolean payloadNull;
+
     DefaultMappedRecord() {
-        this(emptySet(), SchemaAndValues.nop());
+        this(emptySet(), SchemaAndValues.nop(), true);
     }
 
     DefaultMappedRecord(Set<SchemaAndValues> expandedTemplates, SchemaAndValues fieldsMap) {
+        this(expandedTemplates, fieldsMap, false);
+    }
+
+    DefaultMappedRecord(
+            Set<SchemaAndValues> expandedTemplates,
+            SchemaAndValues fieldsMap,
+            boolean payloadNull) {
         // this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
         this.indexedTemplates = expandedTemplates;
         this.fieldsMap = fieldsMap;
+        this.payloadNull = payloadNull;
     }
 
     @Override
@@ -322,6 +341,11 @@ final class DefaultMappedRecord implements MappedRecord {
     @Override
     public Map<String, String> fieldsMap() {
         return fieldsMap.values();
+    }
+
+    @Override
+    public boolean isPayloadNull() {
+        return payloadNull;
     }
 
     @Override
