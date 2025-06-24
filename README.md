@@ -940,21 +940,22 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-#### `record.consume.from`
+#### `record.consume.at.connector.startup`
 
-_Optional_. Specifies where to start consuming events from:
+_Optional_. Specifies when to start consuming events from:
 
-- `LATEST`: start consuming events from the end of the topic partition
-- `EARLIEST`: start consuming events from the beginning of the topic partition
+- If set to `true`, the Kafka Connector will start consuming records immediately after initialization, before any Lightstreamer client subscription request.
+
+- If set to `false`, the Kafka Connector will conserve resources by waiting until at least one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
 
 The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
-Default value: `LATEST`.
+Default value: `false`.
 
 Example:
 
 ```xml
-<param name="record.consume.from">EARLIEST</param>
+<param name="record.consume.at.connector.startup">true</param>
 ```
 
 #### `record.consume.with.num.threads`
@@ -1385,7 +1386,7 @@ When enabled, the connector:
 - Assigns the appropriate command value based on the record state:
   - **`ADD`**: For records with a new mapped key (not previously processed)
   - **`UPDATE`**: For records with a mapped key that has been previously processed
-  - **`DELETE`**: For records with a null message payload (tombstone records)
+  - **`DELETE`**: For records with a null message payload (_tombstone records_)
 
 You only need to map the `key` field from your record structure:
 
