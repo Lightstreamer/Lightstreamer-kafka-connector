@@ -58,7 +58,6 @@ class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     public boolean isConsuming() {
         consumerLock.lock();
         log.atTrace().log("Lock acquired to check if consuming...");
-        CompletableFuture<Void> currentFuture = this.currentFuture;
         try {
             return consumer != null;
         } finally {
@@ -75,8 +74,11 @@ class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         log.atTrace().log("Lock acquired...");
         try {
             if (consumer == null) {
+                log.atTrace().log("Consumer not yet started, creating a new one...");
                 consumer = consumerWrapper.apply(items);
+                log.atTrace().log("Starting new consumer thread...");
                 currentFuture = CompletableFuture.runAsync(consumer, pool);
+                log.atTrace().log("New consumer thread started {}", currentFuture);
             }
             return currentFuture;
         } catch (KafkaException ke) {
