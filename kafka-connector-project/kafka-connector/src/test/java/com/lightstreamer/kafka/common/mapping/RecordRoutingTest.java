@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 import static com.lightstreamer.kafka.test_utils.Records.recordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -42,6 +43,7 @@ import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvFileSource;
@@ -79,7 +81,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("itemArgs")
-    public void shouldRoutesFromSimpleItems(
+    public void shouldRouteFromSimpleItems(
             List<String> topics,
             String item,
             List<SubscribedItem> routable,
@@ -156,7 +158,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    public void shouldRoutesFromTemplates(
+    public void shouldRouteFromTemplates(
             List<String> topics,
             List<String> templateStr,
             Map<String, List<SubscribedItem>> routable,
@@ -174,12 +176,11 @@ public class RecordRoutingTest {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             List<SubscribedItem> routableForTopic = routable.get(topic);
             List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
-            SubscribedItems all =
-                    SubscribedItems.of(
-                            Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream())
-                                    .toList());
+            List<SubscribedItem> all =
+                    Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream()).toList();
+            SubscribedItems subscribed = SubscribedItems.of(all);
 
-            Set<SubscribedItem> routed = mapped.route(all);
+            Set<SubscribedItem> routed = mapped.route(subscribed);
             assertThat(routed).containsExactlyElementsIn(routableForTopic);
         }
     }
@@ -208,7 +209,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgsJson")
-    public void shouldRoutesFromTemplateWithJsonValueRecord(
+    public void shouldRouteFromTemplateWithJsonValueRecord(
             String jsonString,
             List<String> templateStr,
             List<SubscribedItem> routable,
@@ -298,5 +299,37 @@ public class RecordRoutingTest {
         } else {
             assertThat(routed).isEmpty();
         }
+    }
+
+    @Test
+    public void shouldRouteAll() throws ExtractionException {
+        String template1 =
+                "complex-item-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}";
+        String template2 =
+                "complex-item-#{pref=KEY.preferences['pref1'],childName1=VALUE.children[0].name,childName2=VALUE.children[1].name}";
+        ItemTemplates<GenericRecord, JsonNode> templates =
+                ItemTemplatesUtils.ItemTemplates(
+                        AvroKeyJsonValue(), List.of(TEST_TOPIC_1), List.of(template1, template2));
+        RecordMapper<GenericRecord, JsonNode> mapper =
+                RecordMapper.<GenericRecord, JsonNode>builder()
+                        .withTemplateExtractors(templates.groupExtractors())
+                        .build();
+
+        KafkaRecord<GenericRecord, JsonNode> incomingRecord =
+                recordWithHeaders(
+                        TEST_TOPIC_1,
+                        SampleGenericRecordProvider().sampleMessage(),
+                        SampleJsonNodeProvider().sampleMessage(),
+                        new RecordHeaders()
+                                .add("header-key1", "header-value1".getBytes())
+                                .add("header-key2", "header-value2".getBytes()));
+        MappedRecord mapped = mapper.map(incomingRecord);
+        List<String> implicitItems =
+                mapped.routeAll().stream().map(SubscribedItem::asText).toList();
+
+        assertThat(implicitItems)
+                .containsExactly(
+                        "complex-item-[child=alex,keyName=joe,name=joe]",
+                        "complex-item-[childName1=alex,childName2=anna,pref=pref_value1]");
     }
 }
