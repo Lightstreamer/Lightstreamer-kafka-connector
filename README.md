@@ -925,10 +925,10 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional_. Specifies where to start consuming events from:
+_Optional_. Specifies where to start consuming events from. Can be one of the following:
 
-- `LATEST`: start consuming events from the end of the topic partition
-- `EARLIEST`: start consuming events from the beginning of the topic partition
+- `LATEST`: Start consuming events from the end of the topic partition.
+- `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
 The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
