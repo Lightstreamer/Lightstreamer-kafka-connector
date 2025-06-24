@@ -219,7 +219,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic2.to", "item-template.template1");
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
-        updatedConfigs.put(ConnectorConfig.FIELDS_TRANSFORM_TO_COMMAND_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE, "true");
         updatedConfigs.put("field.key", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
@@ -262,8 +262,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(consumerTriggerConfig.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(consumerTriggerConfig.commandModeStrategy())
-                .isEqualTo(CommandModeStrategy.TRANSFORM);
+        assertThat(consumerTriggerConfig.commandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
         Concurrency concurrency = consumerTriggerConfig.concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
