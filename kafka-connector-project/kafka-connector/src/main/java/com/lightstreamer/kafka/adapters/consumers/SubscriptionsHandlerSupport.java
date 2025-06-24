@@ -66,17 +66,12 @@ class SubscriptionsHandlerSupport {
 
     static class NOPSubscriptionsHandler extends AbstractSubscriptionsHandler {
 
-        private final CompletableFuture<Void> completed = CompletableFuture.completedFuture(null);
-
         NOPSubscriptionsHandler(ConsumerTrigger consumerTrigger) {
             super(consumerTrigger);
         }
 
         @Override
-        public CompletableFuture<Void> subscribe(String item, Object itemHandle)
-                throws SubscriptionException {
-            return completed;
-        }
+        public void subscribe(String item, Object itemHandle) throws SubscriptionException {}
 
         @Override
         public Item unsubscribe(String topic) throws SubscriptionException {
@@ -91,7 +86,6 @@ class SubscriptionsHandlerSupport {
         private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
                 new ConcurrentHashMap<>();
         private final AtomicInteger itemsCounter = new AtomicInteger(0);
-        private CompletableFuture<Void> consuming;
 
         DefaultSubscriptionsHandler(ConsumerTrigger consumerTrigger) {
             super(consumerTrigger);
@@ -100,8 +94,7 @@ class SubscriptionsHandlerSupport {
         }
 
         @Override
-        public final CompletableFuture<Void> subscribe(String item, Object itemHandle)
-                throws SubscriptionException {
+        public final void subscribe(String item, Object itemHandle) throws SubscriptionException {
             try {
                 SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
                 if (!itemTemplates.matches(newItem)) {
@@ -113,15 +106,14 @@ class SubscriptionsHandlerSupport {
                 log.atInfo().log("Subscribed to item [{}]", item);
                 subscribedItems.put(item, newItem);
                 if (itemsCounter.incrementAndGet() == 1) {
-                    consuming =
+                    CompletableFuture<Void> consuming =
                             consumerTrigger.startConsuming(
                                     SubscribedItems.of(subscribedItems.values()));
+                    if (consuming.isCompletedExceptionally()) {
+                        itemsCounter.set(0);
+                    }
                 }
 
-                if (consuming.isCompletedExceptionally()) {
-                    itemsCounter.set(0);
-                }
-                return consuming;
             } catch (ExpressionException e) {
                 log.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
