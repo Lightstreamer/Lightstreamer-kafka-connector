@@ -25,8 +25,8 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
-    private ConsumerTrigger consumerTrigger;
+    private SubscriptionsHandler subscriptionsHandler;
     private ConsumerTriggerConfig<?, ?> consumerTriggerConfig;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataListener;
@@ -54,7 +54,9 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
         this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
         this.metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
-                        connectorConfig.getAdapterName(), connectorConfig.isEnabled());
+                        connectorConfig.getAdapterName(),
+                        connectorConfig.isEnabled(),
+                        connectorConfig.consumeAtStartup());
 
         log.info("Configuring Kafka Connector");
         consumerTriggerConfig = configurator.configure();
@@ -63,13 +65,17 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
-        return consumerTrigger.isSnapshotAvailable();
+        return connectorConfig.getCommandModeStrategy().manageSnapshot();
     }
 
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.consumerTrigger =
-                ConsumerTrigger.create(consumerTriggerConfig, metadataListener, eventListener);
+        this.subscriptionsHandler =
+                SubscriptionsHandler.create(
+                        consumerTriggerConfig,
+                        metadataListener,
+                        eventListener,
+                        connectorConfig.consumeAtStartup());
     }
 
     @Override
@@ -81,13 +87,13 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
         log.info("Trying subscription to item [{}]", itemName);
-        consumerTrigger.subscribe(itemName, itemHandle);
+        subscriptionsHandler.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
         log.info("Unsubscribing from item [{}]", itemName);
-        consumerTrigger.unsubscribe(itemName);
+        subscriptionsHandler.unsubscribe(itemName);
     }
 }
