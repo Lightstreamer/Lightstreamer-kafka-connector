@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public interface SubscriptionsHandler {
@@ -61,7 +60,7 @@ public interface SubscriptionsHandler {
                 consumeAtStartup);
     }
 
-    CompletableFuture<Void> subscribe(String item, Object itemHandle) throws SubscriptionException;
+    void subscribe(String item, Object itemHandle) throws SubscriptionException;
 
     Item unsubscribe(String topic) throws SubscriptionException;
 
