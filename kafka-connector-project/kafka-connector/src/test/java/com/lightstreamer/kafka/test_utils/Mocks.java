@@ -26,17 +26,15 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
-import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
@@ -46,8 +44,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class Mocks {
 
@@ -55,6 +53,7 @@ public class Mocks {
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
 
         private KafkaException commitException;
+        private KafkaException listTopicException;
 
         public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
             super(offsetResetStrategy);
@@ -64,69 +63,38 @@ public class Mocks {
             this.commitException = exception;
         }
 
+        public void setListTopicException(Exception exception) {
+            this.listTopicException = new KafkaException("Mocked listTopics exception", exception);
+        }
+
         @Override
         public synchronized void commitSync(Map<TopicPartition, OffsetAndMetadata> offsets) {
             if (commitException != null) {
                 throw commitException;
             }
+
             super.commitSync(offsets);
         }
-    }
-
-    public static class MockConsumerWrapper<K, V> implements ConsumerWrapper<K, V> {
-
-        private volatile boolean ran = false;
-        private volatile boolean closed = false;
-
-        public MockConsumerWrapper() {}
 
         @Override
-        public void run() {
-            ran = true;
-        }
-
-        @Override
-        public void close() {
-            closed = true;
-        }
-
-        public boolean hasRan() {
-            return ran;
-        }
-
-        public boolean isClosed() {
-            return closed;
-        }
-
-        @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            throw new UnsupportedOperationException("Unimplemented method 'consumeRecords'");
-        }
-    }
-
-    public static class MockAdminInterface implements AdminInterface {
-
-        private final Set<String> topics;
-        private final boolean throwException;
-
-        public MockAdminInterface(Set<String> topics, boolean throwException) {
-            this.topics = topics;
-            this.throwException = throwException;
-        }
-
-        public MockAdminInterface(Set<String> topics) {
-            this(topics, false);
-        }
-
-        @Override
-        public void close() throws Exception {}
-
-        @Override
-        public Set<String> listTopics(ListTopicsOptions options) throws Exception {
-            if (throwException) {
-                throw new RuntimeException("Fake Exception");
+        public synchronized Map<String, List<PartitionInfo>> listTopics() {
+            if (listTopicException != null) {
+                throw listTopicException;
             }
-            return topics;
+            return super.listTopics();
+        }
+
+        public static <K, V> Supplier<Consumer<K, V>> supplier() {
+            return supplier(false);
+        }
+
+        public static <K, V> Supplier<Consumer<K, V>> supplier(boolean exceptionOnConnection) {
+            return () -> {
+                if (exceptionOnConnection) {
+                    throw new KafkaException("Simulated Exception");
+                }
+                return new MockConsumer<>(OffsetResetStrategy.EARLIEST);
+            };
         }
     }
 
