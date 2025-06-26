@@ -39,7 +39,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SmartEventUpdater;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -85,8 +85,7 @@ public class RecordConsumerTest {
             long offset,
             String threadName) {}
 
-    private static RecordMapper<String, String> newRecordMapper(
-            ConsumerTriggerConfig<String, String> config) {
+    private static RecordMapper<String, String> newRecordMapper(Config<String, String> config) {
         return RecordMapper.<String, String>builder()
                 .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
@@ -96,7 +95,7 @@ public class RecordConsumerTest {
     private static final Logger logger = LogFactory.getLogger("connection");
 
     private RecordConsumer<String, String> recordConsumer;
-    private ConsumerTriggerConfig<String, String> config;
+    private Config<String, String> config;
     private RecordMapper<String, String> recordMapper;
     private Items.SubscribedItems subscriptions;
 
@@ -117,7 +116,7 @@ public class RecordConsumerTest {
                 new ConnectorConfigurator(
                         ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
 
-        this.config = (ConsumerTriggerConfig<String, String>) connectorConfigurator.configure();
+        this.config = (Config<String, String>) connectorConfigurator.configure();
 
         String item = "item";
         this.subscriptions =
