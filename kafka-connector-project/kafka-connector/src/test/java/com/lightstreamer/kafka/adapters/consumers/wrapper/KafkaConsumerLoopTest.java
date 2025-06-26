@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperSupport.KafkaConsumerLoop;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
@@ -188,7 +189,7 @@ public class KafkaConsumerLoopTest {
                     makeProperties(),
                     Items.templatesFrom(makeTopicsConfig(enableSubscriptionPattern), String()),
                     ItemTemplatesUtils.fieldsExtractor(),
-                    null,
+                    OthersSelectorSuppliers.String().deserializers(),
                     errorHandlingStrategy,
                     commandModeStrategy,
                     new Concurrency(orderStrategy, threads));
