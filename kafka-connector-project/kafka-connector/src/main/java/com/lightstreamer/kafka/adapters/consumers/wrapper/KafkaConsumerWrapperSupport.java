@@ -54,7 +54,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class KafkaConsumerWrapperSupport {
+class KafkaConsumerWrapperSupport {
 
     static <K, V> KafkaConsumerWrapper create(
             Config<K, V> config,
@@ -118,13 +118,15 @@ public class KafkaConsumerWrapperSupport {
                                     metadataListener,
                                     items,
                                     consumerSupplier);
-                    log.atTrace().log("Starting new consumer thread...");
+                    log.atTrace().log("Starting new consumer loop...");
                     currentFuture = CompletableFuture.runAsync(loop, pool);
-                    log.atTrace().log("New consumer thread started {}", currentFuture);
+                    log.atTrace().log("New consumer loop started {}", currentFuture);
+                } else {
+                    log.atTrace().log("Consumer already started");
                 }
                 return currentFuture;
             } catch (KafkaException ke) {
-                log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
+                log.atError().setCause(ke).log("Unable to start consuming from Kafka");
                 metadataListener.forceUnsubscriptionAll();
                 return CompletableFuture.failedFuture(ke);
             } finally {
@@ -397,10 +399,9 @@ public class KafkaConsumerWrapperSupport {
         RecordConsumer<K, V> getRecordConsumer() {
             return recordConsumer;
         }
+    }
 
-        // Only for testing purposes
-        RecordMapper<K, V> getRecordMapper() {
-            return recordMapper;
-        }
+    private KafkaConsumerWrapperSupport() {
+        // Utility class, no instantiation allowed
     }
 }
