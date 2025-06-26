@@ -24,8 +24,8 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.DefaultSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.NOPSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
@@ -37,14 +37,14 @@ import java.util.Properties;
 
 public class SubscriptionsHandlerTest {
 
-    private ConsumerTriggerConfig<String, String> config;
+    private Config<String, String> config;
     private Mocks.MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
     private Mocks.MockItemEventListener eventListener = new Mocks.MockItemEventListener();
 
     @BeforeEach
     public void before() {
         this.config =
-                new ConsumerTriggerConfig<>(
+                new Config<>(
                         "TestConnection",
                         new Properties(),
                         ItemTemplatesUtils.itemTemplates(
@@ -68,7 +68,11 @@ public class SubscriptionsHandlerTest {
     public void shouldCreateNopSubscriptionsHandler() {
         SubscriptionsHandler subscriptionsHandler =
                 SubscriptionsHandler.create(
-                        config, metadataListener, items -> new Mocks.MockConsumerWrapper<>(), true);
+                        config,
+                        metadataListener,
+                        eventListener,
+                        Mocks.MockConsumer.supplier(),
+                        true);
         assertThat(subscriptionsHandler).isInstanceOf(NOPSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
     }
