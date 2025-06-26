@@ -122,7 +122,7 @@ class KafkaConsumerWrapperSupport {
                     currentFuture = CompletableFuture.runAsync(loop, pool);
                     log.atTrace().log("New consumer loop started {}", currentFuture);
                 } else {
-                    log.atTrace().log("Consumer already started");
+                    log.atTrace().log("Consumer loop already started");
                 }
                 return currentFuture;
             } catch (KafkaException ke) {
@@ -183,7 +183,7 @@ class KafkaConsumerWrapperSupport {
         private final RecordConsumer<K, V> recordConsumer;
         private Thread hook;
 
-        public KafkaConsumerLoop(
+        KafkaConsumerLoop(
                 Config<K, V> config,
                 ItemEventListener eventListener,
                 MetadataListener metadataListener,
