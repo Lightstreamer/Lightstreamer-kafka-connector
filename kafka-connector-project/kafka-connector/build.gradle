@@ -25,7 +25,14 @@ publishing {
     }
 }
 
+
 sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/proto'
+        }
+    }
+
     jmh {
         java {
             srcDir 'src/jmh'
@@ -97,13 +104,6 @@ protobuf {
     }
 }
 
-sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/proto'
-        }
-    }
-}
 
 processResources {
     filesMatching("version.properties") {
@@ -180,4 +180,4 @@ task jmh(type: JavaExec, description: 'Execute JMH benchmarks') {
     main = 'org.openjdk.jmh.Main'
 }
 
-build.dependsOn javadoc
+build.dependsOn javadoc, compileJmhJava
