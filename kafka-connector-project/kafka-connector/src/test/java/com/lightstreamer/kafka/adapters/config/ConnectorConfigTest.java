@@ -1629,7 +1629,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shoudSpecifyRequiredKeystoreParameters() {
+    public void shouldSpecifyRequiredKeystoreParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.put(EncryptionConfigs.ENABLE_MTLS, "true");

@@ -25,6 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -32,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -133,7 +133,7 @@ public class KvpNodeSelectorsSuppliersTest {
                     """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         StringSubject subject =
                 assertThat(valueSelector(expression).extractValue(fromValue(INPUT)).text());
         if (expected.equals("<EMPTY>")) {
@@ -158,7 +158,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 VALUE.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
                     """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -190,10 +190,32 @@ public class KvpNodeSelectorsSuppliersTest {
                                 "|"));
 
         String message = "A@1|B@2";
-        ExtractionExpression expression = Expressions.Expression(expressionString);
+        ExtractionExpression expression = Expression(expressionString);
         String text =
                 valueSelector(expression, config).extractValue(fromValue(message), false).text();
         assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION | EXPECTED_ERROR_MESSAGE
+                VALUE.A    | Cannot retrieve field [A] from a null object
+                VALUE.B    | Cannot retrieve field [B] from a null object
+                    """)
+    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue(fromValue((String) null))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -220,7 +242,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 KEY.NOVALUE2,  <EMPTY>
                     """)
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         StringSubject subject =
                 assertThat(keySelector(expression).extractKey(fromKey(INPUT)).text());
         if (expected.equals("<EMPTY>")) {
@@ -244,7 +266,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 KEY.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
                     """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -276,9 +298,31 @@ public class KvpNodeSelectorsSuppliersTest {
                                 "|"));
 
         String message = "A@1|B@2";
-        ExtractionExpression expression = Expressions.Expression(expressionString);
+        ExtractionExpression expression = Expression(expressionString);
         String text = keySelector(expression, config).extractKey(fromKey(message), false).text();
         assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION | EXPECTED_ERROR_MESSAGE
+                KEY.A      | Cannot retrieve field [A] from a null object
+                KEY.B      | Cannot retrieve field [B] from a null object
+                    """)
+    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey((String) null))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -294,7 +338,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
@@ -313,7 +357,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expressions.Expression(expressionStr);
+        ExtractionExpression expression = Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);

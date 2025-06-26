@@ -29,6 +29,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
@@ -89,9 +90,18 @@ public class Records {
     }
 
     public static <K, V> KafkaRecord<K, V> record(K key, V value) {
+        return recordWithHeaders(key, value, new RecordHeaders());
+    }
+
+    public static <K, V> KafkaRecord<K, V> recordWithHeaders(K key, V value, Headers headers) {
+        return recordWithHeaders("record-topic", key, value, headers);
+    }
+
+    public static <K, V> KafkaRecord<K, V> recordWithHeaders(
+            String topic, K key, V value, Headers headers) {
         return KafkaRecord.from(
                 new ConsumerRecord<>(
-                        "record-topic",
+                        topic,
                         150,
                         120,
                         ConsumerRecord.NO_TIMESTAMP,
@@ -100,7 +110,7 @@ public class Records {
                         ConsumerRecord.NULL_SIZE,
                         key,
                         value,
-                        new RecordHeaders(),
+                        headers,
                         Optional.empty()));
     }
 
@@ -140,6 +150,22 @@ public class Records {
     public static KafkaRecord<Object, Object> sinkFromKey(
             String topic, Schema keySchema, Object key) {
         return sink(topic, keySchema, key, null, null);
+    }
+
+    public static KafkaRecord<Object, Object> sinkFromHeaders(
+            String topic, org.apache.kafka.connect.header.Headers headers) {
+        return KafkaRecord.from(
+                new SinkRecord(
+                        topic,
+                        150,
+                        null,
+                        null,
+                        null,
+                        null,
+                        120,
+                        (long) -1,
+                        TimestampType.NO_TIMESTAMP_TYPE,
+                        headers));
     }
 
     public static KafkaRecord<Object, Object> sinkRecord(String topic, Object key, Object value) {

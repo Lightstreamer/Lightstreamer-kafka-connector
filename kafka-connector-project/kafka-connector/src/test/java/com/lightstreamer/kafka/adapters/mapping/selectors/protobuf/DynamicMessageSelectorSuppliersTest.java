@@ -205,28 +205,6 @@ public class DynamicMessageSelectorSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
-            textBlock =
-                    """
-                EXPRESSION         | EXPECTED
-                VALUE              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
-                VALUE.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
-                VALUE.friends      | friends {\\n  name: "alex"\\n}\\n
-                VALUE.friends[0]   | name: "alex"\\n
-                VALUE.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
-                    """)
-    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException {
-        String extractedData =
-                valueSelector(Expression(expressionStr))
-                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(unescape(expected));
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
             textBlock =
                     """
                 EXPRESSION,                     EXPECTED_ERROR_MESSAGE
@@ -251,6 +229,50 @@ public class DynamicMessageSelectorSuppliersTest {
                         () ->
                                 valueSelector(Expression(expressionStr))
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            textBlock =
+                    """
+                EXPRESSION         | EXPECTED
+                VALUE              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                VALUE.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                VALUE.friends      | friends {\\n  name: "alex"\\n}\\n
+                VALUE.friends[0]   | name: "alex"\\n
+                VALUE.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
+                    """)
+    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
+            throws ExtractionException {
+        String extractedData =
+                valueSelector(Expression(expressionStr))
+                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(unescape(expected));
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue(fromValue((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -294,28 +316,6 @@ public class DynamicMessageSelectorSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                EXPRESSION       | EXPECTED
-                KEY              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
-                KEY.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
-                KEY.friends      | friends {\\n  name: "alex"\\n}\\n
-                KEY.friends[0]   | name: "alex"\\n
-                KEY.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
-                    """)
-    public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        String extractedData =
-                keySelector(Expression(expressionStr))
-                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(unescape(expected));
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
             textBlock =
                     """
                 EXPRESSION,                   EXPECTED_ERROR_MESSAGE
@@ -340,6 +340,50 @@ public class DynamicMessageSelectorSuppliersTest {
                         () ->
                                 keySelector(Expression(expressionStr))
                                         .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED
+                KEY              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                KEY.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                KEY.friends      | friends {\\n  name: "alex"\\n}\\n
+                KEY.friends[0]   | name: "alex"\\n
+                KEY.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
+                    """)
+    public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
+            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+        String extractedData =
+                keySelector(Expression(expressionStr))
+                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
+                        .text();
+        assertThat(extractedData).isEqualTo(unescape(expected));
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey(fromKey((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }

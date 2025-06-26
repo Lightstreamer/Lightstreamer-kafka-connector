@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,37 +33,119 @@ public interface Parsers {
 
     public interface Node<T extends Node<T>> {
 
-        boolean has(String propertyname);
+        default boolean has(String propertyname) {
+            return false;
+        }
 
-        Node<T> get(String propertyName);
+        default Node<T> get(String propertyName) {
+            return nullNode();
+        }
 
-        boolean isArray();
+        default boolean isArray() {
+            return false;
+        }
 
-        int size();
+        default int size() {
+            return 0;
+        }
 
-        Node<T> get(int index);
+        default Node<T> get(int index) {
+            return nullNode();
+        }
 
-        boolean isNull();
+        default boolean isNull() {
+            return false;
+        }
 
-        boolean isScalar();
+        default boolean isScalar() {
+            return false;
+        }
 
-        String asText();
+        default String asText() {
+            return "";
+        }
+
+        static <K, T extends Node<T>> Node<T> checkNull(
+                Supplier<K> obj, Function<K, Node<T>> nodeFactory) {
+            K object = obj.get();
+            if (object == null) {
+                return nullNode();
+            }
+            return nodeFactory.apply(object);
+        }
+
+        @SuppressWarnings("unchecked")
+        static <T extends Node<T>> Node<T> nullNode() {
+            return (Node<T>) NullNode.INSTANCE;
+        }
+
+        static class NullNode<T extends Node<T>> implements Node<T> {
+
+            private static final NullNode<?> INSTANCE = new NullNode<>();
+
+            private NullNode() {
+                // private constructor to prevent instantiation
+            }
+
+            @Override
+            public boolean isNull() {
+                return true;
+            }
+
+            @Override
+            public boolean isScalar() {
+                return true;
+            }
+
+            @Override
+            public String asText() {
+                return "null";
+            }
+        }
+
+        static <T extends Node<T>> Node<T> rootNode(Supplier<Node<T>> rootNodeFactory) {
+            return new Node<T>() {
+
+                @Override
+                public boolean isScalar() {
+                    return false;
+                }
+
+                @Override
+                public boolean has(String propertyname) {
+                    return true;
+                }
+
+                @Override
+                public Node<T> get(String propertyName) {
+                    // Here propertyName is irrelevant, as this method will always return
+                    // the root node, which can be VALUE, KEY, HEADERS, etc.
+                    return rootNodeFactory.get();
+                }
+            };
+        }
     }
 
     public interface NodeEvaluator<T extends Node<T>> {
-        static <T extends Node<T>> NodeEvaluator<T> identity(String name) {
-            return new NodeEvaluator<T>() {
 
-                @Override
-                public String name() {
-                    return name;
-                }
+        static class IdentityEvaluator<T extends Node<T>> implements NodeEvaluator<T> {
 
-                @Override
-                public Node<T> eval(Node<T> node) throws ValueException {
-                    return node;
-                }
-            };
+            private static final IdentityEvaluator<?> INSTANCE = new IdentityEvaluator<>();
+
+            @Override
+            public String name() {
+                return "root";
+            }
+
+            @Override
+            public Node<T> eval(Node<T> node) throws ValueException {
+                return node;
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        static <T extends Node<T>> NodeEvaluator<T> identity() {
+            return (NodeEvaluator<T>) IdentityEvaluator.INSTANCE;
         }
 
         String name();
@@ -73,7 +156,6 @@ public interface Parsers {
     public static final class LinkedNodeEvaluator<T extends Node<T>> {
 
         private LinkedNodeEvaluator<T> next;
-        private LinkedNodeEvaluator<T> prev;
         private final NodeEvaluator<T> current;
 
         LinkedNodeEvaluator(NodeEvaluator<T> evaluator) {
@@ -84,16 +166,12 @@ public interface Parsers {
             return next != null;
         }
 
-        public NodeEvaluator<T> current() {
-            return current;
+        public Node<T> eval(Node<T> node) throws ValueException {
+            return current.eval(node);
         }
 
         public LinkedNodeEvaluator<T> next() {
             return next;
-        }
-
-        public LinkedNodeEvaluator<T> previous() {
-            return prev;
         }
     }
 
@@ -139,6 +217,7 @@ public interface Parsers {
     }
 
     public static final class ParsingContext {
+
         private final String name;
         private final ExtractionExpression expression;
         private final Constant expectedRoot;
@@ -169,7 +248,10 @@ public interface Parsers {
             if (!expectedRoot.equals(expression.constant())) {
                 throw ExtractionException.expectedRootToken(name, expectedRoot.toString());
             }
-            next();
+
+            if (!Constant.HEADERS.equals(expectedRoot)) {
+                next();
+            }
         }
 
         boolean hasNext() {
@@ -230,7 +312,7 @@ public interface Parsers {
 
         private LinkedNodeEvaluator<T> parseRoot(ParsingContext ctx) throws ExtractionException {
             ctx.matchRoot();
-            return new LinkedNodeEvaluator<T>(NodeEvaluator.identity("root"));
+            return new LinkedNodeEvaluator<T>(NodeEvaluator.identity());
         }
 
         private LinkedNodeEvaluator<T> parseTokens(LinkedNodeEvaluator<T> head, ParsingContext ctx)
@@ -256,14 +338,8 @@ public interface Parsers {
                     node = fieldEvaluatorFactory.apply(token);
                 }
                 LinkedNodeEvaluator<T> linkedNode = new LinkedNodeEvaluator<>(node);
-                if (current == null) {
-                    current = linkedNode;
-                    head = linkedNode;
-                } else {
-                    current.next = linkedNode;
-                    linkedNode.prev = current;
-                    current = linkedNode;
-                }
+                current.next = linkedNode;
+                current = linkedNode;
             }
 
             return head;
