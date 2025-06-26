@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.De
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
@@ -50,7 +51,7 @@ public class DefaultSubscriptionsHandlerTest {
                         ItemTemplatesUtils.itemTemplates(
                                 "aTopic", "anItemTemplate,anotherItemTemplate"),
                         ItemTemplatesUtils.fieldsExtractor(),
-                        null,
+                        OthersSelectorSuppliers.String().deserializers(),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
