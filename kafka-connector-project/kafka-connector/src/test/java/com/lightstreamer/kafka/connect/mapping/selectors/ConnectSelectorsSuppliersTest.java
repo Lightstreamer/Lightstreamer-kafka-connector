@@ -140,28 +140,6 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
-            textBlock =
-                    """
-                EXPRESSION     |  EXPECTED
-                VALUE          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                VALUE.children | []
-                VALUE.name     | joe
-                    """)
-    public void shouldExtractValueWithNonScalars(String expression, String expected)
-            throws ExtractionException {
-        String text =
-                valueSelector(expression)
-                        .extractValue(
-                                sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
-                                false)
-                        .text();
-        assertThat(text).isEqualTo(expected);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
             textBlock =
                     """
                 EXPRESSION,                   EXPECTED_ERROR_MESSAGE
@@ -191,6 +169,28 @@ public class ConnectSelectorsSuppliersTest {
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            textBlock =
+                    """
+                EXPRESSION     | EXPECTED
+                VALUE          | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                VALUE.children | []
+                VALUE.name     | joe
+                    """)
+    public void shouldExtractValueWithNonScalars(String expression, String expected)
+            throws ExtractionException {
+        String text =
+                valueSelector(expression)
+                        .extractValue(
+                                sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
+                                false)
+                        .text();
+        assertThat(text).isEqualTo(expected);
+    }
+
     @Test
     public void shouldNotExtractValueDueToMissingSchema() {
         ValueException ve =
@@ -200,6 +200,29 @@ public class ConnectSelectorsSuppliersTest {
                                 valueSelector("VALUE")
                                         .extractValue(sinkFromValue("topic", null, "a Value")));
         assertThat(ve.getMessage()).isEqualTo("A Schema is required");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expressionStr)
+                                        .extractValue(
+                                                sinkFromValue(
+                                                        "topic", SIMPLE_STRUCT.schema(), null)));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -237,27 +260,6 @@ public class ConnectSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
-            textBlock =
-                    """
-                EXPRESSION   |  EXPECTED
-                KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                KEY.children |  []
-                KEY.name     |  joe
-                    """)
-    public void shouldExtractKeyWithNonScalars(String expression, String expected)
-            throws ExtractionException {
-        String text =
-                keySelector(expression)
-                        .extractKey(
-                                sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false)
-                        .text();
-        assertThat(text).isEqualTo(expected);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
             textBlock =
                     """
                 EXPRESSION,                 EXPECTED_ERROR_MESSAGE
@@ -283,6 +285,51 @@ public class ConnectSelectorsSuppliersTest {
                         () ->
                                 keySelector(expression)
                                         .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT)));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input KEY.signature
+            textBlock =
+                    """
+                EXPRESSION   |  EXPECTED
+                KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                KEY.children |  []
+                KEY.name     |  joe
+                    """)
+    public void shouldExtractKeyWithNonScalars(String expression, String expected)
+            throws ExtractionException {
+        String text =
+                keySelector(expression)
+                        .extractKey(
+                                sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false)
+                        .text();
+        assertThat(text).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expressionStr)
+                                        .extractKey(
+                                                sinkFromKey(
+                                                        "topic", SIMPLE_STRUCT.schema(), null)));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 

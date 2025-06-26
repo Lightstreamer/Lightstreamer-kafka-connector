@@ -186,7 +186,8 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(asNode((KafkaSinkRecord) record), checkScalar);
+
+            return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
         private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
@@ -216,7 +217,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         @Override
         public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return eval(asNode((KafkaSinkRecord) record), checkScalar);
+            return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
         private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
