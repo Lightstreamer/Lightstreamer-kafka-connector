@@ -17,9 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
@@ -27,6 +30,7 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.slf4j.Logger;
 
 import java.util.concurrent.CompletableFuture;
@@ -36,38 +40,40 @@ import java.util.function.Supplier;
 
 class SubscriptionsHandlerSupport {
 
-    static SubscriptionsHandler create(
-            Supplier<ConsumerTrigger> consumerTrigger, boolean consumeAtStartup) {
-        return create(consumerTrigger.get(), consumeAtStartup);
-    }
-
-    private static SubscriptionsHandler create(
-            ConsumerTrigger consumerTrigger, boolean consumeAtStartup) {
+    static <K, V> SubscriptionsHandler create(
+            Config<K, V> config,
+            MetadataListener metadataListener,
+            ItemEventListener eventListener,
+            Supplier<Consumer<K, V>> kafkaConsumerSupplier,
+            boolean consumeAtStartup) {
+        KafkaConsumerWrapper consumerWrapper =
+                KafkaConsumerWrapper.create(
+                        config, metadataListener, eventListener, kafkaConsumerSupplier);
         if (consumeAtStartup) {
-            consumerTrigger.startConsuming(SubscribedItems.nop());
-            return new NOPSubscriptionsHandler(consumerTrigger);
+            consumerWrapper.startConsuming(SubscribedItems.nop());
+            return new NOPSubscriptionsHandler(consumerWrapper);
         }
-        return new DefaultSubscriptionsHandler(consumerTrigger);
+        return new DefaultSubscriptionsHandler(consumerWrapper);
     }
 
     abstract static class AbstractSubscriptionsHandler implements SubscriptionsHandler {
 
-        protected final ConsumerTrigger consumerTrigger;
+        protected final KafkaConsumerWrapper consumerWrapper;
 
-        protected AbstractSubscriptionsHandler(ConsumerTrigger consumerTrigger) {
-            this.consumerTrigger = consumerTrigger;
+        protected AbstractSubscriptionsHandler(KafkaConsumerWrapper consumerWrapper) {
+            this.consumerWrapper = consumerWrapper;
         }
 
         @Override
         public final boolean isConsuming() {
-            return consumerTrigger.isConsuming();
+            return consumerWrapper.isConsuming();
         }
     }
 
     static class NOPSubscriptionsHandler extends AbstractSubscriptionsHandler {
 
-        NOPSubscriptionsHandler(ConsumerTrigger consumerTrigger) {
-            super(consumerTrigger);
+        NOPSubscriptionsHandler(KafkaConsumerWrapper consumerWrapper) {
+            super(consumerWrapper);
         }
 
         @Override
@@ -87,10 +93,10 @@ class SubscriptionsHandlerSupport {
                 new ConcurrentHashMap<>();
         private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
-        DefaultSubscriptionsHandler(ConsumerTrigger consumerTrigger) {
-            super(consumerTrigger);
-            this.itemTemplates = consumerTrigger.config().itemTemplates();
-            this.log = LogFactory.getLogger(consumerTrigger.config().connectionName());
+        DefaultSubscriptionsHandler(KafkaConsumerWrapper consumerWrapper) {
+            super(consumerWrapper);
+            this.itemTemplates = consumerWrapper.config().itemTemplates();
+            this.log = LogFactory.getLogger(consumerWrapper.config().connectionName());
         }
 
         @Override
@@ -107,7 +113,7 @@ class SubscriptionsHandlerSupport {
                 subscribedItems.put(item, newItem);
                 if (itemsCounter.incrementAndGet() == 1) {
                     CompletableFuture<Void> consuming =
-                            consumerTrigger.startConsuming(
+                            consumerWrapper.startConsuming(
                                     SubscribedItems.of(subscribedItems.values()));
                     if (consuming.isCompletedExceptionally()) {
                         itemsCounter.set(0);
@@ -128,7 +134,7 @@ class SubscriptionsHandlerSupport {
             }
 
             if (itemsCounter.decrementAndGet() == 0) {
-                consumerTrigger.stopConsuming();
+                consumerWrapper.stopConsuming();
             }
             return removedItem;
         }
