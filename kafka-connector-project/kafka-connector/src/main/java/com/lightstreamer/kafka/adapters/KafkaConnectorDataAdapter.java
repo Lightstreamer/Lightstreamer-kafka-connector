@@ -26,7 +26,7 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
     private SubscriptionsHandler subscriptionsHandler;
-    private ConsumerTriggerConfig<?, ?> consumerTriggerConfig;
+    private Config<?, ?> consumerConfig;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataListener;
 
@@ -59,7 +59,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                         connectorConfig.consumeAtStartup());
 
         log.info("Configuring Kafka Connector");
-        consumerTriggerConfig = configurator.configure();
+        consumerConfig = configurator.configure();
         log.info("Configuration complete");
     }
 
@@ -72,7 +72,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void setListener(@Nonnull ItemEventListener eventListener) {
         this.subscriptionsHandler =
                 SubscriptionsHandler.create(
-                        consumerTriggerConfig,
+                        consumerConfig,
                         metadataListener,
                         eventListener,
                         connectorConfig.consumeAtStartup());
