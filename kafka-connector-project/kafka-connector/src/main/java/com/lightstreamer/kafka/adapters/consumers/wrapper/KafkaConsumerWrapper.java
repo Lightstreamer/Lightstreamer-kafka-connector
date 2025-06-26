@@ -15,26 +15,28 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.consumers.trigger;
+package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
-public interface ConsumerTrigger {
+public interface KafkaConsumerWrapper {
 
-    record ConsumerTriggerConfig<K, V>(
+    record Config<K, V>(
             String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
@@ -57,22 +59,22 @@ public interface ConsumerTrigger {
 
     void stopConsuming();
 
-    ConsumerTriggerConfig<?, ?> config();
+    Config<?, ?> config();
 
-    public static <K, V> ConsumerTrigger create(
-            ConsumerTriggerConfig<K, V> config,
+    public static <K, V> KafkaConsumerWrapper create(
+            Config<K, V> config,
             MetadataListener metadataListener,
-            ItemEventListener eventListener) {
-        return create(
-                config,
-                metadataListener,
-                items -> ConsumerWrapper.create(config, eventListener, metadataListener, items));
+            ItemEventListener eventListener,
+            Supplier<Consumer<K, V>> consumer) {
+        return KafkaConsumerWrapperSupport.create(
+                config, metadataListener, eventListener, consumer);
     }
 
-    public static <K, V> ConsumerTrigger create(
-            ConsumerTriggerConfig<K, V> config,
-            MetadataListener metadataListener,
-            Function<SubscribedItems, ConsumerWrapper<K, V>> consumerWrapper) {
-        return new ConsumerTriggerImpl<>(config, metadataListener, consumerWrapper);
+    public static <K, V> Supplier<Consumer<K, V>> defaultConsumerSupplier(Config<K, V> config) {
+        return () ->
+                new KafkaConsumer<>(
+                        config.consumerProperties(),
+                        config.deserializers().keyDeserializer(),
+                        config.deserializers().valueDeserializer());
     }
 }
