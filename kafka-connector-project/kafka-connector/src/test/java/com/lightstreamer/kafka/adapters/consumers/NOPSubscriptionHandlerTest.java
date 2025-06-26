@@ -24,12 +24,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.NOPSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 
@@ -37,7 +35,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
-import java.util.function.Function;
 
 public class NOPSubscriptionHandlerTest {
 
@@ -45,8 +42,8 @@ public class NOPSubscriptionHandlerTest {
 
     @BeforeEach
     public void before() {
-        ConsumerTriggerConfig<String, String> config =
-                new ConsumerTriggerConfig<>(
+        Config<String, String> config =
+                new Config<>(
                         "TestConnection",
                         new Properties(),
                         ItemTemplatesUtils.itemTemplates(
@@ -57,13 +54,13 @@ public class NOPSubscriptionHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        Function<SubscribedItems, ConsumerWrapper<String, String>> consumerWrapper =
-                items -> new Mocks.MockConsumerWrapper<>();
-
         subscriptionHandler =
                 new NOPSubscriptionsHandler(
-                        ConsumerTrigger.create(
-                                config, new Mocks.MockMetadataListener(), consumerWrapper));
+                        KafkaConsumerWrapper.create(
+                                config,
+                                new Mocks.MockMetadataListener(),
+                                new Mocks.MockItemEventListener(),
+                                Mocks.MockConsumer.supplier()));
     }
 
     @Test
