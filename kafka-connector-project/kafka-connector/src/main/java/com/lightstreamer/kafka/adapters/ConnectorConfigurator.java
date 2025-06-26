@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.trigger.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
@@ -64,7 +64,7 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    public ConsumerTriggerConfig<?, ?> configure() throws ConfigException {
+    public Config<?, ?> configure() throws ConfigException {
         try {
             return doConfigure(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
@@ -73,7 +73,7 @@ public class ConnectorConfigurator {
         }
     }
 
-    private static <K, V> ConsumerTriggerConfig<K, V> doConfigure(
+    private static <K, V> Config<K, V> doConfigure(
             ConnectorConfig config, WrapperKeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
@@ -91,7 +91,7 @@ public class ConnectorConfigurator {
                         config.isFieldsSkipFailedMappingEnabled(),
                         config.isFieldsMapNonScalarValuesEnabled());
 
-        return new ConsumerTriggerConfig<>(
+        return new Config<>(
                 config.getAdapterName(),
                 config.baseConsumerProps(),
                 itemTemplates,
