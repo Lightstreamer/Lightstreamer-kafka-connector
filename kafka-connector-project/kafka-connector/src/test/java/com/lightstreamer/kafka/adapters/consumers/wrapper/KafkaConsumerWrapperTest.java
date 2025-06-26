@@ -42,7 +42,7 @@ public class KafkaConsumerWrapperTest {
 
     private final Mocks.MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
-    private KafkaConsumerWrapper mkConsumer(boolean throwExceptionWhileConnectingToKafka) {
+    private KafkaConsumerWrapper mkConsumer(boolean exceptionOnConnection) {
         // Create a trivial consumer configuration
         Config<String, String> config =
                 new Config<>(
@@ -60,7 +60,7 @@ public class KafkaConsumerWrapperTest {
                 config,
                 metadataListener,
                 new Mocks.MockItemEventListener(),
-                Mocks.MockConsumer.supplier(throwExceptionWhileConnectingToKafka));
+                Mocks.MockConsumer.supplier(exceptionOnConnection));
     }
 
     @Test
@@ -70,24 +70,27 @@ public class KafkaConsumerWrapperTest {
         CompletableFuture<Void> consuming1 = consumer.startConsuming(SubscribedItems.nop());
         assertThat(consuming1.isCompletedExceptionally()).isFalse();
 
+        // Invoking startConsuming again should be idempotent
         CompletableFuture<Void> consuming2 = consumer.startConsuming(SubscribedItems.nop());
         assertThat(consuming1).isSameInstanceAs(consuming2);
         assertThat(consumer.isConsuming()).isTrue();
 
         consuming1.join();
-        // assertThat(kafkaConsumer.hasRan()).isTrue();
-        // assertThat(kafkaConsumer.isClosed()).isFalse();
     }
 
     @Test
     public void shouldStartAndStopConsuming() {
         KafkaConsumerWrapper consumerWrapper = mkConsumer(false);
 
-        CompletableFuture<Void> consuming1 = consumerWrapper.startConsuming(SubscribedItems.nop());
-        assertThat(consuming1.isCompletedExceptionally()).isFalse();
+        CompletableFuture<Void> consuming = consumerWrapper.startConsuming(SubscribedItems.nop());
+        assertThat(consuming.isCompletedExceptionally()).isFalse();
 
         consumerWrapper.stopConsuming();
-        // assertThat(kafkaConsumer.isClosed()).isTrue();
+        assertThat(consumerWrapper.isConsuming()).isFalse();
+
+        // Invoking stopConsuming again should be idempotent
+        consumerWrapper.stopConsuming();
+        assertThat(consumerWrapper.isConsuming()).isFalse();
     }
 
     @Test
@@ -95,14 +98,12 @@ public class KafkaConsumerWrapperTest {
         KafkaConsumerWrapper consumerWrapper = mkConsumer(true);
 
         CompletableFuture<Void> consuming = consumerWrapper.startConsuming(SubscribedItems.nop());
+        assertThat(consumerWrapper.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         Exception ke = assertThrows(CompletionException.class, consuming::join);
 
         assertThat(ke).hasMessageThat().contains("Simulated Exception");
         assertThat(ke).hasCauseThat().isInstanceOf(KafkaException.class);
-
-        // assertThat(kafkaConsumer.hasRan()).isFalse();
-        // assertThat(kafkaConsumer.isClosed()).isFalse();
     }
 
     @Test
