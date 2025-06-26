@@ -215,6 +215,11 @@ public class BenchmarksUtils {
                 Map<TopicPartition, OffsetAndMetadata> committed) {
             throw new UnsupportedOperationException("Unimplemented method 'initStore'");
         }
+
+        @Override
+        public boolean canManageHoles() {
+            return false;
+        }
     }
 
     public static class Records {
