@@ -75,7 +75,7 @@ public class DataExtractorBenchmark {
     @Setup(Level.Iteration)
     public void setUp() throws ExtractionException, JsonMappingException, JsonProcessingException {
         ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS);
-        extractor = config.itemTemplates().groupExtractors().get(TOPICS).iterator().next();
+        extractor = config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
         records = BenchmarksUtils.Records.kafkaRecords(TOPICS, partitions, numOfRecords, keys);
         System.out.println("Added " + numOfRecords + " records");
     }
