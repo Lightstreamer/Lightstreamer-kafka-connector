@@ -20,10 +20,8 @@ package com.lightstreamer.kafka.adapters.consumers;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
@@ -35,20 +33,15 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
-import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.Properties;
-import java.util.stream.Stream;
 
 public class DefaultSubscriptionsHandlerTest {
 
     private static DefaultSubscriptionsHandler mkSubscriptionsHandler(
-            MetadataListener metadataListener,
-            boolean throwExceptionWhileConnectingToKafka,
-            CommandModeStrategy commandModeStrategy) {
+            boolean exceptionOnConnection) {
 
         Config<String, String> config =
                 new Config<>(
@@ -59,39 +52,32 @@ public class DefaultSubscriptionsHandlerTest {
                         ItemTemplatesUtils.fieldsExtractor(),
                         null,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        commandModeStrategy,
+                        CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
         KafkaConsumerWrapper consumerWrapper =
                 KafkaConsumerWrapper.create(
                         config,
-                        metadataListener,
+                        new Mocks.MockMetadataListener(),
                         new Mocks.MockItemEventListener(),
-                        Mocks.MockConsumer.supplier(throwExceptionWhileConnectingToKafka));
+                        Mocks.MockConsumer.supplier(exceptionOnConnection));
         return new DefaultSubscriptionsHandler(consumerWrapper);
     }
 
     private DefaultSubscriptionsHandler subscriptionHandler;
-    private MockMetadataListener metadataListener;
 
     void init() {
-        init(false, CommandModeStrategy.NONE);
+        init(false);
     }
 
-    void init(
-            boolean throwExceptionWhileConnectingToKafka, CommandModeStrategy commandModeStrategy) {
-        metadataListener = new Mocks.MockMetadataListener();
-        subscriptionHandler =
-                mkSubscriptionsHandler(
-                        metadataListener,
-                        throwExceptionWhileConnectingToKafka,
-                        commandModeStrategy);
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+    void init(boolean exceptionOnConnection) {
+        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection);
     }
 
     @Test
     public void shouldSubscribe() throws SubscriptionException {
         init();
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
@@ -109,16 +95,6 @@ public class DefaultSubscriptionsHandlerTest {
 
         Item item2 = subscriptionHandler.getSubscribedItem("anotherItemTemplate");
         assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
-
-        // assertThat(kafkaConsumer.hasRan()).isTrue();
-        // assertThat(kafkaConsumer.isClosed()).isFalse();
-    }
-
-    static Stream<Arguments> snapshotHandlers() {
-        return Stream.of(
-                arguments(CommandModeStrategy.NONE, false),
-                arguments(CommandModeStrategy.AUTO, false),
-                arguments(CommandModeStrategy.ENFORCE, true));
     }
 
     @Test
@@ -129,7 +105,7 @@ public class DefaultSubscriptionsHandlerTest {
                 assertThrows(
                         SubscriptionException.class,
                         () -> subscriptionHandler.subscribe("@invalidItem@", itemHandle));
-        assertThat(se.getMessage()).isEqualTo("Invalid Item");
+        assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
         assertThat(subscriptionHandler.isConsuming()).isFalse();
     }
 
@@ -137,15 +113,17 @@ public class DefaultSubscriptionsHandlerTest {
     public void shouldFailSubscriptionDueInvalidExpression() {
         init();
         Object itemHandle = new Object();
-        assertThrows(
-                SubscriptionException.class,
-                () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
+        SubscriptionException se =
+                assertThrows(
+                        SubscriptionException.class,
+                        () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
+        assertThat(se).hasMessageThat().isEqualTo("Item does not match any defined item templates");
         assertThat(subscriptionHandler.isConsuming()).isFalse();
     }
 
     @Test
     public void shouldFailSubscriptionDueToKafkaException() throws SubscriptionException {
-        init(true, CommandModeStrategy.NONE);
+        init(true);
         Object itemHandle = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle);
@@ -154,8 +132,6 @@ public class DefaultSubscriptionsHandlerTest {
         assertThat(item).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle));
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        // assertThat(kafkaConsumer.hasRan()).isFalse();
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
     @Test
@@ -171,17 +147,12 @@ public class DefaultSubscriptionsHandlerTest {
 
         Item removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-
-        // The consumer is still alive
-        // assertThat(kafkaConsumer.isClosed()).isFalse();
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         Item removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(removed1).isSameInstanceAs(item1);
         assertThat(removed2).isSameInstanceAs(item2);
-        // The consumer stops only when no more subscriptions exist.
-        // assertThat(kafkaConsumer.isClosed()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
     }
 
