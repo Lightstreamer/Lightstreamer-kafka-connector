@@ -948,8 +948,6 @@ _Optional_. Specifies when to start consuming events from:
 
 - If set to `false`, the Kafka Connector will conserve resources by waiting until at least one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
 
-The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
-
 Default value: `false`.
 
 Example:
