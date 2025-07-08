@@ -33,8 +33,8 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
@@ -229,7 +229,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, "UNORDERED");
         updatedConfigs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
         updatedConfigs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
-        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP, "true");
+        updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE, "true");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.configure();
