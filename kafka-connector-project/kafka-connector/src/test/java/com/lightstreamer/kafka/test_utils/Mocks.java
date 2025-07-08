@@ -96,6 +96,18 @@ public class Mocks {
                 return new MockConsumer<>(OffsetResetStrategy.EARLIEST);
             };
         }
+
+        public static <K, V> Supplier<Consumer<K, V>> supplier(String... topics) {
+            return () -> {
+                MockConsumer<K, V> mockConsumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
+                for (String topic : topics) {
+                    mockConsumer.updatePartitions(
+                            topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
+                }
+
+                return mockConsumer;
+            };
+        }
     }
 
     public static class MockMetadataListener implements MetadataListener {
@@ -263,8 +275,9 @@ public class Mocks {
         public void useLogger(Logger logger) {}
 
         @Override
-        public boolean allowConcurrentProcessing() {
-            return allowConcurrentProcessing;
+        public ProcessUpdatesType processUpdatesType() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'processUpdatesType'");
         }
     }
 
