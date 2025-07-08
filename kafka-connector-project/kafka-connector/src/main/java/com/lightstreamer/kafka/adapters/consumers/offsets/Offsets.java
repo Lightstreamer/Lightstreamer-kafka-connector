@@ -98,11 +98,11 @@ public class Offsets {
                     Logger logger);
         }
 
-        default void initStore(boolean fromLatest) {
+        default void initStore(boolean fromLatest) throws KafkaException {
             initStore(fromLatest, Offsets.OffsetStoreImpl::new);
         }
 
-        void initStore(boolean flag, OffsetStoreSupplier storeSupplier);
+        void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) throws KafkaException;
 
         default void initStore(
                 Map<TopicPartition, Long> startOffsets,
@@ -158,7 +158,8 @@ public class Offsets {
         }
 
         @Override
-        public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
+        public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier)
+                throws KafkaException {
             Set<TopicPartition> partitions = consumer.assignment();
             // Retrieve the offset to start from, which has to be used in case no
             // committed offset is available for a given partition.
