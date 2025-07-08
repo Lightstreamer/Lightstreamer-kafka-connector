@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -31,7 +32,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -40,30 +40,23 @@ public class SubscribedItemsTest {
     static Stream<Arguments> items() {
         return Stream.of(
                 arguments(Collections.emptySet(), 0),
-                arguments(Set.of(Items.subscribedFrom("anItem")), 1),
-                arguments(
-                        Set.of(Items.subscribedFrom("anItem"), Items.subscribedFrom("anotherItem")),
-                        2));
+                arguments(Set.of(subscribedFrom("anItem")), 1),
+                arguments(Set.of(subscribedFrom("anItem"), subscribedFrom("anotherItem")), 2));
     }
 
     @ParameterizedTest
     @MethodSource("items")
     public void shouldCreate(Collection<SubscribedItem> items, int expectedSize) {
         SubscribedItems subscribedItems = SubscribedItems.of(items);
-        assertThat(subscribedItems.isNop()).isFalse();
-        int counter = 0;
-        Iterator<SubscribedItem> iterator = subscribedItems.iterator();
-        while (iterator.hasNext()) {
-            counter++;
-            iterator.next();
-        }
-        assertThat(counter).isEqualTo(expectedSize);
+        assertThat(subscribedItems.allowImplicitItems()).isFalse();
+        assertThat(subscribedItems).hasSize(expectedSize);
     }
 
     @Test
-    public void shouldCreateNop() {
-        SubscribedItems subscribedItems = SubscribedItems.nop();
-        assertThat(subscribedItems.iterator().hasNext()).isFalse();
-        assertThat(subscribedItems.isNop()).isTrue();
+    public void shouldCreateWithImplicitItems() {
+        SubscribedItems subscribedItems =
+                SubscribedItems.of(Set.of(subscribedFrom("anItem")), true);
+        assertThat(subscribedItems.allowImplicitItems()).isTrue();
+        assertThat(subscribedItems).hasSize(1);
     }
 }
