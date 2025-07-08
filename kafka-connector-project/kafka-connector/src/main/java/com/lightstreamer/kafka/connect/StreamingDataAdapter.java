@@ -94,7 +94,7 @@ public final class StreamingDataAdapter implements RecordSender {
      * created from the values of the subscribedItems map and manages the collection of active
      * subscription requests.
      */
-    private final SubscribedItems subscribed = SubscribedItems.of(subscribedItems.values());
+    private final SubscribedItems subscribed = SubscribedItems.of(subscribedItems.values(), false);
 
     // The ItemEventListener instance injected by the Remote Provider Server.
     private volatile ItemEventListener listener;
