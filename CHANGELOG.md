@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.8] (2025-07-10)
+
+**Improvements**
+
+- Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support Headers. ([#57](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/57))
+
+- Enhanced Protobuf support by allowing to specify local binary descriptor files as an alternative to using the Schema Registry. ([#59](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/59))
+
+**Bug Fixes**
+
+- Fixed unexpected behaviors that occurred when processing Kafka records with null payloads. ([#58](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/58))
+
+
 ## [1.2.7] (2025-06-05)
 
 **Improvements**
