@@ -905,7 +905,7 @@ In particular, the Kafka Connector supports message validation for _Avro_, _JSON
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
-- Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type name](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
+- Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 #### Support for Key Value Pairs (KVP)
 
@@ -1005,7 +1005,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`). 
 
@@ -1353,7 +1353,7 @@ Example:
 
 ##### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
-_Optional_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional_. Enable support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
