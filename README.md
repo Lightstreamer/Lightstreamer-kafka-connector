@@ -899,18 +899,13 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 
 In particular, the Kafka Connector supports message validation for _Avro_, _JSON_, and _Protobuf_ which can be specified through:
 
-- Local schema files (_Avro_ and _JSON_ only): Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
+- Local schema (or binary descriptor) files: Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
 - The _Confluent Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
-- Message validation against local schema files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
-
-> [!IMPORTANT]
-> When using Avro or Protobuf formats, schema validation is mandatory:
-> - For Protobuf: The Confluent Schema Registry must be enabled as the only validation option.
-> - For Avro: You can either enable the Confluent Schema Registry or provide local schema files.
+- Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type name](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 #### Support for Key Value Pairs (KVP)
 
@@ -1010,13 +1005,28 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+
+When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`). 
+
+To generate the descriptor file, use the following command:
+
+```sh
+$ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --include_imports
+```
+
+This command compiles the source file `record_value.proto` into a binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
 Examples:
 
 ```xml
 <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
+```
+
+```xml
+<param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
 ```
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
@@ -1032,6 +1042,29 @@ Examples:
 ```xml
 <param name="record.key.evaluator.schema.registry.enable">true</param>
 <param name="record.value.evaluator.schema.registry.enable">true</param>
+```
+
+#### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
+
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+
+For example, if your `.proto` file contains:
+
+```protobuf
+syntax = "proto3";
+package com.example.kafka;
+
+message StockUpdate {
+    string symbol = 1;
+    double price = 2;
+    // other fields...
+}
+```
+
+Then the corresponding message type parameter should be:
+
+```xml
+<param name="record.value.evaluator.protobuf.message.type">com.example.kafka.StockUpdate</param>
 ```
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
