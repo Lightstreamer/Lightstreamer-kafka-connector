@@ -21,7 +21,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
-import com.lightstreamer.kafka.common.config.ConfigException;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
@@ -69,7 +68,7 @@ public class GenericRecordDeserializers {
             try {
                 schema = new Schema.Parser().parse(getSchemaFile(isKey));
             } catch (IOException e) {
-                throw new SerializationException(e.getMessage());
+                throw new RuntimeException(e);
             }
         }
 
@@ -84,7 +83,7 @@ public class GenericRecordDeserializers {
             try {
                 return datumReader.read(null, binaryDecoder);
             } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
+                throw new SerializationException(e.getMessage());
             }
         }
     }
@@ -108,18 +107,13 @@ public class GenericRecordDeserializers {
     private static Deserializer<GenericRecord> newDeserializer(
             ConnectorConfig config, boolean isKey) {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            GenericRecordLocalSchemaDeserializer genericRecordLocalDeserializer =
+            GenericRecordLocalSchemaDeserializer localSchemaDeser =
                     new GenericRecordLocalSchemaDeserializer();
-            genericRecordLocalDeserializer.preConfigure(config);
-            return genericRecordLocalDeserializer;
-        }
-        if ((isKey && config.isSchemaRegistryEnabledForKey())
-                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            return new WrapperKafkaAvroDeserializer();
+            localSchemaDeser.preConfigure(config, isKey);
+            return localSchemaDeser;
         }
 
-        // Never happens
-        throw new ConfigException("No AVRO deserializer could be instantiated");
+        return new WrapperKafkaAvroDeserializer();
     }
 
     private static void checkEvaluator(ConnectorConfig config, boolean isKey) {

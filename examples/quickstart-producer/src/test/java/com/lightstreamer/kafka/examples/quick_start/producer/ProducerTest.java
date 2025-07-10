@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.examples.quick_start.producer.test_utils.StockEvents;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -34,8 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 
 public class ProducerTest {
-
-    private KafkaProducer<Integer, Object> mockProducer;
 
     private Producer producer;
 
@@ -49,19 +46,19 @@ public class ProducerTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                        DESERIALIZER,                                                    TYPE,         MESSAGE_CLASS
-                        io.confluent.kafka.serializers.KafkaJsonSerializer,              JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
-                        io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer,   JSON_SCHEMA,  com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
-                        io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer, PROTOBUF,     com.lightstreamer.kafka.examples.quick_start.producer.protobuf.Stock
-                        <DEFAULT>,                                                       JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
+                        DESERIALIZER,                                                                            TYPE,         MESSAGE_CLASS
+                        io.confluent.kafka.serializers.KafkaJsonSerializer,                                      JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
+                        io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer,                           JSON_SCHEMA,  com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
+                        io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer,                         PROTOBUF,     com.lightstreamer.kafka.examples.quick_start.producer.protobuf.Stock
+                        com.lightstreamer.kafka.examples.quick_start.producer.protobuf.CustomProtobufSerializer, PROTOBUF,     com.lightstreamer.kafka.examples.quick_start.producer.protobuf.Stock
+                        <DEFAULT>,                                                                               JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
                         """)
-    public void shouldConfigureAndConvertToRightRecordClass(
+    public void shouldConfigureAndConvertToRightMessageClass(
             String deserializerClass, String serializerType, String messageClass) throws Exception {
         Properties properties = new Properties();
 
         // Set the serializer class only if the input is not <DEFAULT>, which means to use the
-        // default
-        // serializer class
+        // default serializer class.
         if (!deserializerClass.equals("<DEFAULT>")) {
             properties.put("value.serializer", deserializerClass);
         }

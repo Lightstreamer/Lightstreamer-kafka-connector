@@ -35,7 +35,7 @@ public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer
     private String keySchemaFileName;
     private String valueSchemaFileName;
 
-    public void preConfigure(ConnectorConfig config) {
+    public void preConfigure(ConnectorConfig config, boolean isKey) {
         keySchemaFileName = config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         valueSchemaFileName = config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
     }
