@@ -69,7 +69,7 @@ public class GenericRecordDeserializers {
             try {
                 schema = new Schema.Parser().parse(getSchemaFile(isKey));
             } catch (IOException e) {
-                throw new SerializationException(e.getMessage());
+                throw new RuntimeException(e);
             }
         }
 
@@ -84,7 +84,7 @@ public class GenericRecordDeserializers {
             try {
                 return datumReader.read(null, binaryDecoder);
             } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
+                throw new SerializationException(e.getMessage());
             }
         }
     }
@@ -108,10 +108,10 @@ public class GenericRecordDeserializers {
     private static Deserializer<GenericRecord> newDeserializer(
             ConnectorConfig config, boolean isKey) {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            GenericRecordLocalSchemaDeserializer genericRecordLocalDeserializer =
+            GenericRecordLocalSchemaDeserializer localSchemaDeser =
                     new GenericRecordLocalSchemaDeserializer();
-            genericRecordLocalDeserializer.preConfigure(config);
-            return genericRecordLocalDeserializer;
+            localSchemaDeser.preConfigure(config, isKey);
+            return localSchemaDeser;
         }
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
