@@ -80,14 +80,6 @@ protobuf {
     }
 }
 
-sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/proto'
-        }
-    }
-}
-
 processResources {
     filesMatching("version.properties") {
         expand([version:version])

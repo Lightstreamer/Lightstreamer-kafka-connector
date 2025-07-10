@@ -31,7 +31,7 @@ import static org.junit.Assert.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeLocalDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeLocalSchemaDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -214,7 +214,7 @@ public class JsonNodeDeserializerTest {
                                 TEST_SCHEMA_FILE));
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
     }
 
@@ -231,7 +231,7 @@ public class JsonNodeDeserializerTest {
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
     }
 
@@ -251,12 +251,12 @@ public class JsonNodeDeserializerTest {
                                 TEST_SCHEMA_FILE));
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
     }
 
@@ -282,7 +282,7 @@ public class JsonNodeDeserializerTest {
         }
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
     }
 
@@ -304,7 +304,7 @@ public class JsonNodeDeserializerTest {
                                 "http://localhost:8080"));
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
@@ -335,12 +335,12 @@ public class JsonNodeDeserializerTest {
                                 TEST_SCHEMA_FILE));
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
     }
 }

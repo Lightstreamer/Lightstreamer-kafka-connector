@@ -39,13 +39,13 @@ import java.util.Map;
 
 class JsonNodeDeserializers {
 
-    static class JsonNodeLocalDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
+    static class JsonNodeLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
         private final ObjectMapper objectMapper = new ObjectMapper();
         private final KafkaJsonDeserializer<JsonNode> deserializer;
         private JsonSchema schema;
 
-        JsonNodeLocalDeserializer() {
+        JsonNodeLocalSchemaDeserializer() {
             deserializer = new KafkaJsonDeserializer<>();
         }
 
@@ -55,7 +55,7 @@ class JsonNodeDeserializers {
             try {
                 schema = new JsonSchema(objectMapper.readTree(getSchemaFile(isKey)));
             } catch (IOException e) {
-                throw new SerializationException(e.getMessage());
+                throw new RuntimeException(e);
             }
         }
 
@@ -103,9 +103,10 @@ class JsonNodeDeserializers {
 
     private static Deserializer<JsonNode> newDeserializer(ConnectorConfig config, boolean isKey) {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            JsonNodeLocalDeserializer jsonNodeLocalDeserializer = new JsonNodeLocalDeserializer();
-            jsonNodeLocalDeserializer.preConfigure(config);
-            return jsonNodeLocalDeserializer;
+            JsonNodeLocalSchemaDeserializer localSchemaDeser =
+                    new JsonNodeLocalSchemaDeserializer();
+            localSchemaDeser.preConfigure(config, isKey);
+            return localSchemaDeser;
         }
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
