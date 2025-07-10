@@ -1015,7 +1015,7 @@ To generate the descriptor file, use the following command:
 $ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --include_imports
 ```
 
-This command compiles the source file `record_value.proto` into a binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
+This command compiles the source file `record_value.proto` into the binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
 Examples:
 
