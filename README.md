@@ -1031,7 +1031,7 @@ Examples:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided, or when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF`_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided,_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
