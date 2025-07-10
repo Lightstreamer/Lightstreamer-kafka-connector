@@ -6,7 +6,7 @@
 
 - Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support Headers. ([#57](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/57))
 
-- Enhanced Protobuf support by allowing to specify local binary descriptor files as an alternative to using the Schema Registry. ([#59](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/59))
+- Enhanced Protobuf support by allowing to specify [local binary descriptor files](README.md#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) and a [message type](README.md#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype) as an alternative to using the Schema Registry. ([#59](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/59))
 
 **Bug Fixes**
 
