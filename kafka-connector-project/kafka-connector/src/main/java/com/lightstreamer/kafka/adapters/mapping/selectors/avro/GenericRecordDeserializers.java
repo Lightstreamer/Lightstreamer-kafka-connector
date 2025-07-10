@@ -21,7 +21,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
-import com.lightstreamer.kafka.common.config.ConfigException;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 
@@ -113,13 +112,8 @@ public class GenericRecordDeserializers {
             localSchemaDeser.preConfigure(config, isKey);
             return localSchemaDeser;
         }
-        if ((isKey && config.isSchemaRegistryEnabledForKey())
-                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            return new WrapperKafkaAvroDeserializer();
-        }
 
-        // Never happens
-        throw new ConfigException("No AVRO deserializer could be instantiated");
+        return new WrapperKafkaAvroDeserializer();
     }
 
     private static void checkEvaluator(ConnectorConfig config, boolean isKey) {
