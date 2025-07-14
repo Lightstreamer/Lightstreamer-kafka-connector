@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "com.example.tutorial.protos";
+option java_multiple_files = true;
+//option java_outer_classname = "TicketServiceProto";
+
+message TickEvent {
+  Tick tick = 1;          /// Tick event
+  TraceData trace = 14;   /// Data for tracing the event flow [optional]
+  uint32 server_id = 15;  /// Source server identifier
+}
+
+message Tick {
+  string symbol = 1;                        /// Tick symbol
+  BidAsk bid_ask = 2;                       /// Bid/Ask price of tick
+  google.protobuf.Timestamp tick_time = 3;  /// Timestamp of tick generation on the bridge
+}
+
+message BidAsk {
+  double bid = 1;  /// Bid price of symbol
+  double ask = 2;  /// Ask price of symbol
+}
+
+message TraceData {
+  Uuid id = 1;                              /// UUID v4 for tracing the request/event flow
+  google.protobuf.Timestamp timestamp = 2;  /// The UTC timestamp of the request/event generation
+}
+
+message Uuid {
+  fixed64 most_significant_bits = 1;   /// Most-significant 64-bit part
+  fixed64 least_significant_bits = 2;  /// Least-significant 64-bit part
+}

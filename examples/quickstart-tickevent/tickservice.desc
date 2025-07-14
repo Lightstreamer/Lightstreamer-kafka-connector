@@ -1,0 +1,27 @@
+
+ÿ
+google/protobuf/timestamp.protogoogle.protobuf";
+	Timestamp
+seconds (Rseconds
+nanos (RnanosB…
+com.google.protobufBTimestampProtoPZ2google.golang.org/protobuf/types/known/timestamppbø¢GPBªGoogle.Protobuf.WellKnownTypesbproto3
+œ
+tickservice.protogoogle/protobuf/timestamp.proto"e
+	TickEvent
+tick (2.TickRtick 
+trace (2
+.TraceDataRtrace
+	server_id (RserverId"y
+Tick
+symbol (	Rsymbol 
+bid_ask (2.BidAskRbidAsk7
+	tick_time (2.google.protobuf.TimestampRtickTime",
+BidAsk
+bid (Rbid
+ask (Rask"\
+	TraceData
+id (2.UuidRid8
+	timestamp (2.google.protobuf.TimestampR	timestamp"p
+Uuid2
+most_significant_bits (RmostSignificantBits4
+least_significant_bits (RleastSignificantBitsbproto3

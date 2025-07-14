@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<!--
+  LIGHTSTREAMER - www.lightstreamer.com
+  Basic Ticks Demo
+  
+  Copyright (c) Lightstreamer Srl
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+  <title>Lightstreamer Kafka Connector | Ticks Demo</title>
+  <link rel="stylesheet" type="text/css" href="css/table.css" />
+  <script src="https://unpkg.com/lightstreamer-client-web/lightstreamer.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('The page has loaded!');
+      subscribeToKafkaConnector();
+    });
+    
+    function subscribeToKafkaConnector() {
+      var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
+
+      lsClient.addListener(new StatusWidget("left", "0px", true));
+      lsClient.connect();
+
+      var ticksGrid = new StaticGrid("ticks", true);
+      ticksGrid.setAutoCleanBehavior(true, false);
+      ticksGrid.addListener({
+          onVisualUpdate: function (key, info, pos) {
+              if (info == null) {
+                  //cleaning
+                  return;
+              }
+              
+              // Extract the symbol from the item name to determine row
+              var symbol = key;
+              if (key.indexOf("[symbol=") > -1) {
+                  symbol = key.substring(key.indexOf("[symbol=") + 8, key.indexOf("]"));
+              }
+              
+              // Determine color based on the symbol's position in the table
+              // This ensures consistent coloring for each symbol
+              var symbolIndex = ["BTH", "LTH", "ETH", "XRP", "BNB", "TRX", "XLM", "SUI", "TON", "SOL"].indexOf(symbol);
+              var cold = (symbolIndex % 2 === 0) ? "#e9fbf2" : "#fff";
+              info.setAttribute("#fff7d5", cold, "backgroundColor");
+          }
+      });
+
+      var tickSubscription = new Subscription("MERGE", ticksGrid.extractItemList(), ticksGrid.extractFieldList());
+      tickSubscription.addListener(ticksGrid);
+      tickSubscription.setDataAdapter("QuickStart");
+
+      lsClient.subscribe(tickSubscription);
+    }
+  </script>
+</head>
+
+<body>
+  <div id="wrap">
+        <div class="banner">		
+          <a href="https://www.lightstreamer.com"><img src="images/logo.png" alt="Logo" class="logo"></a>
+		  <div class="title">Kafka Connector</div>
+          <div class="subtitle">Ticks Demo</div>
+        </div>
+
+    <!-- ticks table -->
+    <div class="tableContainer">
+      <table cellspacing="0" cellpadding="4" border="0" style="width: 100%;" >
+        <tr class="tableTitle">
+          <td style="text-align: left">Symbol</td>
+          <td style="text-align: center">Timestamp</td>
+          <td >Bid</td>
+          <td >Ask</td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BTH]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BTH]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BTH]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BTH]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=LTH]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=LTH]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=LTH]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=LTH]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=ETH]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=ETH]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=ETH]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=ETH]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XRP]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XRP]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XRP]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XRP]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BNB]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BNB]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BNB]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=BNB]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TRX]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TRX]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TRX]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TRX]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XLM]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XLM]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XLM]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=XLM]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SUI]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SUI]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SUI]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SUI]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldOdd">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameOdd" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TON]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TON]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TON]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=TON]" data-field="ask">-</div></td>
+        </tr>
+        <tr class="coldEven">
+          <td nowrap="nowrap" style="text-align: left"><div class="stockNameEven" data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SOL]" data-field="symbol">Loading...</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SOL]" data-field="tick_time">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SOL]" data-field="bid">-</div></td>
+          <td><div data-source="lightstreamer" data-grid="ticks" data-item="events-[symbol=SOL]" data-field="ask">-</div></td>
+        </tr>
+      </table>
+    </div>
+    <div class="disc">Simulated market data.</div>
+ 
+  </div>
+</body>
+
+</html>
