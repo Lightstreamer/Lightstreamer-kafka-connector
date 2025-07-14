@@ -415,6 +415,10 @@
              - one or more item templates
              - any combination of the above
 
+             The general format is:
+
+             <param name="map.TOPIC_NAME.to">item1,item2,itemN,...</param>
+             
              At least one mapping must be provided. -->
         <!-- Example 1:
         <param name="map.aTopicName.to">item1,item2,itemN,...</param>
