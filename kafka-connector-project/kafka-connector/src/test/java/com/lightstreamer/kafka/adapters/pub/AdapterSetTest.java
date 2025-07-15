@@ -37,6 +37,9 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class AdapterSetTest {
 
@@ -95,6 +99,8 @@ public class AdapterSetTest {
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         assertDoesNotThrow(
                 () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
+        assertThat(connectorDataAdapter1.getSubscriptionsHandler().consumeAtStartup()).isFalse();
+        assertThat(connectorDataAdapter1.getSubscriptionsHandler().allowImplicitItems()).isFalse();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams2 =
@@ -139,6 +145,34 @@ public class AdapterSetTest {
         connectorMetadataAdapter.notifyNewTables("user", "sessionId", tables);
         Optional<Set<String>> items = connectorMetadataAdapter.itemsBySession("sessionId");
         assertThat(items.isPresent()).isFalse();
+    }
+
+    static Stream<Arguments> consumeAtStartupConfig() {
+        return Stream.of(
+                Arguments.of(false, false), Arguments.of(true, false), Arguments.of(true, true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("consumeAtStartupConfig")
+    public void shouldHandleEventsAtStartup(boolean consumeAtStartup, boolean allowImplicitItems)
+            throws MetadataProviderException {
+        doInit();
+
+        KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
+        Map<String, String> dataAdapterParams =
+                ConnectorConfigProvider.minimalConfigWith(
+                        Map.of(
+                                ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                String.valueOf(consumeAtStartup),
+                                ConnectorConfig
+                                        .RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                String.valueOf(allowImplicitItems)));
+        assertDoesNotThrow(
+                () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
+        assertThat(connectorDataAdapter1.getSubscriptionsHandler().consumeAtStartup())
+                .isEqualTo(consumeAtStartup);
+        assertThat(connectorDataAdapter1.getSubscriptionsHandler().allowImplicitItems())
+                .isEqualTo(allowImplicitItems);
     }
 
     @Test
