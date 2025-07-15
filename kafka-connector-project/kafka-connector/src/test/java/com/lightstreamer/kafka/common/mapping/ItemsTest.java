@@ -20,12 +20,29 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Map;
+
 public class ItemsTest {
+
+    @Test
+    public void shouldSubscribeFromSchemaAndValues() {
+        SubscribedItem item =
+                Items.subscribedFrom(SchemaAndValues.from("item", Map.of("a", "A", "b", "B")));
+
+        Schema schema = item.schema();
+        assertThat(schema).isNotNull();
+        assertThat(schema.name()).isEqualTo("item");
+        assertThat(schema.keys()).containsExactly("a", "b");
+        assertThat(item.values()).containsExactly("b", "B", "a", "A");
+        assertThat(item.itemHandle()).isNull();
+    }
 
     @ParameterizedTest
     @CsvSource(
@@ -46,7 +63,7 @@ public class ItemsTest {
                 item-first                | item-first      |               |
                 item_123_                 | item_123_       |               |
                     """)
-    public void shouldSubscribeFromInputAndHandle(
+    public void shouldSubscribeFromInputAndItemHandle(
             String input, String expectedPrefix, String expectedName, String expectedValue) {
         Object handle = new Object();
         SubscribedItem item = Items.subscribedFrom(input, handle);
@@ -140,9 +157,9 @@ public class ItemsTest {
     @Test
     public void shouldSubscribeMatchableItemsIrrespectiveOfTheParamOrders() {
         SubscribedItem item1 =
-                Items.subscribedFrom("prefix-[name1=field1,mame2=field2]", new Object());
+                Items.subscribedFrom("prefix-[name1=field1,name2=field2]", new Object());
         SubscribedItem item2 =
-                Items.subscribedFrom("prefix-[mame2=field2,name1=field1]", new Object());
+                Items.subscribedFrom("prefix-[name2=field2,name1=field1]", new Object());
         assertThat(item1.matches(item2)).isTrue();
     }
 }
