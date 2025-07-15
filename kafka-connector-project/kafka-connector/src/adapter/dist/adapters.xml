@@ -266,7 +266,7 @@
         -->
 
         <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
-             authentication MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+             authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">true</param>
@@ -306,7 +306,8 @@
              one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
 
              Default value: false. -->
-        <param name="record.consume.at.connector.startup">false</param>
+        <param name="record.consume.at.connector.startup.enable">true</param>
+        <param name="record.consume.at.connector.startup.with.implicit.items.enable">false</param>
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
              incoming deserialized records. If set to `-1`, the number of threads will be automatically
