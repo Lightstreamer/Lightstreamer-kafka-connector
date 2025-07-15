@@ -98,10 +98,8 @@ public class RecordRoutingTest {
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             SubscribedItems all =
-                    () ->
-                            Stream.concat(routable.stream(), nonRoutable.stream())
-                                    .toList()
-                                    .iterator();
+                    SubscribedItems.of(
+                            Stream.concat(routable.stream(), nonRoutable.stream()).toList());
             Set<SubscribedItem> routed = mapped.route(all);
             assertThat(routed).containsExactlyElementsIn(routable);
         }
