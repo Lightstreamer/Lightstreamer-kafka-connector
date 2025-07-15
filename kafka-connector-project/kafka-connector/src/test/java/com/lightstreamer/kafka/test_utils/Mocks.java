@@ -26,6 +26,10 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -44,6 +48,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -232,32 +238,79 @@ public class Mocks {
         }
     }
 
+    public static class MockMappedRecord implements MappedRecord {
+
+        private AtomicBoolean routeInvoked = new AtomicBoolean(false);
+        private AtomicBoolean routeAllInvoked = new AtomicBoolean(false);
+        private final Set<SubscribedItem> allRoutable;
+        private final Set<SubscribedItem> routable;
+
+        public MockMappedRecord() {
+            this(Collections.emptySet(), Collections.emptySet());
+        }
+
+        public MockMappedRecord(Set<SubscribedItem> routable, Set<SubscribedItem> allRoutable) {
+            this.routable = routable;
+            this.allRoutable = allRoutable;
+        }
+
+        @Override
+        public Set<SchemaAndValues> expanded() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public Map<String, String> fieldsMap() {
+            return Collections.emptyMap();
+        }
+
+        @Override
+        public Set<SubscribedItem> route(SubscribedItems subscribed) {
+            routeInvoked.set(true);
+            return routable;
+        }
+
+        @Override
+        public Set<SubscribedItem> routeAll() {
+            routeAllInvoked.set(true);
+            return allRoutable;
+        }
+
+        public boolean routeInvoked() {
+            return routeInvoked.get();
+        }
+
+        public boolean routeAllInvoked() {
+            return routeAllInvoked.get();
+        }
+    }
+
     public static class MockRecordProcessor<K, V> implements RecordProcessor<K, V> {
 
         private List<ConsumedRecordInfo> offsetTriggeringExceptions;
         private RuntimeException e;
-        private boolean allowConcurrentProcessing;
+        private ProcessUpdatesType processUpdatesType;
 
         public MockRecordProcessor(
                 RuntimeException e,
                 List<ConsumedRecordInfo> offsetTriggeringExceptions,
-                boolean allowConcurrentProcessing) {
+                ProcessUpdatesType processUpdatesType) {
             this.e = e;
             this.offsetTriggeringExceptions = offsetTriggeringExceptions;
-            this.allowConcurrentProcessing = allowConcurrentProcessing;
+            this.processUpdatesType = processUpdatesType;
         }
 
         public MockRecordProcessor(
                 RuntimeException e, List<ConsumedRecordInfo> offsetTriggeringExceptions) {
-            this(e, offsetTriggeringExceptions, true);
+            this(e, offsetTriggeringExceptions, ProcessUpdatesType.DEFAULT);
         }
 
-        public MockRecordProcessor(boolean allowConcurrentProcessing) {
-            this(null, Collections.emptyList(), allowConcurrentProcessing);
+        public MockRecordProcessor(ProcessUpdatesType processUpdatesType) {
+            this(null, Collections.emptyList(), processUpdatesType);
         }
 
         public MockRecordProcessor() {
-            this(null, Collections.emptyList(), true);
+            this(null, Collections.emptyList(), ProcessUpdatesType.DEFAULT);
         }
 
         @Override
@@ -276,8 +329,7 @@ public class Mocks {
 
         @Override
         public ProcessUpdatesType processUpdatesType() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'processUpdatesType'");
+            return this.processUpdatesType;
         }
     }
 
@@ -288,11 +340,13 @@ public class Mocks {
         private final BiConsumer<Map<String, String>, Boolean> consumer;
         private final BiConsumer<Map<String, String>, Boolean> legacyConsumer;
 
-        boolean smartClearSnapshotCalled = false;
-        boolean smartEndOfSnapshotCalled = false;
+        AtomicBoolean smartClearSnapshotCalled = new AtomicBoolean(false);
+        AtomicBoolean smartEndOfSnapshotCalled = new AtomicBoolean(false);
 
-        boolean legacyClearSnapshotCalled = false;
-        boolean legacyEndOfSnapshotCalled = false;
+        AtomicBoolean legacyClearSnapshotCalled = new AtomicBoolean(false);
+        AtomicBoolean legacyEndOfSnapshotCalled = new AtomicBoolean(false);
+
+        Throwable failure = null;
 
         public MockItemEventListener(BiConsumer<Map<String, String>, Boolean> smartConsumer) {
             this(smartConsumer, NOPConsumer);
@@ -310,19 +364,23 @@ public class Mocks {
         }
 
         public boolean smartClearSnapshotCalled() {
-            return smartClearSnapshotCalled;
+            return smartClearSnapshotCalled.get();
         }
 
         public boolean legacyEndOfSnapshotCalled() {
-            return legacyEndOfSnapshotCalled;
+            return legacyEndOfSnapshotCalled.get();
         }
 
         public boolean smartEndOfSnapshotCalled() {
-            return smartEndOfSnapshotCalled;
+            return smartEndOfSnapshotCalled.get();
         }
 
         public boolean legacyClearSnapshotCalled() {
-            return legacyClearSnapshotCalled;
+            return legacyClearSnapshotCalled.get();
+        }
+
+        public Throwable getFailure() {
+            return failure;
         }
 
         @Override
@@ -367,22 +425,22 @@ public class Mocks {
 
         @Override
         public void endOfSnapshot(String itemName) {
-            this.legacyEndOfSnapshotCalled = true;
+            this.legacyEndOfSnapshotCalled.set(true);
         }
 
         @Override
         public void smartEndOfSnapshot(Object itemHandle) {
-            this.smartEndOfSnapshotCalled = true;
+            this.smartEndOfSnapshotCalled.set(true);
         }
 
         @Override
         public void clearSnapshot(String itemName) {
-            this.legacyClearSnapshotCalled = true;
+            this.legacyClearSnapshotCalled.set(true);
         }
 
         @Override
         public void smartClearSnapshot(Object itemHandle) {
-            this.smartClearSnapshotCalled = true;
+            this.smartClearSnapshotCalled.set(true);
         }
 
         @Override
@@ -400,7 +458,7 @@ public class Mocks {
 
         @Override
         public void failure(Throwable e) {
-            throw new UnsupportedOperationException("Unimplemented method 'failure'");
+            this.failure = e;
         }
     }
 }
