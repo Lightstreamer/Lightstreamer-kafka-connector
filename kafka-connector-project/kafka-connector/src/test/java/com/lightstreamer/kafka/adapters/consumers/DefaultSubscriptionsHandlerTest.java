@@ -19,35 +19,49 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.DefaultSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class DefaultSubscriptionsHandlerTest {
 
-    private static DefaultSubscriptionsHandler mkSubscriptionsHandler(
-            boolean exceptionOnConnection) {
+    private MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
+    private DefaultSubscriptionsHandler<String, String> mkSubscriptionsHandler(
+            boolean exceptionOnConnection, String... topics) {
+
+        Properties properties = new Properties();
+        properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
         Config<String, String> config =
                 new Config<>(
                         "TestConnection",
-                        new Properties(),
+                        properties,
                         ItemTemplatesUtils.itemTemplates(
                                 "aTopic", "anItemTemplate,anotherItemTemplate"),
                         ItemTemplatesUtils.fieldsExtractor(),
@@ -56,28 +70,37 @@ public class DefaultSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        KafkaConsumerWrapper consumerWrapper =
-                KafkaConsumerWrapper.create(
-                        config,
-                        new Mocks.MockMetadataListener(),
-                        new Mocks.MockItemEventListener(),
-                        Mocks.MockConsumer.supplier(exceptionOnConnection));
-        return new DefaultSubscriptionsHandler(consumerWrapper);
+        Mocks.MockConsumer<String, String> consumer =
+                new Mocks.MockConsumer<>(OffsetResetStrategy.EARLIEST);
+        for (String topic : topics) {
+            consumer.updatePartitions(
+                    topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
+        }
+
+        Supplier<Consumer<String, String>> supplier =
+                () -> {
+                    if (exceptionOnConnection) {
+                        throw new KafkaException("Simulated Exception");
+                    }
+                    return consumer;
+                };
+        return new DefaultSubscriptionsHandler<>(config, metadataListener, supplier);
     }
 
-    private DefaultSubscriptionsHandler subscriptionHandler;
+    private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
 
-    void init() {
-        init(false);
+    void init(String... topics) {
+        init(false, topics);
     }
 
-    void init(boolean exceptionOnConnection) {
-        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection);
+    void init(boolean exceptionOnConnection, String... topics) {
+        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
+        subscriptionHandler.setListener(new Mocks.MockItemEventListener());
     }
 
     @Test
     public void shouldSubscribe() throws SubscriptionException {
-        init();
+        init("aTopic");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
@@ -107,7 +130,39 @@ public class DefaultSubscriptionsHandlerTest {
                         SubscriptionException.class,
                         () -> subscriptionHandler.subscribe("@invalidItem@", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
+    }
+
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
+    public void shouldForceUnsubscriptionWhenSubscribeToNonExistingTopics()
+            throws SubscriptionException {
+        init("nonExistingTopic");
+        Object itemHandle = new Object();
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        assertThat(subscriptionHandler.getFutureStatus().join().initFailed());
+
+        // assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        // assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+    }
+
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
+    public void shouldForceUnsubscriptionDueToExceptionWhileConnecting()
+            throws SubscriptionException {
+        init(true);
+        Object itemHandle = new Object();
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
     @Test
@@ -119,20 +174,10 @@ public class DefaultSubscriptionsHandlerTest {
                         SubscriptionException.class,
                         () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Item does not match any defined item templates");
-        assertThat(subscriptionHandler.isConsuming()).isFalse();
-    }
-
-    @Test
-    public void shouldFailSubscriptionDueToKafkaException() throws SubscriptionException {
-        init(true);
-        Object itemHandle = new Object();
-
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
-        Item item = subscriptionHandler.getSubscribedItem("anItemTemplate");
-
-        assertThat(item).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle));
-        assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
