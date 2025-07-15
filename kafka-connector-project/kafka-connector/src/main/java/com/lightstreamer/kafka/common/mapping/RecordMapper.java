@@ -299,7 +299,6 @@ final class DefaultMappedRecord implements MappedRecord {
             Set<SchemaAndValues> expandedTemplates,
             SchemaAndValues fieldsMap,
             boolean payloadNull) {
-        // this.indexedTemplates = expandedTemplates.toArray(SchemaAndValues[]::new);
         this.indexedTemplates = expandedTemplates;
         this.fieldsMap = fieldsMap;
         this.payloadNull = payloadNull;
@@ -314,8 +313,8 @@ final class DefaultMappedRecord implements MappedRecord {
     public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        // The following seems the most performant way
-        // to populate the set of routable subscriptions.
+        // The following seems the most performant way  populate the set of
+        // routable subscriptions.
         for (SubscribedItem item : subscribedItems) {
             for (SchemaAndValues e : indexedTemplates) {
                 if (e.matches(item)) {
