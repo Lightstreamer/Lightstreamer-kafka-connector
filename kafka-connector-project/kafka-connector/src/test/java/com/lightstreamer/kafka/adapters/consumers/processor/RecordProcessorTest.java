@@ -266,13 +266,14 @@ public class RecordProcessorTest {
                 Arguments.of("UPDATE", false, 1),
                 Arguments.of("DELETE", false, 1),
                 Arguments.of("ADD", true, 2));
-                // Arguments.of("UPDATE", true),
-                // Arguments.of("DELETE", true));
+        // Arguments.of("UPDATE", true),
+        // Arguments.of("DELETE", true));
     }
 
     @ParameterizedTest
     @MethodSource("commands")
-    public void shouldProcessRecordWithAdmittedCommands(String command, boolean allowImplicitItems, int expectedUpdates)
+    public void shouldProcessRecordWithAdmittedCommands(
+            String command, boolean allowImplicitItems, int expectedUpdates)
             throws ExtractionException {
         EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
         this.mapper = buildMapperForCommandMode();
