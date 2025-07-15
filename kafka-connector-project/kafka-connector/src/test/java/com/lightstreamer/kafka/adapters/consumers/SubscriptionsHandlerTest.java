@@ -22,16 +22,17 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.DefaultSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandlerSupport.NOPSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AtStartupSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Properties;
 
@@ -39,7 +40,6 @@ public class SubscriptionsHandlerTest {
 
     private Config<String, String> config;
     private Mocks.MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
-    private Mocks.MockItemEventListener eventListener = new Mocks.MockItemEventListener();
 
     @BeforeEach
     public void before() {
@@ -56,24 +56,39 @@ public class SubscriptionsHandlerTest {
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
     }
 
-    @Test
-    public void shouldCreateDefaultSubscriptionsHandler() {
-        SubscriptionsHandler subscriptionsHandler =
-                SubscriptionsHandler.create(config, metadataListener, eventListener, false);
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldCreateDefaultSubscriptionsHandler(boolean allowImplicitItems) {
+        SubscriptionsHandler<?, ?> subscriptionsHandler =
+                SubscriptionsHandler.builder()
+                        .withConsumerConfig(config)
+                        .withMetadataListener(metadataListener)
+                        .atStartup(false, allowImplicitItems)
+                        .build();
         assertThat(subscriptionsHandler).isInstanceOf(DefaultSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
+        // Verify that the allowImplicitItems flag is irrelevant for DefaultSubscriptionsHandler
+        assertThat(
+                        ((DefaultSubscriptionsHandler<?, ?>) subscriptionsHandler)
+                                .getSubscribedItems()
+                                .allowImplicitItems())
+                .isEqualTo(false);
     }
 
-    @Test
-    public void shouldCreateNopSubscriptionsHandler() {
-        SubscriptionsHandler subscriptionsHandler =
-                SubscriptionsHandler.create(
-                        config,
-                        metadataListener,
-                        eventListener,
-                        Mocks.MockConsumer.supplier(),
-                        true);
-        assertThat(subscriptionsHandler).isInstanceOf(NOPSubscriptionsHandler.class);
-        assertThat(subscriptionsHandler.isConsuming()).isTrue();
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldCreateAtSubscriptionsHandler(boolean allowImplicitItems) {
+        SubscriptionsHandler<?, ?> subscriptionsHandler =
+                SubscriptionsHandler.builder()
+                        .withConsumerConfig(config)
+                        .withMetadataListener(metadataListener)
+                        .atStartup(true, allowImplicitItems)
+                        .build();
+        assertThat(subscriptionsHandler).isInstanceOf(AtStartupSubscriptionsHandler.class);
+        assertThat(subscriptionsHandler.isConsuming()).isFalse();
+        AtStartupSubscriptionsHandler<?, ?> atStartupHandler =
+                (AtStartupSubscriptionsHandler<?, ?>) subscriptionsHandler;
+        assertThat(atStartupHandler.getSubscribedItems().allowImplicitItems())
+                .isEqualTo(allowImplicitItems);
     }
 }
