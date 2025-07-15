@@ -73,43 +73,36 @@ public class Items {
      */
     public interface SubscribedItems extends Iterable<SubscribedItem> {
 
-        static SubscribedItems of(Collection<SubscribedItem> items) {
-            return () -> items.iterator();
+        static SubscribedItems of(Collection<SubscribedItem> sourceItems) {
+            return new DefaultSubscribedItems(sourceItems, false);
         }
 
-        /**
-         * Returns a no-operation implementation of the {@link SubscribedItems} interface.
-         *
-         * @return a singleton instance of a no-operation {@link SubscribedItems} implementation
-         */
-        static SubscribedItems nop() {
-            return NopSubscribedItems.NOP_SUBSCRIBED_ITEMS;
+        static SubscribedItems of(
+                Collection<SubscribedItem> sourceItems, boolean allowImplicitItems) {
+            return new DefaultSubscribedItems(sourceItems, allowImplicitItems);
         }
 
-        /**
-         * Determines if this mapping represents a no-operation (NOP) mapping.
-         *
-         * @return {@code false} as the default implementation indicates this is not a NOP mapping
-         */
-        public default boolean isNop() {
-            return false;
-        }
+        boolean allowImplicitItems();
     }
 
-    private static class NopSubscribedItems implements SubscribedItems {
+    private static class DefaultSubscribedItems implements SubscribedItems {
 
-        private static final NopSubscribedItems NOP_SUBSCRIBED_ITEMS = new NopSubscribedItems();
+        private final Collection<SubscribedItem> sourceItems;
+        private final boolean allowImplicitItems;
 
-        NopSubscribedItems() {}
-
-        @Override
-        public boolean isNop() {
-            return true;
+        DefaultSubscribedItems(Collection<SubscribedItem> sourceItems, boolean allowImplicitItems) {
+            this.sourceItems = sourceItems;
+            this.allowImplicitItems = allowImplicitItems;
         }
 
         @Override
         public Iterator<SubscribedItem> iterator() {
-            return Collections.emptyIterator();
+            return sourceItems.iterator();
+        }
+
+        @Override
+        public boolean allowImplicitItems() {
+            return allowImplicitItems;
         }
     }
 
@@ -131,82 +124,43 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
-    private static class DefaultItem implements Item {
-
-        private final Map<String, String> valuesMap;
-        private final Schema schema;
-        private final String str;
-
-        DefaultItem(String prefix, Map<String, String> values) {
-            this.valuesMap = values;
-            this.schema = Schema.from(prefix, values.keySet());
-            this.str =
-                    String.format("(%s-<%s>), {%s}", prefix, values.toString(), schema.toString());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(valuesMap, schema);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-
-            return obj instanceof DefaultItem other
-                    && Objects.equals(valuesMap, other.valuesMap)
-                    && Objects.equals(schema, other.schema);
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public Map<String, String> values() {
-            return valuesMap;
-        }
-
-        @Override
-        public String toString() {
-            return str;
-        }
-    }
-
-    private static class DefaultSubscribedItem implements SubscribedItem {
+    static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
-        private final DefaultItem wrappedItem;
+        private final SchemaAndValues schemaAndValues;
         private boolean snapshotFlag;
 
-        DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
-            this.wrappedItem = new DefaultItem(prefix, values);
+        DefaultSubscribedItem(SchemaAndValues schemaAndValues) {
+            this(null, schemaAndValues);
+        }
+
+        DefaultSubscribedItem(Object itemHandle, SchemaAndValues schemaAndValues) {
+            this.schemaAndValues = Objects.requireNonNull(schemaAndValues);
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, wrappedItem);
+            return Objects.hash(itemHandle, schemaAndValues);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             return obj instanceof DefaultSubscribedItem other
-                    && wrappedItem.equals(other.wrappedItem)
+                    && Objects.equals(schemaAndValues, other.schemaAndValues)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
 
         @Override
         public Schema schema() {
-            return wrappedItem.schema;
+            return schemaAndValues.schema();
         }
 
         @Override
         public Map<String, String> values() {
-            return wrappedItem.values();
+            return schemaAndValues.values();
         }
 
         @Override
@@ -226,50 +180,7 @@ public class Items {
 
         @Override
         public String toString() {
-            return wrappedItem.toString();
-        }
-    }
-
-    private static class ImplicitSubscribedItem implements SubscribedItem {
-
-        private final SchemaAndValues schemaAndValues;
-
-        ImplicitSubscribedItem(SchemaAndValues schemaAndValues) {
-            this.schemaAndValues = schemaAndValues;
-        }
-
-        @Override
-        public Schema schema() {
-            return schemaAndValues.schema();
-        }
-
-        @Override
-        public Map<String, String> values() {
-            return schemaAndValues.values();
-        }
-
-        @Override
-        public Object itemHandle() {
-            return null;
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return false;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {}
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(schemaAndValues);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            return obj instanceof SchemaAndValues other && Objects.equals(schemaAndValues, other);
+            return schemaAndValues.toString();
         }
     }
 
@@ -393,12 +304,12 @@ public class Items {
 
     public static SubscribedItem subscribedFrom(SchemaAndValues schemaAndValues)
             throws ExpressionException {
-        return new ImplicitSubscribedItem(schemaAndValues);
+        return new DefaultSubscribedItem(schemaAndValues);
     }
 
-    static SubscribedItem subscribedFrom(
+    private static SubscribedItem subscribedFrom(
             Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultSubscribedItem(itemHandle, prefix, values);
+        return new DefaultSubscribedItem(itemHandle, SchemaAndValues.from(prefix, values));
     }
 
     private Items() {}
