@@ -40,6 +40,8 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Properties;
@@ -48,7 +50,7 @@ import java.util.function.Supplier;
 public class AtStartupSubscriptionsHandlerTest {
 
     private static AtStartupSubscriptionsHandler<String, String> mkSubscriptionsHandler(
-            boolean exceptionOnConnection, String... topics) {
+            boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
 
         Properties properties = new Properties();
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -80,31 +82,34 @@ public class AtStartupSubscriptionsHandlerTest {
                 };
 
         return new AtStartupSubscriptionsHandler<>(
-                config, new Mocks.MockMetadataListener(), false, supplier);
+                config, new Mocks.MockMetadataListener(), allowImplicitItems, supplier);
     }
 
     private AtStartupSubscriptionsHandler<String, String> subscriptionHandler;
 
-    void init(String... topics) {
-        init(false, topics);
+    void init(boolean allowImplicitItems, String... topics) {
+        init(false, allowImplicitItems, topics);
     }
 
-    void init(boolean exceptionOnConnection, String... topics) {
-        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
+    void init(boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
+        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
     }
 
-    @Test
-    public void shouldInit() throws InterruptedException {
-        init("aTopic");
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldInit(boolean allowImplicitItems) throws InterruptedException {
+        init(allowImplicitItems, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         assertThat(listener.getFailure()).isNull();
         assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(subscriptionHandler.consumeAtStartup()).isTrue();
+        assertThat(subscriptionHandler.allowImplicitItems()).isEqualTo(allowImplicitItems);
     }
 
     @Test
     public void shouldFailOnInitDueToNonExistingTopic() {
-        init("notExistingTopic");
+        init(false, "notExistingTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         Throwable failure = listener.getFailure();
@@ -115,7 +120,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     @Test
     public void shouldFailOnInitDueToExceptionWhileConnecting() {
-        init(true, "aTopic");
+        init(true, false, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         Throwable failure = listener.getFailure();
@@ -126,7 +131,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     @Test
     public void shouldSubscribe() throws SubscriptionException {
-        init("aTopic");
+        init(false, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
 
@@ -151,7 +156,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     @Test
     public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
-        init("aTopic");
+        init(false, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         Object itemHandle = new Object();
@@ -164,7 +169,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     @Test
     public void shouldFailSubscriptionDueInvalidExpression() {
-        init("aTopic");
+        init(false, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         Object itemHandle = new Object();
@@ -177,7 +182,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     @Test
     public void shouldUnsubscribe() throws SubscriptionException {
-        init("aTopic");
+        init(false, "aTopic");
         Mocks.MockItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionHandler.setListener(listener);
         Object itemHandle1 = new Object();
