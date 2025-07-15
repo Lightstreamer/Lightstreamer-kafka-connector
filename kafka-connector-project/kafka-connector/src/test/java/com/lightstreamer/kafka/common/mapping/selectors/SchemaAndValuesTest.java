@@ -134,4 +134,22 @@ public class SchemaAndValuesTest {
         SchemaAndValues nop = SchemaAndValues.nop();
         assertThat(nop.asText()).isEqualTo("NOSCHEMA");
     }
+
+    @Test
+    void shouldSchemaAndValuesBeEqualToBuildableSchemaAndValues() {
+        Schema schema = Schema.from("schema", Set.of("key", "value"));
+        BuildableSchemaAndValues buildable =
+                new BuildableSchemaAndValues(schema)
+                        .addValue("key", "aKey")
+                        .addValue("value", "aValue");
+
+        SchemaAndValues schemaAndValues =
+                SchemaAndValues.from(schema, Map.of("key", "aKey", "value", "aValue"));
+
+        assertThat(buildable.matches(schemaAndValues)).isTrue();
+        assertThat(schemaAndValues.matches(buildable)).isTrue();
+        assertThat(buildable.equals(schemaAndValues)).isTrue();
+        assertThat(schemaAndValues.equals(buildable)).isTrue();
+        assertThat(buildable.hashCode()).isEqualTo(schemaAndValues.hashCode());
+    }
 }
