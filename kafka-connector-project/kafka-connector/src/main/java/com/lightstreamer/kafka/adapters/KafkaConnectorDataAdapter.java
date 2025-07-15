@@ -26,7 +26,7 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 
 import org.slf4j.Logger;
@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private Logger log;
-    private SubscriptionsHandler subscriptionsHandler;
+    private SubscriptionsHandler<?, ?> subscriptionsHandler;
     private Config<?, ?> consumerConfig;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataListener;
@@ -58,9 +58,17 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                         connectorConfig.isEnabled(),
                         connectorConfig.consumeAtStartup());
 
-        log.info("Configuring Kafka Connector");
-        consumerConfig = configurator.configure();
-        log.info("Configuration complete");
+        this.log.info("Configuring Kafka Connector");
+        this.consumerConfig = configurator.configure();
+        this.subscriptionsHandler =
+                SubscriptionsHandler.builder()
+                        .withConsumerConfig(consumerConfig)
+                        .withMetadataListener(metadataListener)
+                        .atStartup(
+                                connectorConfig.consumeAtStartup(),
+                                connectorConfig.implicitItemsEnabled())
+                        .build();
+        this.log.info("Configuration complete");
     }
 
     @Override
@@ -70,12 +78,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.subscriptionsHandler =
-                SubscriptionsHandler.create(
-                        consumerConfig,
-                        metadataListener,
-                        eventListener,
-                        connectorConfig.consumeAtStartup());
+        this.subscriptionsHandler.setListener(eventListener);
     }
 
     @Override
@@ -95,5 +98,10 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
             throws SubscriptionException, FailureException {
         log.info("Unsubscribing from item [{}]", itemName);
         subscriptionsHandler.unsubscribe(itemName);
+    }
+
+    // Only for testing purposes
+    public SubscriptionsHandler<?, ?> getSubscriptionsHandler() {
+        return subscriptionsHandler;
     }
 }
