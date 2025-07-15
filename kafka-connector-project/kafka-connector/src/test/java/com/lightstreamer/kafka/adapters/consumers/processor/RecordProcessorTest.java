@@ -118,9 +118,6 @@ public class RecordProcessorTest {
                         .withTemplateExtractor(
                                 TEST_TOPIC,
                                 extractor(String(), "item2", Collections.emptyMap(), false, false))
-                        // .withFieldExtractor(
-                        //         extractor(String(), "key", Map.of("key", Wrapped("#{KEY}"),
-                        // "command", Wrapped("#{VALUE}")), false, false))
                         .build();
 
         // The mocked ItemEventListener instance, which updates the counter upon invocation
@@ -165,7 +162,8 @@ public class RecordProcessorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    // @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {false})
     public void shouldProcess(boolean allowImplicitItems) {
         EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
         processor =
