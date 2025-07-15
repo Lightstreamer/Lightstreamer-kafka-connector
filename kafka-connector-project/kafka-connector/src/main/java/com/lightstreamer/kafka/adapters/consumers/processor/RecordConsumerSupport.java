@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -453,17 +454,19 @@ class RecordConsumerSupport {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
-            Map<String, String> updates = record.fieldsMap();
+            // Since the field maps are immutable, we have to wrap them with a new map
+            // to allow modifications.
+            Map<String, String> toBeDecorate = new HashMap<>(record.fieldsMap());
             if (record.isPayloadNull()) {
                 // If the payload is null, just send a DELETE command
                 getLogger()
                         .atDebug()
                         .log(
                                 "Payload is null, sending DELETE command for key: %s",
-                                Key.KEY.lookUp(updates));
-                return CommandMode.deleteEvent(updates);
+                                Key.KEY.lookUp(toBeDecorate));
+                return CommandMode.deleteEvent(toBeDecorate);
             }
-            return CommandMode.decorate(updates, Command.ADD);
+            return CommandMode.decorate(toBeDecorate, Command.ADD);
         }
 
         @Override
