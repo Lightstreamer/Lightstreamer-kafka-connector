@@ -24,12 +24,25 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class CommandProcessUpdatesStrategyTest {
+
+    @ParameterizedTest
+    @EnumSource(names = {"CS", "EOS"})
+    public void shouldBeSnapshot(Command cmd) {
+        assertThat(cmd.isSnapshot()).isTrue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(names = {"ADD", "DELETE", "UPDATE"})
+    public void shouldNotBeSnapshot(Command cmd) {
+        assertThat(cmd.isSnapshot()).isFalse();
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
