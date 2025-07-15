@@ -19,14 +19,15 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.EventUpdater;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RouteAllStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -39,6 +40,8 @@ import com.lightstreamer.kafka.test_utils.Records;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -111,8 +114,9 @@ public class RecordProcessorTest {
                         .withTemplateExtractor(
                                 TEST_TOPIC,
                                 extractor(String(), "item2", Collections.emptyMap(), false, false))
-                        .withFieldExtractor(
-                                extractor(String(), "field1", Collections.emptyMap(), false, false))
+                        // .withFieldExtractor(
+                        //         extractor(String(), "key", Map.of("key", Wrapped("#{KEY}"),
+                        // "command", Wrapped("#{VALUE}")), false, false))
                         .build();
 
         // The mocked ItemEventListener instance, which updates the counter upon invocation
@@ -132,52 +136,41 @@ public class RecordProcessorTest {
             SubscribedItems subscribedItems, ProcessUpdatesStrategy updatesStrategy) {
         return new DefaultRecordProcessor<>(
                 mapper,
-                EventUpdater.create(listener, subscribedItems.isNop()),
+                EventUpdater.create(listener, subscribedItems.allowImplicitItems()),
                 updatesStrategy,
-                subscribedItems.isNop()
-                        ? new RouteAllStrategy()
-                        : new DefaultRoutingStrategy(subscribedItems));
+                RecordRoutingStrategy.fromSubscribedItems(subscribedItems));
     }
 
-    @Test
-    public void shouldProcess() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldProcess(boolean allowImplicitItems) {
+        EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
         processor =
                 processor(
-                        SubscribedItems.of(subscribedItems),
+                        SubscribedItems.of(subscribedItems, allowImplicitItems),
                         ProcessUpdatesStrategy.defaultStrategy());
+        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
         processor.process(record);
 
         // Verify that the real-time update has been routed
-        assertThat(smartConsumer.getCounter()).isEqualTo(1);
+        assertThat(consumer.getCounter()).isEqualTo(1);
         // Verify that the update has NOT been routed as a snapshot
-        assertThat(smartConsumer.isSnapshotEvent()).isFalse();
+        assertThat(consumer.isSnapshotEvent()).isFalse();
 
         // Reset the counter
-        smartConsumer.resetCounter();
+        consumer.resetCounter();
         // Reset the snapshot flag
-        smartConsumer.resetSnapshotEvent();
+        consumer.resetSnapshotEvent();
 
         // Add subscription "item2" and process the record
         subscribedItems.add(Items.subscribedFrom("item2", new Object()));
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(smartConsumer.getCounter()).isEqualTo(2);
-    }
-
-    @Test
-    public void shouldProcessWithNoSubscriptions() {
-        processor = processor(SubscribedItems.nop(), ProcessUpdatesStrategy.defaultStrategy());
-        processor.process(record);
-
-        // Verify that the update has been routed for all the available
-        // item templates
-        assertThat(legacyConsumer.getCounter()).isEqualTo(2);
-        // Verify that the update has NOT been routed as a snapshot
-        assertThat(legacyConsumer.isSnapshotEvent()).isFalse();
+        assertThat(consumer.getCounter()).isEqualTo(2);
     }
 
     @Test
@@ -195,20 +188,12 @@ public class RecordProcessorTest {
     }
 
     @Test
-    public void shouldNotAllowConcurrentProcessing() {
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.defaultStrategy());
-        assertThat(processor.allowConcurrentProcessing()).isTrue();
-    }
-
-    @Test
     public void shouldProcessADDCommand() {
         processor =
                 processor(
                         SubscribedItems.of(subscribedItems),
                         ProcessUpdatesStrategy.autoCommandModeStrategy());
+        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
 
         // Subscribe to "item1" and process the record
         subscribedItems.add(Items.subscribedFrom("item1", new Object()));
@@ -250,5 +235,95 @@ public class RecordProcessorTest {
         // Verify that the update has NOT been routed as a snapshot
         assertThat(smartConsumer.isSnapshotEvent()).isFalse();
         assertThat(smartConsumer.getLastUpdates()).containsExactly("command", "DELETE");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADD", "UPDATE", "DELETE"})
+    public void shouldProcessRecordWithCommand(String command) throws ExtractionException {
+        this.mapper =
+                builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC,
+                                extractor(String(), "item1", Collections.emptyMap(), false, false))
+                        .withTemplateExtractor(
+                                TEST_TOPIC,
+                                extractor(String(), "item2", Collections.emptyMap(), false, false))
+                        .withFieldExtractor(
+                                extractor(
+                                        String(),
+                                        "key",
+                                        Map.of(
+                                                "key",
+                                                Wrapped("#{KEY}"),
+                                                "command",
+                                                Wrapped("#{VALUE}")),
+                                        false,
+                                        false))
+                        .build();
+        processor =
+                processor(
+                        SubscribedItems.of(subscribedItems),
+                        ProcessUpdatesStrategy.commandStrategy());
+        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
+
+        // Subscribe to "item1" and process the record
+        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+
+        ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
+        processor.process(record);
+
+        // Verify that the real-time update has been routed
+        assertThat(smartConsumer.getCounter()).isEqualTo(1);
+        // Verify that the update has been routed as a snapshot
+        assertThat(smartConsumer.isSnapshotEvent()).isTrue();
+        assertThat(smartConsumer.getLastUpdates())
+                .containsExactly("key", "aKey", "command", command);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CS", "EOS"})
+    public void shouldProcessRecordWithSnapshotCommand(String command) throws ExtractionException {
+        this.mapper =
+                builder()
+                        .withTemplateExtractor(
+                                TEST_TOPIC,
+                                extractor(String(), "item1", Collections.emptyMap(), false, false))
+                        .withTemplateExtractor(
+                                TEST_TOPIC,
+                                extractor(String(), "item2", Collections.emptyMap(), false, false))
+                        .withFieldExtractor(
+                                extractor(
+                                        String(),
+                                        "key",
+                                        Map.of(
+                                                "key",
+                                                Wrapped("#{KEY}"),
+                                                "command",
+                                                Wrapped("#{VALUE}")),
+                                        false,
+                                        false))
+                        .build();
+        processor =
+                processor(
+                        SubscribedItems.of(subscribedItems),
+                        ProcessUpdatesStrategy.commandStrategy());
+        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
+
+        // Subscribe to "item1" and process the record
+        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+
+        ConsumerRecord<String, String> record =
+                Records.ConsumerRecord(TEST_TOPIC, "snapshot", command);
+        processor.process(record);
+
+        // Verify that the snapshot command has been routed
+        if (command.equals("CS")) {
+            assertThat(listener.smartClearSnapshotCalled()).isTrue();
+        } else {
+            assertThat(listener.smartEndOfSnapshotCalled()).isTrue();
+        }
+
+        // Verify that the no real-time update occurred
+        assertThat(smartConsumer.getCounter()).isEqualTo(0);
     }
 }
