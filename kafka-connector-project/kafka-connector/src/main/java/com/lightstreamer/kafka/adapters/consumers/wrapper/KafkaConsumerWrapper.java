@@ -79,7 +79,7 @@ public class KafkaConsumerWrapper<K, V> {
             /** The loop is in a shutdown state. */
             SHUTDOWN;
 
-            boolean initFailed() {
+            public boolean initFailed() {
                 return this.equals(INIT_FAILED_BY_SUBSCRIPTION)
                         || this.equals(INIT_FAILED_BY_EXCEPTION);
             }
@@ -205,7 +205,7 @@ public class KafkaConsumerWrapper<K, V> {
             CompletableFuture<FutureStatus.State> initStage =
                     CompletableFuture.supplyAsync(this::init, pool);
             if (waitForInit) {
-                log.atDebug().log("Waiting for initialization to complete");
+                log.atDebug().log("Blocking until initialization completes");
                 State state = initStage.join();
                 log.atDebug().log("Initialization completed");
                 if (state.initFailed()) {
@@ -229,7 +229,7 @@ public class KafkaConsumerWrapper<K, V> {
 
     FutureStatus.State init() {
         if (!subscribed()) {
-            log.atWarn().log("No subscriptions happened");
+            log.atWarn().log("Initialization failed because no topics are subscribed");
             closeConsumer();
             metadataListener.forceUnsubscriptionAll();
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
@@ -239,6 +239,7 @@ public class KafkaConsumerWrapper<K, V> {
             pollOnce(this::initStoreAndConsume);
             pollAvailable(this::consumeRecords);
         } catch (KafkaException e) {
+            log.atWarn().log("Initialization failed because of an exception");
             closeConsumer();
             metadataListener.forceUnsubscriptionAll();
             return FutureStatus.State.INIT_FAILED_BY_EXCEPTION;
@@ -280,7 +281,7 @@ public class KafkaConsumerWrapper<K, V> {
 
             // Can't subscribe at all. Force unsubscription and exit the loop.
             if (topics.isEmpty()) {
-                log.atWarn().log("Not found requested topics");
+                log.atWarn().log("Requested topics not found");
                 return false;
             }
 
