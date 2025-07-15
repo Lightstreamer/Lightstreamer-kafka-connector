@@ -243,7 +243,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("wrapperArgs")
-    public void shouldCreateLoop(
+    public void shouldCreateWrapper(
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
             CommandModeStrategy commandModeStrategy,
