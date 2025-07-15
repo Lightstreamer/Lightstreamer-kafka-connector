@@ -21,8 +21,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.lightstreamer.kafka.common.mapping.Items.DefaultSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,20 +37,10 @@ import java.util.stream.Stream;
 public class DefaultSubscribedItemTest {
 
     @Test
-    public void shouldHaveSchemaAndValues() {
-        SubscribedItem item = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
-
-        Schema schema = item.schema();
-        assertThat(schema).isNotNull();
-        assertThat(schema.name()).isEqualTo("item");
-        assertThat(schema.keys()).containsExactly("a", "b");
-        assertThat(item.values()).containsExactly("b", "B", "a", "A");
-        assertThat(item.itemHandle()).isEqualTo("source");
-    }
-
-    @Test
     public void shouldSetSnapshotFlag() {
-        SubscribedItem item = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
+        SubscribedItem item =
+                new DefaultSubscribedItem(
+                        "source", SchemaAndValues.from("item", Map.of("a", "A", "b", "B")));
         assertThat(item.isSnapshot()).isTrue();
 
         item.setSnapshot(false);
@@ -58,20 +49,52 @@ public class DefaultSubscribedItemTest {
 
     @Test
     public void shouldBeEquals() {
-        SubscribedItem item1 = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
-        SubscribedItem item2 = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
+        Object itemHandle = "source";
+        SubscribedItem item1 =
+                new DefaultSubscribedItem(
+                        itemHandle, SchemaAndValues.from("item", Map.of("a", "A", "b", "B")));
+        SubscribedItem item2 =
+                new DefaultSubscribedItem(
+                        itemHandle, SchemaAndValues.from("item", Map.of("b", "B", "a", "A")));
         assertThat(item1).isNotSameInstanceAs(item2);
         assertThat(item1.equals(item2)).isTrue();
         assertThat(item1.hashCode()).isEqualTo(item2.hashCode());
     }
 
     @Test
-    public void shouldNotBeEquals() {
-        SubscribedItem item1 = Items.subscribedFrom("source1", "item", Map.of("a", "A", "b", "B"));
-        SubscribedItem item2 = Items.subscribedFrom("source2", "item", Map.of("a", "A", "b", "B"));
+    public void shouldNotBeEqualsDueToDifferentSchemaName() {
+        SubscribedItem item1 =
+                new DefaultSubscribedItem(
+                        "source1", SchemaAndValues.from("item1", Map.of("a", "A", "b", "B")));
+        SubscribedItem item2 =
+                new DefaultSubscribedItem(
+                        "source1", SchemaAndValues.from("item2", Map.of("a", "A", "b", "B")));
         assertThat(item1.equals(item2)).isFalse();
         assertThat(item1.hashCode()).isNotEqualTo(item2.hashCode());
-        assertThat(item1.equals("")).isFalse();
+    }
+
+    @Test
+    public void shouldNotBeEqualsDueToDifferentItemHandles() {
+        SubscribedItem item1 =
+                new DefaultSubscribedItem(
+                        "source1", SchemaAndValues.from("item1", Map.of("a", "A", "b", "B")));
+        SubscribedItem item2 =
+                new DefaultSubscribedItem(
+                        "source2", SchemaAndValues.from("item1", Map.of("a", "A", "b", "B")));
+        assertThat(item1.equals(item2)).isFalse();
+        assertThat(item1.hashCode()).isNotEqualTo(item2.hashCode());
+    }
+
+    @Test
+    public void shouldNotBeEqualsDueToDifferentValues() {
+        SubscribedItem item1 =
+                new DefaultSubscribedItem(
+                        "source1", SchemaAndValues.from("item1", Map.of("a", "A", "b", "B")));
+        SubscribedItem item2 =
+                new DefaultSubscribedItem(
+                        "source1", SchemaAndValues.from("item1", Map.of("a", "A1", "b", "B1")));
+        assertThat(item1.equals(item2)).isFalse();
+        assertThat(item1.hashCode()).isNotEqualTo(item2.hashCode());
     }
 
     static Stream<Arguments> matching() {
@@ -87,8 +110,13 @@ public class DefaultSubscribedItemTest {
     @MethodSource("matching")
     public void shouldMatch(
             Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
-        SubscribedItem item1 = Items.subscribedFrom("source", "item", values1);
-        SubscribedItem item2 = Items.subscribedFrom("source", "item", values2);
+        // SubscribedItem item1 = Items.subscribedFrom("source", "item", values1);
+        // SubscribedItem item2 = Items.subscribedFrom("source", "item", values2);
+
+        DefaultSubscribedItem item1 =
+                new DefaultSubscribedItem(SchemaAndValues.from("item", values1));
+        DefaultSubscribedItem item2 =
+                new DefaultSubscribedItem(SchemaAndValues.from("item", values2));
         assertThat(item1.matches(item2)).isTrue();
     }
 
@@ -115,8 +143,10 @@ public class DefaultSubscribedItemTest {
             Map<String, String> values1,
             String prefix2,
             Map<String, String> values2) {
-        SubscribedItem item1 = Items.subscribedFrom("source", prefix1, values1);
-        SubscribedItem item2 = Items.subscribedFrom("source", prefix2, values2);
+        DefaultSubscribedItem item1 =
+                new DefaultSubscribedItem(SchemaAndValues.from(prefix1, values1));
+        DefaultSubscribedItem item2 =
+                new DefaultSubscribedItem(SchemaAndValues.from(prefix2, values2));
         assertThat(item1.matches(item2)).isFalse();
     }
 }
