@@ -21,9 +21,9 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerLoop;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.Config;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
@@ -31,11 +31,11 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -92,13 +92,19 @@ public interface SubscriptionsHandler<K, V> {
                         config,
                         this.metadataListener,
                         this.allowImplicitItems,
-                        KafkaConsumerWrapper.defaultConsumerSupplier(config));
-            } else {
-                return new DefaultSubscriptionsHandler<>(
-                        config,
-                        this.metadataListener,
-                        KafkaConsumerWrapper.defaultConsumerSupplier(config));
+                        defaultConsumerSupplier(config));
             }
+            return new DefaultSubscriptionsHandler<>(
+                    config, this.metadataListener, defaultConsumerSupplier(config));
+        }
+
+        private static <K, V> Supplier<Consumer<K, V>> defaultConsumerSupplier(
+                Config<K, V> config) {
+            return () ->
+                    new KafkaConsumer<>(
+                            config.consumerProperties(),
+                            config.deserializers().keyDeserializer(),
+                            config.deserializers().valueDeserializer());
         }
     }
 
@@ -114,10 +120,10 @@ public interface SubscriptionsHandler<K, V> {
         private final ConcurrentHashMap<String, SubscribedItem> sourceItems =
                 new ConcurrentHashMap<>();
         protected final SubscribedItems subscribedItems;
-        private final ReentrantLock loopStateLock = new ReentrantLock();
-        private volatile KafkaConsumerLoop<K, V> loop;
+        private final ReentrantLock consumerLock = new ReentrantLock();
+        private volatile KafkaConsumerWrapper<K, V> consumer;
 
-        private volatile CompletableFuture<Void> currentFuture;
+        private volatile FutureStatus futureStatus;
         protected ItemEventListener itemEventListener;
 
         AbstractSubscriptionsHandler(
@@ -129,7 +135,8 @@ public interface SubscriptionsHandler<K, V> {
             this.metadataListener = metadataListener;
             this.consumerSupplier = consumerSupplier;
             this.log = LogFactory.getLogger(config.connectionName());
-            this.pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "ConsumerTrigger"));
+            this.pool =
+                    Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems = SubscribedItems.of(sourceItems.values(), allowImplicitItems);
         }
 
@@ -159,29 +166,25 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        public final CompletableFuture<Void> startConsuming() {
+        final FutureStatus startConsuming(boolean waitForInit) throws KafkaException {
             log.atTrace().log("Acquiring consumer lock to start consuming events...");
-            loopStateLock.lock();
+            consumerLock.lock();
             log.atTrace().log("Lock acquired...");
             try {
-                if (loop == null) {
+                if (consumer == null) {
                     log.atInfo().log("Consumer not yet initialized, creating a new one...");
-                    loop = newConsumerLoop();
+                    consumer = newConsumer();
                     log.atInfo().log("New consumer connecting and subscribing...");
-                    currentFuture = CompletableFuture.runAsync(loop, pool);
+                    futureStatus = consumer.startLoop(pool, waitForInit);
                 } else {
                     log.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
-                return currentFuture;
-            } catch (KafkaException ke) {
-                log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
-                metadataListener.forceUnsubscriptionAll();
-                return CompletableFuture.failedFuture(ke);
             } finally {
                 log.atTrace().log("Releasing consumer lock...");
-                loopStateLock.unlock();
-                log.atTrace().log("Released consumer lock");
+                consumerLock.unlock();
+                log.atTrace().log("Consumer lock released");
             }
+            return futureStatus;
         }
 
         public final Item unsubscribe(String item) throws SubscriptionException {
@@ -195,34 +198,34 @@ public interface SubscriptionsHandler<K, V> {
             return removedItem;
         }
 
-        public final void stopConsuming() {
+        final void stopConsuming() {
             log.atTrace().log("Acquiring consumer lock to stop consuming...");
-            loopStateLock.lock();
+            consumerLock.lock();
             log.atTrace().log("Lock acquired to stop consuming...");
             try {
-                if (loop != null) {
+                if (consumer != null) {
                     log.atInfo().log("Stopping consumer...");
-                    loop.close();
-                    loop = null;
-                    currentFuture = null;
+                    consumer.shutdown();
+                    consumer = null;
+                    futureStatus = null;
                     log.atInfo().log("Consumer stopped");
                 } else {
                     log.atDebug().log("Consumer is not initialized yet, nothing to do");
                 }
             } finally {
                 log.atTrace().log("Releasing consumer lock to stop consuming");
-                loopStateLock.unlock();
+                consumerLock.unlock();
                 log.atTrace().log("Releases consumer lock to stop consuming");
             }
         }
 
         @Override
         public boolean isConsuming() {
-            loopStateLock.lock();
+            consumerLock.lock();
             try {
-                return loop != null;
+                return consumer != null && !futureStatus.isStateAvailable();
             } finally {
-                loopStateLock.unlock();
+                consumerLock.unlock();
             }
         }
 
@@ -234,25 +237,39 @@ public interface SubscriptionsHandler<K, V> {
             return sourceItems.remove(item);
         }
 
+        final void clearItems() {
+            sourceItems.clear();
+        }
+
         void onItemEventListenerSet() {}
 
         void onSubscribedItem() {}
 
-        KafkaConsumerLoop<K, V> newConsumerLoop() throws KafkaException {
+        KafkaConsumerWrapper<K, V> newConsumer() throws KafkaException {
             if (itemEventListener == null) {
                 throw new RuntimeException(
-                        "ItemEventListener must be set before starting the consumer loop");
+                        "ItemEventListener must be set before starting the consumer");
             }
-            return new KafkaConsumerLoop<>(
+            return new KafkaConsumerWrapper<>(
                     config, metadataListener, itemEventListener, subscribedItems, consumerSupplier);
         }
 
-        //
+        void onUnsubscribedItem() {}
+
+        // Only for testing purposes
         SubscribedItem getSubscribedItem(String item) {
             return sourceItems.get(item);
         }
 
-        void onUnsubscribedItem() {}
+        // Only for testing purposes
+        SubscribedItems getSubscribedItems() {
+            return subscribedItems;
+        }
+
+        // Only for testing purposes
+        FutureStatus getFutureStatus() {
+            return futureStatus;
+        }
     }
 
     static class DefaultSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
@@ -271,16 +288,16 @@ public interface SubscriptionsHandler<K, V> {
             if (itemsCounter.incrementAndGet() == 1) {
                 boolean resetCounter = false;
                 try {
-                    CompletableFuture<Void> consuming = startConsuming();
-                    resetCounter = consuming.isCompletedExceptionally();
-                } catch (Exception e) {
-                    // Actually this should never happen, as we do not expect any exception 
-                    // inside startConsuming
+                    FutureStatus status = startConsuming(false);
+                    resetCounter = status.initFailed();
+                } catch (KafkaException ke) {
+                    log.atError().setCause(ke).log("Unable to connect to Kafka");
+                    metadataListener.forceUnsubscriptionAll();
                     resetCounter = true;
-                    throw e;
                 }
                 if (resetCounter) {
                     itemsCounter.set(0);
+                    clearItems();
                 }
             }
         }
@@ -310,23 +327,22 @@ public interface SubscriptionsHandler<K, V> {
 
         void onItemEventListenerSet() {
             try {
-                KafkaConsumerLoop<K, V> loop = newConsumerLoop();
-                log.atInfo().log("Prestarting consumer...");
-                if (loop.preStart()) {
-                    log.atInfo().log("Consumer prestarted");
-                    startConsuming();
-                } else {
-                    log.atWarn().log("No subscriptions happened, consumer will not start");
-                    fail("Unable to subscribe to the configured Kafka topics");
+                FutureStatus status = startConsuming(true);
+                if (status.initFailed()) {
+                    fail("Failed to start consuming from Kafka");
                 }
             } catch (KafkaException ke) {
                 log.atError().setCause(ke).log("Unable to connect to Kafka");
-                fail("Unable to start consuming events from Kafka");
+                fail(ke);
             }
         }
 
         private void fail(String message) {
-            itemEventListener.failure(new RuntimeException(message));
+            fail(new RuntimeException(message));
+        }
+
+        private void fail(Throwable throwable) {
+            itemEventListener.failure(throwable);
         }
     }
 }
