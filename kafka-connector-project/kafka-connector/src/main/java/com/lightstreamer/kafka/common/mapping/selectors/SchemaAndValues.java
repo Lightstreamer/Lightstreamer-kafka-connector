@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -107,23 +108,15 @@ class BuildableSchemaAndValues implements SchemaAndValues {
 class DefaultSchemaAndValues implements SchemaAndValues {
 
     /** A constant representing a no-operation (NOP) schema with no values. */
-    static SchemaAndValues NOP = new DefaultSchemaAndValues(Schema.nop());
+    static final SchemaAndValues NOP =
+            new DefaultSchemaAndValues(Schema.nop(), Collections.emptyMap());
 
     private final Schema schema;
     private final Map<String, String> values;
 
     DefaultSchemaAndValues(Schema schema, Map<String, String> values) {
         this.schema = schema;
-        this.values = values;
-    }
-
-    /**
-     * This constructor is used only for the NOP schema. The passed empty map is modifiable to allow
-     * decoration needed in the command mode case, where additional keys such as "command" and
-     * "keys" are added
-     */
-    private DefaultSchemaAndValues(Schema schema) {
-        this(schema, new HashMap<>());
+        this.values = Collections.unmodifiableMap(values);
     }
 
     @Override
