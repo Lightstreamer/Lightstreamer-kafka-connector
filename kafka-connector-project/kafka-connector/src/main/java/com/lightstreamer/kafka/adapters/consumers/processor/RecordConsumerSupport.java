@@ -25,6 +25,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
@@ -48,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -136,32 +138,25 @@ class RecordConsumerSupport {
 
         @Override
         public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
-            this.parentBuilder.listener =
-                    Objects.requireNonNull(listener, "ItemEventListener not set");
-
-            ProcessUpdatesStrategy processUpdatesStrategy =
-                    switch (this.parentBuilder.commandModeStrategy) {
-                        case NONE -> ProcessUpdatesStrategy.defaultStrategy();
-                        case ENFORCE -> ProcessUpdatesStrategy.commandStrategy();
-                        case AUTO -> ProcessUpdatesStrategy.autoCommandModeStrategy();
-                    };
-
-            RecordRoutingStrategy recordRoutingStrategy =
-                    this.parentBuilder.subscribed.isNop()
-                            ? new RouteAllStrategy()
-                            : new DefaultRoutingStrategy(this.parentBuilder.subscribed);
+            parentBuilder.listener = Objects.requireNonNull(listener, "ItemEventListener not set");
 
             EventUpdater updater =
                     EventUpdater.create(
-                            this.parentBuilder.listener, this.parentBuilder.subscribed.isNop());
+                            parentBuilder.listener, parentBuilder.subscribed.allowImplicitItems());
 
-            RecordProcessor<K, V> recordProcessor =
+            ProcessUpdatesStrategy processUpdatesStrategy =
+                    ProcessUpdatesStrategy.fromCommandModeStrategy(
+                            parentBuilder.commandModeStrategy);
+
+            RecordRoutingStrategy recordRoutingStrategy =
+                    RecordRoutingStrategy.fromSubscribedItems(parentBuilder.subscribed);
+
+            return new StartBuildingConsumerImpl<>(
                     new DefaultRecordProcessor<>(
-                            this.parentBuilder.mapper,
+                            parentBuilder.mapper,
                             updater,
                             processUpdatesStrategy,
-                            recordRoutingStrategy);
-            return new StartBuildingConsumerImpl<>(recordProcessor);
+                            recordRoutingStrategy));
         }
     }
 
@@ -227,7 +222,8 @@ class RecordConsumerSupport {
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
             }
-            if (parentBuilder.threads > 1 && !parentBuilder.processor.allowConcurrentProcessing()) {
+            if (parentBuilder.threads != 1
+                    && !parentBuilder.processor.processUpdatesType().allowConcurrentProcessing()) {
                 throw new IllegalArgumentException(
                         "Command mode does not support parallel processing");
             }
@@ -238,7 +234,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static interface EventUpdater {
+    public static interface EventUpdater {
 
         void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot);
 
@@ -246,7 +242,7 @@ class RecordConsumerSupport {
 
         void endOfSnapshot(SubscribedItem sub);
 
-        ItemEventListener getListener();
+        ItemEventListener listener();
 
         static EventUpdater create(ItemEventListener listener, boolean isLegacy) {
             if (isLegacy) {
@@ -267,7 +263,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public ItemEventListener getListener() {
+        public final ItemEventListener listener() {
             return listener;
         }
     }
@@ -279,15 +275,15 @@ class RecordConsumerSupport {
         }
 
         public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            getListener().update(sub.asText(), updates, isSnapshot);
+            listener().update(sub.asText(), updates, isSnapshot);
         }
 
         public void clearSnapshot(SubscribedItem sub) {
-            getListener().clearSnapshot(sub.asText());
+            listener().clearSnapshot(sub.asText());
         }
 
         public void endOfSnapshot(SubscribedItem sub) {
-            getListener().endOfSnapshot(sub.asText());
+            listener().endOfSnapshot(sub.asText());
         }
     }
 
@@ -298,21 +294,33 @@ class RecordConsumerSupport {
         }
 
         public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            getListener().smartUpdate(sub.itemHandle(), updates, isSnapshot);
+            listener().smartUpdate(sub.itemHandle(), updates, isSnapshot);
         }
 
         public void clearSnapshot(SubscribedItem sub) {
-            getListener().smartClearSnapshot(sub.itemHandle());
+            listener().smartClearSnapshot(sub.itemHandle());
         }
 
         public void endOfSnapshot(SubscribedItem sub) {
-            getListener().smartEndOfSnapshot(sub.itemHandle());
+            listener().smartEndOfSnapshot(sub.itemHandle());
         }
     }
 
     static interface RecordRoutingStrategy {
 
-        public Set<SubscribedItem> route(MappedRecord mappedRecord);
+        Set<SubscribedItem> route(MappedRecord mappedRecord);
+
+        default boolean canRouteImplicitItems() {
+            return false;
+        }
+
+        static RecordRoutingStrategy fromSubscribedItems(SubscribedItems subscribedItems) {
+            RecordRoutingStrategy defaultRoutingStrategy =
+                    new DefaultRoutingStrategy(subscribedItems);
+            return subscribedItems.allowImplicitItems()
+                    ? new ComposedRoutingStrategy(defaultRoutingStrategy, new RouteAllStrategy())
+                    : defaultRoutingStrategy;
+        }
     }
 
     static class DefaultRoutingStrategy implements RecordRoutingStrategy {
@@ -335,6 +343,40 @@ class RecordConsumerSupport {
         public Set<SubscribedItem> route(MappedRecord mappedRecord) {
             return mappedRecord.routeAll();
         }
+
+        @Override
+        public boolean canRouteImplicitItems() {
+            return true;
+        }
+    }
+
+    static class ComposedRoutingStrategy implements RecordRoutingStrategy {
+
+        private final RecordRoutingStrategy[] strategies;
+
+        ComposedRoutingStrategy(RecordRoutingStrategy... strategies) {
+            this.strategies = strategies;
+        }
+
+        @Override
+        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
+            Set<SubscribedItem> routedItems = new HashSet<>();
+            for (RecordRoutingStrategy strategy : strategies) {
+                routedItems.addAll(strategy.route(mappedRecord));
+            }
+
+            return routedItems;
+        }
+
+        @Override
+        public boolean canRouteImplicitItems() {
+            for (RecordRoutingStrategy strategy : strategies) {
+                if (strategy.canRouteImplicitItems()) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     static interface ProcessUpdatesStrategy {
@@ -353,11 +395,20 @@ class RecordConsumerSupport {
         void doProcessUpdates(
                 EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable);
 
-        boolean allowMultiThreads();
-
         void useLogger(Logger logger);
 
         Logger getLogger();
+
+        ProcessUpdatesType type();
+
+        static ProcessUpdatesStrategy fromCommandModeStrategy(
+                CommandModeStrategy commandModeStrategy) {
+            return switch (commandModeStrategy) {
+                case NONE -> defaultStrategy();
+                case ENFORCE -> commandStrategy();
+                case AUTO -> autoCommandModeStrategy();
+            };
+        }
 
         static ProcessUpdatesStrategy defaultStrategy() {
             return new DefaultUpdatesStrategy();
@@ -383,10 +434,6 @@ class RecordConsumerSupport {
             }
         }
 
-        public boolean allowMultiThreads() {
-            return true;
-        }
-
         public final void useLogger(Logger logger) {
             this.log = Objects.requireNonNullElse(logger, this.log);
         }
@@ -394,6 +441,11 @@ class RecordConsumerSupport {
         @Override
         public Logger getLogger() {
             return log;
+        }
+
+        @Override
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.DEFAULT;
         }
     }
 
@@ -412,6 +464,11 @@ class RecordConsumerSupport {
                 return CommandMode.deleteEvent(updates);
             }
             return CommandMode.decorate(updates, Command.ADD);
+        }
+
+        @Override
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.AUTO_COMMAND_MODE;
         }
     }
 
@@ -475,11 +532,6 @@ class RecordConsumerSupport {
     static final class CommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
 
         CommandProcessUpdatesStrategy() {}
-
-        @Override
-        public boolean allowMultiThreads() {
-            return false;
-        }
 
         @Override
         public void doProcessUpdates(
@@ -564,6 +616,11 @@ class RecordConsumerSupport {
                 }
             }
         }
+
+        @Override
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.COMMAND;
+        }
     }
 
     static class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V> {
@@ -597,14 +654,16 @@ class RecordConsumerSupport {
             log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
-
             // As logging the mapped record is expensive, log lazily it only at trace level.
-            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log(() -> "Mapped Kafka record");
+            log.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
+            log.atDebug().log(() -> "Kafka record mapped");
 
+            route(mappedRecord);
+        }
+
+        private void route(MappedRecord mappedRecord) {
             Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
             if (routable.size() > 0) {
-                log.atDebug().log(() -> "Filtering updates");
                 log.atInfo().log(() -> "Routing record to %d items".formatted(routable.size()));
                 processUpdatesStrategy.processUpdates(updater, mappedRecord, routable);
             } else {
@@ -613,8 +672,13 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public boolean allowConcurrentProcessing() {
-            return processUpdatesStrategy.allowMultiThreads();
+        public ProcessUpdatesType processUpdatesType() {
+            return processUpdatesStrategy.type();
+        }
+
+        @Override
+        public boolean canRouteImplicitItems() {
+            return recordRoutingStrategy.canRouteImplicitItems();
         }
     }
 
@@ -624,6 +688,7 @@ class RecordConsumerSupport {
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
         private final RecordErrorHandlingStrategy errorStrategy;
+        private volatile boolean terminated = false;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
@@ -635,13 +700,27 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void close() {
+        public final void terminate() {
             offsetService.commitSyncAndIgnoreErrors();
+            onTermination();
+            terminated = true;
         }
 
         @Override
-        public RecordErrorHandlingStrategy errorStrategy() {
+        public boolean isTerminated() {
+            return terminated;
+        }
+
+        void onTermination() {}
+
+        @Override
+        public final RecordErrorHandlingStrategy errorStrategy() {
             return errorStrategy;
+        }
+
+        @Override
+        public final RecordProcessor<K, V> recordProcessor() {
+            return recordProcessor;
         }
     }
 
@@ -699,10 +778,10 @@ class RecordConsumerSupport {
             this.configuredThreads = builder.threads;
             this.actualThreads = getActualThreadsNumber(configuredThreads);
 
-            AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
                     TaskExecutor.create(
-                            newFixedThreadPool(actualThreads, r -> newThread(r, threadCount)));
+                            newFixedThreadPool(
+                                    actualThreads, r -> newThread(r, new AtomicInteger())));
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -795,8 +874,7 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void close() {
-            super.close();
+        void onTermination() {
             taskExecutor.shutdown();
         }
     }
