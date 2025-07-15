@@ -940,7 +940,7 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-#### `record.consume.at.connector.startup`
+#### `record.consume.at.connector.startup.enable`
 
 _Optional_. Specifies when to start consuming events from:
 
@@ -953,7 +953,7 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="record.consume.at.connector.startup">true</param>
+<param name="record.consume.at.connector.startup.enable">true</param>
 ```
 
 #### `record.consume.with.num.threads`
