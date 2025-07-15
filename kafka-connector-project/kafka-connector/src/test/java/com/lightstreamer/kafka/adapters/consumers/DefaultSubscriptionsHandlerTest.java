@@ -99,6 +99,17 @@ public class DefaultSubscriptionsHandlerTest {
     }
 
     @Test
+    public void shouldInit() {
+        init();
+        assertThat(subscriptionHandler.consumeAtStartup()).isFalse();
+        assertThat(subscriptionHandler.allowImplicitItems()).isFalse();
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
+    }
+
+    @Test
     public void shouldSubscribe() throws SubscriptionException {
         init("aTopic");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
