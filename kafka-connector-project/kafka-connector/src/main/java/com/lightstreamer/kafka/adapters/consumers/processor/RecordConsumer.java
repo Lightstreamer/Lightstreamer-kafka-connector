@@ -68,11 +68,25 @@ public interface RecordConsumer<K, V> {
 
     interface RecordProcessor<K, V> {
 
+        enum ProcessUpdatesType {
+            DEFAULT,
+            COMMAND,
+            AUTO_COMMAND_MODE;
+
+            boolean allowConcurrentProcessing() {
+                return this != COMMAND;
+            }
+        }
+
         void process(ConsumerRecord<K, V> record) throws ValueException;
 
         void useLogger(Logger logger);
 
-        boolean allowConcurrentProcessing();
+        ProcessUpdatesType processUpdatesType();
+
+        default boolean canRouteImplicitItems() {
+            return false;
+        }
     }
 
     public interface StartBuildingProcessor<K, V> {
@@ -159,5 +173,10 @@ public interface RecordConsumer<K, V> {
 
     RecordErrorHandlingStrategy errorStrategy();
 
-    default void close() {}
+    RecordProcessor<K, V> recordProcessor();
+
+    void terminate();
+
+    // Only for testing purposes
+    boolean isTerminated();
 }
