@@ -92,7 +92,8 @@ public class AtStartupSubscriptionsHandlerTest {
     }
 
     void init(boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
-        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
+        subscriptionHandler =
+                mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
     }
 
     @ParameterizedTest
