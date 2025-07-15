@@ -57,6 +57,12 @@ public interface SubscriptionsHandler<K, V> {
 
     void setListener(ItemEventListener listener);
 
+    default boolean consumeAtStartup() {
+        return false;
+    }
+
+    boolean allowImplicitItems();
+
     static class Builder {
 
         private Config<?, ?> consumerConfig;
@@ -110,9 +116,10 @@ public interface SubscriptionsHandler<K, V> {
 
     abstract static class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
-        protected final Config<K, V> config;
+        private final Config<K, V> config;
         protected final MetadataListener metadataListener;
-        protected final Supplier<Consumer<K, V>> consumerSupplier;
+        private final boolean allowImplicitItems;
+        private final Supplier<Consumer<K, V>> consumerSupplier;
 
         protected final Logger log;
         private final ExecutorService pool;
@@ -133,11 +140,17 @@ public interface SubscriptionsHandler<K, V> {
                 Supplier<Consumer<K, V>> consumerSupplier) {
             this.config = config;
             this.metadataListener = metadataListener;
+            this.allowImplicitItems = allowImplicitItems;
             this.consumerSupplier = consumerSupplier;
             this.log = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems = SubscribedItems.of(sourceItems.values(), allowImplicitItems);
+        }
+
+        @Override
+        public final boolean allowImplicitItems() {
+            return allowImplicitItems;
         }
 
         @Override
@@ -323,6 +336,11 @@ public interface SubscriptionsHandler<K, V> {
                 boolean allowImplicitItems,
                 Supplier<Consumer<K, V>> consumerSupplier) {
             super(config, metadataListener, allowImplicitItems, consumerSupplier);
+        }
+
+        @Override
+        public boolean consumeAtStartup() {
+            return true;
         }
 
         void onItemEventListenerSet() {
