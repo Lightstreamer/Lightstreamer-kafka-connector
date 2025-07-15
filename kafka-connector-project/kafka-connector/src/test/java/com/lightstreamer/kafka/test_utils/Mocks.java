@@ -337,7 +337,7 @@ public class Mocks {
 
         public static BiConsumer<Map<String, String>, Boolean> NOPConsumer = (m, s) -> {};
 
-        private final BiConsumer<Map<String, String>, Boolean> consumer;
+        private final BiConsumer<Map<String, String>, Boolean> smartConsumer;
         private final BiConsumer<Map<String, String>, Boolean> legacyConsumer;
 
         AtomicBoolean smartClearSnapshotCalled = new AtomicBoolean(false);
@@ -355,7 +355,7 @@ public class Mocks {
         public MockItemEventListener(
                 BiConsumer<Map<String, String>, Boolean> smartConsumer,
                 BiConsumer<Map<String, String>, Boolean> legacyConsumer) {
-            this.consumer = smartConsumer;
+            this.smartConsumer = smartConsumer;
             this.legacyConsumer = legacyConsumer;
         }
 
@@ -415,7 +415,7 @@ public class Mocks {
 
         @Override
         public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
-            consumer.accept(event, isSnapshot);
+            smartConsumer.accept(event, isSnapshot);
         }
 
         @Override
