@@ -138,4 +138,8 @@ class DefaultSchemaAndValues implements SchemaAndValues {
     public int hashCode() {
         return Objects.hash(schema, values);
     }
+
+    public String toString() {
+        return asText();
+    }
 }
