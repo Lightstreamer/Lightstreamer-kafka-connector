@@ -956,6 +956,20 @@ Example:
 <param name="record.consume.at.connector.startup.enable">true</param>
 ```
 
+#### `record.consume.at.connector.startup.with.implicit.items.enable`
+
+_Optional but only effective if [`record.consume.at.connector.startup.enable`](README.md#recordconsumeatconnectorstartupenable) is enabled_. Enables the subscription of implicit items.
+
+For every record whose values match any the configured _item templates_, an implicit item will be internally created and subscribed to the Kafka Connector.
+
+Default value: `false`.
+
+Example:
+
+```xml
+<param name="record.consume.at.connector.startup.with.implicit.items.enable">true</param>
+```
+
 #### `record.consume.with.num.threads`
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
