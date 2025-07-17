@@ -109,6 +109,7 @@ public class SchemaAndValuesTest {
 
         // The order of keys in the output is granted to be alphabetical
         assertThat(schemaAndValues.asText()).isEqualTo("schema-[AField=value2,BField=value1]");
+        assertThat(schemaAndValues.toString()).isEqualTo(schemaAndValues.asText());
     }
 
     @Test

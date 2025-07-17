@@ -109,20 +109,17 @@ public class MappedRecordTest {
                 subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
         SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
 
-        assertThat(
-                        record.route(
-                                SubscribedItems.of(
-                                        Set.of(
-                                                matchingItem1,
-                                                matchingItem2,
-                                                notMatchingBindParameters,
-                                                notMatchingSchema))))
-                .containsExactly(matchingItem1, matchingItem2);
-        assertThat(
-                        record.route(
-                                SubscribedItems.of(
-                                        Set.of(notMatchingBindParameters, notMatchingSchema))))
-                .isEmpty();
+        SubscribedItems subscribedItems1 = SubscribedItems.create();
+        subscribedItems1.addItem("item1", matchingItem1);
+        subscribedItems1.addItem("item2", matchingItem2);
+        subscribedItems1.addItem("item3", notMatchingBindParameters);
+        subscribedItems1.addItem("item4", notMatchingSchema);
+        assertThat(record.route(subscribedItems1)).containsExactly(matchingItem1, matchingItem2);
+
+        SubscribedItems subscribedItems2 = SubscribedItems.create();
+        subscribedItems2.addItem("item3", notMatchingBindParameters);
+        subscribedItems2.addItem("item4", notMatchingSchema);
+        assertThat(record.route(subscribedItems2)).isEmpty();
     }
 
     @Test
@@ -138,11 +135,11 @@ public class MappedRecordTest {
         SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
         SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
         SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
-        assertThat(
-                        (record.route(
-                                SubscribedItems.of(
-                                        Set.of(matchingItem1, matchingItem2, notMatchingItem)))))
-                .containsExactly(matchingItem1, matchingItem2);
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        subscribedItems.addItem("simple-item-1", matchingItem1);
+        subscribedItems.addItem("simple-item-2", matchingItem2);
+        subscribedItems.addItem("simple-item-3", notMatchingItem);
+        assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
     }
 
     @Test

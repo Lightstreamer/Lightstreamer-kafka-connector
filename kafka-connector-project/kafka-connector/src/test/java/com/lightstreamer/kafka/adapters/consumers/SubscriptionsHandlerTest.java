@@ -71,8 +71,8 @@ public class SubscriptionsHandlerTest {
         assertThat(
                         ((DefaultSubscriptionsHandler<?, ?>) subscriptionsHandler)
                                 .getSubscribedItems()
-                                .allowImplicitItems())
-                .isEqualTo(false);
+                                .acceptSubscriptions())
+                .isEqualTo(true);
     }
 
     @ParameterizedTest
@@ -88,7 +88,7 @@ public class SubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
         AtStartupSubscriptionsHandler<?, ?> atStartupHandler =
                 (AtStartupSubscriptionsHandler<?, ?>) subscriptionsHandler;
-        assertThat(atStartupHandler.getSubscribedItems().allowImplicitItems())
-                .isEqualTo(allowImplicitItems);
+        assertThat(atStartupHandler.getSubscribedItems().acceptSubscriptions())
+                .isEqualTo(!allowImplicitItems);
     }
 }

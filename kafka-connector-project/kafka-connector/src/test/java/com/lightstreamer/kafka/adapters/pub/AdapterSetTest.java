@@ -18,10 +18,15 @@
 package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
@@ -30,7 +35,7 @@ import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
-import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
+import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks;
@@ -44,6 +49,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +93,8 @@ public class AdapterSetTest {
                         () ->
                                 connectorMetadataAdapter.init(
                                         metadataAdapterParams, adapterDir.toFile()));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [logging.configuration.path]");
     }
 
@@ -109,13 +116,15 @@ public class AdapterSetTest {
         assertDoesNotThrow(
                 () -> connectorDataAdapter2.init(dataAdapterParams2, adapterDir.toFile()));
 
-        Optional<ConnectionInfo> connector1 = connectorMetadataAdapter.lookUp("CONNECTOR");
+        Optional<KafkaConnectorDataAdapterOpts> connector1 =
+                connectorMetadataAdapter.lookUp("CONNECTOR");
         assertThat(connector1).isPresent();
-        assertThat(connector1.get().name()).isEqualTo("CONNECTOR");
+        assertThat(connector1.get().dataAdapterName()).isEqualTo("CONNECTOR");
 
-        Optional<ConnectionInfo> connector2 = connectorMetadataAdapter.lookUp("CONNECTOR2");
+        Optional<KafkaConnectorDataAdapterOpts> connector2 =
+                connectorMetadataAdapter.lookUp("CONNECTOR2");
         assertThat(connector2).isPresent();
-        assertThat(connector2.get().name()).isEqualTo("CONNECTOR2");
+        assertThat(connector2.get().dataAdapterName()).isEqualTo("CONNECTOR2");
     }
 
     @Test
@@ -212,7 +221,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldDenyNotRegisteredConnection() throws Exception {
+    void shouldDenyNotEnabledConnection() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -228,7 +237,7 @@ public class AdapterSetTest {
                                 connectorMetadataAdapter.notifyNewTables(
                                         "user", "sessionId", tables));
         assertThat(ce.getClientErrorCode()).isEqualTo(-1);
-        assertThat(ce.getMessage()).isEqualTo("Connection [CONNECTOR] not enabled");
+        assertThat(ce).hasMessageThat().isEqualTo("Connection [CONNECTOR] not enabled");
     }
 
     @Test
@@ -272,6 +281,173 @@ public class AdapterSetTest {
         assertThat(closedTables).isNotNull();
         assertThat(closedTables.sessionId()).isEqualTo("sessionId");
         assertThat(closedTables.tables()).isEqualTo(tables);
+    }
+
+    static Stream<Arguments> modes() {
+        return Stream.of(
+                Arguments.of(Mode.DISTINCT, Collections.emptyMap(), true),
+                Arguments.of(Mode.MERGE, Collections.emptyMap(), true),
+                Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
+                Arguments.of(Mode.RAW, Collections.emptyMap(), true),
+                // Test with implicit items enabled but with no usage of command mode
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"),
+                        true),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"),
+                        true),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"),
+                        true),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"),
+                        true),
+                // Test with implicit items enabled but with usage of command mode through
+                // "fields.evaluate.as.command.enable"
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        true),
+                // Test with implicit items enabled but with usage of command mode through
+                // "fields.auto.command.mode.enable"
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true",
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}"),
+                        true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("modes")
+    public void shouldHandleModes(Mode mode, Map<String, String> settings, boolean expected)
+            throws MetadataProviderException, DataProviderException {
+        doInit();
+
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigWith(settings);
+        connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
+
+        assertThat(
+                        connectorMetadataAdapter.modeMayBeAllowed(
+                                "anItem",
+                                dataAdapterParams.get(ConnectorConfig.DATA_ADAPTER_NAME),
+                                mode))
+                .isEqualTo(expected);
     }
 
     private TableInfo[] mkTable(String adapterName, Mode mode) {

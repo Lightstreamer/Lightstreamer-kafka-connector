@@ -46,10 +46,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -105,7 +103,8 @@ public class RecordProcessorTest {
 
     private ConsumerRecord<String, String> record;
     private ConsumerRecord<String, String> recordWithNullPayload;
-    private Set<SubscribedItem> subscribedItems;
+
+    private SubscribedItems subscribedItems;
     private RecordProcessor<String, String> processor;
 
     @BeforeEach
@@ -128,9 +127,6 @@ public class RecordProcessorTest {
 
         // A record with a null payload, which should be processed as DELETE event
         this.recordWithNullPayload = Records.ConsumerRecord(TEST_TOPIC, "aKey", null);
-
-        // The collection of subscribable items
-        this.subscribedItems = new HashSet<>();
     }
 
     private static RecordMapper<String, String> buildMapperForCommandMode()
@@ -156,7 +152,7 @@ public class RecordProcessorTest {
             SubscribedItems subscribedItems, ProcessUpdatesStrategy updatesStrategy) {
         return new DefaultRecordProcessor<>(
                 mapper,
-                EventUpdater.create(listener, subscribedItems.allowImplicitItems()),
+                EventUpdater.create(listener, !subscribedItems.acceptSubscriptions()),
                 updatesStrategy,
                 RecordRoutingStrategy.fromSubscribedItems(subscribedItems));
     }
@@ -165,15 +161,13 @@ public class RecordProcessorTest {
     // @ValueSource(booleans = {true, false})
     @ValueSource(booleans = {false})
     public void shouldProcess(boolean allowImplicitItems) {
+        subscribedItems = allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
         EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems, allowImplicitItems),
-                        ProcessUpdatesStrategy.defaultStrategy());
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
         // Subscribe to "item1" and process the record
-        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
         processor.process(record);
 
         // Verify that the real-time update has been routed
@@ -187,7 +181,7 @@ public class RecordProcessorTest {
         consumer.resetSnapshotEvent();
 
         // Add subscription "item2" and process the record
-        subscribedItems.add(Items.subscribedFrom("item2", new Object()));
+        subscribedItems.addItem("item2", Items.subscribedFrom("item2", new Object()));
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
@@ -196,13 +190,11 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotProcessUnexpectedSubscription() {
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.defaultStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
-        subscribedItems.add(Items.subscribedFrom("item3", new Object()));
+        subscribedItems.addItem("item3", Items.subscribedFrom("item3", new Object()));
         processor.process(record);
         // Verify that the update has NOT been routed
         assertThat(smartConsumer.getCounter()).isEqualTo(0);
@@ -210,14 +202,12 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldProcessADDCommand() {
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.autoCommandModeStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.autoCommandModeStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
 
         // Subscribe to "item1" and process the record
-        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
         processor.process(record);
 
         // Verify that the real-time update has been routed
@@ -232,7 +222,7 @@ public class RecordProcessorTest {
         smartConsumer.resetSnapshotEvent();
 
         // Add subscription "item2" and process the record
-        subscribedItems.add(Items.subscribedFrom("item2", new Object()));
+        subscribedItems.addItem("item2", Items.subscribedFrom("item2", new Object()));
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
@@ -242,13 +232,11 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldProcessDELETECommand() {
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.autoCommandModeStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.autoCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
-        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
         processor.process(recordWithNullPayload);
 
         // Verify that the real-time update has been routed
@@ -273,17 +261,15 @@ public class RecordProcessorTest {
     public void shouldProcessRecordWithAdmittedCommands(
             String command, boolean allowImplicitItems, int expectedUpdates)
             throws ExtractionException {
+        subscribedItems = allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
         EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems, allowImplicitItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
 
         if (!allowImplicitItems) {
             // Subscribe to "item1" and process the record
-            subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+            subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
         }
 
         ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
@@ -311,14 +297,12 @@ public class RecordProcessorTest {
     @ValueSource(strings = {"CS", "EOS"})
     public void shouldNotProcessRecordWithNotAdmittedCommand(String command)
             throws ExtractionException {
+        subscribedItems = SubscribedItems.create();
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        subscribedItems.add(Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
         ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
@@ -336,15 +320,13 @@ public class RecordProcessorTest {
     @Test
     public void shouldProcessRecordWithClearSnapshotCommand() throws ExtractionException {
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.add(item);
+        subscribedItems.addItem("item1", item);
 
         ConsumerRecord<String, String> record =
                 Records.ConsumerRecord(TEST_TOPIC, "snapshot", "CS");
@@ -366,15 +348,13 @@ public class RecordProcessorTest {
     public void shouldNotProcessRecordWithWrongCommandForSnapshot(String wrongCommand)
             throws ExtractionException {
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.add(item);
+        subscribedItems.addItem("item1", item);
 
         // Consume a record with a "snapshot" key and a wrong command
         ConsumerRecord<String, String> record =
@@ -395,15 +375,13 @@ public class RecordProcessorTest {
     @Test
     public void shouldProcessRecordWithEndOfSnapshotCommand() throws ExtractionException {
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.add(item);
+        subscribedItems.addItem("item1", item);
 
         ConsumerRecord<String, String> record =
                 Records.ConsumerRecord(TEST_TOPIC, "snapshot", "EOS");
@@ -423,14 +401,12 @@ public class RecordProcessorTest {
     @Test
     public void shouldNotTriggerSnapshotEventAfterEOS() throws ExtractionException {
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1"
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
-        subscribedItems.add(item);
+        subscribedItems.addItem("item1", item);
 
         // Process a record containing a regular command
         var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");
@@ -469,14 +445,12 @@ public class RecordProcessorTest {
     @Test
     public void shouldKeepSendingSnapshotAfterCS() throws ExtractionException {
         this.mapper = buildMapperForCommandMode();
-        processor =
-                processor(
-                        SubscribedItems.of(subscribedItems),
-                        ProcessUpdatesStrategy.commandStrategy());
+        subscribedItems = SubscribedItems.create();
+        processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1"
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
-        subscribedItems.add(item);
+        subscribedItems.addItem("item1", item);
 
         // Process a record containing a regular command
         var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");

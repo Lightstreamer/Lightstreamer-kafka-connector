@@ -160,7 +160,7 @@ public class KafkaConsumerWrapperTest {
 
         // Create the SubscribedItems
         SubscribedItems subscribedItems =
-                SubscribedItems.of(Collections.emptyList(), allowImplicitItems);
+                allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
 
         return new KafkaConsumerWrapper<String, String>(
                 config, metadataListener, itemEventListener, subscribedItems, () -> mockConsumer);

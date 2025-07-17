@@ -32,7 +32,8 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperCo
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -88,19 +90,22 @@ public class DefaultSubscriptionsHandlerTest {
     }
 
     private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
+    private SubscribedItems subscribedItems;
 
     void init(String... topics) {
         init(false, topics);
     }
 
     void init(boolean exceptionOnConnection, String... topics) {
-        subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
-        subscriptionHandler.setListener(new Mocks.MockItemEventListener());
+        this.subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
+        this.subscriptionHandler.setListener(new Mocks.MockItemEventListener());
+        this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
 
     @Test
     public void shouldInit() {
         init();
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscriptionHandler.consumeAtStartup()).isFalse();
         assertThat(subscriptionHandler.allowImplicitItems()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
@@ -112,10 +117,9 @@ public class DefaultSubscriptionsHandlerTest {
     @Test
     public void shouldSubscribe() throws SubscriptionException {
         init("aTopic");
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
-        assertThat(subscriptionHandler.isConsuming()).isFalse();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
@@ -125,11 +129,14 @@ public class DefaultSubscriptionsHandlerTest {
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(2);
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
-        Item item1 = subscriptionHandler.getSubscribedItem("anItemTemplate");
-        assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
+        // Verify that the items have been registered
+        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(item1).isPresent();
+        assertThat(item1.get()).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
-        Item item2 = subscriptionHandler.getSubscribedItem("anotherItemTemplate");
-        assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
+        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(item2).isPresent();
+        assertThat(item2.get()).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
     }
 
     @Test
@@ -156,8 +163,11 @@ public class DefaultSubscriptionsHandlerTest {
         subscriptionHandler.subscribe("anItemTemplate", itemHandle);
         assertThat(subscriptionHandler.getFutureStatus().join().initFailed());
 
-        // assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        // assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        // Removal of subscribed item actual happens in the unsubscribe method
+        // invoked by the Kernel following the forced unsubscription
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.getSubscribedItems()).hasSize(1);
+
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
@@ -170,8 +180,11 @@ public class DefaultSubscriptionsHandlerTest {
         Object itemHandle = new Object();
         subscriptionHandler.subscribe("anItemTemplate", itemHandle);
 
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        // Removal of subscribed item actual happens in the unsubscribe method
+        // invoked by the Kernel following the forced unsubscription
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.getSubscribedItems()).hasSize(1);
+
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
@@ -196,28 +209,32 @@ public class DefaultSubscriptionsHandlerTest {
         init();
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
+
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        Item item1 = subscriptionHandler.getSubscribedItem("anItemTemplate");
+        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
 
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-        Item item2 = subscriptionHandler.getSubscribedItem("anotherItemTemplate");
+        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
 
-        Item removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
+        Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
-        Item removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
+        Optional<SubscribedItem> removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(removed1).isSameInstanceAs(item1);
-        assertThat(removed2).isSameInstanceAs(item2);
+
+        assertThat(removed1.get()).isSameInstanceAs(item1.get());
+        assertThat(removed2.get()).isSameInstanceAs(item2.get());
+
+        // After unsubscription, the handler should not be consuming anymore
         assertThat(subscriptionHandler.isConsuming()).isFalse();
     }
 
     @Test
-    public void shouldNotUnsubscribe() {
+    public void shouldNotUnsubscribeNonExistingItem() {
         init();
-        assertThrows(
-                SubscriptionException.class,
-                () -> subscriptionHandler.unsubscribe("anItemTemplate"));
+
+        Optional<SubscribedItem> unsubscribed = subscriptionHandler.unsubscribe("anItemTemplate");
+        assertThat(unsubscribed).isEmpty();
     }
 }

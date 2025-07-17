@@ -20,43 +20,52 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 public class SubscribedItemsTest {
 
-    static Stream<Arguments> items() {
-        return Stream.of(
-                arguments(Collections.emptySet(), 0),
-                arguments(Set.of(subscribedFrom("anItem")), 1),
-                arguments(Set.of(subscribedFrom("anItem"), subscribedFrom("anotherItem")), 2));
-    }
+    @Test
+    public void shouldManageSubscriptions() {
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        assertThat(subscribedItems.acceptSubscriptions()).isTrue();
+        assertThat(subscribedItems).isEmpty();
 
-    @ParameterizedTest
-    @MethodSource("items")
-    public void shouldCreate(Collection<SubscribedItem> items, int expectedSize) {
-        SubscribedItems subscribedItems = SubscribedItems.of(items);
-        assertThat(subscribedItems.allowImplicitItems()).isFalse();
-        assertThat(subscribedItems).hasSize(expectedSize);
+        SubscribedItem item1 = subscribedFrom("anItem");
+        subscribedItems.addItem("anItem", item1);
+        assertThat(subscribedItems).hasSize(1);
+        assertThat(subscribedItems.getItem("anItem")).hasValue(item1);
+
+        SubscribedItem item2 = subscribedFrom("anItem2");
+        subscribedItems.addItem("anItem2", item2);
+        assertThat(subscribedItems).hasSize(2);
+        assertThat(subscribedItems.getItem("anItem2")).hasValue(item2);
+
+        Optional<SubscribedItem> removedItem1 = subscribedItems.removeItem("anItem");
+        assertThat(removedItem1).hasValue(item1);
+        assertThat(subscribedItems.getItem("anItem")).isEmpty();
+        assertThat(subscribedItems).hasSize(1);
+
+        Optional<SubscribedItem> removedItem2 = subscribedItems.removeItem("anItem2");
+        assertThat(removedItem2).hasValue(item2);
+        assertThat(subscribedItems.getItem("anItem2")).isEmpty();
+        assertThat(subscribedItems).isEmpty();
     }
 
     @Test
-    public void shouldCreateWithImplicitItems() {
-        SubscribedItems subscribedItems =
-                SubscribedItems.of(Set.of(subscribedFrom("anItem")), true);
-        assertThat(subscribedItems.allowImplicitItems()).isTrue();
-        assertThat(subscribedItems).hasSize(1);
+    public void shouldNotManageSubscriptionsInNop() {
+        SubscribedItems subscribedItems = SubscribedItems.nop();
+        assertThat(subscribedItems.acceptSubscriptions()).isFalse();
+
+        SubscribedItem item = subscribedFrom("anItem");
+        subscribedItems.addItem("anItem", item);
+        assertThat(subscribedItems).isEmpty();
+
+        Optional<SubscribedItem> removedItem = subscribedItems.removeItem("anItem");
+        assertThat(removedItem).isEmpty();
     }
 }

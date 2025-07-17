@@ -128,8 +128,8 @@ public class RecordConsumerTest {
         this.config = (Config<String, String>) connectorConfigurator.configure();
 
         String item = "item";
-        this.subscriptions =
-                SubscribedItems.of(Collections.singleton(Items.subscribedFrom(item, new Object())));
+        this.subscriptions = SubscribedItems.create();
+        this.subscriptions.addItem(item, Items.subscribedFrom(item, new Object()));
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);

@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ComposedRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RouteAllStrategy;
@@ -32,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.Collections;
 import java.util.Set;
 
 public class RecordRoutingStrategyTest {
@@ -51,9 +49,10 @@ public class RecordRoutingStrategyTest {
     public void shouldCreateRecordRoutingStrategy(boolean allowImplicitItems) {
         RecordRoutingStrategy strategy =
                 RecordRoutingStrategy.fromSubscribedItems(
-                        SubscribedItems.of(Collections.emptyList(), allowImplicitItems));
+                        allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create());
+
         if (allowImplicitItems) {
-            assertThat(strategy).isInstanceOf(ComposedRoutingStrategy.class);
+            assertThat(strategy).isInstanceOf(RouteAllStrategy.class);
         } else {
             assertThat(strategy).isInstanceOf(DefaultRoutingStrategy.class);
         }
@@ -93,39 +92,13 @@ public class RecordRoutingStrategyTest {
         assertThat(routeAllStrategy().canRouteImplicitItems()).isTrue();
     }
 
-    @Test
-    public void shouldComposedRoutingStrategyRouteToAllItems() {
-        assertThat(record.routeInvoked()).isFalse();
-        assertThat(record.routeAllInvoked()).isFalse();
-
-        Set<SubscribedItem> routed = composedStrategy().route(record);
-        assertThat(record.routeInvoked()).isTrue();
-        assertThat(record.routeAllInvoked()).isTrue();
-
-        assertThat(routed).containsExactly(item1, item2, item3);
-    }
-
-    @Test
-    public void shouldComposedRoutingStrategyRouteToImplicitItems() {
-        assertThat(composedStrategy().canRouteImplicitItems()).isTrue();
-
-        ComposedRoutingStrategy r = new ComposedRoutingStrategy(defaultStrategy());
-        assertThat(r.canRouteImplicitItems()).isFalse();
-    }
-
     private static RecordRoutingStrategy defaultStrategy() {
-        return new DefaultRoutingStrategy(
-                SubscribedItems.of(
-                        Collections.singleton(Items.subscribedFrom("item", new Object()))));
+        SubscribedItems subscribed = SubscribedItems.create();
+        subscribed.addItem("item", Items.subscribedFrom("item", new Object()));
+        return new DefaultRoutingStrategy(subscribed);
     }
 
     private static RecordRoutingStrategy routeAllStrategy() {
         return new RouteAllStrategy();
-    }
-
-    private static RecordRoutingStrategy composedStrategy() {
-        return RecordRoutingStrategy.fromSubscribedItems(
-                SubscribedItems.of(
-                        Collections.singleton(Items.subscribedFrom("item", new Object())), true));
     }
 }
