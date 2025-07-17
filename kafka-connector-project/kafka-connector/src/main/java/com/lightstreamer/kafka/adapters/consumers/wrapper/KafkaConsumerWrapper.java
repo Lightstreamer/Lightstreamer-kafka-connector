@@ -105,7 +105,7 @@ public class KafkaConsumerWrapper<K, V> {
          * <p>This method verifies both that the connection state has been determined (future is
          * completed) and that the actual state is CONNECTED.
          *
-         * @return true if the consumer is connected to Kafka, false otherwise
+         * @return {@code true} if the consumer is connected to Kafka, false otherwise
          */
         public boolean isConnected() {
             return futureState.isDone() && futureState.join().equals(State.CONNECTED);
