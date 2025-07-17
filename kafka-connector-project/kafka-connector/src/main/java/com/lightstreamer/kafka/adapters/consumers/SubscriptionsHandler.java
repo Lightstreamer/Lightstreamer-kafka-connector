@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.F
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
@@ -36,7 +35,7 @@ import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,7 +50,7 @@ public interface SubscriptionsHandler<K, V> {
 
     void subscribe(String item, Object itemHandle) throws SubscriptionException;
 
-    Item unsubscribe(String topic) throws SubscriptionException;
+    Optional<SubscribedItem> unsubscribe(String topic) throws SubscriptionException;
 
     boolean isConsuming();
 
@@ -124,8 +123,6 @@ public interface SubscriptionsHandler<K, V> {
         protected final Logger log;
         private final ExecutorService pool;
 
-        private final ConcurrentHashMap<String, SubscribedItem> sourceItems =
-                new ConcurrentHashMap<>();
         protected final SubscribedItems subscribedItems;
         private final ReentrantLock consumerLock = new ReentrantLock();
         private volatile KafkaConsumerWrapper<K, V> consumer;
@@ -145,7 +142,8 @@ public interface SubscriptionsHandler<K, V> {
             this.log = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
-            this.subscribedItems = SubscribedItems.of(sourceItems.values(), allowImplicitItems);
+            this.subscribedItems =
+                    allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
         }
 
         @Override
@@ -171,7 +169,7 @@ public interface SubscriptionsHandler<K, V> {
                 }
 
                 log.atInfo().log("Subscribed to item [{}]", item);
-                addItem(item, newItem);
+                subscribedItems.addItem(item, newItem);
                 onSubscribedItem();
             } catch (ExpressionException e) {
                 log.atError().setCause(e).log();
@@ -200,14 +198,13 @@ public interface SubscriptionsHandler<K, V> {
             return futureStatus;
         }
 
-        public final Item unsubscribe(String item) throws SubscriptionException {
-            Item removedItem = removeItem(item);
-            if (removedItem == null) {
-                throw new SubscriptionException(
-                        "Unsubscribing from unexpected item [%s]".formatted(item));
+        @Override
+        public final Optional<SubscribedItem> unsubscribe(String item) {
+            Optional<SubscribedItem> removedItem = subscribedItems.removeItem(item);
+            if (removedItem.isPresent()) {
+                onUnsubscribedItem();
             }
 
-            onUnsubscribedItem();
             return removedItem;
         }
 
@@ -242,16 +239,8 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        final void addItem(String item, SubscribedItem newItem) {
-            sourceItems.put(item, newItem);
-        }
-
-        final Item removeItem(String item) {
-            return sourceItems.remove(item);
-        }
-
         final void clearItems() {
-            sourceItems.clear();
+            subscribedItems.clear();
         }
 
         void onItemEventListenerSet() {}
@@ -268,11 +257,6 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         void onUnsubscribedItem() {}
-
-        // Only for testing purposes
-        SubscribedItem getSubscribedItem(String item) {
-            return sourceItems.get(item);
-        }
 
         // Only for testing purposes
         SubscribedItems getSubscribedItems() {
@@ -299,18 +283,11 @@ public interface SubscriptionsHandler<K, V> {
         @Override
         void onSubscribedItem() {
             if (itemsCounter.incrementAndGet() == 1) {
-                boolean resetCounter = false;
                 try {
-                    FutureStatus status = startConsuming(false);
-                    resetCounter = status.initFailed();
+                    startConsuming(false);
                 } catch (KafkaException ke) {
                     log.atError().setCause(ke).log("Unable to connect to Kafka");
                     metadataListener.forceUnsubscriptionAll();
-                    resetCounter = true;
-                }
-                if (resetCounter) {
-                    itemsCounter.set(0);
-                    clearItems();
                 }
             }
         }
