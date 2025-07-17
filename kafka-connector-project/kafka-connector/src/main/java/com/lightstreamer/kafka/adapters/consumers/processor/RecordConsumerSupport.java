@@ -143,7 +143,8 @@ class RecordConsumerSupport {
 
             EventUpdater updater =
                     EventUpdater.create(
-                            parentBuilder.listener, parentBuilder.subscribed.allowImplicitItems());
+                            parentBuilder.listener,
+                            !parentBuilder.subscribed.acceptSubscriptions());
 
             ProcessUpdatesStrategy processUpdatesStrategy =
                     ProcessUpdatesStrategy.fromCommandModeStrategy(
@@ -316,11 +317,9 @@ class RecordConsumerSupport {
         }
 
         static RecordRoutingStrategy fromSubscribedItems(SubscribedItems subscribedItems) {
-            RecordRoutingStrategy defaultRoutingStrategy =
-                    new DefaultRoutingStrategy(subscribedItems);
-            return subscribedItems.allowImplicitItems()
-                    ? new ComposedRoutingStrategy(defaultRoutingStrategy, new RouteAllStrategy())
-                    : defaultRoutingStrategy;
+            return subscribedItems.acceptSubscriptions()
+                    ? new DefaultRoutingStrategy(subscribedItems)
+                    : new RouteAllStrategy();
         }
     }
 
