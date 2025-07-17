@@ -1074,7 +1074,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetCommandModeEnforce() {
+    public void shouldGeCommandModeEnforce() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
@@ -1148,7 +1148,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetTransformToCommandMode() {
+    public void shouldGetAutoCommandMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.isAutoCommandModeEnabled()).isFalse();
 
@@ -1192,13 +1192,13 @@ public class ConnectorConfigTest {
                                 "false"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
 
-        // Checks value "TRANSFORM"
+        // Checks value "AUTO"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
-        // Checks value "TRANSFORM" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
+        // Checks value "AUTO" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -1210,7 +1210,7 @@ public class ConnectorConfigTest {
                                 "true"));
         assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
 
-        // Checks value "TRANSFORM" with FIELDS_EVALUATE_AS_COMMAND_ENABLE explicitly set to false
+        // Checks value "AUTO" with FIELDS_EVALUATE_AS_COMMAND_ENABLE explicitly set to false
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -1554,6 +1554,58 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter ["
                                 + RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE
                                 + "]");
+    }
+
+    @Test
+    public void shouldGetImplicitItemsEnabled() {
+        // Verify that the implicit items enabled flag is false irrespective of the
+        // RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE setting
+        // when RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE is not set or set to false
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "false"));
+        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"));
+        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "false",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "false"));
+        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
+
+        // Verify the implicit items enabled flag when
+        // RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE is set to true
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "false"));
+        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
+                                "true",
+                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
+                                "true"));
+        assertThat(config.implicitItemsEnabled()).isEqualTo(true);
     }
 
     @Test
