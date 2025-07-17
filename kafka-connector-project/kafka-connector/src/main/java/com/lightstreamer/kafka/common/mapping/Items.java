@@ -38,7 +38,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class Items {
@@ -62,47 +62,142 @@ public class Items {
     }
 
     /**
-     * Represents a collection of subscribed items.
-     *
-     * <p>This interface extends {@link Iterable} to allow iterating over the contained {@link
-     * SubscribedItem} elements. It also provides factory methods to create instances from
-     * collections or to obtain a no-operation implementation. through a collection of {@link
-     * SubscribedItem} objects.
+     * An interface representing a collection of subscribed items that can be iterated over. This
+     * collection maps item names to {@link SubscribedItem} objects and provides methods to add,
+     * remove, and retrieve items.
      *
      * @see SubscribedItem
      */
     public interface SubscribedItems extends Iterable<SubscribedItem> {
 
-        static SubscribedItems of(Collection<SubscribedItem> sourceItems) {
-            return new DefaultSubscribedItems(sourceItems, false);
+        /**
+         * Creates a new empty instance of SubscribedItems.
+         *
+         * @return a new {@code SubscribedItems} instance
+         */
+        static SubscribedItems create() {
+            return new DefaultSubscribedItems();
         }
 
-        static SubscribedItems of(
-                Collection<SubscribedItem> sourceItems, boolean allowImplicitItems) {
-            return new DefaultSubscribedItems(sourceItems, allowImplicitItems);
+        /**
+         * Returns a no-operation implementation of {@code SubscribedItems}.
+         *
+         * @return a singleton no-operation implementation of the {@code SubscribedItems} interface
+         */
+        static SubscribedItems nop() {
+            return NOPSubscribedItems.NOP;
         }
 
-        boolean allowImplicitItems();
+        /**
+         * Determines whether subscriptions should be accepted.
+         *
+         * @return {@code true} if subscriptions are accepted, {@code false} otherwise
+         */
+        default boolean acceptSubscriptions() {
+            return true;
+        }
+
+        /**
+         * Adds a subscribed item to the collection with the specified name as identifier.
+         *
+         * @param itemName the name for the item being added
+         * @param item the subscribed item to be added to the collection
+         */
+        void addItem(String itemName, SubscribedItem item);
+
+        /**
+         * Removes a subscribed item identified by the given name.
+         *
+         * @param itemName the name of the item to remove
+         * @return an {@code Optional} containing the removed {@link SubscribedItem} if it existed,
+         *     or an empty Optional if no item with the given name was found
+         */
+        Optional<SubscribedItem> removeItem(String itemName);
+
+        /**
+         * Retrieves a subscribed item by its name.
+         *
+         * @param itemName the name of the item to retrieve
+         * @return an {@code Optional} containing the {@link SubscribedItem} if found, or empty if
+         *     no item with the given name exists
+         */
+        Optional<SubscribedItem> getItem(String itemName);
+
+        /** Clears all subscribe items. */
+        void clear();
+    }
+
+    private static class NOPSubscribedItems implements SubscribedItems {
+
+        private static final NOPSubscribedItems NOP = new NOPSubscribedItems();
+
+        private NOPSubscribedItems() {}
+
+        @Override
+        public Iterator<SubscribedItem> iterator() {
+            return Collections.emptyIterator();
+        }
+
+        @Override
+        public boolean acceptSubscriptions() {
+            return false; // No subscriptions are accepted in NOP mode
+        }
+
+        @Override
+        public void addItem(String itemName, SubscribedItem item) {
+            // No operation
+        }
+
+        @Override
+        public Optional<SubscribedItem> removeItem(String itemName) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<SubscribedItem> getItem(String itemName) {
+            return Optional.empty();
+        }
+
+        @Override
+        public void clear() {
+            // No operation
+        }
     }
 
     private static class DefaultSubscribedItems implements SubscribedItems {
 
-        private final Collection<SubscribedItem> sourceItems;
-        private final boolean allowImplicitItems;
+        private final Map<String, SubscribedItem> sourceItems;
+        private final Iterator<SubscribedItem> iterator;
 
-        DefaultSubscribedItems(Collection<SubscribedItem> sourceItems, boolean allowImplicitItems) {
-            this.sourceItems = sourceItems;
-            this.allowImplicitItems = allowImplicitItems;
+        DefaultSubscribedItems() {
+            this.sourceItems = new ConcurrentHashMap<>();
+            this.iterator = sourceItems.values().iterator();
         }
 
         @Override
         public Iterator<SubscribedItem> iterator() {
-            return sourceItems.iterator();
+            // return iterator;
+            return sourceItems.values().iterator();
         }
 
         @Override
-        public boolean allowImplicitItems() {
-            return allowImplicitItems;
+        public void addItem(String itemName, SubscribedItem item) {
+            sourceItems.put(itemName, item);
+        }
+
+        @Override
+        public Optional<SubscribedItem> removeItem(String itemName) {
+            return Optional.ofNullable(sourceItems.remove(itemName));
+        }
+
+        @Override
+        public Optional<SubscribedItem> getItem(String itemName) {
+            return Optional.ofNullable(sourceItems.get(itemName));
+        }
+
+        @Override
+        public void clear() {
+            sourceItems.clear();
         }
     }
 
