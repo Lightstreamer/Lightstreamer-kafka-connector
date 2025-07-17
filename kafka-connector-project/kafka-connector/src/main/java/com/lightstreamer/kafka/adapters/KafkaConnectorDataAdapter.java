@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
+import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 
 import org.slf4j.Logger;
 
@@ -54,9 +55,13 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
         this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
         this.metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
-                        connectorConfig.getAdapterName(),
-                        connectorConfig.isEnabled(),
-                        connectorConfig.consumeAtStartup());
+                        new KafkaConnectorDataAdapterOpts(
+                                connectorConfig.getAdapterName(),
+                                connectorConfig.isEnabled(),
+                                connectorConfig.consumeAtStartup(),
+                                connectorConfig.implicitItemsEnabled(),
+                                connectorConfig.isAutoCommandModeEnabled()
+                                        || connectorConfig.isCommandEnforceEnabled()));
 
         this.log.info("Configuring Kafka Connector");
         this.consumerConfig = configurator.configure();
