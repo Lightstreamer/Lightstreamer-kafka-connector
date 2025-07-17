@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.pub;
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
@@ -49,7 +50,8 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
-    private final Map<String, ConnectionInfo> registeredDataAdapters = new ConcurrentHashMap<>();
+    private final Map<String, KafkaConnectorDataAdapterOpts> registeredDataAdapters =
+            new ConcurrentHashMap<>();
 
     private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
 
@@ -108,20 +110,44 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     /**
      * Only used internally.
      *
+     * <p>Configuration options for a Kafka Connector Data Adapter.
+     *
+     * @param dataAdapterName the name of the Kafka Connector Data Adapter
+     * @param enabled indicates whether the calling DataProvider is enabled
+     * @param consumeAtStartup indicates whether the Kafka Connector should consume message at
+     *     connector startup
+     * @param implicitItemsEnabled indicates whether the Kafka Connector should allow implicit items
+     * @param useCommandMode indicates whether the Kafka Connector is configured to use the command
+     *     mode through one of the available settings ({@code fields.auto.command.mode.enable} and
+     *     {@code fields.evaluate.as.command.enable} )
+     */
+    public static record KafkaConnectorDataAdapterOpts(
+            String dataAdapterName,
+            boolean enabled,
+            boolean consumeAtStartup,
+            boolean implicitItemsEnabled,
+            boolean useCommandMode) {
+
+        boolean supportMode(Mode mode) {
+            if (implicitItemsEnabled() && useCommandMode()) {
+                return Mode.COMMAND.equals(mode);
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Only used internally.
+     *
      * <p>Returns a new MetadataLister instance, which will be used by the DataProvider to force
      * unsubscription from items.
      *
-     * @param dataProviderName the name of the DataProvider
-     * @param enabled indicates whether the calling DataProvider is enabled
-     * @param consumeAtStartup indicates whether the DataProvider should consume message at
-     *     connector startup
+     * @param opts the configuration options for the Kafka Connector Data Adapter
      * @return a new MetadataListener instance
      * @hidden
      */
-    public static final MetadataListener listener(
-            String dataProviderName, boolean enabled, boolean consumeAtStartup) {
-        return new MetadataListenerImpl(
-                METADATA_ADAPTER, dataProviderName, enabled, consumeAtStartup);
+    public static final MetadataListener listener(KafkaConnectorDataAdapterOpts opts) {
+        return new MetadataListenerImpl(METADATA_ADAPTER, opts);
     }
 
     private void forceUnsubscriptionAll(String dataAdapterName) {
@@ -164,17 +190,18 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         }
 
         TableInfo table = tables[0];
-        Optional<ConnectionInfo> connectionInfo = lookUp(table.getDataAdapter());
-        if (connectionInfo.isPresent()) {
-            registerConnectorItems(sessionID, table, connectionInfo.get());
+        Optional<KafkaConnectorDataAdapterOpts> opts = lookUp(table.getDataAdapter());
+        if (opts.isPresent()) {
+            registerConnectorItems(sessionID, table, opts.get());
         }
     }
 
     private void registerConnectorItems(
-            String sessionID, TableInfo table, ConnectionInfo connection) throws CreditsException {
-        if (!connection.enabled()) {
+            String sessionID, TableInfo table, KafkaConnectorDataAdapterOpts opts)
+            throws CreditsException {
+        if (!opts.enabled()) {
             throw new CreditsException(
-                    -1, "Connection [%s] not enabled".formatted(connection.name()));
+                    -1, "Connection [%s] not enabled".formatted(opts.dataAdapterName()));
         }
 
         String[] items = table.getSubscribedItems();
@@ -210,21 +237,22 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         onUnsubscription(sessionID, tables);
     }
 
-    private void notifyDataAdapter(String connectionName, boolean enabled) {
-        registeredDataAdapters.put(connectionName, new ConnectionInfo(connectionName, enabled));
+    private void notifyDataAdapter(KafkaConnectorDataAdapterOpts opts) {
+        registeredDataAdapters.put(opts.dataAdapterName(), opts);
     }
 
     /**
-     * Used only for unit testing.
+     * Used only internally.
      *
-     * <p>Returns a {@link ConnectionInfo} instance that describes a configured connection.
+     * <p>Returns a {@link KafkaConnectorDataAdapterOpts} instance that describes a configured
+     * connection.
      *
      * @param connectionName the name of the connection as specified in the attribute {@code name}
      *     of the {@code data_provider} block in the {@code adapters.xml} file
      * @return an Optional describing the connection info relative to the specified connection name
      * @hidden
      */
-    protected final Optional<ConnectionInfo> lookUp(String connectionName) {
+    protected final Optional<KafkaConnectorDataAdapterOpts> lookUp(String connectionName) {
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
 
@@ -269,31 +297,17 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     public void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
             throws NotificationException {}
 
-    /**
-     * Used only internally.
-     *
-     * @hidden
-     */
-    protected static record ConnectionInfo(String name, boolean enabled) {}
-
     private static class MetadataListenerImpl implements MetadataListener {
 
-        private final String dataAdapter;
-
         private final KafkaConnectorMetadataAdapter metadataAdapter;
-
-        private final boolean consumeAtStartup;
+        private final KafkaConnectorDataAdapterOpts opts;
 
         private MetadataListenerImpl(
-                KafkaConnectorMetadataAdapter metadataAdapter,
-                String dataAdapter,
-                boolean enabled,
-                boolean consumeAtStartup) {
+                KafkaConnectorMetadataAdapter metadataAdapter, KafkaConnectorDataAdapterOpts opts) {
             this.metadataAdapter = metadataAdapter;
-            this.dataAdapter = dataAdapter;
-            this.consumeAtStartup = consumeAtStartup;
+            this.opts = opts;
             if (metadataAdapter != null) {
-                metadataAdapter.notifyDataAdapter(dataAdapter, enabled);
+                metadataAdapter.notifyDataAdapter(opts);
             }
         }
 
@@ -302,9 +316,25 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
         @Override
         public void forceUnsubscriptionAll() {
-            if (!consumeAtStartup && metadataAdapter != null) {
-                metadataAdapter.forceUnsubscriptionAll(dataAdapter);
+            if (!opts.consumeAtStartup() && metadataAdapter != null) {
+                metadataAdapter.forceUnsubscriptionAll(opts.dataAdapterName);
             }
         }
+    }
+
+    @Override
+    public boolean modeMayBeAllowed(String item, String dataAdapter, Mode mode) {
+        log.atDebug().log(
+                "Checking if mode {} is allowed for item {} in data adapter {}",
+                mode,
+                item,
+                dataAdapter);
+
+        Optional<KafkaConnectorDataAdapterOpts> opts = lookUp(dataAdapter);
+        if (opts.isPresent()) {
+            return opts.get().supportMode(mode);
+        }
+
+        return super.modeMayBeAllowed(item, dataAdapter, mode);
     }
 }
