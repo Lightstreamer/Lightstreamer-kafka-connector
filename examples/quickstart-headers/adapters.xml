@@ -59,6 +59,12 @@
 
              Default value: false. -->
         <param name="record.consume.at.connector.startup.enable">true</param>
+
+        <!-- Optional. Enables the subscription of implicit items.
+             For every record whose values match any the configured item templates, an implicit item 
+             will be internally created and subscribed to the Kafka Connector.
+
+             Default value: false. -->
         <param name="record.consume.at.connector.startup.with.implicit.items.enable">true</param>
 
         <!-- Define the item template to enable filtering by "account_id" in the record headers -->
@@ -66,13 +72,13 @@
 
         <!-- Map topic "positions" to the "positions" item template -->
         <param name="map.positions.to">item-template.positions</param>
-
+        
+        <param name="record.key.evaluator.type">STRING</param>
         <!-- Based on your example, I used JSON here, but you can change it to another format 
              like Protobuf or Avro if needed.
              If you use Protobuf or Avro, ensure the Schema Registry settings are configured accordingly.
              See https://github.com/Lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-evaluation for more information.
          -->
-        <param name="record.key.evaluator.type">STRING</param>
         <param name="record.value.evaluator.type">JSON</param>  
 
         <!-- Enable Auto Command Mode -->
