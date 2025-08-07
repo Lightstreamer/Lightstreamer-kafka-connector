@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.adapters.remote.DataProvider;
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.DiffAlgorithm;
 import com.lightstreamer.adapters.remote.ExceptionHandler;
@@ -27,10 +26,11 @@ import com.lightstreamer.adapters.remote.ItemEvent;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer.IOStreams;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper.IOStreams;
+import com.lightstreamer.kafka.connect.common.RecordSender;
+import com.lightstreamer.kafka.connect.server.ProviderServer.ProviderServerConnection;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -56,10 +56,6 @@ public class Fakes {
 
     public static class FakeProxyConnection implements ProxyAdapterConnection {
 
-        public static FakeProxyConnection newFakeProxyConnection(ProxyAdapterClientOptions opts) {
-            return new FakeProxyConnection();
-        }
-
         public boolean openInvoked = false;
         public boolean closedInvoked = false;
         public IOStreams io;
@@ -71,9 +67,10 @@ public class Fakes {
         }
 
         public FakeProxyConnection(int fakeFailures) {
-            ByteArrayInputStream in = new ByteArrayInputStream("HelloWorld".getBytes());
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            io = new IOStreams(in, out);
+            this.io =
+                    new IOStreams(
+                            new ByteArrayInputStream("HelloWorld".getBytes()),
+                            new ByteArrayOutputStream());
             this.fakeFailures = fakeFailures;
         }
 
@@ -98,20 +95,58 @@ public class Fakes {
         }
     }
 
-    public static class FakeRemoteDataProviderServer implements RemoteDataProviderServer {
+    public static class FakeProviderConnection implements ProviderServerConnection {
+
+        public boolean acceptInvoked = false;
+        public boolean closedInvoked = false;
+        public IOStreams io;
+        private int fakeFailures;
+        public int retries = 0;
+
+        public FakeProviderConnection() {
+            this(0);
+        }
+
+        public FakeProviderConnection(int fakeFailures) {
+            this.io =
+                    new IOStreams(
+                            new ByteArrayInputStream("HelloWorld".getBytes()),
+                            new ByteArrayOutputStream());
+            this.fakeFailures = fakeFailures;
+        }
+
+        @Override
+        public IOStreams accept() throws IOException {
+            while (fakeFailures > 0) {
+                fakeFailures--;
+                throw new IOException("Simulating failure connection");
+            }
+            this.acceptInvoked = true;
+            return io;
+        }
+
+        @Override
+        public void close() {
+            this.closedInvoked = true;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closedInvoked;
+        }
+    }
+
+    public static class FakeRemoteDataProviderWrapper implements DataProviderWrapper {
 
         // Credentials to be passed to the DataProviderServer.
         public String username;
         public String password;
 
-        // The DataProvider to be managed by this instance.
-        public DataProvider provider;
-
         // Flag indicating whether the start method has been invoked or not.
-        public boolean startInvoked;
+        public volatile boolean startInvoked;
 
         // Flag indicating whether the close method has been invoked or not.
-        public boolean closedInvoked = false;
+        public volatile boolean closedInvoked = false;
 
         // The InputStream/OutputStream pair returned by the open method.
         public IOStreams ioStreams;
@@ -123,11 +158,13 @@ public class Fakes {
         // an error caught by the DataProviderServer.
         private Throwable fakeException;
 
-        public FakeRemoteDataProviderServer(Throwable fakeException) {
+        public Collection<SinkRecord> records;
+
+        public FakeRemoteDataProviderWrapper(Throwable fakeException) {
             this.fakeException = fakeException;
         }
 
-        public FakeRemoteDataProviderServer() {
+        public FakeRemoteDataProviderWrapper() {
             this(null);
         }
 
@@ -140,11 +177,6 @@ public class Fakes {
         @Override
         public void setIOStreams(IOStreams streams) {
             this.ioStreams = streams;
-        }
-
-        @Override
-        public void setAdapter(DataProvider provider) {
-            this.provider = provider;
         }
 
         @Override
@@ -188,6 +220,23 @@ public class Fakes {
         @Override
         public void setExceptionHandler(ExceptionHandler handler) {
             this.handler = handler;
+        }
+
+        @Override
+        public void sendRecords(Collection<SinkRecord> records) {
+            this.records = records;
+        }
+
+        @Override
+        public Map<TopicPartition, OffsetAndMetadata> preCommit(
+                Map<TopicPartition, OffsetAndMetadata> offsets) {
+            throw new UnsupportedOperationException("Unimplemented method 'preCommit'");
+        }
+
+        @Override
+        public void setCloseHook(CloseHook notification) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'setCloseHook'");
         }
     }
 
