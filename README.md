@@ -1957,6 +1957,45 @@ Example:
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
 
+### `connection.inversion.enable`
+
+If enabled, inverts the normal connection establishment behavior, by having the Lightstreamer server's Proxy Adapter open a client socket on the configured [port](#request_replyport).
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** low
+
+Example:
+  ```
+  connection.inversion.enabled=true
+  ```
+
+### `request_reply.port`
+
+The port to use for request-reply communication with the Lightstreamer server's Proxy Adapter when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 6661
+- **Importance:** low
+
+Example:
+  ```
+  request_reply.port=6662
+  ```
+
+### `max.proxy.adapter.connections`
+
+The maximum number of allowed connections from the remote Lightstreamer server's Proxy Adapter when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 1
+- **Importance:** low
+
+Example:
+  ```
+  max.proxy.adapter.connections=5
+  ```   
+
 ### `record.extraction.error.strategy`
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
