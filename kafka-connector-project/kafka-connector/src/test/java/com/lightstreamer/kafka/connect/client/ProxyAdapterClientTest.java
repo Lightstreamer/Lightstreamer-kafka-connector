@@ -15,17 +15,17 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.proxy;
+package com.lightstreamer.kafka.connect.client;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
-import com.lightstreamer.kafka.connect.Fakes.FakeRecordSender;
-import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderServer;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderWrapper;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
 
 import org.apache.kafka.connect.errors.ConnectException;
 import org.junit.jupiter.api.Test;
@@ -53,32 +53,25 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        Supplier<FakeProxyConnection> s = FakeProxyConnection::new;
         assertThat(proxyConnection.openInvoked).isFalse();
 
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
-        assertThat(dataProviderServer.startInvoked).isFalse();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        assertThat(wrapper.startInvoked).isFalse();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender sender = new FakeRecordSender();
-        client.start(sender);
+        client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isTrue();
         assertThat(proxyConnection.retries).isEqualTo(0);
-        assertThat(dataProviderServer.username).isEqualTo("username");
-        assertThat(dataProviderServer.password).isEqualTo("password");
-        assertThat(dataProviderServer.provider).isSameInstanceAs(sender);
-        assertThat(dataProviderServer.startInvoked).isTrue();
-        assertThat(dataProviderServer.ioStreams).isSameInstanceAs(proxyConnection.io);
+        assertThat(wrapper.username).isEqualTo("username");
+        assertThat(wrapper.password).isEqualTo("password");
+        assertThat(wrapper.startInvoked).isTrue();
+        assertThat(wrapper.ioStreams).isSameInstanceAs(proxyConnection.io);
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -99,28 +92,22 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender provider = new FakeRecordSender();
-        client.start(provider);
+        client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isTrue();
         assertThat(proxyConnection.retries).isEqualTo(scheduledFailures);
-        assertThat(dataProviderServer.username).isEqualTo("username");
-        assertThat(dataProviderServer.password).isEqualTo("password");
-        assertThat(dataProviderServer.provider).isSameInstanceAs(provider);
-        assertThat(dataProviderServer.startInvoked).isTrue();
-        assertThat(dataProviderServer.ioStreams).isSameInstanceAs(proxyConnection.io);
+        assertThat(wrapper.username).isEqualTo("username");
+        assertThat(wrapper.password).isEqualTo("password");
+        assertThat(wrapper.startInvoked).isTrue();
+        assertThat(wrapper.ioStreams).isSameInstanceAs(proxyConnection.io);
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -132,26 +119,20 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender provider = new FakeRecordSender();
-        client.start(provider);
+        client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isFalse();
         assertThat(proxyConnection.retries).isEqualTo(0);
-        assertThat(dataProviderServer.provider).isNull();
-        assertThat(dataProviderServer.startInvoked).isFalse();
-        assertThat(dataProviderServer.ioStreams).isNull();
+        assertThat(wrapper.startInvoked).isFalse();
+        assertThat(wrapper.ioStreams).isNull();
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -171,30 +152,24 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
 
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender provider = new FakeRecordSender();
-        assertThrows(ConnectException.class, () -> client.start(provider));
+        assertThrows(ConnectException.class, () -> client.start(() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isFalse();
         assertThat(proxyConnection.retries).isEqualTo(maxRetries);
-        assertThat(dataProviderServer.username).isNull();
-        assertThat(dataProviderServer.password).isNull();
-        assertThat(dataProviderServer.provider).isNull();
-        assertThat(dataProviderServer.startInvoked).isFalse();
-        assertThat(dataProviderServer.closedInvoked).isFalse();
-        assertThat(dataProviderServer.ioStreams).isNull();
+        assertThat(wrapper.username).isNull();
+        assertThat(wrapper.password).isNull();
+        assertThat(wrapper.startInvoked).isFalse();
+        assertThat(wrapper.closedInvoked).isFalse();
+        assertThat(wrapper.ioStreams).isNull();
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -215,26 +190,20 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender provider = new FakeRecordSender();
-        client.start(provider);
+        client.start(() -> wrapper);
 
         assertThat(proxyConnection.openInvoked).isTrue();
-        assertThat(dataProviderServer.username).isNull();
-        assertThat(dataProviderServer.password).isNull();
-        assertThat(dataProviderServer.provider).isSameInstanceAs(provider);
-        assertThat(dataProviderServer.startInvoked).isTrue();
+        assertThat(wrapper.username).isNull();
+        assertThat(wrapper.password).isNull();
+        assertThat(wrapper.startInvoked).isTrue();
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -244,28 +213,23 @@ public class ProxyAdapterClientTest {
                 new ProxyAdapterClientOptions.Builder("host", 6661).build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderServer dataProviderServer = new FakeRemoteDataProviderServer();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(
-                        options,
-                        Thread.currentThread(),
-                        proxyConnectionFactory,
-                        dataProviderServer);
+                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
 
-        FakeRecordSender provider = new FakeRecordSender();
-        client.start(provider);
+        client.start(() -> wrapper);
 
         assertThat(proxyConnection.closedInvoked).isFalse();
-        assertThat(dataProviderServer.closedInvoked).isFalse();
+        assertThat(wrapper.closedInvoked).isFalse();
 
         client.stop();
 
         assertThat(proxyConnection.closedInvoked).isTrue();
-        assertThat(dataProviderServer.closedInvoked).isTrue();
+        assertThat(wrapper.closedInvoked).isTrue();
         assertThat(client.closingException()).isEmpty();
     }
 
@@ -282,23 +246,20 @@ public class ProxyAdapterClientTest {
                 new ProxyAdapterClientOptions.Builder("host", 6661).build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        RemoteDataProviderServer dataProviderServer =
-                new FakeRemoteDataProviderServer(fakeException);
+        DataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper(fakeException);
 
         // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
         Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
                 opts -> proxyConnection;
+
         AtomicBoolean interrupted = new AtomicBoolean();
         Supplier<Optional<Throwable>> connectTask =
                 () -> {
                     ProxyAdapterClient client =
                             new ProxyAdapterClient(
-                                    options,
-                                    Thread.currentThread(),
-                                    proxyConnectionFactory,
-                                    dataProviderServer);
+                                    options, Thread.currentThread(), proxyConnectionFactory);
 
-                    client.start(new FakeRecordSender());
+                    client.start(() -> wrapper);
 
                     try {
                         TimeUnit.MILLISECONDS.sleep(1000);
