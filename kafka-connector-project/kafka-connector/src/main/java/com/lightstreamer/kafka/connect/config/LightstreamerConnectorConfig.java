@@ -27,7 +27,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateCon
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.server.ProviderServerOptions;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -101,6 +102,20 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD_DOC =
             "The password to use for authenticating to the Lightstreamer server's Proxy Adapter. "
                     + "This setting requires authentication to be enabled in the configuration of the Proxy Adapter.";
+
+    public static final String CONNECTION_INVERSION_ENABLE = "connection.inversion.enable";
+    public static final String CONNECTION_INVERSION_ENABLE_DOC =
+            """
+            If enabled, inverts the normal connection establishment behavior, by having the Lightstreamer server's Proxy Adapter open a client socket on the configured \"request_reply.port\"
+            """;
+
+    public static final String REQUEST_REPLY_PORT = "request_reply.port";
+    public static final String REQUEST_REPLY_PORT_DOC =
+            "The port to use for request-reply communication with the Lightstreamer server's Proxy Adapter when connection inversion is enabled. ";
+
+    public static final String MAX_PROXY_ADAPTER_CONNECTIONS = "max.proxy.adapter.connections";
+    public static final String MAX_PROXY_ADAPTER_CONNECTIONS_DOC =
+            "The maximum number of allowed connections from the remote Lightstreamer server's Proxy Adapter when connection inversion is enabled. ";
 
     public static final String ITEM_TEMPLATES = "item.templates";
     public static final String ITEM_TEMPLATES_DOC =
@@ -234,6 +249,32 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                                 .build())
                 .define(
                         new ConfigKeyBuilder()
+                                .name(CONNECTION_INVERSION_ENABLE)
+                                .type(Type.BOOLEAN)
+                                .defaultValue(false)
+                                .importance(Importance.LOW)
+                                .documentation(CONNECTION_INVERSION_ENABLE_DOC)
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(REQUEST_REPLY_PORT)
+                                .type(Type.INT)
+                                .defaultValue(6661)
+                                .validator(Range.atLeast(0))
+                                .importance(Importance.LOW)
+                                .documentation(REQUEST_REPLY_PORT_DOC)
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
+                                .name(MAX_PROXY_ADAPTER_CONNECTIONS)
+                                .type(Type.INT)
+                                .defaultValue(1)
+                                .validator(Range.atLeast(1))
+                                .importance(Importance.LOW)
+                                .documentation(MAX_PROXY_ADAPTER_CONNECTIONS_DOC)
+                                .build())
+                .define(
+                        new ConfigKeyBuilder()
                                 .name(ITEM_TEMPLATES)
                                 .type(Type.STRING)
                                 .defaultValue(null)
@@ -299,7 +340,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     private final ItemTemplateConfigs itemTemplateConfigs;
     private final List<TopicMappingConfig> topicMappingConfigs;
     private final FieldConfigs fieldConfigs;
-    private final ProxyAdapterClientOptions proxyAdapterClientOptions;
+    private ProxyAdapterClientOptions proxyAdapterClientOptions;
+    private ProviderServerOptions providerServerOptions;
 
     public LightstreamerConnectorConfig(Map<?, ?> originals) {
         super(makeConfig(), originals);
@@ -310,18 +352,32 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
         Pair address = getProxyAdapterAddress();
 
-        proxyAdapterClientOptions =
-                new ProxyAdapterClientOptions.Builder(address.key(), parseInt(address.value()))
-                        .connectionTimeout(getSetupConnectionTimeoutMs())
-                        .connectionMaxRetries(getSetupConnectionMaxRetries())
-                        .connectionRetryDelayMs(getSetupConnectionRetryDelayMs())
-                        .username(getUsername())
-                        .password(getPassword())
-                        .build();
+        if (isConnectionInversionEnabled()) {
+            this.providerServerOptions =
+                    new ProviderServerOptions.Builder(getRequestReplyPort())
+                            .maxProxyAdapterConnections(getMaxProxyAdapterConnections())
+                            .username(getUsername())
+                            .password(getPassword())
+                            .build();
+
+        } else {
+            this.proxyAdapterClientOptions =
+                    new ProxyAdapterClientOptions.Builder(address.key(), parseInt(address.value()))
+                            .connectionTimeout(getSetupConnectionTimeoutMs())
+                            .connectionMaxRetries(getSetupConnectionMaxRetries())
+                            .connectionRetryDelayMs(getSetupConnectionRetryDelayMs())
+                            .username(getUsername())
+                            .password(getPassword())
+                            .build();
+        }
     }
 
     public ProxyAdapterClientOptions getProxyAdapterClientOptions() {
         return proxyAdapterClientOptions;
+    }
+
+    public ProviderServerOptions getProviderServerOptions() {
+        return providerServerOptions;
     }
 
     public int getSetupConnectionTimeoutMs() {
@@ -343,6 +399,18 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public String getPassword() {
         Password password = getPassword(LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD);
         return password != null ? password.value() : null;
+    }
+
+    public boolean isConnectionInversionEnabled() {
+        return getBoolean(CONNECTION_INVERSION_ENABLE);
+    }
+
+    public int getRequestReplyPort() {
+        return getInt(REQUEST_REPLY_PORT);
+    }
+
+    public int getMaxProxyAdapterConnections() {
+        return getInt(MAX_PROXY_ADAPTER_CONNECTIONS);
     }
 
     public List<TopicMappingConfig> getTopicMappings() {
