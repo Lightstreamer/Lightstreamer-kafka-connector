@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.proxy;
+package com.lightstreamer.kafka.connect.client;
 
 public final class ProxyAdapterClientOptions {
 
