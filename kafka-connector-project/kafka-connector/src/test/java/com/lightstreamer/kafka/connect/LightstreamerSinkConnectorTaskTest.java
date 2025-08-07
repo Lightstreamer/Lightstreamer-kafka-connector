@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.lightstreamer.kafka.connect.Fakes.FakeProviderConnection;
 import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
-import com.lightstreamer.kafka.connect.Fakes.FakeRecordSender;
-import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderServer;
+import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderWrapper;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
@@ -56,23 +56,21 @@ public class LightstreamerSinkConnectorTaskTest {
 
     @Test
     void shouldStartAndPutRecords() {
-        FakeProxyConnection connection = new FakeProxyConnection();
-        FakeRecordSender sender = new FakeRecordSender();
+        FakeProxyConnection clientConnection = new FakeProxyConnection();
+        FakeProviderConnection serverConnection = new FakeProviderConnection();
+        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
         LightstreamerSinkConnectorTask task =
                 new LightstreamerSinkConnectorTask(
-                        opts -> connection,
-                        (config, context) -> sender,
-                        new FakeRemoteDataProviderServer());
-        Map<String, String> configs = basicConfig();
-        task.start(configs);
+                        opts -> clientConnection, opts -> serverConnection, config -> wrapper);
+        task.start(basicConfig());
 
-        assertThat(connection.openInvoked).isTrue();
-        assertThat(connection.closedInvoked).isFalse();
+        assertThat(clientConnection.openInvoked).isTrue();
+        assertThat(clientConnection.closedInvoked).isFalse();
 
         SinkRecord sinkRecord = new SinkRecord("topic", 1, null, null, Schema.INT8_SCHEMA, 1, 1);
         Set<SinkRecord> sinkRecords = Collections.singleton(sinkRecord);
         task.put(sinkRecords);
 
-        assertThat(sender.records).isSameInstanceAs(sinkRecords);
+        assertThat(wrapper.records).isSameInstanceAs(sinkRecords);
     }
 }
