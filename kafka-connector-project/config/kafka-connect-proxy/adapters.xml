@@ -77,6 +77,28 @@
              of the replies channel. -->
         <param name="request_reply_port">6661</param>
 
+       <!-- Optional.
+             If set, inverts the normal connection establishment behavior, by having
+             the Proxy Adapter open a client socket on the configured request/reply
+             port towards the Remote Adapter, using the host address specified here.
+             This is not the preferred setting but it can be useful in some scenarios.
+             See a discussion in the Adapter Remoting Infrastructure architecture
+             document. Obviously, the setting requires a corresponding behavior
+             by the Remote Server.
+             When this setting is leveraged, most of the other elements and parameters
+             are still valid (in particular, the "tls" parameter), although some of their
+             descriptions refer to the listening port case and should be reinterpreted;
+             only the following ones are ignored:
+             - interface
+             - tls.enforce_server_cipher_suite_preference
+             - tls.enforce_server_cipher_suite_preference.order
+             - tls.force_client_auth
+             - remote_address_whitelist
+             Note, in particular, that the keystore parameters are available, though
+             optional. This allows for authentication of the Proxy Adapter by the
+             Remote Server by requesting the Proxy Adapter's TLS client certificate. -->
+        <!-- <param name="remote_host">kafka-connect-lightstreamer-sink</param> -->
+
         <!-- Optional.
              If Y, enforces Remote Adapter authentication on the connection
              based on a user/password credential check.
