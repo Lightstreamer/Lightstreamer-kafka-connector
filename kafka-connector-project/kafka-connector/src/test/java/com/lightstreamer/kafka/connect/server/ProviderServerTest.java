@@ -152,6 +152,11 @@ public class ProviderServerTest {
     }
 
     @Test
+    public void shouldNotAcceptMoreThanAllowsConnections() {
+
+    }
+
+    @Test
     void shouldManageClosureOfRemoteProxyAdapter() throws InterruptedException {
         ProviderServerOptions options =
                 new ProviderServerOptions.Builder(6661).maxProxyAdapterConnections(2).build();
