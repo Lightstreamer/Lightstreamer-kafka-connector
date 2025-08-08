@@ -136,9 +136,9 @@ public final class ProviderServer implements ProxyCommunicator {
         @Override
         public void closed(DataProviderWrapper provider) {
             logger.info("Provider closed, releasing semaphore");
-            semaphore.release(0);
+            semaphore.release();
             if (removeFromPool) {
-                logger.debug("Removing provider from active providers pool");
+                logger.info("Removing provider from active providers pool");
                 activeProviders.remove(provider);
                 logger.info("{} active providers left", activeProviders.size());
             } else {
@@ -229,9 +229,8 @@ public final class ProviderServer implements ProxyCommunicator {
                 this.serverConnection = connection;
                 while (acceptConnections) {
                     try {
-                        logger.info("Ready to accept {} connections", semaphore.availablePermits());
                         semaphore.acquire();
-
+                        logger.info("Ready to accept {} up to connections", semaphore.availablePermits() +1 );
                         IOStreams ioStreams = connection.accept();
                         logger.info(
                                 "Accepted connection, spinning up a new Remote Provider to handle the communication with Lightstreamer Proxy Adapter");
