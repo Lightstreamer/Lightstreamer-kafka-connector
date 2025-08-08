@@ -76,8 +76,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS_DOC =
-            "The (optional) value in milliseconds for the time to wait while trying to establish a "
-                    + "connection to the Lightstreamer server's Proxy Adapter before terminating the task."
+            "The (optional) amount of time in milliseconds the connector will wait for the socket connection to be established "
+                    + "to the Lightstreamer server's Proxy Adapter before terminating the task."
                     + "\nSpecify 0 for infinite timeout.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES =
@@ -88,7 +88,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS =
             "lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms";
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS_DOC =
-            "The (optional) amount of time in milliseconds to wait before retrying to establish a new connection in case of failure."
+            "The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to "
+                    + "the Lightstreamer server's Proxy Adapter in case of failure."
                     + "\nOnly applicable if 'lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries' > 0.";
 
     public static final String LIGHTSTREAMER_PROXY_ADAPTER_USERNAME =
@@ -106,7 +107,8 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String CONNECTION_INVERSION_ENABLE = "connection.inversion.enable";
     public static final String CONNECTION_INVERSION_ENABLE_DOC =
             """
-            If enabled, inverts the normal connection establishment behavior, by having the Lightstreamer server's Proxy Adapter open a client socket on the configured \"request_reply.port\"
+            If enabled, reverses the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in `request_reply.port`.
+            This inverse connection pattern requires setting the `remote_host` parameter in the Proxy Adapter configuration.
             """;
 
     public static final String REQUEST_REPLY_PORT = "request_reply.port";
@@ -115,7 +117,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
 
     public static final String MAX_PROXY_ADAPTER_CONNECTIONS = "max.proxy.adapter.connections";
     public static final String MAX_PROXY_ADAPTER_CONNECTIONS_DOC =
-            "The maximum number of allowed connections from the remote Lightstreamer server's Proxy Adapter when connection inversion is enabled. ";
+            "The maximum number of allowed remote Proxy Adapter connections when connection inversion is enabled. ";
 
     public static final String ITEM_TEMPLATES = "item.templates";
     public static final String ITEM_TEMPLATES_DOC =
