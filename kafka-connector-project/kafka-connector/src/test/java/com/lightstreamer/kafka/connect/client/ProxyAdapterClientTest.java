@@ -22,24 +22,22 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.adapters.remote.RemotingException;
+import com.lightstreamer.kafka.connect.Fakes.FakeDataProviderWrapper;
 import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
-import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderWrapper;
-import com.lightstreamer.kafka.connect.client.ProxyAdapterClient.ProxyAdapterConnection;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
 
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ProxyAdapterClientTest {
@@ -55,7 +53,7 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
         assertThat(proxyConnection.openInvoked).isFalse();
 
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
         assertThat(wrapper.startInvoked).isFalse();
 
         ProxyAdapterClient client =
@@ -88,7 +86,7 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
 
         ProxyAdapterClient client =
                 new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
@@ -111,7 +109,7 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
 
         ProxyAdapterClient client =
                 new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
@@ -140,7 +138,7 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
 
         ProxyAdapterClient client =
                 new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
@@ -174,7 +172,7 @@ public class ProxyAdapterClientTest {
                         .build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
 
         ProxyAdapterClient client =
                 new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
@@ -185,6 +183,12 @@ public class ProxyAdapterClientTest {
         assertThat(wrapper.password).isNull();
         assertThat(wrapper.startInvoked).isTrue();
         assertThat(client.closingException()).isEmpty();
+
+        // Simulate sending records to the Proxy Adapter.
+        SinkRecord sinkRecord = new SinkRecord("topic", 1, null, null, Schema.INT8_SCHEMA, 1, 1);
+        Set<SinkRecord> sinkRecords = Collections.singleton(sinkRecord);
+        client.sendRecords(sinkRecords);
+        assertThat(wrapper.records).isSameInstanceAs(sinkRecords);
     }
 
     @Test
@@ -193,7 +197,7 @@ public class ProxyAdapterClientTest {
                 new ProxyAdapterClientOptions.Builder("host", 6661).build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
 
         ProxyAdapterClient client =
                 new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
@@ -217,40 +221,27 @@ public class ProxyAdapterClientTest {
 
     @ParameterizedTest
     @MethodSource("exceptions")
-    void shouldHandleExceptions(Throwable fakeException) throws RemotingException {
+    void shouldHandleExceptions(Throwable fakeException)
+            throws RemotingException, InterruptedException {
         ProxyAdapterClientOptions options =
                 new ProxyAdapterClientOptions.Builder("host", 6661).build();
 
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
-        DataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper(fakeException);
+        DataProviderWrapper wrapper = new FakeDataProviderWrapper(fakeException);
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
+        Thread syncConnectorThread = new Thread();
+        ProxyAdapterClient client =
+                new ProxyAdapterClient(options, syncConnectorThread, opts -> proxyConnection);
+        client.start(() -> wrapper);
 
-        AtomicBoolean interrupted = new AtomicBoolean();
-        Supplier<Optional<Throwable>> connectTask =
-                () -> {
-                    ProxyAdapterClient client =
-                            new ProxyAdapterClient(
-                                    options, Thread.currentThread(), proxyConnectionFactory);
-
-                    client.start(() -> wrapper);
-
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(1000);
-                    } catch (InterruptedException e) {
-                        interrupted.set(true);
-                    }
-                    return client.closingException();
-                };
-
-        // Run the task asynchronously.
-        Optional<Throwable> closingException = CompletableFuture.supplyAsync(connectTask).join();
+        // Just wait a bit to ensure the delayed exception has been processed.
+        TimeUnit.MILLISECONDS.sleep(800);
 
         // The Sync task thread should have been interrupted.
-        assertThat(interrupted.get()).isTrue();
+        assertThat(syncConnectorThread.isInterrupted()).isTrue();
+
         // The triggering closing exception should be the one expected.
-        assertThat(closingException).hasValue(fakeException);
+        assertThat(client.closingException()).isPresent();
+        assertThat(client.closingException()).hasValue(fakeException);
     }
 }
