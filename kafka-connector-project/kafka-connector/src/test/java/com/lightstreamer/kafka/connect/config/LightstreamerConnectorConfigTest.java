@@ -256,6 +256,20 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
+    void shouldNotValidateNonPositiveMaxProxyAdapterConnections() {
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(LightstreamerConnectorConfig.CONNECTION_INVERSION_ENABLE, "true");
+        updateConfigs.put(LightstreamerConnectorConfig.MAX_PROXY_ADAPTER_CONNECTIONS, "0");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new LightstreamerConnectorConfig(updateConfigs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value 0 for configuration max.proxy.adapter.connections: Value must be at least 1");
+    }
+
+    @Test
     void shouldGetMoreItemTemplates() {
         Map<String, String> props = basicConfig();
         props.put(
