@@ -19,8 +19,8 @@ package com.lightstreamer.kafka.connect.server;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.lightstreamer.kafka.connect.Fakes.FakeDataProviderWrapper;
 import com.lightstreamer.kafka.connect.Fakes.FakeProviderConnection;
-import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderWrapper;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
 
 import org.apache.kafka.connect.data.Schema;
@@ -51,7 +51,7 @@ public class ProviderServerTest {
 
         FakeProviderConnection providerConnection = new FakeProviderConnection();
 
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
         assertThat(wrapper.startInvoked).isFalse();
 
         ProviderServer server =
@@ -91,7 +91,7 @@ public class ProviderServerTest {
 
         FakeProviderConnection providerConnection = new FakeProviderConnection();
 
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
         assertThat(wrapper.startInvoked).isFalse();
 
         ProviderServer server =
@@ -120,7 +120,7 @@ public class ProviderServerTest {
 
         ProviderServer server =
                 new ProviderServer(options, Thread.currentThread(), opts -> providerConnection);
-        server.start((() -> new FakeRemoteDataProviderWrapper()));
+        server.start((() -> new FakeDataProviderWrapper()));
 
         // Simulate the connection loop accepting two connections.
         providerConnection.triggerAcceptConnections(2);
@@ -131,17 +131,17 @@ public class ProviderServerTest {
         assertThat(providerConnection.acceptInvoked.get()).isEqualTo(2);
         assertThat(server.getActiveProviders().size()).isEqualTo(2);
         for (DataProviderWrapper wrapper : server.getActiveProviders()) {
-            assertThat(((FakeRemoteDataProviderWrapper) wrapper).startInvoked).isTrue();
+            assertThat(((FakeDataProviderWrapper) wrapper).startInvoked).isTrue();
         }
 
-        // Simulate sending records to the server.
+        // Simulate sending records to the Proxy Adapters.
         SinkRecord sinkRecord = new SinkRecord("topic", 1, null, null, Schema.INT8_SCHEMA, 1, 1);
         Set<SinkRecord> sinkRecords = Collections.singleton(sinkRecord);
         server.sendRecords(sinkRecords);
 
         // Verify that the records were sent to all active providers.
         for (DataProviderWrapper wrapper : server.getActiveProviders()) {
-            FakeRemoteDataProviderWrapper fakeWrapper = (FakeRemoteDataProviderWrapper) wrapper;
+            FakeDataProviderWrapper fakeWrapper = (FakeDataProviderWrapper) wrapper;
             assertThat(fakeWrapper.records).isSameInstanceAs(sinkRecords);
         }
 
@@ -169,11 +169,11 @@ public class ProviderServerTest {
         Supplier<DataProviderWrapper> providerSupplier =
                 () -> {
                     if (proxyAdapterConnections.incrementAndGet() > 1) {
-                        return new FakeRemoteDataProviderWrapper(
+                        return new FakeDataProviderWrapper(
                                 new IOException("Simulated connection failure"));
                     }
 
-                    return new FakeRemoteDataProviderWrapper();
+                    return new FakeDataProviderWrapper();
                 };
         server.start(providerSupplier);
 
@@ -199,7 +199,7 @@ public class ProviderServerTest {
                 new ProviderServer(
                         options, syncConnectorThread, opts -> new FakeProviderConnection(true));
 
-        server.start((() -> new FakeRemoteDataProviderWrapper()));
+        server.start((() -> new FakeDataProviderWrapper()));
 
         // Just wait a bit to ensure the connection loop has started.
         TimeUnit.MILLISECONDS.sleep(100);
