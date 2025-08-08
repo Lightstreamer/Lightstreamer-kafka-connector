@@ -58,12 +58,8 @@ public class ProxyAdapterClientTest {
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
         assertThat(wrapper.startInvoked).isFalse();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
-
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
         client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isTrue();
@@ -94,12 +90,8 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
-
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
         client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isTrue();
@@ -121,12 +113,8 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
-
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
         client.start((() -> wrapper));
 
         assertThat(proxyConnection.openInvoked).isFalse();
@@ -154,12 +142,8 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection(scheduledFailures);
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
-
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
 
         assertThrows(ConnectException.class, () -> client.start(() -> wrapper));
 
@@ -192,12 +176,8 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
-
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
         client.start(() -> wrapper);
 
         assertThat(proxyConnection.openInvoked).isTrue();
@@ -215,12 +195,8 @@ public class ProxyAdapterClientTest {
         FakeProxyConnection proxyConnection = new FakeProxyConnection();
         FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
 
-        // Necessary to satisfy the required arguments of the ProxyAdapterClient constructor.
-        Function<ProxyAdapterClientOptions, ProxyAdapterConnection> proxyConnectionFactory =
-                opts -> proxyConnection;
         ProxyAdapterClient client =
-                new ProxyAdapterClient(options, Thread.currentThread(), proxyConnectionFactory);
-
+                new ProxyAdapterClient(options, Thread.currentThread(), opts -> proxyConnection);
         client.start(() -> wrapper);
 
         assertThat(proxyConnection.closedInvoked).isFalse();
