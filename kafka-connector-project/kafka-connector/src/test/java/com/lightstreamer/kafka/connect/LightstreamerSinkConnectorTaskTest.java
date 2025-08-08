@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.lightstreamer.kafka.connect.Fakes.FakeDataProviderWrapper;
 import com.lightstreamer.kafka.connect.Fakes.FakeProviderConnection;
 import com.lightstreamer.kafka.connect.Fakes.FakeProxyConnection;
-import com.lightstreamer.kafka.connect.Fakes.FakeRemoteDataProviderWrapper;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.test_utils.VersionUtils;
 
@@ -65,7 +65,7 @@ public class LightstreamerSinkConnectorTaskTest {
     void shouldStartAndPutRecords(boolean enableConnectionInversion) throws InterruptedException {
         FakeProxyConnection clientConnection = new FakeProxyConnection();
         FakeProviderConnection serverConnection = new FakeProviderConnection();
-        FakeRemoteDataProviderWrapper wrapper = new FakeRemoteDataProviderWrapper();
+        FakeDataProviderWrapper wrapper = new FakeDataProviderWrapper();
         LightstreamerSinkConnectorTask task =
                 new LightstreamerSinkConnectorTask(
                         opts -> clientConnection, opts -> serverConnection, config -> wrapper);
