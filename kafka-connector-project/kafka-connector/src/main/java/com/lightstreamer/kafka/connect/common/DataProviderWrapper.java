@@ -59,7 +59,7 @@ public interface DataProviderWrapper {
 
     void setExceptionHandler(ExceptionHandler handler);
 
-    void setCloseHook(CloseHook notification);
+    void setCloseHook(CloseHook hook);
 
     void start() throws ConnectException;
 
@@ -92,7 +92,7 @@ class DataProviderWrapperImpl implements DataProviderWrapper {
 
     private final DataProviderServer server;
     private final RecordSender sender;
-    private CloseHook notification;
+    private CloseHook hook;
 
     DataProviderWrapperImpl(RecordSender sender) {
         this.server = new DataProviderServer();
@@ -129,8 +129,8 @@ class DataProviderWrapperImpl implements DataProviderWrapper {
     }
 
     @Override
-    public void setCloseHook(CloseHook notification) {
-        this.notification = notification;
+    public void setCloseHook(CloseHook hook) {
+        this.hook = hook;
     }
 
     @Override
@@ -147,8 +147,8 @@ class DataProviderWrapperImpl implements DataProviderWrapper {
     @Override
     public void close() {
         server.close();
-        if (notification != null) {
-            notification.closed(this);
+        if (hook != null) {
+            hook.closed(this);
         }
     }
 }
