@@ -38,18 +38,24 @@ import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Provides fake implementations of several interfaces to support the unit tests. */
 public class Fakes {
@@ -97,37 +103,61 @@ public class Fakes {
 
     public static class FakeProviderConnection implements ProviderServerConnection {
 
-        public boolean acceptInvoked = false;
+        private final BlockingQueue<IOStreams> streamsQueue = new ArrayBlockingQueue<>(2);
+        public final AtomicInteger acceptInvoked = new AtomicInteger();
         public boolean closedInvoked = false;
-        public IOStreams io;
-        private int fakeFailures;
-        public int retries = 0;
 
         public FakeProviderConnection() {
-            this(0);
+            this(false);
         }
 
-        public FakeProviderConnection(int fakeFailures) {
-            this.io =
-                    new IOStreams(
-                            new ByteArrayInputStream("HelloWorld".getBytes()),
-                            new ByteArrayOutputStream());
-            this.fakeFailures = fakeFailures;
+        public FakeProviderConnection(boolean trowException) {
+            if (trowException) {
+                throw new RuntimeException("Simulated server connection issue at startup");
+            }
+        }
+
+        public void triggerAcceptConnections(int numConnections) {
+            for (int i = 0; i < numConnections; i++) {
+                streamsQueue.offer(
+                        new IOStreams(
+                                new ByteArrayInputStream("Accept".getBytes()),
+                                new ByteArrayOutputStream()));
+            }
         }
 
         @Override
         public IOStreams accept() throws IOException {
-            while (fakeFailures > 0) {
-                fakeFailures--;
-                throw new IOException("Simulating failure connection");
+            try {
+                IOStreams streams = streamsQueue.take();
+                BufferedReader bufferedReader =
+                        new BufferedReader(new InputStreamReader(streams.in()));
+                String line = bufferedReader.readLine();
+                switch (line) {
+                    case "Close" -> {
+                        closedInvoked = true;
+                        throw new SocketException("Simulated socket exception");
+                    }
+                    case "Accept" -> {
+                        acceptInvoked.incrementAndGet();
+                        return streams;
+                    }
+                    default ->
+                            throw new RuntimeException(
+                                    "Unexpected line read from the InputStream: " + line);
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-            this.acceptInvoked = true;
-            return io;
         }
 
         @Override
         public void close() {
             this.closedInvoked = true;
+            streamsQueue.offer(
+                    new IOStreams(
+                            new ByteArrayInputStream("Close".getBytes()),
+                            new ByteArrayOutputStream()));
         }
 
         @Override
@@ -159,6 +189,7 @@ public class Fakes {
         private Throwable fakeException;
 
         public Collection<SinkRecord> records;
+        private CloseHook hook;
 
         public FakeRemoteDataProviderWrapper(Throwable fakeException) {
             this.fakeException = fakeException;
@@ -215,6 +246,9 @@ public class Fakes {
         @Override
         public void close() {
             this.closedInvoked = true;
+            if (hook != null) {
+                hook.closed(this);
+            }
         }
 
         @Override
@@ -234,9 +268,8 @@ public class Fakes {
         }
 
         @Override
-        public void setCloseHook(CloseHook notification) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'setCloseHook'");
+        public void setCloseHook(CloseHook hook) {
+            this.hook = hook;
         }
     }
 
