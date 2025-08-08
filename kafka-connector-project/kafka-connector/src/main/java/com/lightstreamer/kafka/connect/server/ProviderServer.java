@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -121,28 +122,75 @@ public final class ProviderServer implements ProxyCommunicator {
         }
     }
 
+    private static class DefaultCloseHook implements CloseHook {
+
+        private final Semaphore semaphore;
+        private final Set<DataProviderWrapper> activeProviders;
+        private volatile boolean removeFromPool = true;
+
+        DefaultCloseHook(Semaphore semaphore, Set<DataProviderWrapper> activeProviders) {
+            this.semaphore = semaphore;
+            this.activeProviders = activeProviders;
+        }
+
+        @Override
+        public void closed(DataProviderWrapper provider) {
+            logger.info("Provider closed, releasing semaphore");
+            semaphore.release(0);
+            if (removeFromPool) {
+                logger.debug("Removing provider from active providers pool");
+                activeProviders.remove(provider);
+                logger.info("{} active providers left", activeProviders.size());
+            } else {
+                logger.debug("Not removing provider from active providers pool");
+            }
+        }
+
+        void closeAll() {
+            logger.info("Closing all active Remote Providers");
+            // This avoids ConcurrentModificationException when closing all providers in the pool.
+            removeFromPool = false;
+
+            // Close all active providers and remove them from the pool.
+            Iterator<DataProviderWrapper> iterator = activeProviders.iterator();
+            while (iterator.hasNext()) {
+                DataProviderWrapper provider = iterator.next();
+                provider.close();
+                iterator.remove();
+            }
+        }
+    }
+
     private static Logger logger = LoggerFactory.getLogger(ProviderServer.class);
 
+    // The options for the ProviderServer.
     private final ProviderServerOptions options;
 
     // The Sync task thread invoking the start method.
     private final Thread currentSyncThread;
 
+    // The factory to create the ProviderServerConnection.
     private final Function<ProviderServerOptions, ProviderServerConnection> connectionFactory;
 
     // Holds the exception caught while communicating with Proxy Adapter.
     private AtomicReference<Throwable> closingException = new AtomicReference<>();
 
+    // Semaphore to limit the number of concurrent connections.
     private final Semaphore semaphore;
 
+    // The pool of active DataProviderWrapper instances.
     private final Set<DataProviderWrapper> activeProviders = new HashSet<>();
 
-    private final CloseHook closeHook;
+    // The close hook to manage the closing of DataProviderWrapper instances.
+    private final DefaultCloseHook closeHook;
 
+    // Flag to control whether the server should accept connections.
     private volatile boolean acceptConnections = true;
 
+    // CompletableFuture to manage the accept loop.
     private CompletableFuture<Void> acceptLoop;
 
+    // The server connection used to accept connections from the Proxy Adapter.
     private ProviderServerConnection serverConnection;
 
     public ProviderServer(
@@ -153,13 +201,7 @@ public final class ProviderServer implements ProxyCommunicator {
         this.currentSyncThread = syncTaskThread;
         this.connectionFactory = connectionFactory;
         this.semaphore = new Semaphore(options.maxProxyAdapterConnections);
-        this.closeHook =
-                provider -> {
-                    logger.info("Provider closed, releasing semaphore");
-                    semaphore.release();
-                    activeProviders.remove(provider);
-                    logger.info("{} active providers left", activeProviders.size());
-                };
+        this.closeHook = new DefaultCloseHook(semaphore, activeProviders);
     }
 
     @Override
@@ -223,12 +265,13 @@ public final class ProviderServer implements ProxyCommunicator {
             return;
         }
 
+        // Interrupt the accept loop
         acceptConnections = false;
 
-        logger.info("Closing all active Remote Providers");
-        // This also ensures that all acquired semaphores are released.
-        activeProviders.forEach(DataProviderWrapper::close);
+        // Release any waiting acquire calls
+        semaphore.release(options.maxProxyAdapterConnections);
 
+        // Close the server connection if it's still open
         if (serverConnection != null && !serverConnection.isClosed()) {
             try {
                 serverConnection.close();
@@ -237,13 +280,23 @@ public final class ProviderServer implements ProxyCommunicator {
             }
         }
 
+        logger.info("Waiting for accept loop to finish");
         acceptLoop.join();
+
+        logger.info("Closing all active Remote Providers");
+        closeHook.closeAll();
+
         logger.info("Communication stopped");
     }
 
     @Override
     public Optional<Throwable> closingException() {
         return Optional.ofNullable(closingException.get());
+    }
+
+    // Only for testing purposes
+    Set<DataProviderWrapper> getActiveProviders() {
+        return activeProviders;
     }
 
     private DataProviderWrapper configureProviderServer(
