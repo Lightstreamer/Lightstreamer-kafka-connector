@@ -166,7 +166,7 @@ public class Fakes {
         }
     }
 
-    public static class FakeRemoteDataProviderWrapper implements DataProviderWrapper {
+    public static class FakeDataProviderWrapper implements DataProviderWrapper {
 
         // Credentials to be passed to the DataProviderServer.
         public String username;
@@ -191,11 +191,11 @@ public class Fakes {
         public Collection<SinkRecord> records;
         private CloseHook hook;
 
-        public FakeRemoteDataProviderWrapper(Throwable fakeException) {
+        public FakeDataProviderWrapper(Throwable fakeException) {
             this.fakeException = fakeException;
         }
 
-        public FakeRemoteDataProviderWrapper() {
+        public FakeDataProviderWrapper() {
             this(null);
         }
 
