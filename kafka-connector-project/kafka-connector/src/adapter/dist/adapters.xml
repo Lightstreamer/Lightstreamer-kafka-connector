@@ -102,7 +102,7 @@
         <param name="encryption.enabled.protocols">TLSv1.3</param>
         -->
 
-        <!--Optional. The list of enabled secure cipher suites.
+        <!-- Optional. The list of enabled secure cipher suites.
 
             Default value: all the available cipher suites in the running JVM. -->
         <!--
