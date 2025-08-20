@@ -1,0 +1,137 @@
+---
+name: quickstart-kafka-connector-automq
+services:
+  kafka-connector:
+    container_name: kafka-connector
+    image: lightstreamer-kafka-connector-${version}
+    depends_on:
+      - broker
+      - producer
+    ports:
+      - 8080:8080
+    volumes:
+      - ./web:/lightstreamer/pages/QuickStart
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+    networks:
+      - automq_net
+
+  producer:
+    container_name: producer
+    depends_on:
+      - broker
+    build:
+      context: quickstart-producer
+      args:
+        VERSION: ${version}
+    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
+    networks:
+      - automq_net
+
+  # MinIO service for S3 storage
+  minio:
+    container_name: "minio"
+    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_DOMAIN=minio
+    ports:
+      - "9000:9000"  # MinIO API
+      - "9001:9001"  # MinIO Console
+    command: [ "server", "/data", "--console-address", ":9001" ]
+    networks:
+      automq_net:
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://minio:9000/minio/health/live" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  # Create needed buckets
+  mc:
+    container_name: "mc"
+    image: minio/mc:RELEASE.2025-05-21T01-59-54Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 minioadmin minioadmin) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc rm -r --force minio/automq-data;
+      /usr/bin/mc rm -r --force minio/automq-ops;
+      /usr/bin/mc mb minio/automq-data;
+      /usr/bin/mc mb minio/automq-ops;
+      /usr/bin/mc anonymous set public minio/automq-data;
+      /usr/bin/mc anonymous set public minio/automq-ops;
+      tail -f /dev/null
+      "
+    networks:
+      - automq_net
+
+  # Single node with combined controller and broker roles
+  broker:
+    container_name: "automq-cluster"
+    image: automqinc/automq:latest
+    stop_grace_period: 1m
+    environment:
+      - KAFKA_S3_ACCESS_KEY=minioadmin
+      - KAFKA_S3_SECRET_KEY=minioadmin
+      - KAFKA_HEAP_OPTS=-Xms1g -Xmx4g -XX:MetaspaceSize=96m -XX:MaxDirectMemorySize=1G
+      # Replace CLUSTER_ID with a unique base64 UUID using "bin/kafka-storage.sh random-uuid"
+      - CLUSTER_ID=3D4fXN-yS1-vsQ8aJ_q4Mg
+    command:
+      - bash
+      - -c
+      - |
+        /opt/automq/kafka/bin/kafka-server-start.sh \
+        /opt/automq/kafka/config/kraft/server.properties \
+        --override cluster.id=$$CLUSTER_ID \
+        --override node.id=0 \
+        --override controller.quorum.voters=0@broker:29093 \
+        --override controller.quorum.bootstrap.servers=broker:9093 \
+        --override listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT \
+        --override listeners=PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://broker:9092 \
+        --override advertised.listeners=PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092 \
+        --override s3.data.buckets='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true' \
+        --override s3.ops.buckets='1@s3://automq-ops?region=us-east-1&endpoint=http://minio:9000&pathStyle=true' \
+        --override s3.wal.path='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
+    networks:
+      automq_net:
+    depends_on:
+      - minio
+      - mc
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - broker
+      - producer
+    ports:
+      - "12000:8080"
+    environment:
+      # Dynamic configuration enabled
+      DYNAMIC_CONFIG_ENABLED: 'true'
+
+      # AutoMQ Kafka cluster configuration
+      KAFKA_CLUSTERS_0_NAME: "AutoMQ Cluster"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker:9092"
+      KAFKA_CLUSTERS_0_READONLY: "false"
+    networks:
+      - automq_net
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  automq_net:
+    name: automq_net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.6.0.0/16"
+          gateway: "10.6.0.1"
