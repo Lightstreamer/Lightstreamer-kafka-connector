@@ -118,7 +118,7 @@ Where `[service-name]` can be: `broker`, `minio`, `kafka-connector`, `producer`,
 
 ## Next Steps
 
-- Explore AutoMQ's [official documentation](https://docs.automq.com/)
-- Learn about [S3 storage configuration](https://docs.automq.com/docs/automq-s3-kafka/YUzOwI8saiDGHDkv1BucTw)
-- Try [AutoMQ Cloud](https://console.automq.com/) for production deployments
+- Explore AutoMQ's [official documentation](https://www.automq.com/docs/automq/deployment/deploy-multi-nodes-cluster-on-linux)
+- Learn about [AutoMQ architecture](https://www.automq.com/docs/automq/architecture)
+- Try [AutoMQ Cloud](https://console.automq.cloud/) for production deployments
 - Integrate with your existing Kafka applications
