@@ -624,6 +624,20 @@ Example:
 <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
 ```
 
+#### `encryption.truststore.type`
+
+_Optional_. The type of the trust store. Can be one of the following:
+- `JKS`
+- `PKCS12`
+
+Default value: `JKS`.
+
+Example:
+
+```xml
+<param name="encryption.truststore.type">PKCS12</param>
+```
+
 #### `encryption.truststore.password `
 
 _Optional_. The password of the trust store.
@@ -647,6 +661,7 @@ A key store is required if the mutual TLS is enabled on Kafka.
 If enabled, the following parameters configure the key store settings:
 
 - `encryption.keystore.path`
+- `encryption.keystore.type`
 - `encryption.keystore.password`
 - `encryption.keystore.key.password`
 
@@ -666,6 +681,20 @@ Example:
 
 ```xml
 <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+```
+
+#### `encryption.keystore.type`
+
+_Optional_. The type of the key store. Can be one of the following:
+- `JKS`
+- `PKCS12`
+
+Default value: `JKS`.
+
+Example:
+
+```xml
+<param name="encryption.keystore.type">PKCS12</param>
 ```
 
 #### `encryption.keystore.password`
@@ -874,7 +903,7 @@ When this mechanism is specified, you can configure the following authentication
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L580) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start with Redpanda Serverless Example
 
@@ -1288,7 +1317,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L451) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1581,10 +1610,12 @@ A secure connection to the Confluent Schema Registry can be configured through p
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
 - `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
 - `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
 - `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
 - `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
 - `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
 - `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
 - `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
 - `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
