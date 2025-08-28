@@ -107,7 +107,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
     public static final String CONNECTION_INVERSION_ENABLE = "connection.inversion.enable";
     public static final String CONNECTION_INVERSION_ENABLE_DOC =
             """
-            If enabled, reverses the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in `request_reply.port`.
+            If enabled, inverts the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in `request_reply.port`.
             This inverse connection pattern requires setting the `remote_host` parameter in the Proxy Adapter configuration.
             """;
 
