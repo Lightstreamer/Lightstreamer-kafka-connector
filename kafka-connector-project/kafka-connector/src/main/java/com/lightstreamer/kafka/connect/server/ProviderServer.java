@@ -230,7 +230,9 @@ public final class ProviderServer implements ProxyCommunicator {
                 while (acceptConnections) {
                     try {
                         semaphore.acquire();
-                        logger.info("Ready to accept {} up to connections", semaphore.availablePermits() +1 );
+                        logger.info(
+                                "Ready to accept {} up to connections",
+                                semaphore.availablePermits() + 1);
                         IOStreams ioStreams = connection.accept();
                         logger.info(
                                 "Accepted connection, spinning up a new Remote Provider to handle the communication with Lightstreamer Proxy Adapter");
