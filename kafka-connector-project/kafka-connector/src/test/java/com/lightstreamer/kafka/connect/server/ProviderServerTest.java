@@ -152,9 +152,7 @@ public class ProviderServerTest {
     }
 
     @Test
-    public void shouldNotAcceptMoreThanAllowsConnections() {
-
-    }
+    public void shouldNotAcceptMoreThanAllowsConnections() {}
 
     @Test
     void shouldManageClosureOfRemoteProxyAdapter() throws InterruptedException {
