@@ -873,7 +873,7 @@ When this mechanism is specified, you can configure the following authentication
   _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
 
   Example:
-  
+
   ```xml
   <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
   ```
@@ -881,7 +881,7 @@ When this mechanism is specified, you can configure the following authentication
 - `authentication.iam.role.session.name`
 
    _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
-  
+
   Example:
 
   ```xml
@@ -1036,7 +1036,7 @@ Examples:
 
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
 
-When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`). 
+When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
 To generate the descriptor file, use the following command:
 
@@ -1100,7 +1100,7 @@ Then the corresponding message type parameter should be:
 
 _Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
-        
+
 For example, in the following record value:
 
 ```
@@ -1128,7 +1128,7 @@ key1=value1;key2=value2
 ```
 
 the pairs separator is the `;` symbol, which separates `key1=value1` and `key2=value2`.
-        
+
 Default value: `,`.
 
 Examples:
@@ -1192,7 +1192,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > - An [**object**](https://www.json.org/json-en.html), in the case of JSON format
  > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  > - A [**message**](https://protobuf.dev/programming-guides/proto3/), in the case of Protobuf format
- > 
+ >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
 - Expressions use the _square notation_ to access both indexed and key-based attributes:
@@ -1235,8 +1235,8 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
 
   When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
-  
-  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.  
+
+  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
@@ -1356,7 +1356,7 @@ Example:
 
 ##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
 
-_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
 This can be useful when dealing with nested JSON/Avro/Protobuf objects or other complex data types.
 
@@ -1669,7 +1669,7 @@ subscription.addSubscriptionListener(new SubscriptionListener() {
 
 # Customizing the Kafka Connector Metadata Adapter Class
 
-If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages), 
+If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages),
 you can create your own implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html).
 
 You are free to implement any methods defined in the standard [`MetadataProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProvider.html) interface and override implementations provided by its descendant classes ([`MetadataProviderAdapter`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) and [`LiteralBasedProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html)).
@@ -1990,7 +1990,7 @@ Example:
 
 ### `connection.inversion.enable`
 
-If enabled, reverses the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in [`request_reply.port`](#request_replyport). This inverse connection pattern requires setting the `remote_host` parameter in the [Proxy Adapter configuration](#lightstreamer-setup).
+If enabled, inverts the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in [`request_reply.port`](#request_replyport). This inverse connection pattern requires setting the `remote_host` parameter in the [Proxy Adapter configuration](#lightstreamer-setup).
 
 - **Type:** boolean
 - **Default:** false
@@ -1998,7 +1998,7 @@ If enabled, reverses the standard connection flow by having the Lightstreamer se
 
 Example:
   ```
-  connection.inversion.enabled=true
+  connection.inversion.enable=true
   ```
 
 ### `request_reply.port`
@@ -2025,7 +2025,7 @@ The maximum number of allowed remote Proxy Adapter connections when [connection 
 Example:
   ```
   max.proxy.adapter.connections=5
-  ```   
+  ```
 
 ### `record.extraction.error.strategy`
 
@@ -2143,7 +2143,7 @@ record.mappings.skip.failed.enable=true
 
 ### `record.mappings.map.non.scalar.values.enable`
 
-Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields.
 This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
 
 - **Type:** boolean
