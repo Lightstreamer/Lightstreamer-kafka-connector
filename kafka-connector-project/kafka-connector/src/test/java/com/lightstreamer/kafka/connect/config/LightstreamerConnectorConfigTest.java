@@ -28,8 +28,9 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateCon
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.expressions.Expressions;
 import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClientOptions;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.server.ProviderServerOptions;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -177,15 +178,17 @@ public class LightstreamerConnectorConfigTest {
     void shouldGetProxyAdapterClientOptions() {
         Map<String, String> props = basicConfig();
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
-        ProxyAdapterClientOptions proxyAdapterClientOptions = config.getProxyAdapterClientOptions();
+        assertThat(config.isConnectionInversionEnabled()).isFalse();
+        assertThat(config.getProviderServerOptions()).isNull();
 
-        assertThat(proxyAdapterClientOptions.hostname).isEqualTo("host");
-        assertThat(proxyAdapterClientOptions.port).isEqualTo(6661);
-        assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(5000);
-        assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(1);
-        assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(5000);
-        assertThat(proxyAdapterClientOptions.username).isNull();
-        assertThat(proxyAdapterClientOptions.password).isNull();
+        ProxyAdapterClientOptions options = config.getProxyAdapterClientOptions();
+        assertThat(options.hostname).isEqualTo("host");
+        assertThat(options.port).isEqualTo(6661);
+        assertThat(options.connectionTimeout).isEqualTo(5000);
+        assertThat(options.connectionMaxRetries).isEqualTo(1);
+        assertThat(options.connectionRetryDelayMs).isEqualTo(5000);
+        assertThat(options.username).isNull();
+        assertThat(options.password).isNull();
 
         Map<String, String> updateConfigs = new HashMap<>(basicConfig());
         updateConfigs.put(
@@ -209,15 +212,61 @@ public class LightstreamerConnectorConfigTest {
 
         config = new LightstreamerConnectorConfig(updateConfigs);
 
-        proxyAdapterClientOptions = config.getProxyAdapterClientOptions();
+        options = config.getProxyAdapterClientOptions();
 
-        assertThat(proxyAdapterClientOptions.hostname).isEqualTo("hostname");
-        assertThat(proxyAdapterClientOptions.port).isEqualTo(6662);
-        assertThat(proxyAdapterClientOptions.connectionTimeout).isEqualTo(10000);
-        assertThat(proxyAdapterClientOptions.connectionMaxRetries).isEqualTo(5);
-        assertThat(proxyAdapterClientOptions.connectionRetryDelayMs).isEqualTo(15000);
-        assertThat(proxyAdapterClientOptions.username).isEqualTo("user");
-        assertThat(proxyAdapterClientOptions.password).isEqualTo("password");
+        assertThat(options.hostname).isEqualTo("hostname");
+        assertThat(options.port).isEqualTo(6662);
+        assertThat(options.connectionTimeout).isEqualTo(10000);
+        assertThat(options.connectionMaxRetries).isEqualTo(5);
+        assertThat(options.connectionRetryDelayMs).isEqualTo(15000);
+        assertThat(options.username).isEqualTo("user");
+        assertThat(options.password).isEqualTo("password");
+    }
+
+    @Test
+    void shouldGetProviderServerOptions() {
+        Map<String, String> props = basicConfig();
+        props.put(LightstreamerConnectorConfig.CONNECTION_INVERSION_ENABLE, "true");
+        LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
+        assertThat(config.isConnectionInversionEnabled()).isTrue();
+        assertThat(config.getProxyAdapterClientOptions()).isNull();
+
+        ProviderServerOptions options = config.getProviderServerOptions();
+        assertThat(options.port).isEqualTo(6661);
+        assertThat(options.maxProxyAdapterConnections).isEqualTo(1);
+        assertThat(options.username).isNull();
+        assertThat(options.password).isNull();
+
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(LightstreamerConnectorConfig.CONNECTION_INVERSION_ENABLE, "true");
+        updateConfigs.put(LightstreamerConnectorConfig.REQUEST_REPLY_PORT, "6662");
+        updateConfigs.put(LightstreamerConnectorConfig.MAX_PROXY_ADAPTER_CONNECTIONS, "10");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME, "user");
+        updateConfigs.put(
+                LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD, "password");
+
+        config = new LightstreamerConnectorConfig(updateConfigs);
+        options = config.getProviderServerOptions();
+
+        assertThat(options.port).isEqualTo(6662);
+        assertThat(options.maxProxyAdapterConnections).isEqualTo(10);
+        assertThat(options.username).isEqualTo("user");
+        assertThat(options.password).isEqualTo("password");
+    }
+
+    @Test
+    void shouldNotValidateNonPositiveMaxProxyAdapterConnections() {
+        Map<String, String> updateConfigs = new HashMap<>(basicConfig());
+        updateConfigs.put(LightstreamerConnectorConfig.CONNECTION_INVERSION_ENABLE, "true");
+        updateConfigs.put(LightstreamerConnectorConfig.MAX_PROXY_ADAPTER_CONNECTIONS, "0");
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> new LightstreamerConnectorConfig(updateConfigs));
+        assertThat(ce.getMessage())
+                .isEqualTo(
+                        "Invalid value 0 for configuration max.proxy.adapter.connections: Value must be at least 1");
     }
 
     @Test

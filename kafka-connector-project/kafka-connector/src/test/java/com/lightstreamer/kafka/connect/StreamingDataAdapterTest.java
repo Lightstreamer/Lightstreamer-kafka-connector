@@ -86,21 +86,21 @@ public class StreamingDataAdapterTest {
     static StreamingDataAdapter newAdapter(
             boolean withReporter, Map<String, String> overriding, DownstreamUpdater nopUpdater) {
         return new StreamingDataAdapter(
-                DataAdapterConfigurator.configure(basicConnectorConfig(overriding)),
-                new FakeSinkContext(withReporter),
+                DataAdapterConfigurator.configure(
+                        basicConnectorConfig(overriding), new FakeSinkContext(withReporter)),
                 nopUpdater);
     }
 
     static StreamingDataAdapter newAdapter(boolean withReporter, Map<String, String> overriding) {
         return new StreamingDataAdapter(
-                DataAdapterConfigurator.configure(basicConnectorConfig(overriding)),
-                new FakeSinkContext(withReporter));
+                DataAdapterConfigurator.configure(
+                        basicConnectorConfig(overriding), new FakeSinkContext(withReporter)));
     }
 
     static StreamingDataAdapter newAdapter(
             FakeSinkContext sinkContext, Map<String, String> overriding) {
         return new StreamingDataAdapter(
-                DataAdapterConfigurator.configure(basicConnectorConfig(overriding)), sinkContext);
+                DataAdapterConfigurator.configure(basicConnectorConfig(overriding), sinkContext));
     }
 
     @Test

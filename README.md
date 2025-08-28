@@ -1948,7 +1948,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
-`lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
+[`lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`](#lightstreamerserverproxy_adaptersocketconnectionsetupretrydelayms) > 0.
 
 - **Type:** long
 - **Default:** 5000 (5 seconds)
@@ -1963,7 +1963,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 
 ### `lightstreamer.server.proxy_adapter.username`
 
-The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
+The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [Proxy Adapter configuration](#lightstreamer-setup).
 
 - **Type:** string
 - **Importance:** medium
@@ -1977,7 +1977,7 @@ lightstreamer.server.proxy_adapter.username=lightstreamer_user
 
 ### `lightstreamer.server.proxy_adapter.password`
 
-The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
+The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [Proxy Adapter configuration](#lightstreamer-setup) of the Proxy Adapter.
 
 - **Type:** string
 - **Default:** none
@@ -1987,6 +1987,45 @@ Example:
   ```
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
   ```
+
+### `connection.inversion.enable`
+
+If enabled, reverses the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in [`request_reply.port`](#request_replyport). This inverse connection pattern requires setting the `remote_host` parameter in the [Proxy Adapter configuration](#lightstreamer-setup).
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** low
+
+Example:
+  ```
+  connection.inversion.enabled=true
+  ```
+
+### `request_reply.port`
+
+The port to use for request-reply communication with the Lightstreamer server's Proxy Adapter when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 6661
+- **Importance:** low
+
+Example:
+  ```
+  request_reply.port=6662
+  ```
+
+### `max.proxy.adapter.connections`
+
+The maximum number of allowed remote Proxy Adapter connections when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 1
+- **Importance:** low
+
+Example:
+  ```
+  max.proxy.adapter.connections=5
+  ```   
 
 ### `record.extraction.error.strategy`
 

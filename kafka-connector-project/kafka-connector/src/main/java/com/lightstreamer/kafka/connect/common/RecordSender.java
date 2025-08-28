@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect;
+package com.lightstreamer.kafka.connect.common;
 
 import com.lightstreamer.adapters.remote.DataProvider;
 
