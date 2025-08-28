@@ -4,11 +4,11 @@
 
 **Improvements**
 
+- Added a [quickstart demo](examples/vendors/automq/quickstart-automq/) for [_AutoMQ_](https://www.automq.com/), a cloud-native, S3-based Kafka distribution. ([#62](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/62))
+
 - Introduced support for [_connection inversion_](README.md#connectioninversionenable) in the Sink connector, allowing it to accept incoming connections from the Lightstreamer Broker. ([#65](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/65))
 
 - Upgraded _Gradle_ to version 9.0.0. ([#63](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/63))
-
-- Added a [quickstart demo](examples/vendors/automq/quickstart-automq/) for [_AutoMQ_](https://www.automq.com/), a cloud-native, S3-based Kafka distribution. ([#62](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/62))
 
 - Clarified the general format of `map.TOPIC_NAME.to` parameter in the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml). ([#61](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/61))
 
