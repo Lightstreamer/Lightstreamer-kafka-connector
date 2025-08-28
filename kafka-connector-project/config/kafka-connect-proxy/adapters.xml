@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-    This is a sample configuration file of a Proxy Adapter to enable the communication 
+    This is a sample configuration file of a Proxy Adapter to enable the communication
     with a remote instance of the Kafka Connect Lightstreamer Sink Connector plugin.
 
     Note that element and attribute names are handled in a case sensitive way.
@@ -97,7 +97,9 @@
              Note, in particular, that the keystore parameters are available, though
              optional. This allows for authentication of the Proxy Adapter by the
              Remote Server by requesting the Proxy Adapter's TLS client certificate. -->
-        <!-- <param name="remote_host">kafka-connect-lightstreamer-sink</param> -->
+        <!--
+        <param name="remote_host">kafka-connect-lightstreamer-sink</param>
+        -->
 
         <!-- Optional.
              If Y, enforces Remote Adapter authentication on the connection
