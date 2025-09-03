@@ -44,6 +44,38 @@ dependencies {
     testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
 }
 
+import com.github.jk1.license.filter.*
+import com.github.jk1.license.render.*
+import org.sample.*
+
+licenseReport {
+    filters = [
+        new ExcludeDependenciesWithoutArtifactsFilter (),
+        new LicenseBundleNormalizer(bundlePath: "$parent.projectDir/config/license-config/license-normalizer-bundle.json")
+    ]
+
+    renderers  = [
+        new TextReportRenderer(),
+        new SimpleHtmlReportRenderer(),
+        new CustomRenderer(),
+        new XmlReportRenderer(),
+        new InventoryHtmlReportRenderer("inventory.html")
+        // new CsvReportRenderer()
+    ]
+
+    excludes = [
+        'com.lightstreamer:ls-adapter-inprocess',
+        'com.lightstreamer:ls-adapter-remote',
+        'com.lightstreamer:ls-log-adapter-java',
+        'com.google.code.findbugs:jsr305',
+        'org.apache.kafka:connect-api',
+        'org.apache.kafka:connect-json',
+        'javax.ws.rs:javax.ws.rs-api'
+    ]
+
+    importers = []
+}
+
 ext {
     connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
 }
@@ -121,8 +153,6 @@ distributions {
                 into "lib"
                 include "ls-adapter-remote*"
                 include "ls-log-adapter*"
-                include "jsr305*"
-                include "javax.ws.rs-api-*"
             }
 
             from ("${rootDir}/..") {
