@@ -44,6 +44,11 @@ dependencies {
     testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
 }
 
+ext {
+    connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
+    licensesDir = "${parent.projectDir}/licenses"
+}
+
 import com.github.jk1.license.filter.*
 import com.github.jk1.license.render.*
 import org.sample.*
@@ -57,10 +62,7 @@ licenseReport {
     renderers  = [
         new TextReportRenderer(),
         new SimpleHtmlReportRenderer(),
-        new CustomRenderer(),
-        new XmlReportRenderer(),
-        new InventoryHtmlReportRenderer("inventory.html")
-        // new CsvReportRenderer()
+        new CustomRenderer("$licensesDir/THIRD-PARTY-LIBRARIES.txt", "$licensesDir/THIRD-PARTY-LIBRARIES.csv"),
     ]
 
     excludes = [
@@ -76,9 +78,7 @@ licenseReport {
     importers = []
 }
 
-ext {
-    connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
-}
+
 
 jar {
     exclude "com/lightstreamer/kafka/connect/**"
@@ -138,6 +138,10 @@ distributions {
                 exclude "jsr305*"
                 exclude "javax.ws.rs-api-*"
                 exclude "connect-*"
+            }
+
+            from (licensesDir) {
+                include "**/*.txt"
             }
         }
     }
