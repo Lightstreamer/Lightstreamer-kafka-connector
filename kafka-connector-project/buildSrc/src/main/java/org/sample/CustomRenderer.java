@@ -1,9 +1,9 @@
 package org.sample;
 
-import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
@@ -45,7 +45,8 @@ public class CustomRenderer implements ReportRenderer {
             String content) {
     }
 
-    private final String fileName;
+    private final String txtFileName;
+    private final String csvFileName;
 
     private final Map<String, LicenseData> licenseCache = new HashMap<>();
     private final AtomicInteger dependencyCounter = new AtomicInteger();
@@ -53,19 +54,20 @@ public class CustomRenderer implements ReportRenderer {
             .newBuilder()
             .followRedirects(Redirect.NORMAL)
             .build();
-    private final String licenseNamesFile;
+    private final String customLicenseUrlsFile;
 
     private ProjectData projectData;
-    private Properties licenseNames;
+    private Properties customLicenseUrls;
     private String absoluteOutputDir;
 
-    public CustomRenderer() {
-        this("THIRD-PARTY-LIBRARIES.txt", "license-names.properties");
+    public CustomRenderer(String txtFileName, String csvFileName) {
+        this(txtFileName, csvFileName, "custom-license-urls.properties");
     }
 
-    public CustomRenderer(String fileName, String licenseNamesFile) {
-        this.fileName = fileName;
-        this.licenseNamesFile = licenseNamesFile;
+    public CustomRenderer(String txtFileName, String csvFileName, String customLicenseUrlsFile) {
+        this.txtFileName = txtFileName;
+        this.csvFileName = csvFileName;
+        this.customLicenseUrlsFile = customLicenseUrlsFile;
     }
 
     public void render(ProjectData projectData) {
@@ -77,68 +79,113 @@ public class CustomRenderer implements ReportRenderer {
     }
 
     /**
-     * Performs rendering of license information for project dependencies.
+     * Performs the license rendering process for project dependencies.
      * 
-     * @param projectData the project data containing information about dependencies
-     *                    and licenses
-     * @throws Exception if an error occurs during file operations (reading
-     *                   license names or writing output)
+     * @param projectData the project data containing dependency information to be
+     *                    rendered
+     * @throws IOException if an error occurs while reading the license names file
+     *                     or writing to the output file
      */
     private void doRendering(ProjectData projectData) throws IOException {
         this.projectData = projectData;
-        this.licenseNames = new Properties();
+        this.customLicenseUrls = new Properties();
         Project project = projectData.getProject();
         try (FileInputStream fis = new FileInputStream(new File(project.getParent().getProjectDir(),
-                "config/license-config/" + licenseNamesFile))) {
-            this.licenseNames.load(fis);
+                "config/license-config/" + customLicenseUrlsFile))) {
+            this.customLicenseUrls.load(fis);
         }
 
         LicenseReportExtension licenseReport = project.getExtensions()
                 .getByType(LicenseReportExtension.class);
         this.absoluteOutputDir = licenseReport.getAbsoluteOutputDir();
-        try (PrintStream stream = new PrintStream(new File(absoluteOutputDir, fileName))) {
+
+        // try (BufferedWriter stream = new BufferedWriter(new FileWriter(new
+        // File(txtFileName)))) {
+        // for (ModuleData moduleData : projectData.getAllDependencies()) {
+        // printDependencyLicenses(stream, moduleData);
+        // }
+        // }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(csvFileName)))) {
+            printCsvHeader(writer);
             for (ModuleData moduleData : projectData.getAllDependencies()) {
-                printDependencyLicenses(stream, moduleData);
+                printCsvDependencyLicenses(writer, moduleData);
             }
         }
     }
 
-    private void printDependencyLicenses(PrintStream stream, ModuleData moduleData) {
+    private void printCsvHeader(BufferedWriter writer) throws IOException {
+        println(writer,
+                "Component Name;Artifact Name;Description;Version Currently Integrated;Link;Change Log;License Type;License Link");
+    }
+
+    private void printCsvDependencyLicenses(BufferedWriter writer, ModuleData moduleData) throws IOException {
+        String libraryName = libraryName(moduleData);
+        String artifactName = moduleData.getName();
+        String description = description(moduleData);
+        String version = moduleData.getVersion();
+        String projectLink = projectUrl(moduleData);
+        String changeLog = "-";
+        String licenseType = moduleData.getPoms().stream()
+                .flatMap(pom -> pom.getLicenses().stream()).findFirst()
+                .map(License::getName)
+                .orElse("N/A");
+        String licenseLink = moduleData.getPoms().stream()
+                .flatMap(pom -> pom.getLicenses().stream()).findFirst()
+                .map(License::getUrl)
+                .orElse("N/A");
+        println(writer, "%s;%s;%s;%s;%s;%s;%s;%s",
+                libraryName, artifactName, description, version, projectLink, changeLog, licenseType, licenseLink);
+    }
+
+    /**
+     * Writes the information about a dependency module and its associated licenses
+     * to the output stream.
+     * 
+     * This method formats and writes:
+     * - A numbered header with a separator line
+     * - The library name
+     * - The library version
+     * - The group and artifact name
+     * - Associated license information for the dependency
+     *
+     * @param writer     the {@link BufferedWriter} to write the output to
+     * @param moduleData the {@link ModuleData object containing dependency
+     * information
+     * @throws IOException if an I/O error occurs while writing to the stream
+     */
+    private void printDependencyLicenses(BufferedWriter writer, ModuleData moduleData) throws IOException {
         // Print the Header of the dependency
-        println(stream, "%d. ########################################################################",
+        println(writer, "%d. ########################################################################",
                 dependencyCounter.incrementAndGet());
         String libraryName = libraryName(moduleData);
-        println(stream, "Library: %s", libraryName);
-        println(stream, "Version: %s", moduleData.getVersion());
-        println(stream);
+        println(writer, "Library: %s", libraryName);
+        println(writer, "Group: %s, Name: %s", moduleData.getGroup(), moduleData.getName());
+        println(writer, "Version: %s", moduleData.getVersion());
+
+        println(writer);
 
         // Print the associated licenses of the dependency
-        printLicenses(stream, libraryName, moduleData);
+        printDependencyLicense(writer, libraryName, moduleData);
     }
 
-    private void printLicense(PrintStream stream, LicenseData license) {
-        String header = license.header();
-        println(stream, "** %s", header);
-        println(stream, '-', header.length() + 3);
-        println(stream, license.content());
-        println(stream);
-        println(stream);
+    private void println(BufferedWriter writer, String msg, Object... args) throws IOException {
+        writer.write(msg.formatted(args));
+        writer.newLine();
     }
 
-    private void println(PrintStream stream, String msg, Object... args) {
-        stream.println(msg.formatted(args));
+    private void println(BufferedWriter writer, String msg) throws IOException {
+        writer.write(msg);
+        writer.newLine();
     }
 
-    private void println(PrintStream stream, String msg) {
-        stream.println(msg);
+    private void println(BufferedWriter writer, char c, int times) throws IOException {
+        writer.write(String.valueOf(c).repeat(Math.max(0, times)));
+        writer.newLine();
     }
 
-    private void println(PrintStream stream, char c, int times) {
-        stream.println(String.valueOf(c).repeat(Math.max(0, times)));
-    }
-
-    private void println(PrintStream stream) {
-        stream.println();
+    private void println(BufferedWriter writer) throws IOException {
+        writer.newLine();
     }
 
     private String libraryName(ModuleData moduleData) {
@@ -150,47 +197,52 @@ public class CustomRenderer implements ReportRenderer {
                         "No project name found for module " + moduleData.getName() + " in POM files!"));
     }
 
-    private String projectUrl(ModuleData moduleData) {
+    private String description(ModuleData moduleData) {
         return moduleData.getPoms().stream()
-                .map(PomData::getProjectUrl)
-                .filter(u -> u != null && !u.isBlank())
+                .map(PomData::getDescription)
+                .filter(n -> n != null && !n.isBlank())
                 .findFirst()
                 .orElseGet(() -> moduleData.getManifests().stream()
-                        .map(ManifestData::getUrl)
-                        .filter(u -> u != null && !u.isBlank())
+                        .map(ManifestData::getDescription)
+                        .filter(n -> n != null && !n.isBlank())
                         .findFirst()
                         .orElse("N/A"));
     }
 
     /**
-     * Retrieves and prints license information for a dependency using a prioritized
-     * multi-step approach.
+     * Retrieves and writes the license information for a dependency to the provided
+     * output stream.
+     * <P>
      * 
-     * This method attempts to find license text in the following order:
-     * 1. Directly from files within the dependency package itself
-     * 2. From custom license URLs specified in configuration
-     * 3. From standard locations in the project's GitHub repository
-     * 4. From license URLs declared in POM metadata files
+     * This method follows a sequential fallback strategy to locate license
+     * information:
+     * <ol>
+     * <li>Searches for license files directly within the dependency package</li>
+     * <li>Checks for manually configured license URLs in the configuration</li>
+     * <li>Attempts to retrieve license from the project's GitHub repository</li>
+     * <li>Falls back to license URLs declared in the dependency's POM files</li>
+     * </ol>
+     *
+     * @param writer      the {@link BufferedWriter} to write the license
+     *                    information to
+     * @param libraryName the name of the library/dependency for which to find
+     *                    license information
+     * @param moduleData  the {@link ModuleData} object containing dependency
+     *                    information
      * 
-     * The process stops at the first successful license retrieval. If all methods
-     * fail,
-     * a {@link RuntimeException} is thrown.
-     * 
-     * @param stream      the {@link PrintStream} to which license text should be
-     *                    written
-     * @param libraryName the name of the library/dependency
-     * @param moduleData  metadata about the module containing license information
-     *                    and artifact details
-     * @throws RuntimeException If no license information can be found through any
+     * @throws IOException      if an error occurs while writing to the output
+     *                          stream
+     * @throws RuntimeException if no license information can be found through any
      *                          method
      */
-    private void printLicenses(PrintStream stream, String libraryName, ModuleData moduleData) {
+    private void printDependencyLicense(BufferedWriter writer, String libraryName, ModuleData moduleData)
+            throws IOException {
         /*
          * Step 1: First attempt - Check for license files in the package itself.
          * This is the most reliable source as the license is directly bundled
          * with the dependency.
          */
-        if (printFromPackage(stream, moduleData)) {
+        if (printFromPackage(writer, moduleData)) {
             return;
         }
 
@@ -200,9 +252,9 @@ public class CustomRenderer implements ReportRenderer {
          * This allows manual override for dependencies with non-standard license
          * locations.
          */
-        String customLicenseUrl = licenseNames.getProperty(libraryName);
+        String customLicenseUrl = customLicenseUrls.getProperty(libraryName);
         if (customLicenseUrl != null) {
-            printFromCustomUrl(stream, customLicenseUrl);
+            printFromCustomUrl(writer, customLicenseUrl);
             return;
         }
 
@@ -212,7 +264,7 @@ public class CustomRenderer implements ReportRenderer {
          * Many open source projects host their code and license files on GitHub,
          * so we try to fetch license files from standard locations in the repository.
          */
-        if (printFromGitHub(stream, moduleData)) {
+        if (printFromGitHub(writer, moduleData)) {
             return;
         }
 
@@ -222,7 +274,7 @@ public class CustomRenderer implements ReportRenderer {
          * in the dependency's metadata files. This is the least preferred method
          * as these URLs may sometimes be incorrect or unavailable.
          */
-        if (printFromPom(stream, moduleData)) {
+        if (printFromPom(writer, moduleData)) {
             return;
         }
 
@@ -237,13 +289,15 @@ public class CustomRenderer implements ReportRenderer {
      * "LICENSE" or "NOTICE" (case-insensitive). The license content is printed to
      * the specified output stream with an appropriate header.
      * 
-     * @param stream     the output stream to which license content will be printed
-     * @param moduleData the module data containing license information to process
+     * @param writer     the {@link BufferedWriter} to write the license information
+     *                   to
+     * @param moduleData the {@link ModuleData} object containing dependency
+     *                   information
      * @return {@code true} if at least one license was printed, {@code false}
      *         otherwise
      * @throws RuntimeException if an error occurs while reading a license file
      */
-    private boolean printFromPackage(PrintStream stream, ModuleData moduleData) {
+    private boolean printFromPackage(BufferedWriter writer, ModuleData moduleData) {
         boolean licensePrinted = false;
         for (LicenseFileData licenseFileData : moduleData.getLicenseFiles()) {
             for (LicenseFileDetails fileDetail : licenseFileData.getFileDetails()) {
@@ -257,7 +311,7 @@ public class CustomRenderer implements ReportRenderer {
                     try (var lines = Files.lines(path)) {
                         String content = lines.collect(Collectors.joining("\n"));
                         String header = "from the " + fileName + " file included in the distribution";
-                        printLicense(stream, new LicenseData(header, content));
+                        printLicense(writer, new LicenseData(header, content));
                         licensePrinted = true;
                     } catch (IOException e) {
                         throw new RuntimeException("Failed to read embedded license file: " + path, e);
@@ -268,11 +322,45 @@ public class CustomRenderer implements ReportRenderer {
         return licensePrinted;
     }
 
-    private boolean printFromCustomUrl(PrintStream stream, String githubBlobUrl) {
-        String rawLicenseTryUrl = String.format("%s?raw=true", githubBlobUrl);
-        Optional<LicenseData> license = retrieveFromUrl(rawLicenseTryUrl, githubBlobUrl);
+    /**
+     * Writes the formatted license information to the specified writer.
+     * The method formats the license by:
+     * <ul>
+     * <li>Adding a header line with "**" prefix</li>
+     * <li>Adding a separator line of dashes</li>
+     * <li>Writing the license content</li>
+     * <li>Adding two blank lines after the license</li>
+     * </ul>
+     *
+     * @param writer  the {@link BufferedWriter} to write the license information to
+     * @param license the {@link LicenseData} object containing the license header
+     *                and content
+     * @throws IOException if an I/O error occurs during writing
+     */
+    private void printLicense(BufferedWriter writer, LicenseData license) throws IOException {
+        String header = license.header();
+        println(writer, "** %s", header);
+        println(writer, '-', header.length() + 3);
+        println(writer, license.content());
+        println(writer);
+        println(writer);
+    }
+
+    /**
+     * Attempts to retrieve and print a license from a custom URL.
+     * 
+     * @param writer     the {@link BufferedWriter} to write the license information
+     *                   to
+     * @param licenseUrl the URL from which to retrieve the license
+     * @return {@code true} if license was successfully retrieved and printed,
+     *         {@code false} otherwise
+     * @throws IOException if an error occurs during reading from the URL or writing
+     *                     to the output
+     */
+    private boolean printFromCustomUrl(BufferedWriter writer, String licenseUrl) throws IOException {
+        Optional<LicenseData> license = retrieveFromUrl(licenseUrl, licenseUrl);
         if (!license.isEmpty()) {
-            printLicense(stream, license.get());
+            printLicense(writer, license.get());
             return true;
         }
         return false;
@@ -290,12 +378,13 @@ public class CustomRenderer implements ReportRenderer {
      * method returns {@code true}. If no license file is found after all attempts,
      * the method returns {@code false}.
      *
-     * @param stream     the {@link PrintStream} to output license information
-     * @param moduleData the module data containing project URL information
+     * @param stream     the {@link BufferedWriter} to write license information to
+     * @param moduleData the {@link ModuleData} object containing dependency
+     *                   information
      * @return {@code true} if a license file was found and printed; {@code false}
      *         otherwise
      */
-    private boolean printFromGitHub(PrintStream stream, ModuleData moduleData) {
+    private boolean printFromGitHub(BufferedWriter stream, ModuleData moduleData) throws IOException {
         String projectUrl = projectUrl(moduleData);
         if (isFromGitHub(projectUrl)) {
             boolean licensePrinted = false;
@@ -322,36 +411,43 @@ public class CustomRenderer implements ReportRenderer {
     }
 
     /**
-     * Retrieves license information for a given module by extracting license URLs
-     * from its POM files and prints them.
+     * Extracts the project URL from the provided module data.
      *
-     * @param stream     the {@link PrintStream} to output license information
-     * @param moduleData the module data containing POM files with license
+     * @param moduleData the {@link ModuleData} object containing dependency
      *                   information
-     * @return {@code true} if any licenses were found and printed, {@code false}
-     *         otherwise
-     * @throws RuntimeException if a license cannot be found at the specified URL or
-     *                          if an error occurs during the retrieval process.
-     *                          This method may throw unchecked exceptions if
-     *                          license retrieval fails.
+     * @return the first non-blank project URL found, or "N/A" if none is found
      */
+    private String projectUrl(ModuleData moduleData) {
+        return moduleData.getPoms().stream()
+                .map(PomData::getProjectUrl)
+                .filter(u -> u != null && !u.isBlank())
+                .findFirst()
+                .orElseGet(() -> moduleData.getManifests().stream()
+                        .map(ManifestData::getUrl)
+                        .filter(u -> u != null && !u.isBlank())
+                        .findFirst()
+                        .orElse("N/A"));
+    }
+
     /**
-     * Retrieves license information from POM metadata and processes it.
+     * Writes license information extracted from POM files to the specified writer.
      * <p>
-     * This method extracts license information from the provided module data,
-     * retrieves the actual license content from the specified URLs, and prints
-     * the license information to the output stream. It caches license data to
-     * avoid redundant retrievals.
+     * 
+     * This method processes all licenses found in the POM files associated with the
+     * given module. For each license, it retrieves the license data from the URL
+     * specified in the license metadata. If the license URL has been processed
+     * before, the cached license data is used instead of making a new request.
      *
-     * @param stream     the print stream to which license information will be
-     *                   output
-     * @param moduleData the module data containing POM information with licenses
-     * @return {@code true} if at least one license was found and processed;
-     *         {@code false} otherwise
-     * @throws RuntimeException if a license URL in the POM metadata is invalid or
-     *                          cannot be accessed
+     * @param writer     the {@link BufferedWriter} to write the license information
+     *                   to
+     * @param moduleData the {@link ModuleData} object containing dependency
+     *                   information
+     * @return {@code true} if at least one license was printed, {@code false}
+     *         otherwise
+     * @throws IOException      if an I/O error occurs while writing to the writer
+     * @throws RuntimeException if a license URL in the POM metadata is invalid
      */
-    private boolean printFromPom(PrintStream stream, ModuleData moduleData) {
+    private boolean printFromPom(BufferedWriter writer, ModuleData moduleData) throws IOException {
         List<License> licenses = moduleData.getPoms().stream()
                 .flatMap(pom -> pom.getLicenses().stream()).toList();
 
@@ -367,7 +463,7 @@ public class CustomRenderer implements ReportRenderer {
                                         "Found invalid license URL in the POM metadata of the module "
                                                 + moduleData.getName() + ": " + url));
             });
-            printLicense(stream, licenseData);
+            printLicense(writer, licenseData);
             printed = true;
         }
 
@@ -412,4 +508,3 @@ public class CustomRenderer implements ReportRenderer {
     }
 
 }
-
