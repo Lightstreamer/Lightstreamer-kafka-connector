@@ -62,7 +62,7 @@ licenseReport {
     renderers  = [
         new TextReportRenderer(),
         new SimpleHtmlReportRenderer(),
-        new CustomRenderer("$licensesDir/THIRD-PARTY-LIBRARIES.txt", "$licensesDir/THIRD-PARTY-LIBRARIES.csv"),
+        new KafkaConnectorLicenseRenderer("$licensesDir/THIRD-PARTY-LIBRARIES.txt", "$licensesDir/THIRD-PARTY-LIBRARIES.csv"),
     ]
 
     excludes = [
