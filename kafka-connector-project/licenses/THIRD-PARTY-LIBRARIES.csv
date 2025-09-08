@@ -1,4 +1,4 @@
-Component Name;Artifact Name;Description;Version Currently Integrated;Link;Change Log;License Type;License Link
+Component Name;Artifact Name;Description;Version Currently Integrated;Link;License Type;License Link
 reload4j;reload4j;Reload4j revives EOLed log4j 1.x;1.2.22;https://reload4j.qos.ch;Apache License, Version 2.0;https://www.apache.org/licenses/LICENSE-2.0.txt
 Handy URI Templates;handy-uri-templates;Handy URI Templates is a RFC6570 compliant URI template processor. The library allows clients to ...;2.1.8;https://github.com/damnhandy/Handy-URI-Templates;Apache License, Version 2.0;https://www.apache.org/licenses/LICENSE-2.0.txt
 minimal-json;minimal-json;A Minimal JSON Parser and Writer;0.9.5;https://github.com/ralfstx/minimal-json;MIT License;https://opensource.org/licenses/MIT
