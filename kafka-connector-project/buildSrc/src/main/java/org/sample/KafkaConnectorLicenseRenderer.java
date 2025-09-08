@@ -48,6 +48,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
         default void render(BufferedWriter writer) throws IOException {
             printHeader(writer);
             for (ModuleData moduleData : getProjectData().getAllDependencies()) {
+                printModuleHeader(writer, moduleData);
                 printDependencyLicenses(writer, moduleData);
             }
         }
@@ -61,12 +62,31 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
 
         /**
          * Prints the header section of the license to the specified writer.
+         * This default implementation does nothing and can be overridden by
+         * implementing classes to provide specific header formatting.
          *
          * @param writer the {@link BufferedWriter} to write the license
          *               information to
-         * @throws IOException if an I/O error occurs during writing
+         * @throws IOException if an I/O error occurs while writing to the output
          */
-        void printHeader(BufferedWriter writer) throws IOException;
+        default void printHeader(BufferedWriter writer) throws IOException {
+
+        }
+
+        /**
+         * Prints the header information for a module to the specified writer.
+         * This default implementation does nothing and can be overridden by
+         * implementing classes to provide specific header formatting.
+         *
+         * @param writer     the {@link BufferedWriter} to write the license
+         *                   information to
+         * @param moduleData the {@link ModuleData} object containing dependency
+         *                   information
+         * @throws IOException if an I/O error occurs while writing to the output
+         */
+        default void printModuleHeader(BufferedWriter writer, ModuleData moduleData) throws IOException {
+
+        }
 
         /**
          * Writes license information for all dependencies of a module to the specified
@@ -82,6 +102,85 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          * @throws IOException If an I/O error occurs while writing to the output
          */
         void printDependencyLicenses(BufferedWriter writer, ModuleData moduleData) throws IOException;
+
+        default void println(BufferedWriter writer, String msg, Object... args) throws IOException {
+            writer.write(msg.formatted(args));
+            writer.newLine();
+        }
+
+        default void println(BufferedWriter writer, String msg) throws IOException {
+            writer.write(msg);
+            writer.newLine();
+        }
+
+        default void println(BufferedWriter writer, char c, int times) throws IOException {
+            writer.write(String.valueOf(c).repeat(Math.max(0, times)));
+            writer.newLine();
+        }
+
+        default void println(BufferedWriter writer) throws IOException {
+            writer.newLine();
+        }
+
+        /**
+         * Extracts the project URL from the provided module data.
+         *
+         * @param moduleData the {@link ModuleData} object containing dependency
+         *                   information
+         * @return the first non-blank project URL found, or "N/A" if none is found
+         */
+        default String projectUrl(ModuleData moduleData) {
+            return moduleData.getPoms().stream()
+                    .map(PomData::getProjectUrl)
+                    .filter(u -> u != null && !u.isBlank())
+                    .findFirst()
+                    .orElseGet(() -> moduleData.getManifests().stream()
+                            .map(ManifestData::getUrl)
+                            .filter(u -> u != null && !u.isBlank())
+                            .findFirst()
+                            .orElse("N/A"));
+        }
+
+        /**
+         * Extracts the library name from the provided module data.
+         *
+         * @param moduleData the {@link ModuleData} object containing POM information
+         * @return the first non-null and non-blank name found in the POM data
+         * @throws RuntimeException If no valid name can be found in any of the POM
+         *                          files
+         */
+        default String libraryName(ModuleData moduleData) {
+            return moduleData.getPoms().stream()
+                    .map(PomData::getName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException(
+                            "No project name found for module " + moduleData.getName() + " in POM files!"));
+        }
+
+        /**
+         * Extracts a formatted description from the provided module data.
+         * 
+         * @param moduleData the {@link ModuleData} object containing POM information
+         * @return a formatted description string, truncated and cleaned of newlines and
+         *         extra spaces
+         */
+        default String description(ModuleData moduleData) {
+            String fullDescription = moduleData.getPoms().stream()
+                    .map(PomData::getDescription)
+                    .filter(n -> n != null && !n.isBlank())
+                    .findFirst()
+                    .orElseGet(() -> moduleData.getManifests().stream()
+                            .map(ManifestData::getDescription)
+                            .filter(n -> n != null && !n.isBlank())
+                            .findFirst()
+                            .orElse("N/A"));
+            String truncatedDescription = fullDescription.length() <= 100
+                    ? fullDescription
+                    : fullDescription.substring(0, 100) + "...";
+            return truncatedDescription.replaceAll("\\r?\\n", "").replaceAll("\\s+", " ");
+        }
+
     }
 
     /**
@@ -141,95 +240,6 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(csvFileName)))) {
             new CsvRenderer(projectData).render(writer);
         }
-    }
-
-    /**
-     * Extracts the project URL from the provided module data.
-     *
-     * @param moduleData the {@link ModuleData} object containing dependency
-     *                   information
-     * @return the first non-blank project URL found, or "N/A" if none is found
-     */
-    static String projectUrl(ModuleData moduleData) {
-        return moduleData.getPoms().stream()
-                .map(PomData::getProjectUrl)
-                .filter(u -> u != null && !u.isBlank())
-                .findFirst()
-                .orElseGet(() -> moduleData.getManifests().stream()
-                        .map(ManifestData::getUrl)
-                        .filter(u -> u != null && !u.isBlank())
-                        .findFirst()
-                        .orElse("N/A"));
-    }
-
-    static void println(BufferedWriter writer, String msg, Object... args) throws IOException {
-        writer.write(msg.formatted(args));
-        writer.newLine();
-    }
-
-    static void println(BufferedWriter writer, String msg) throws IOException {
-        writer.write(msg);
-        writer.newLine();
-    }
-
-    static void println(BufferedWriter writer, char c, int times) throws IOException {
-        writer.write(String.valueOf(c).repeat(Math.max(0, times)));
-        writer.newLine();
-    }
-
-    static void println(BufferedWriter writer) throws IOException {
-        writer.newLine();
-    }
-
-    /**
-     * Extracts the library name from the provided module data.
-     *
-     * @param moduleData the {@link ModuleData} object containing POM information
-     * @return the first non-null and non-blank name found in the POM data
-     * @throws RuntimeException If no valid name can be found in any of the POM
-     *                          files
-     */
-    static String libraryName(ModuleData moduleData) {
-        return moduleData.getPoms().stream()
-                .map(PomData::getName)
-                .filter(n -> n != null && !n.isBlank())
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException(
-                        "No project name found for module " + moduleData.getName() + " in POM files!"));
-    }
-
-    /**
-     * Extracts a formatted description from the provided module data.
-     * 
-     * @param moduleData the {@link ModuleData} object containing POM information
-     * @return a formatted description string, truncated and cleaned of newlines and
-     *         extra spaces
-     */
-    static String description(ModuleData moduleData) {
-        String fullDescription = moduleData.getPoms().stream()
-                .map(PomData::getDescription)
-                .filter(n -> n != null && !n.isBlank())
-                .findFirst()
-                .orElseGet(() -> moduleData.getManifests().stream()
-                        .map(ManifestData::getDescription)
-                        .filter(n -> n != null && !n.isBlank())
-                        .findFirst()
-                        .orElse("N/A"));
-        String truncatedDescription = fullDescription.length() <= 100
-                ? fullDescription
-                : fullDescription.substring(0, 100) + "...";
-        return truncatedDescription.replaceAll("\\r?\\n", "").replaceAll("\\s+", " ");
-    }
-
-    /**
-     * Determines if a URL points to a GitHub repository.
-     * 
-     * @param projectUrl the URL to check
-     * @return {@code true} if the URL is from GitHub (starts with http://github.com
-     *         or https://github.com), {@code false} otherwise
-     */
-    static boolean isFromGitHub(String projectUrl) {
-        return projectUrl.startsWith("https://github.com") || projectUrl.startsWith("http://github.com");
     }
 
     /**
@@ -320,12 +330,19 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          * number by incrementing the dependency counter.
          *
          * @param writer the {@link BufferedWriter} to write the license information to
-         * @throws IOException if an I/O error occurs during writing
+         * @throws IOException if an I/O error occurs while writing to the output
          */
         @Override
-        public void printHeader(BufferedWriter writer) throws IOException {
+        public void printModuleHeader(BufferedWriter writer, ModuleData moduleData) throws IOException {
             println(writer, "%d. ########################################################################",
                     dependencyCounter.incrementAndGet());
+
+            String libraryName = libraryName(moduleData);
+            println(writer, "Library: %s", libraryName);
+            println(writer, "Group: %s, Name: %s", moduleData.getGroup(), moduleData.getName());
+            println(writer, "Version: %s", moduleData.getVersion());
+
+            println(writer);
         }
 
         /**
@@ -349,21 +366,13 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          *                   information to
          * @param moduleData the {@link ModuleData} object containing dependency
          *                   information
-         * @throws IOException      if an I/O error occurs during writing license
-         *                          information
+         * @throws IOException      if an I/O error occurs while writing to the output
          * @throws RuntimeException if no license information can be found for the
          *                          dependency
          */
         @Override
         public void printDependencyLicenses(BufferedWriter writer, ModuleData moduleData)
                 throws IOException {
-            String libraryName = libraryName(moduleData);
-            println(writer, "Library: %s", libraryName);
-            println(writer, "Group: %s, Name: %s", moduleData.getGroup(), moduleData.getName());
-            println(writer, "Version: %s", moduleData.getVersion());
-
-            println(writer);
-
             /*
              * Step 1: First attempt - Check for license files in the package itself.
              * This is the most reliable source as the license is directly bundled
@@ -379,6 +388,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
              * This allows manual override for dependencies with non-standard license
              * locations.
              */
+            String libraryName = libraryName(moduleData);
             String customLicenseUrl = customLicenseUrls.getProperty(libraryName);
             if (customLicenseUrl != null) {
                 printFromCustomUrl(writer, customLicenseUrl);
@@ -462,7 +472,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          * @param writer  the {@link BufferedWriter} to write the license information to
          * @param license the {@link LicenseData} object containing the license header
          *                and content
-         * @throws IOException if an I/O error occurs during writing
+         * @throws IOException if an I/O error occurs while writing to the output
          */
         private void printLicense(BufferedWriter writer, LicenseData license) throws IOException {
             String header = license.header();
@@ -538,6 +548,17 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
         }
 
         /**
+         * Determines if a URL points to a GitHub repository.
+         * 
+         * @param projectUrl the URL to check
+         * @return {@code true} if the URL is from GitHub (starts with http://github.com
+         *         or https://github.com), {@code false} otherwise
+         */
+        private static boolean isFromGitHub(String projectUrl) {
+            return projectUrl.startsWith("https://github.com") || projectUrl.startsWith("http://github.com");
+        }
+
+        /**
          * Writes license information extracted from POM files to the specified writer.
          * <p>
          * 
@@ -552,7 +573,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          *                   information
          * @return {@code true} if at least one license was printed, {@code false}
          *         otherwise
-         * @throws IOException      if an I/O error occurs while writing to the writer
+         * @throws IOException      if an I/O error occurs while writing to the output
          * @throws RuntimeException if a license URL in the POM metadata is invalid
          */
         private boolean printFromPom(BufferedWriter writer, ModuleData moduleData) throws IOException {
@@ -645,7 +666,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          * license data.
          *
          * @param writer the {@link BufferedWriter} to write the output to
-         * @throws IOException if an I/O error occurs while writing to the writer
+         * @throws IOException if an I/O error occurs while writing to the output
          */
         @Override
         public void printHeader(BufferedWriter writer) throws IOException {
@@ -665,7 +686,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
          *                   information to
          * @param moduleData the {@link ModuleData} object containing dependency
          *                   information
-         * @throws IOException if an error occurs while writing to the BufferedWriter
+         * @throws IOException if an I/O error occurs while writing to the output
          */
         @Override
         public void printDependencyLicenses(BufferedWriter writer, ModuleData moduleData) throws IOException {
@@ -687,5 +708,4 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
         }
 
     }
-
 }
