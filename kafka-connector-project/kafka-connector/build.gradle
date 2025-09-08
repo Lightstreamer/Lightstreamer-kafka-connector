@@ -141,7 +141,7 @@ distributions {
             }
 
             from (licensesDir) {
-                include "**/*.txt"
+                include "THIRD-PARTY-LIBRARIES.txt"
             }
         }
     }
@@ -162,6 +162,12 @@ distributions {
             from ("${rootDir}/..") {
                 into "doc"
                 include "LICENSE"
+            }
+
+            from (licensesDir) {
+                into "doc"
+                include "THIRD-PARTY-LIBRARIES-connect.txt"
+                rename {"THIRD-PARTY-LIBRARIES.txt"}
             }
 
             from (connectConfigDir) {
