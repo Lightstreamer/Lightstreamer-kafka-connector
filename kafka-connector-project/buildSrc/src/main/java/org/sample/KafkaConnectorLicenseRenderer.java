@@ -671,7 +671,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
         @Override
         public void printHeader(BufferedWriter writer) throws IOException {
             println(writer,
-                    "Component Name;Artifact Name;Description;Version Currently Integrated;Link;Change Log;License Type;License Link");
+                    "Component Name;Artifact Name;Description;Version Currently Integrated;Link;License Type;License Link");
         }
 
         /**
