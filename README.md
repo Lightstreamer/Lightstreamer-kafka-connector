@@ -624,6 +624,20 @@ Example:
 <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
 ```
 
+#### `encryption.truststore.type`
+
+_Optional_. The type of the trust store. Can be one of the following:
+- `JKS`
+- `PKCS12`
+
+Default value: `JKS`.
+
+Example:
+
+```xml
+<param name="encryption.truststore.type">PKCS12</param>
+```
+
 #### `encryption.truststore.password `
 
 _Optional_. The password of the trust store.
@@ -647,6 +661,7 @@ A key store is required if the mutual TLS is enabled on Kafka.
 If enabled, the following parameters configure the key store settings:
 
 - `encryption.keystore.path`
+- `encryption.keystore.type`
 - `encryption.keystore.password`
 - `encryption.keystore.key.password`
 
@@ -666,6 +681,20 @@ Example:
 
 ```xml
 <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+```
+
+#### `encryption.keystore.type`
+
+_Optional_. The type of the key store. Can be one of the following:
+- `JKS`
+- `PKCS12`
+
+Default value: `JKS`.
+
+Example:
+
+```xml
+<param name="encryption.keystore.type">PKCS12</param>
 ```
 
 #### `encryption.keystore.password`
@@ -844,7 +873,7 @@ When this mechanism is specified, you can configure the following authentication
   _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
 
   Example:
-  
+
   ```xml
   <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role<param>
   ```
@@ -852,7 +881,7 @@ When this mechanism is specified, you can configure the following authentication
 - `authentication.iam.role.session.name`
 
    _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
-  
+
   Example:
 
   ```xml
@@ -899,18 +928,13 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 
 In particular, the Kafka Connector supports message validation for _Avro_, _JSON_, and _Protobuf_ which can be specified through:
 
-- Local schema files (_Avro_ and _JSON_ only): Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
+- Local schema (or binary descriptor) files: Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
 - The _Confluent Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
-- Message validation against local schema files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath))
-
-> [!IMPORTANT]
-> When using Avro or Protobuf formats, schema validation is mandatory:
-> - For Protobuf: The Confluent Schema Registry must be enabled as the only validation option.
-> - For Avro: You can either enable the Confluent Schema Registry or provide local schema files.
+- Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 #### Support for Key Value Pairs (KVP)
 
@@ -1040,7 +1064,17 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+
+When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
+
+To generate the descriptor file, use the following command:
+
+```sh
+$ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --include_imports
+```
+
+This command compiles the source file `record_value.proto` into the binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
 Examples:
 
@@ -1049,9 +1083,14 @@ Examples:
 <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
 ```
 
+```xml
+<param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
+<param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
+```
+
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided, or when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF`_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided,_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1064,11 +1103,34 @@ Examples:
 <param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
+#### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
+
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+
+For example, if your `.proto` file contains:
+
+```protobuf
+syntax = "proto3";
+package com.example.kafka;
+
+message StockUpdate {
+    string symbol = 1;
+    double price = 2;
+    // other fields...
+}
+```
+
+Then the corresponding message type parameter should be:
+
+```xml
+<param name="record.value.evaluator.protobuf.message.type">StockUpdate</param>
+```
+
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
 _Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
-        
+
 For example, in the following record value:
 
 ```
@@ -1096,7 +1158,7 @@ key1=value1;key2=value2
 ```
 
 the pairs separator is the `;` symbol, which separates `key1=value1` and `key2=value2`.
-        
+
 Default value: `,`.
 
 Examples:
@@ -1160,7 +1222,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > - An [**object**](https://www.json.org/json-en.html), in the case of JSON format
  > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
  > - A [**message**](https://protobuf.dev/programming-guides/proto3/), in the case of Protobuf format
- > 
+ >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
 - Expressions use the _square notation_ to access both indexed and key-based attributes:
@@ -1203,8 +1265,8 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
 
   When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
-  
-  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.  
+
+  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
@@ -1324,7 +1386,7 @@ Example:
 
 ##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
 
-_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields. 
+_Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
 This can be useful when dealing with nested JSON/Avro/Protobuf objects or other complex data types.
 
@@ -1609,10 +1671,12 @@ A secure connection to the Confluent Schema Registry can be configured through p
 - `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
 - `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
 - `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
 - `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
 - `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
 - `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
 - `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
 - `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
 - `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
@@ -1666,7 +1730,7 @@ subscription.addSubscriptionListener(new SubscriptionListener() {
 
 # Customizing the Kafka Connector Metadata Adapter Class
 
-If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages), 
+If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages),
 you can create your own implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html).
 
 You are free to implement any methods defined in the standard [`MetadataProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProvider.html) interface and override implementations provided by its descendant classes ([`MetadataProviderAdapter`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) and [`LiteralBasedProvider`](https://lightstreamer.com/api/ls-adapter-inprocess/latest/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html)).
@@ -1945,7 +2009,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries=5
 ### `lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms`
 
 The (optional) amount of time in milliseconds to wait before retrying to establish a new connection to the Lightstreamer server's Proxy Adapter in case of failure. Only applicable if
-`lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries` > 0.
+[`lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries`](#lightstreamerserverproxy_adaptersocketconnectionsetupretrydelayms) > 0.
 
 - **Type:** long
 - **Default:** 5000 (5 seconds)
@@ -1960,7 +2024,7 @@ lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms=15000
 
 ### `lightstreamer.server.proxy_adapter.username`
 
-The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
+The username to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [Proxy Adapter configuration](#lightstreamer-setup).
 
 - **Type:** string
 - **Importance:** medium
@@ -1974,7 +2038,7 @@ lightstreamer.server.proxy_adapter.username=lightstreamer_user
 
 ### `lightstreamer.server.proxy_adapter.password`
 
-The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [configuration](#lightstreamer-setup) of the Proxy Adapter.
+The password to use for authenticating to the Lightstreamer server's Proxy Adapter. This setting requires authentication to be enabled in the [Proxy Adapter configuration](#lightstreamer-setup) of the Proxy Adapter.
 
 - **Type:** string
 - **Default:** none
@@ -1983,6 +2047,45 @@ The password to use for authenticating to the Lightstreamer server's Proxy Adapt
 Example:
   ```
   lightstreamer.server.proxy_adapter.password=lightstreamer_password
+  ```
+
+### `connection.inversion.enable`
+
+If enabled, inverts the standard connection flow by having the Lightstreamer server's Proxy Adapter initiate the connection as a client to the port specified in [`request_reply.port`](#request_replyport). This inverse connection pattern requires setting the `remote_host` parameter in the [Proxy Adapter configuration](#lightstreamer-setup).
+
+- **Type:** boolean
+- **Default:** false
+- **Importance:** low
+
+Example:
+  ```
+  connection.inversion.enable=true
+  ```
+
+### `request_reply.port`
+
+The port to use for request-reply communication with the Lightstreamer server's Proxy Adapter when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 6661
+- **Importance:** low
+
+Example:
+  ```
+  request_reply.port=6662
+  ```
+
+### `max.proxy.adapter.connections`
+
+The maximum number of allowed remote Proxy Adapter connections when [connection inversion](#connectioninversionenable) is enabled.
+
+- **Type:** int
+- **Default:** 1
+- **Importance:** low
+
+Example:
+  ```
+  max.proxy.adapter.connections=5
   ```
 
 ### `record.extraction.error.strategy`
@@ -2101,7 +2204,7 @@ record.mappings.skip.failed.enable=true
 
 ### `record.mappings.map.non.scalar.values.enable`
 
-Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields. 
+Enabling this (optional) parameter allows mapping of non-scalar values to Lightstreamer fields.
 This enables complex data structures from Kafka records to be directly mapped to fields without the need to flatten them into scalar values.
 
 - **Type:** boolean

@@ -134,6 +134,12 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR =
             "record.value.evaluator.kvp.key-value.separator";
 
+    public static final String RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE =
+            "record.key.evaluator.protobuf.message.type";
+
+    public static final String RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE =
+            "record.value.evaluator.protobuf.message.type";
+
     public static final String RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY =
             "record.extraction.error.strategy";
 
@@ -300,6 +306,8 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 CHAR,
                                 defaultValue("="))
+                        .add(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE, false, false, TEXT)
+                        .add(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, false, false, TEXT)
                         .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
                         .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
@@ -439,15 +447,13 @@ public final class ConnectorConfig extends AbstractConfig {
 
     @Override
     protected final void postValidate() throws ConfigException {
-        checkAvroSchemaConfig(true);
-        checkAvroSchemaConfig(false);
-        checkProtoSchemaConfig(true);
-        checkProtoSchemaConfig(false);
+        checkSchemaConfig(true);
+        checkSchemaConfig(false);
         checkTopicMappingRegex();
         checkCommandMode();
     }
 
-    private void checkAvroSchemaConfig(boolean isKey) {
+    private void checkSchemaConfig(boolean isKey) {
         String schemaPathKey =
                 isKey ? RECORD_KEY_EVALUATOR_SCHEMA_PATH : RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
         String evaluatorKey = isKey ? RECORD_KEY_EVALUATOR_TYPE : RECORD_VALUE_EVALUATOR_TYPE;
@@ -455,29 +461,23 @@ public final class ConnectorConfig extends AbstractConfig {
                 isKey
                         ? RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
                         : RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
-        if (getEvaluator(evaluatorKey).equals(EvaluatorType.AVRO)) {
+        EvaluatorType evaluatorType = getEvaluator(evaluatorKey);
+        if (evaluatorType == EvaluatorType.AVRO || evaluatorType == EvaluatorType.PROTOBUF) {
             if (!getBoolean(schemaEnabledKey)) {
                 try {
                     getFile(schemaPathKey, true);
                 } catch (ConfigException ce) {
                     throw new ConfigException(
-                            "Specify a valid value either for [%s] or [%s]"
+                            "Specify a valid file path for [%s] or set [%s] to true"
                                     .formatted(schemaPathKey, schemaEnabledKey));
                 }
-            }
-        }
-    }
-
-    private void checkProtoSchemaConfig(boolean isKey) {
-        String evaluatorKey = isKey ? RECORD_KEY_EVALUATOR_TYPE : RECORD_VALUE_EVALUATOR_TYPE;
-        String schemaEnabledKey =
-                isKey
-                        ? RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE
-                        : RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
-        if (getEvaluator(evaluatorKey).equals(EvaluatorType.PROTOBUF)) {
-            if (!getBoolean(schemaEnabledKey)) {
-                throw new ConfigException(
-                        "Specify a valid value for [%s]".formatted(schemaEnabledKey));
+                if (EvaluatorType.PROTOBUF.equals(evaluatorType)) {
+                    String messageTypeKey =
+                            isKey
+                                    ? RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE
+                                    : RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
+                    getText(messageTypeKey, true);
+                }
             }
         }
     }
@@ -1055,6 +1055,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public char getValueKvpKeyValueSeparator() {
         return get(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, CHAR, false).charAt(0);
+    }
+
+    public String getProtobufKeyMessageType() {
+        return getText(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+    }
+
+    public String getProtobufValueMessageType() {
+        return getText(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
     }
 
     public FieldConfigs getFieldConfigs() {

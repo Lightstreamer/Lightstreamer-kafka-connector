@@ -19,15 +19,62 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
 
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
+import io.confluent.kafka.schemaregistry.protobuf.dynamic.DynamicSchema;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Map;
+
 public class DynamicMessageDeserializers {
+
+    static class DynamicMessageLocalDeserializer
+            extends AbstractLocalSchemaDeserializer<DynamicMessage> {
+
+        private DynamicSchema dynamicSchema;
+        private String messageTypeName;
+        private Descriptor messageDescriptor;
+
+        public void preConfigure(ConnectorConfig config, boolean isKey) {
+            super.preConfigure(config, isKey);
+            this.messageTypeName =
+                    isKey
+                            ? config.getProtobufKeyMessageType()
+                            : config.getProtobufValueMessageType();
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            try {
+                dynamicSchema =
+                        DynamicSchema.parseFrom(
+                                Files.newInputStream(getSchemaFile(isKey).toPath()));
+                messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
+            } catch (IOException | DescriptorValidationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public DynamicMessage deserialize(String topic, byte[] data) {
+            try {
+                return DynamicMessage.parseFrom(messageDescriptor, data);
+            } catch (InvalidProtocolBufferException e) {
+                throw new SerializationException(e.getMessage());
+            }
+        }
+    }
 
     private static Deserializer<DynamicMessage> configuredDeserializer(
             ConnectorConfig config, boolean isKey) {
@@ -39,6 +86,12 @@ public class DynamicMessageDeserializers {
 
     private static Deserializer<DynamicMessage> newDeserializer(
             ConnectorConfig config, boolean isKey) {
+        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
+            DynamicMessageLocalDeserializer jsonNodeLocalDeserializer =
+                    new DynamicMessageLocalDeserializer();
+            jsonNodeLocalDeserializer.preConfigure(config, isKey);
+            return jsonNodeLocalDeserializer;
+        }
         return new KafkaProtobufDeserializer<>();
     }
 

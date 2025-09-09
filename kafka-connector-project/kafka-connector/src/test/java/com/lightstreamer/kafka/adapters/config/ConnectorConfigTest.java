@@ -55,11 +55,13 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CON
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
@@ -113,6 +115,7 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -134,8 +137,11 @@ public class ConnectorConfigTest {
 
     private Path adapterDir;
 
-    private Path keySchemaFile;
-    private Path valueSchemaFile;
+    private Path avroKeySchemaFile;
+    private Path avroValueSchemaFile;
+
+    private Path protoKeySchemaFile;
+    private Path protoValueSchemaFile;
 
     private Path trustStoreFile;
     private Path keyStoreFile;
@@ -145,11 +151,25 @@ public class ConnectorConfigTest {
     @BeforeEach
     public void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
-        keySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
-        valueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
+        avroKeySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
+        avroValueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
+        protoKeySchemaFile = Files.createTempFile(adapterDir, "proto-key-schema-", ".desc");
+        protoValueSchemaFile = Files.createTempFile(adapterDir, "proto-value-schema-", ".desc");
         trustStoreFile = Files.createTempFile(adapterDir, "truststore", ".jks");
         keyStoreFile = Files.createTempFile(adapterDir, "keystore", ".jks");
         keyTabFile = Files.createTempFile(adapterDir, "keytabFile", ".keytab");
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        Files.delete(avroKeySchemaFile);
+        Files.delete(avroValueSchemaFile);
+        Files.delete(protoKeySchemaFile);
+        Files.delete(protoValueSchemaFile);
+        Files.delete(trustStoreFile);
+        Files.delete(keyStoreFile);
+        Files.delete(keyTabFile);
+        Files.delete(adapterDir);
     }
 
     @Test
@@ -370,6 +390,26 @@ public class ConnectorConfigTest {
         assertThat(valueKvpKeyValueSeparator.defaultValue()).isEqualTo("=");
         assertThat(valueKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
 
+        ConfParameter keyEvaluatorProtobufMessageType =
+                configSpec.getParameter(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+        assertThat(keyEvaluatorProtobufMessageType.name())
+                .isEqualTo(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+        assertThat(keyEvaluatorProtobufMessageType.required()).isFalse();
+        assertThat(keyEvaluatorProtobufMessageType.multiple()).isFalse();
+        assertThat(keyEvaluatorProtobufMessageType.mutable()).isTrue();
+        assertThat(keyEvaluatorProtobufMessageType.defaultValue()).isNull();
+        assertThat(keyEvaluatorProtobufMessageType.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter valueEvaluatorProtobufMessageType =
+                configSpec.getParameter(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+        assertThat(valueEvaluatorProtobufMessageType.name())
+                .isEqualTo(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+        assertThat(valueEvaluatorProtobufMessageType.required()).isFalse();
+        assertThat(valueEvaluatorProtobufMessageType.multiple()).isFalse();
+        assertThat(valueEvaluatorProtobufMessageType.mutable()).isTrue();
+        assertThat(valueEvaluatorProtobufMessageType.defaultValue()).isNull();
+        assertThat(valueEvaluatorProtobufMessageType.type()).isEqualTo(ConfType.TEXT);
+
         ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
         assertThat(itemInfoName.required()).isFalse();
@@ -586,12 +626,10 @@ public class ConnectorConfigTest {
         Map<String, String> standardParams = new HashMap<>();
         standardParams.put(BOOTSTRAP_SERVERS, "server:8080,server:8081");
         standardParams.put(RECORD_VALUE_EVALUATOR_TYPE, "STRING");
-        standardParams.put(
-                RECORD_VALUE_EVALUATOR_SCHEMA_PATH, valueSchemaFile.getFileName().toString());
+        // standardParams.put(RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+        // valueSchemaFile.getFileName().toString());
         standardParams.put(RECORD_KEY_EVALUATOR_TYPE, "JSON");
-        standardParams.put(
-                ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,
-                keySchemaFile.getFileName().toString());
+        // standardParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,keySchemaFile.getFileName().toString());
         standardParams.put(ConnectorConfig.ITEM_INFO_NAME, "INFO_ITEM");
         standardParams.put(ConnectorConfig.ITEM_INFO_FIELD, "INFO_FIELD");
         standardParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -896,7 +934,7 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(RECORD_VALUE_EVALUATOR_TYPE, type);
-        if (type.equals("PROTOBUF")) {
+        if (List.of("AVRO", "PROTOBUF").contains(type)) {
             updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
@@ -950,49 +988,236 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToMissingSchemaPathForAvro() {
-        Map<String, String> configs = new HashMap<>();
-        configs.put(RECORD_KEY_EVALUATOR_TYPE, "AVRO");
-
+    public void shouldSpecifyRequiredParamsForAvro() {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(RECORD_KEY_EVALUATOR_TYPE, "AVRO")));
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value either for [record.key.evaluator.schema.path] or [record.key.evaluator.schema.registry.enable]");
+                        "Specify a valid file path for [record.key.evaluator.schema.path] or set [record.key.evaluator.schema.registry.enable] to true");
 
-        Map<String, String> configs2 = new HashMap<>();
-        configs2.put(RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_KEY_EVALUATOR_TYPE,
+                                        "AVRO",
+                                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                        avroKeySchemaFile.getFileName().toString())));
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_KEY_EVALUATOR_TYPE,
+                                                "AVRO",
+                                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.url]");
+
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_KEY_EVALUATOR_TYPE,
+                                        "AVRO",
+                                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        "true",
+                                        SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081")));
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
-        assertThat(ce.getMessage())
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(RECORD_VALUE_EVALUATOR_TYPE, "AVRO")));
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value either for [record.value.evaluator.schema.path] or [record.value.evaluator.schema.registry.enable]");
+                        "Specify a valid file path for [record.value.evaluator.schema.path] or set [record.value.evaluator.schema.registry.enable] to true");
+
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_VALUE_EVALUATOR_TYPE,
+                                        "AVRO",
+                                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                        avroValueSchemaFile.getFileName().toString())));
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_VALUE_EVALUATOR_TYPE,
+                                                "AVRO",
+                                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.url]");
+
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_VALUE_EVALUATOR_TYPE,
+                                        "AVRO",
+                                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        "true",
+                                        SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081")));
     }
 
     @Test
-    public void shouldFailDueToMissingRegistrySchemaEnablement() {
-        Map<String, String> configs = new HashMap<>();
-        configs.put(RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF");
-
+    public void shouldSpecifyRequiredParamsForProtobuf() {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF")));
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value for [record.key.evaluator.schema.registry.enable]");
-
-        Map<String, String> configs2 = new HashMap<>();
-        configs2.put(RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
+                        "Specify a valid file path for [record.key.evaluator.schema.path] or set [record.key.evaluator.schema.registry.enable] to true");
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
-        assertThat(ce.getMessage())
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_KEY_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                                protoKeySchemaFile.getFileName().toString())));
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value for [record.value.evaluator.schema.registry.enable]");
+                        "Missing required parameter [record.key.evaluator.protobuf.message.type]");
+
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                "PROTOBUF",
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                protoKeySchemaFile.getFileName().toString(),
+                                RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
+                                "keyMessage"));
+        assertThat(config.getProtobufKeyMessageType()).isEqualTo("keyMessage");
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_KEY_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.url]");
+
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_KEY_EVALUATOR_TYPE,
+                                        "PROTOBUF",
+                                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        "true",
+                                        SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081")));
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid file path for [record.value.evaluator.schema.path] or set [record.value.evaluator.schema.registry.enable] to true");
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_VALUE_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                                protoValueSchemaFile.getFileName().toString())));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Missing required parameter [record.value.evaluator.protobuf.message.type]");
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                "PROTOBUF",
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                protoValueSchemaFile.getFileName().toString(),
+                                RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
+                                "valueMessage"));
+        assertThat(config.getProtobufValueMessageType()).isEqualTo("valueMessage");
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_VALUE_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.url]");
+
+        assertDoesNotThrow(
+                () ->
+                        ConnectorConfigProvider.minimalWith(
+                                adapterDir.toString(),
+                                Map.of(
+                                        RECORD_VALUE_EVALUATOR_TYPE,
+                                        "PROTOBUF",
+                                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                        "true",
+                                        SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081")));
     }
 
     @Test
@@ -1642,26 +1867,57 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetFiles() {
-        ConnectorConfig config =
-                ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
-        assertThat(config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH))
-                .isEqualTo(keySchemaFile.toString());
-        assertThat(config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH))
-                .isEqualTo(valueSchemaFile.toString());
-        assertThat(config.hasKeySchemaFile()).isTrue();
-        assertThat(config.hasValueSchemaFile()).isTrue();
-        assertThat(config.hasSchemaFile()).isTrue();
-    }
+    public void shouldManageSchemaFiles() {
+        ConnectorConfig configWithoutSchemas =
+                ConnectorConfigProvider.minimal(adapterDir.toString());
+        assertThat(configWithoutSchemas.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH)).isNull();
+        assertThat(configWithoutSchemas.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH)).isNull();
+        assertThat(configWithoutSchemas.hasKeySchemaFile()).isFalse();
+        assertThat(configWithoutSchemas.hasValueSchemaFile()).isFalse();
+        assertThat(configWithoutSchemas.hasSchemaFile()).isFalse();
 
-    @Test
-    public void shouldGetNotExistingNonRequiredFiles() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
-        assertThat(config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH)).isNull();
-        assertThat(config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH)).isNull();
-        assertThat(config.hasKeySchemaFile()).isFalse();
-        assertThat(config.hasValueSchemaFile()).isFalse();
-        assertThat(config.hasSchemaFile()).isFalse();
+        ConnectorConfig configWithKeySchema =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                avroKeySchemaFile.getFileName().toString()));
+
+        assertThat(configWithKeySchema.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH))
+                .isEqualTo(avroKeySchemaFile.toString());
+        assertThat(configWithKeySchema.hasKeySchemaFile()).isTrue();
+        assertThat(configWithKeySchema.hasValueSchemaFile()).isFalse();
+        assertThat(configWithKeySchema.hasSchemaFile()).isTrue();
+
+        ConnectorConfig configWithValueSchema =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                avroValueSchemaFile.getFileName().toString()));
+
+        assertThat(configWithValueSchema.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH))
+                .isEqualTo(avroValueSchemaFile.toString());
+        assertThat(configWithValueSchema.hasKeySchemaFile()).isFalse();
+        assertThat(configWithValueSchema.hasValueSchemaFile()).isTrue();
+        assertThat(configWithValueSchema.hasSchemaFile()).isTrue();
+
+        ConnectorConfig configWithKeyAndValueSchemas =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                        avroKeySchemaFile.getFileName().toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                        avroValueSchemaFile.getFileName().toString()));
+
+        assertThat(configWithKeyAndValueSchemas.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH))
+                .isEqualTo(avroKeySchemaFile.toString());
+        assertThat(configWithKeyAndValueSchemas.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH))
+                .isEqualTo(avroValueSchemaFile.toString());
+        assertThat(configWithKeyAndValueSchemas.hasKeySchemaFile()).isTrue();
+        assertThat(configWithKeyAndValueSchemas.hasValueSchemaFile()).isTrue();
+        assertThat(configWithKeyAndValueSchemas.hasSchemaFile()).isTrue();
     }
 
     @Test
@@ -2431,26 +2687,6 @@ public class ConnectorConfigTest {
                     .isEqualTo(
                             "Neither parameter [record.key.evaluator.schema.registry.enable] nor parameter [record.value.evaluator.schema.registry.enable] are enabled");
         }
-    }
-
-    @ParameterizedTest
-    @ValueSource(
-            strings = {
-                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE
-            })
-    public void shouldSpecifyRequiredSchemaRegistryParameters(String evaluatorKey) {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(evaluatorKey, "true");
-
-        ConfigException ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage()).isEqualTo("Missing required parameter [schema.registry.url]");
-
-        updatedConfig.put(URL, "http://localhost:8080");
-        assertDoesNotThrow(() -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
     }
 
     @Test

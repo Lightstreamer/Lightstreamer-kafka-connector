@@ -30,7 +30,8 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
+import com.lightstreamer.kafka.connect.common.RecordSender;
+import com.lightstreamer.kafka.connect.config.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -108,8 +109,7 @@ public final class StreamingDataAdapter implements RecordSender {
     // The initialization parameters received from Proxy Adapter.
     private Map<String, String> initParameters = Collections.emptyMap();
 
-    StreamingDataAdapter(
-            DataAdapterConfig config, SinkTaskContext context, DownstreamUpdater nopUpdater) {
+    StreamingDataAdapter(DataAdapterConfig config, DownstreamUpdater nopUpdater) {
         this.itemTemplates = config.itemTemplates();
         this.recordMapper =
                 RecordMapper.builder()
@@ -119,12 +119,12 @@ public final class StreamingDataAdapter implements RecordSender {
                         .build();
 
         this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
-        this.reporter = errantRecordReporter(context);
+        this.reporter = errantRecordReporter(config.context());
         this.updater = nopUpdater;
     }
 
-    StreamingDataAdapter(DataAdapterConfig config, SinkTaskContext context) {
-        this(config, context, NOP_UPDATER);
+    StreamingDataAdapter(DataAdapterConfig config) {
+        this(config, NOP_UPDATER);
     }
 
     @Override

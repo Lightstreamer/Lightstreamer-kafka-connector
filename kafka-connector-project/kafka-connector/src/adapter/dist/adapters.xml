@@ -102,7 +102,7 @@
         <param name="encryption.enabled.protocols">TLSv1.3</param>
         -->
 
-        <!--Optional. The list of enabled secure cipher suites.
+        <!-- Optional. The list of enabled secure cipher suites.
 
             Default value: all the available cipher suites in the running JVM. -->
         <!--
@@ -125,6 +125,15 @@
         <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
         -->
 
+        <!-- Optional. The type of the trust store. Can be one of the following:
+             - JKS
+             - PKCS12
+
+             Default value: JKS. -->
+        <!--
+        <param name="encryption.truststore.type">PKCS12</param>
+        -->
+
         <!-- Optional. The password of the trust store.
 
              If not set, checking the integrity of the trust store file configured will not
@@ -141,6 +150,7 @@
 
             If enabled, the following parameters configure the key store settings:
             - encryption.keystore.path
+            - encryption.keystore.type
             - encryption.keystore.password
             - encryption.keystore.key.password
 
@@ -153,6 +163,16 @@
              the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
         <!--
         <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        -->
+
+        <!-- Optional. The type of the key store.
+             Can be one of the following:
+             - JKS
+             - PKCS12
+
+             Default value: JKS. -->
+        <!--
+        <param name="encryption.keystore.type">PKCS12</param>
         -->
 
         <!-- Optional. The password of the key store.
@@ -269,21 +289,21 @@
              authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
-        <param name="authentication.iam.role.arn">true</param>
+        <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role</param>
         -->
 
         <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the session for the
              assumed IAM role.
         -->
         <!--
-        <param name="authentication.iam.role.session.name">true</param>
+        <param name="authentication.iam.role.session.name">consumer</param>
         -->
 
         <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the AWS region of the STS
              endpoint to use when assuming the IAM role.
         -->
         <!--
-        <param name="authentication.iam.sts.region">true</param>
+        <param name="authentication.iam.sts.region">us-west-1</param>
         -->
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
@@ -363,15 +383,15 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is set to "AVRO" and the Confluent Schema Registry is disabled. The path of the local schema
-             file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for
+        <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and the Confluent Schema Registry is disabled. The path of the local schema
+             (or binary descriptor) file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for
              message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Mandatory when the evaluator type is set to "AVRO" and no local schema paths are provided, or when the evaluator type is set to "PROTOBUF".
+        <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema paths are provided.
              Enable the use of the Confluent Schema Registry for validation respectively of the key and value. Can be one of the following:
              - true
              - false
@@ -380,6 +400,14 @@
         <!--
         <param name="record.key.evaluator.schema.registry.enable">true</param>
         <param name="record.value.evaluator.schema.registry.enable">true</param>
+        -->
+
+        <!-- Mandatory when the evaluator type is set to "PROTOBUF" and a binary descriptor file is provided through the "record.key/value.evaluator.schema.path"
+             parameters. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+        -->
+        <!--
+        <param name="record.key.evaluator.protobuf.message.type">aMessageTypeForKey</param>
+        <param name="record.value.evaluator.protobuf.message.type">aMessageTypeForValue</param>
         -->
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
@@ -430,6 +458,10 @@
              - one or more simple items
              - one or more item templates
              - any combination of the above
+
+             The general format is:
+
+             <param name="map.TOPIC_NAME.to">item1,item2,itemN,...</param>
 
              At least one mapping must be provided. -->
         <!-- Example 1:
@@ -589,6 +621,7 @@
         <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
         <!--
         <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="schema.registry.encryption.truststore.type">JKS</param>
         <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
         -->
 
@@ -596,6 +629,7 @@
         <!--
         <param name="schema.registry.encryption.keystore.enable">true</param>
         <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="schema.registry.encryption.keystore.type">JKS</param>
         <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
         <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
         -->
