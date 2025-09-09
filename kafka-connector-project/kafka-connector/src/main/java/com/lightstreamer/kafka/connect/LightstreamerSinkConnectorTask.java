@@ -18,51 +18,54 @@
 package com.lightstreamer.kafka.connect;
 
 import com.lightstreamer.kafka.common.utils.Version;
-import com.lightstreamer.kafka.connect.DataAdapterConfigurator.DataAdapterConfig;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClient;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClientOptions;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
+import com.lightstreamer.kafka.connect.common.ProxyCommunicator;
+import com.lightstreamer.kafka.connect.config.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
+import com.lightstreamer.kafka.connect.server.ProviderServer;
+import com.lightstreamer.kafka.connect.server.ProviderServer.ProviderServerConnection;
+import com.lightstreamer.kafka.connect.server.ProviderServerOptions;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class LightstreamerSinkConnectorTask extends SinkTask {
 
     private static Logger logger = LoggerFactory.getLogger(LightstreamerSinkConnectorTask.class);
 
-    private final Function<ProxyAdapterClientOptions, ProxyAdapterConnection> connectionFactory;
-    private final BiFunction<DataAdapterConfig, SinkTaskContext, RecordSender> recordSenderFactory;
-    private final RemoteDataProviderServer dataProviderServer;
-    private RecordSender recordSender;
-    private ProxyAdapterClient proxyAdapterClient;
+    private final Function<ProxyAdapterClientOptions, ProxyAdapterConnection>
+            clientConnectionFactory;
+    private final Function<ProviderServerOptions, ProviderServerConnection>
+            providerConnectionFactory;
+    private final Function<DataAdapterConfig, DataProviderWrapper> dataProviderFactory;
+    private ProxyCommunicator communicator;
 
     public LightstreamerSinkConnectorTask() {
         this(
                 ProxyAdapterConnection::newConnection,
-                (config, context) -> new StreamingDataAdapter(config, context),
-                RemoteDataProviderServer.newDataProviderServer());
+                ProviderServerConnection::newServerConnection,
+                config -> DataProviderWrapper.newWrapper(new StreamingDataAdapter(config)));
     }
 
     LightstreamerSinkConnectorTask(
-            Function<ProxyAdapterClientOptions, ProxyAdapterConnection>
-                    proxyAdapterConnectionFactory,
-            BiFunction<DataAdapterConfig, SinkTaskContext, RecordSender> recordSenderFactory,
-            RemoteDataProviderServer dataProviderServer) {
-        this.connectionFactory = proxyAdapterConnectionFactory;
-        this.recordSenderFactory = recordSenderFactory;
-        this.dataProviderServer = dataProviderServer;
+            Function<ProxyAdapterClientOptions, ProxyAdapterConnection> adapterConnectionFactory,
+            Function<ProviderServerOptions, ProviderServerConnection> providerConnectionFactory,
+            Function<DataAdapterConfig, DataProviderWrapper> dataProviderFactory) {
+        this.clientConnectionFactory = adapterConnectionFactory;
+        this.providerConnectionFactory = providerConnectionFactory;
+        this.dataProviderFactory = dataProviderFactory;
     }
 
     @Override
@@ -74,38 +77,55 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
     public void start(Map<String, String> props) {
         logger.info("Starting LightstreamerSinkConnectorTask");
         LightstreamerConnectorConfig cfg = new LightstreamerConnectorConfig(props);
-        DataAdapterConfig config = DataAdapterConfigurator.configure(cfg);
+        DataAdapterConfig config = DataAdapterConfigurator.configure(cfg, context);
+        if (cfg.isConnectionInversionEnabled()) {
+            logger.info("Connection inversion is enabled, using ProviderServer");
+            this.communicator =
+                    new ProviderServer(
+                            cfg.getProviderServerOptions(),
+                            Thread.currentThread(),
+                            providerConnectionFactory);
 
-        this.recordSender = recordSenderFactory.apply(config, context);
-        this.proxyAdapterClient =
-                new ProxyAdapterClient(
-                        cfg.getProxyAdapterClientOptions(),
-                        Thread.currentThread(),
-                        connectionFactory,
-                        dataProviderServer);
-        this.proxyAdapterClient.start(recordSender);
+        } else {
+            logger.info("Connection inversion is disabled, using ProxyAdapterClient");
+            logger.info(
+                    "Using Lightstreamer Proxy Adapter Client Options: {}",
+                    cfg.getProxyAdapterClientOptions());
+
+            this.communicator =
+                    new ProxyAdapterClient(
+                            cfg.getProxyAdapterClientOptions(),
+                            Thread.currentThread(),
+                            clientConnectionFactory);
+        }
+        communicator.start(toSupplier(config, dataProviderFactory));
+    }
+
+    private Supplier<DataProviderWrapper> toSupplier(
+            DataAdapterConfig config, Function<DataAdapterConfig, DataProviderWrapper> func) {
+        return () -> func.apply(config);
     }
 
     @Override
     public void put(Collection<SinkRecord> sinkRecords) {
-        this.recordSender.sendRecords(sinkRecords);
+        communicator.sendRecords(sinkRecords);
     }
 
     @Override
     public Map<TopicPartition, OffsetAndMetadata> preCommit(
             Map<TopicPartition, OffsetAndMetadata> offsets) {
-        return this.recordSender.preCommit(offsets);
+        return communicator.preCommit(offsets);
     }
 
     @Override
     public void stop() {
         logger.info("Stopping LightstreamerSinkConnectorTask");
-        proxyAdapterClient.stop();
-        proxyAdapterClient
+        communicator.stop();
+        communicator
                 .closingException()
                 .ifPresent(
                         e -> {
-                            logger.info(
+                            logger.warn(
                                     "Task closed due to the exception {}", e.getClass().getName());
                         });
     }

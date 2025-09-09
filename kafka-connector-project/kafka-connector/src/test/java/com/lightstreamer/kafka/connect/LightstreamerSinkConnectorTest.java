@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.CONNECTION_INVERSION_ENABLE;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.ITEM_TEMPLATES;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES;
@@ -25,10 +26,12 @@ import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfi
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_PASSWORD;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_USERNAME;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.MAX_PROXY_ADAPTER_CONNECTIONS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS_MAP_NON_SCALAR_VALUES_ENABLE;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE;
+import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.REQUEST_REPLY_PORT;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE;
 
@@ -74,8 +77,7 @@ public class LightstreamerSinkConnectorTest {
     @ValueSource(ints = {1, 2, 3})
     void shouldShouldStartAndStop(int maxTasks) {
         LightstreamerSinkConnector connector = createConnector();
-        Map<String, String> configs = basicConfig();
-        connector.start(configs);
+        connector.start(basicConfig());
 
         assertThat(connector.configs()).isEqualTo(basicConfig());
         List<Map<String, String>> taskConfigs = connector.taskConfigs(maxTasks);
@@ -101,6 +103,9 @@ public class LightstreamerSinkConnectorTest {
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_TIMEOUT_MS,
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_MAX_RETRIES,
                         LIGHTSTREAMER_PROXY_ADAPTER_CONNECTION_SETUP_RETRY_DELAY_MS,
+                        REQUEST_REPLY_PORT,
+                        CONNECTION_INVERSION_ENABLE,
+                        MAX_PROXY_ADAPTER_CONNECTIONS,
                         TOPIC_MAPPINGS,
                         TOPIC_MAPPINGS_REGEX_ENABLE,
                         ITEM_TEMPLATES,

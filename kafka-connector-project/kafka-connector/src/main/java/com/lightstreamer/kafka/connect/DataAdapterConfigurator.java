@@ -25,35 +25,30 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.connect.config.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.connect.mapping.selectors.ConnectSelectorsSuppliers;
 
+import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataAdapterConfigurator {
 
-    public interface DataAdapterConfig {
-
-        DataExtractor<Object, Object> fieldsExtractor();
-
-        ItemTemplates<Object, Object> itemTemplates();
-
-        RecordErrorHandlingStrategy recordErrorHandlingStrategy();
-    }
-
     private static record DataAdapterConfigImpl(
             DataExtractor<Object, Object> fieldsExtractor,
             ItemTemplates<Object, Object> itemTemplates,
-            RecordErrorHandlingStrategy recordErrorHandlingStrategy)
+            RecordErrorHandlingStrategy recordErrorHandlingStrategy,
+            SinkTaskContext context)
             implements DataAdapterConfig {}
 
     private static Logger logger = LoggerFactory.getLogger(LightstreamerSinkConnectorTask.class);
 
     private DataAdapterConfigurator() {}
 
-    static DataAdapterConfig configure(LightstreamerConnectorConfig config) throws ConfigException {
+    static DataAdapterConfig configure(LightstreamerConnectorConfig config, SinkTaskContext context)
+            throws ConfigException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         config.getItemTemplateConfigs(),
@@ -74,7 +69,10 @@ public class DataAdapterConfigurator {
                             config.isRecordMappingMapNonScalarValuesEnabled());
 
             return new DataAdapterConfigImpl(
-                    fieldsExtractor, templates, config.getErrRecordErrorHandlingStrategy());
+                    fieldsExtractor,
+                    templates,
+                    config.getErrRecordErrorHandlingStrategy(),
+                    context);
         } catch (ExtractionException e) {
             throw new ConfigException(e.getMessage());
         }

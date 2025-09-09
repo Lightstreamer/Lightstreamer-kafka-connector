@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.connect;
 
-import com.lightstreamer.adapters.remote.DataProvider;
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.DiffAlgorithm;
 import com.lightstreamer.adapters.remote.ExceptionHandler;
@@ -27,10 +26,11 @@ import com.lightstreamer.adapters.remote.ItemEvent;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClient.ProxyAdapterConnection;
-import com.lightstreamer.kafka.connect.proxy.ProxyAdapterClientOptions;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer.IOStreams;
+import com.lightstreamer.kafka.connect.client.ProxyAdapterClient.ProxyAdapterConnection;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper.IOStreams;
+import com.lightstreamer.kafka.connect.common.RecordSender;
+import com.lightstreamer.kafka.connect.server.ProviderServer.ProviderServerConnection;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -38,27 +38,29 @@ import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Provides fake implementations of several interfaces to support the unit tests. */
 public class Fakes {
 
     public static class FakeProxyConnection implements ProxyAdapterConnection {
-
-        public static FakeProxyConnection newFakeProxyConnection(ProxyAdapterClientOptions opts) {
-            return new FakeProxyConnection();
-        }
 
         public boolean openInvoked = false;
         public boolean closedInvoked = false;
@@ -71,9 +73,10 @@ public class Fakes {
         }
 
         public FakeProxyConnection(int fakeFailures) {
-            ByteArrayInputStream in = new ByteArrayInputStream("HelloWorld".getBytes());
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            io = new IOStreams(in, out);
+            this.io =
+                    new IOStreams(
+                            new ByteArrayInputStream("HelloWorld".getBytes()),
+                            new ByteArrayOutputStream());
             this.fakeFailures = fakeFailures;
         }
 
@@ -98,20 +101,82 @@ public class Fakes {
         }
     }
 
-    public static class FakeRemoteDataProviderServer implements RemoteDataProviderServer {
+    public static class FakeProviderConnection implements ProviderServerConnection {
+
+        private final BlockingQueue<IOStreams> streamsQueue = new ArrayBlockingQueue<>(2);
+        public final AtomicInteger acceptInvoked = new AtomicInteger();
+        public boolean closedInvoked = false;
+
+        public FakeProviderConnection() {
+            this(false);
+        }
+
+        public FakeProviderConnection(boolean trowException) {
+            if (trowException) {
+                throw new RuntimeException("Simulated server connection issue at startup");
+            }
+        }
+
+        public void triggerAcceptConnections(int numConnections) {
+            for (int i = 0; i < numConnections; i++) {
+                streamsQueue.offer(
+                        new IOStreams(
+                                new ByteArrayInputStream("Accept".getBytes()),
+                                new ByteArrayOutputStream()));
+            }
+        }
+
+        @Override
+        public IOStreams accept() throws IOException {
+            try {
+                IOStreams streams = streamsQueue.take();
+                BufferedReader bufferedReader =
+                        new BufferedReader(new InputStreamReader(streams.in()));
+                String line = bufferedReader.readLine();
+                switch (line) {
+                    case "Close" -> {
+                        closedInvoked = true;
+                        throw new SocketException("Simulated socket exception");
+                    }
+                    case "Accept" -> {
+                        acceptInvoked.incrementAndGet();
+                        return streams;
+                    }
+                    default ->
+                            throw new RuntimeException(
+                                    "Unexpected line read from the InputStream: " + line);
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            this.closedInvoked = true;
+            streamsQueue.offer(
+                    new IOStreams(
+                            new ByteArrayInputStream("Close".getBytes()),
+                            new ByteArrayOutputStream()));
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closedInvoked;
+        }
+    }
+
+    public static class FakeDataProviderWrapper implements DataProviderWrapper {
 
         // Credentials to be passed to the DataProviderServer.
         public String username;
         public String password;
 
-        // The DataProvider to be managed by this instance.
-        public DataProvider provider;
-
         // Flag indicating whether the start method has been invoked or not.
-        public boolean startInvoked;
+        public volatile boolean startInvoked;
 
         // Flag indicating whether the close method has been invoked or not.
-        public boolean closedInvoked = false;
+        public volatile boolean closedInvoked = false;
 
         // The InputStream/OutputStream pair returned by the open method.
         public IOStreams ioStreams;
@@ -123,11 +188,14 @@ public class Fakes {
         // an error caught by the DataProviderServer.
         private Throwable fakeException;
 
-        public FakeRemoteDataProviderServer(Throwable fakeException) {
+        public Collection<SinkRecord> records;
+        private CloseHook hook;
+
+        public FakeDataProviderWrapper(Throwable fakeException) {
             this.fakeException = fakeException;
         }
 
-        public FakeRemoteDataProviderServer() {
+        public FakeDataProviderWrapper() {
             this(null);
         }
 
@@ -140,11 +208,6 @@ public class Fakes {
         @Override
         public void setIOStreams(IOStreams streams) {
             this.ioStreams = streams;
-        }
-
-        @Override
-        public void setAdapter(DataProvider provider) {
-            this.provider = provider;
         }
 
         @Override
@@ -183,11 +246,30 @@ public class Fakes {
         @Override
         public void close() {
             this.closedInvoked = true;
+            if (hook != null) {
+                hook.closed(this);
+            }
         }
 
         @Override
         public void setExceptionHandler(ExceptionHandler handler) {
             this.handler = handler;
+        }
+
+        @Override
+        public void sendRecords(Collection<SinkRecord> records) {
+            this.records = records;
+        }
+
+        @Override
+        public Map<TopicPartition, OffsetAndMetadata> preCommit(
+                Map<TopicPartition, OffsetAndMetadata> offsets) {
+            throw new UnsupportedOperationException("Unimplemented method 'preCommit'");
+        }
+
+        @Override
+        public void setCloseHook(CloseHook hook) {
+            this.hook = hook;
         }
     }
 

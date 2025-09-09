@@ -61,7 +61,7 @@ publishing {
     }
     publications {
         gpr(MavenPublication) {
-            artifactId project.name + '-' + appendix
+            artifactId = project.name + '-' + appendix
             artifact jar
         }
     }

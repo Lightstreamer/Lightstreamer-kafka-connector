@@ -15,14 +15,18 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.connect.proxy;
+package com.lightstreamer.kafka.connect.client;
 
 import com.lightstreamer.adapters.remote.ExceptionHandler;
 import com.lightstreamer.adapters.remote.RemotingException;
-import com.lightstreamer.kafka.connect.RecordSender;
-import com.lightstreamer.kafka.connect.proxy.RemoteDataProviderServer.IOStreams;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
+import com.lightstreamer.kafka.connect.common.DataProviderWrapper.IOStreams;
+import com.lightstreamer.kafka.connect.common.ProxyCommunicator;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +34,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-public final class ProxyAdapterClient implements ExceptionHandler {
+public final class ProxyAdapterClient implements ProxyCommunicator, ExceptionHandler {
 
     public interface ProxyAdapterConnection {
 
@@ -64,7 +71,7 @@ public final class ProxyAdapterClient implements ExceptionHandler {
         public final IOStreams open() throws IOException {
             SocketAddress address = new InetSocketAddress(options.hostname, options.port);
             socket.connect(address, options.connectionTimeout);
-            return new IOStreams(socket.getInputStream(), socket.getOutputStream());
+            return new IOStreams(socket);
         }
 
         @Override
@@ -83,7 +90,6 @@ public final class ProxyAdapterClient implements ExceptionHandler {
 
     private final ProxyAdapterClientOptions options;
     private final ProxyAdapterConnection connection;
-    private RemoteDataProviderServer dataProviderServer;
 
     // The Sync task thread invoking the start method.
     private Thread currentSyncThread;
@@ -91,28 +97,25 @@ public final class ProxyAdapterClient implements ExceptionHandler {
     // Holds the exception caught while communicating with Proxy Adapter.
     private AtomicReference<Throwable> closingException = new AtomicReference<>();
 
+    private DataProviderWrapper dataProviderWrapper;
+
     public ProxyAdapterClient(ProxyAdapterClientOptions options, Thread syncTaskThread) {
-        this(
-                options,
-                syncTaskThread,
-                ProxyAdapterConnection::newConnection,
-                new RemoteDataProviderServerImpl());
+        this(options, syncTaskThread, ProxyAdapterConnection::newConnection);
     }
 
     public ProxyAdapterClient(
             ProxyAdapterClientOptions options,
             Thread syncTaskThread,
-            Function<ProxyAdapterClientOptions, ProxyAdapterConnection> connectionHandler,
-            RemoteDataProviderServer dataProviderServer) {
+            Function<ProxyAdapterClientOptions, ProxyAdapterConnection> connectionHandler) {
         this.options = options;
         this.currentSyncThread = syncTaskThread;
         this.connection = connectionHandler.apply(options);
-        this.dataProviderServer = dataProviderServer;
     }
 
-    public void start(RecordSender sender) {
+    @Override
+    public void start(Supplier<DataProviderWrapper> dataProviderFactory) {
         logger.info(
-                "Opening connection with Lightstreamer'server Proxy Adapter at {}:{}",
+                "Opening connection with Lightstreamer Proxy Adapter at {}:{}",
                 options.hostname,
                 options.port);
 
@@ -122,10 +125,11 @@ public final class ProxyAdapterClient implements ExceptionHandler {
                 IOStreams ioStreams = connection.open();
                 logger.info("Connected to Lightstreamer Proxy Adapter");
 
-                configureProviderServer(sender, ioStreams);
+                this.dataProviderWrapper = dataProviderFactory.get();
+                configureProviderServer(dataProviderWrapper, ioStreams);
 
-                logger.info("Starting communication with Lightstreamer Proxy Adapter");
-                dataProviderServer.start();
+                logger.info("Starting communication");
+                dataProviderWrapper.start();
                 logger.info("Communication started");
                 break;
             } catch (IOException io) {
@@ -152,11 +156,24 @@ public final class ProxyAdapterClient implements ExceptionHandler {
         }
     }
 
+    @Override
+    public void sendRecords(Collection<SinkRecord> records) {
+        dataProviderWrapper.sendRecords(records);
+    }
+
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> preCommit(
+            Map<TopicPartition, OffsetAndMetadata> offsets) {
+        return dataProviderWrapper.preCommit(offsets);
+    }
+
+    @Override
     public void stop() {
+        logger.info("Stopping communication with Lightstreamer Proxy Adapter");
+        dataProviderWrapper.close();
+
         logger.info("Closing connection with Lightstreamer Proxy Adapter");
         connection.close();
-        logger.info("Stopping communication with Lightstreamer Proxy Adapter");
-        dataProviderServer.close();
     }
 
     @Override
@@ -171,16 +188,16 @@ public final class ProxyAdapterClient implements ExceptionHandler {
         return onException(exception);
     }
 
+    @Override
     public Optional<Throwable> closingException() {
         return Optional.ofNullable(closingException.get());
     }
 
-    private void configureProviderServer(RecordSender sender, IOStreams ioStreams) {
-        dataProviderServer.setIOStreams(ioStreams);
-        dataProviderServer.setAdapter(sender);
-        dataProviderServer.setExceptionHandler(this);
+    private void configureProviderServer(DataProviderWrapper wrapper, IOStreams ioStreams) {
+        wrapper.setIOStreams(ioStreams);
+        wrapper.setExceptionHandler(this);
         if (options.username != null && options.password != null) {
-            dataProviderServer.setCredentials(options.username, options.password);
+            wrapper.setCredentials(options.username, options.password);
         }
     }
 
