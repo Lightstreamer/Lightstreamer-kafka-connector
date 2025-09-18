@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.10] (2025-09-18)
+
+**Improvements**
+
+- Added the [Gradle-License-Report plugin](https://github.com/jk1/Gradle-License-Report) to the [project](./kafka-connector-project/buildSrc/src/main/groovy/lightstreamer-kafka-connector.gradle#L6) to automatically generate and include third-party license files in the distribution packages (including the Sink connector). ([#68](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/68))
+
+**Bug Fixes**
+
+- Fixed [`examples/compose-templates/log4j.properties`](examples/compose-templates/log4j.properties) file to explicitly set the logging level and output for the KafkaConnectorMetadataAdapter class. ([#67](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/67))
+
+- Fixed regex pattern for semantic version matching in the [`com.lightstreamer.kafka.test_utils.VersionUtils`](kafka-connector-project/kafka-connector/src/test/java/com/lightstreamer/kafka/test_utils/VersionUtils.java) class to ensure accurate handling of all version formats in unit tests. ([#69](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/69))
+
+
 ## [1.2.9] (2025-08-25)
 
 **Improvements**
