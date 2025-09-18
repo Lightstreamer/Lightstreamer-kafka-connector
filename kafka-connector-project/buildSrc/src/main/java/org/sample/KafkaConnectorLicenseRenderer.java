@@ -232,8 +232,7 @@ public class KafkaConnectorLicenseRenderer implements ReportRenderer {
                 .getByType(LicenseReportExtension.class);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(txtFileName)))) {
-            File customLicenseUrlsFile = new File(project.getParent().getProjectDir(),
-                    "config/license-config/" + customLicenseUrlsFileName);
+            File customLicenseUrlsFile = new File(customLicenseUrlsFileName);
             new TxtRenderer(licenseReport.getAbsoluteOutputDir(), customLicenseUrlsFile, projectData).render(writer);
         }
 
