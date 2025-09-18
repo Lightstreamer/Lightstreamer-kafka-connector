@@ -46,7 +46,8 @@ dependencies {
 
 ext {
     connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
-    licensesDir = "${parent.projectDir}/licenses"
+    licenseConfigDir = "${parent.projectDir}/config/license-config"
+    outputLicensesDir = "${parent.projectDir}/licenses"
 }
 
 import com.github.jk1.license.filter.*
@@ -62,7 +63,10 @@ licenseReport {
     renderers  = [
         new TextReportRenderer(),
         new SimpleHtmlReportRenderer(),
-        new KafkaConnectorLicenseRenderer("$licensesDir/THIRD-PARTY-LIBRARIES.txt", "$licensesDir/THIRD-PARTY-LIBRARIES.csv"),
+        new KafkaConnectorLicenseRenderer(
+        "$outputLicensesDir/THIRD-PARTY-LIBRARIES.txt",
+        "$outputLicensesDir/THIRD-PARTY-LIBRARIES.csv",
+        "$licenseConfigDir/custom-license-urls.properties"),
     ]
 
     excludes = [
@@ -74,11 +78,7 @@ licenseReport {
         'org.apache.kafka:connect-json',
         'javax.ws.rs:javax.ws.rs-api'
     ]
-
-    importers = []
 }
-
-
 
 jar {
     exclude "com/lightstreamer/kafka/connect/**"
@@ -140,7 +140,7 @@ distributions {
                 exclude "connect-*"
             }
 
-            from (licensesDir) {
+            from (outputLicensesDir) {
                 include "THIRD-PARTY-LIBRARIES.txt"
             }
         }
@@ -164,7 +164,7 @@ distributions {
                 include "LICENSE"
             }
 
-            from (licensesDir) {
+            from (outputLicensesDir) {
                 into "doc"
                 include "THIRD-PARTY-LIBRARIES-connect.txt"
                 rename {"THIRD-PARTY-LIBRARIES.txt"}
