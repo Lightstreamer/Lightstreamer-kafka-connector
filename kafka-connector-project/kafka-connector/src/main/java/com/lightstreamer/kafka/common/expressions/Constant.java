@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum Constant implements ExtractionExpression {
-    KEY,
-    VALUE,
+    KEY(true),
+    VALUE(true),
     TIMESTAMP,
     PARTITION,
     OFFSET,
@@ -57,10 +57,8 @@ public enum Constant implements ExtractionExpression {
             name = name.substring(0, name.indexOf('['));
         }
         Constant constant = NAME_CACHE.get(name);
-        if (constant != null) {
-            if (!constant.allowIndex() && indexed) {
-                constant = null;
-            }
+        if (constant != null && !constant.allowIndex() && indexed) {
+            return null;
         }
         return constant;
     }
@@ -69,7 +67,7 @@ public enum Constant implements ExtractionExpression {
         return Arrays.stream(values()).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private final String tokens[] = new String[1];
+    private final String[] tokens = new String[1];
     private final boolean allowIndex;
 
     Constant(boolean allowIndex) {
