@@ -19,9 +19,6 @@ package com.lightstreamer.kafka.common.expressions;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -81,17 +78,15 @@ public class ConstantTest {
     }
 
     @ParameterizedTest
-    @EnumSource(names = {"KEY", "VALUE", "OFFSET", "PARTITION", "TIMESTAMP", "TOPIC"})
+    @EnumSource(names = {"OFFSET", "PARTITION", "TIMESTAMP", "TOPIC"})
     public void shouldNotAllowIndex(Constant constant) {
-        assertFalse(constant.allowIndex());
+        assertThat(constant.allowIndex()).isFalse();
     }
 
     @Test
     public void shouldNotCreateFromNonIndexableConstants() {
         // By default constants don't allow indexing, so these should return null
-        assertThat(Constant.from("KEY[0]")).isNull();
-        assertThat(Constant.from("VALUE[1]")).isNull();
-        assertThat(null == Constant.from("OFFSET[2]")).isTrue();
+        assertThat(Constant.from("OFFSET[2]")).isNull();
         assertThat(Constant.from("PARTITION[3]")).isNull();
         assertThat(Constant.from("TIMESTAMP[4]")).isNull();
         assertThat(Constant.from("TOPIC[5]")).isNull();
@@ -105,7 +100,7 @@ public class ConstantTest {
     }
 
     @ParameterizedTest
-    @EnumSource(names = {"HEADERS"})
+    @EnumSource(names = {"KEY", "VALUE", "HEADERS"})
     public void shouldAllowIndex(Constant constant) {
         assertThat(constant.allowIndex()).isTrue();
     }
@@ -119,6 +114,12 @@ public class ConstantTest {
 
         // Even with different indices, it should still return the same constant
         assertThat(Constant.from("HEADERS[1][200]")).isEqualTo(Constant.HEADERS);
+
+        assertThat(Constant.from("KEY[0]")).isEqualTo(Constant.KEY);
+        assertThat(Constant.from("KEY[1][100]")).isEqualTo(Constant.KEY);
+        assertThat(Constant.from("VALUE[1]")).isEqualTo(Constant.VALUE);
+        assertThat(Constant.from("VALUE[1]['attrib']")).isEqualTo(Constant.VALUE);
+        assertThat(Constant.from("VALUE['name']--aaa]")).isEqualTo(Constant.VALUE);
     }
 
     @Test
@@ -128,6 +129,6 @@ public class ConstantTest {
                         .map(Enum::toString)
                         .reduce((a, b) -> a + "|" + b)
                         .orElse("");
-        assertEquals(expected, Constant.VALUES_STR);
+        assertThat(expected).isEqualTo(Constant.VALUES_STR);
     }
 }
