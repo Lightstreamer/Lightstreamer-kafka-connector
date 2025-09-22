@@ -479,10 +479,10 @@ class RecordConsumerSupport {
         static String SNAPSHOT = "snapshot";
 
         static Map<String, String> DELETE_EVENT =
-                Map.of(Key.COMMAND.key(), Command.DELETE.toString());
+                Map.of(Key.COMMAND.toString(), Command.DELETE.toString());
 
         static Map<String, String> decorate(Map<String, String> event, Command command) {
-            event.put(Key.COMMAND.key(), command.toString());
+            event.put(Key.COMMAND.toString(), command.toString());
             return event;
         }
 
@@ -502,7 +502,7 @@ class RecordConsumerSupport {
                             .collect(Collectors.toMap(Command::toString, Function.identity()));
 
             static Optional<Command> lookUp(Map<String, String> input) {
-                String command = input.get(Key.COMMAND.key());
+                String command = input.get(Key.COMMAND.toString());
                 return Optional.ofNullable(CACHE.get(command));
             }
 
@@ -525,7 +525,8 @@ class RecordConsumerSupport {
                 return input.get(key);
             }
 
-            String key() {
+            @Override
+            public String toString() {
                 return key;
             }
         }
