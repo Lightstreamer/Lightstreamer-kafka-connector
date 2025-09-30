@@ -48,7 +48,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
@@ -71,13 +70,13 @@ public class Mocks {
     public static class MockConsumer<K, V>
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
 
-        private KafkaException commitException;
+        private RuntimeException commitException;
 
         public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
             super(offsetResetStrategy);
         }
 
-        public void setCommitException(KafkaException exception) {
+        public void setCommitException(RuntimeException exception) {
             this.commitException = exception;
         }
 
