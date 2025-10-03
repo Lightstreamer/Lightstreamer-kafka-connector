@@ -23,7 +23,6 @@ import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.ext
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
@@ -36,8 +35,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,7 +53,7 @@ public class RecordProcessorTest {
     private MockItemEventListener listener;
 
     private ConsumerRecord<String, String> record;
-    private Set<SubscribedItem> subscribedItems;
+    private SubscribedItems subscribedItems;
     private RecordProcessor<String, String> processor;
 
     @BeforeEach
@@ -88,12 +85,13 @@ public class RecordProcessorTest {
         this.record = Records.ConsumerRecord(TEST_TOPIC, 0, "a-1");
 
         // The collection of subscribable items
-        this.subscribedItems = new HashSet<>();
+        // this.subscribedItems = new HashSet<>();
+        this.subscribedItems = SubscribedItems.create();
 
         // The RecordProcessor instance
         this.processor =
                 new RecordConsumerSupport.DefaultRecordProcessor<>(
-                        mapper, SubscribedItems.of(subscribedItems), listener);
+                        mapper, subscribedItems, listener);
     }
 
     @Test
