@@ -183,22 +183,22 @@ public class SampleMessageProviders {
         }
 
         private DynamicMessage buildMessage2() {
-            return DynamicMessage.newBuilder(
-                            Person.newBuilder()
-                                    .setName("mike")
-                                    .setJob(Job.ARTIST)
-                                    .addPhoneNumbers("111111")
-                                    .addPhoneNumbers("222222")
-                                    .addFriends(Person.newBuilder().setName("alex").build())
-                                    .setMainAddress(
-                                            Address.newBuilder()
-                                                    .setCity("London")
-                                                    .setCountry(
-                                                            Country.newBuilder()
-                                                                    .setName("England")
-                                                                    .build()))
-                                    .build())
-                    .build();
+            Person prototype =
+                    Person.newBuilder()
+                            .setName("mike")
+                            .setJob(Job.ARTIST)
+                            .addPhoneNumbers("111111")
+                            .addPhoneNumbers("222222")
+                            .addFriends(Person.newBuilder().setName("alex").build())
+                            .setMainAddress(
+                                    Address.newBuilder()
+                                            .setCity("London")
+                                            .setCountry(
+                                                    Country.newBuilder()
+                                                            .setName("England")
+                                                            .build()))
+                            .build();
+            return DynamicMessage.newBuilder(prototype).build();
         }
 
         private DynamicMessage buildMessage1() {
