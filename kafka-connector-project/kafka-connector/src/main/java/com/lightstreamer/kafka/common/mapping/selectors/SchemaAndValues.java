@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public interface SchemaAndValues {
 
@@ -43,6 +44,20 @@ public interface SchemaAndValues {
     static SchemaAndValues nop() {
         return DefaultSchemaAndValues.NOP;
     }
+
+    static String format(SchemaAndValues sv) {
+        Map<String, String> values = sv.values();
+        if (values.isEmpty()) {
+            return sv.schema().name();
+        }
+
+        return sv.schema().name()
+                + "-"
+                + values.entrySet().stream()
+                        // .sorted(Map.Entry.comparingByKey())
+                        .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                        .collect(Collectors.joining(",", "[", "]"));
+    }
 }
 
 class DefaultSchemaAndValues implements SchemaAndValues {
@@ -51,10 +66,12 @@ class DefaultSchemaAndValues implements SchemaAndValues {
 
     private final Schema schema;
     private final Map<String, String> values;
+    private final String str;
 
     DefaultSchemaAndValues(Schema schema, Map<String, String> values) {
         this.schema = schema;
         this.values = Collections.unmodifiableMap(values);
+        this.str = SchemaAndValues.format(this);
     }
 
     @Override
@@ -79,6 +96,6 @@ class DefaultSchemaAndValues implements SchemaAndValues {
 
     @Override
     public String toString() {
-        return String.format("(%s-<%s>)", schema.name(), values);
+        return str;
     }
 }
