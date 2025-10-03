@@ -41,10 +41,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,9 +60,8 @@ public class CommandRecordProcessorTest {
     private AtomicBoolean snapshotEvent;
     private MockItemEventListener listener;
 
-    private Set<SubscribedItem> subscribedItems;
+    private SubscribedItems subscribedItems;
     private CommandRecordProcessor<String, String> processor;
-    private SubscribedItems sub;
 
     @BeforeEach
     public void setUp() throws ExtractionException {
@@ -100,15 +97,15 @@ public class CommandRecordProcessorTest {
                         });
 
         // The collection of subscribable items
-        this.subscribedItems = new HashSet<>();
-        this.sub = () -> subscribedItems.iterator();
+        this.subscribedItems = SubscribedItems.create();
 
         // The RecordProcessor instance
         this.processor = commandRecordProcessor();
     }
 
     private CommandRecordProcessor<String, String> commandRecordProcessor() {
-        return new RecordConsumerSupport.CommandRecordProcessor<>(mapper, sub, listener);
+        return new RecordConsumerSupport.CommandRecordProcessor<>(
+                mapper, subscribedItems, listener);
     }
 
     @Test
