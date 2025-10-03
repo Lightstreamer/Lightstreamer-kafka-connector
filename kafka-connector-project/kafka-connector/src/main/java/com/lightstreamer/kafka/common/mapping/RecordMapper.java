@@ -287,14 +287,20 @@ final class DefaultMappedRecord implements MappedRecord {
     public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        // The following seems the most performant way
-        // to populate the set of routable subscriptions.
-        for (SubscribedItem item : subscribedItems) {
-            for (SchemaAndValues e : indexedTemplates) {
-                if (e.matches(item)) {
-                    result.add(item);
-                    break;
-                }
+        // // The following seems the most performant way
+        // // to populate the set of routable subscriptions.
+        // for (SubscribedItem item : subscribedItems) {
+        //     for (SchemaAndValues e : indexedTemplates) {
+        //         if (e.matches(item)) {
+        //             result.add(item);
+        //             break;
+        //         }
+        //     }
+        // }
+        for (SchemaAndValues e : indexedTemplates) {
+            SubscribedItem item = subscribedItems.get(e.toString());
+            if (item != null) {
+                result.add(item);
             }
         }
         return result;
@@ -309,9 +315,9 @@ final class DefaultMappedRecord implements MappedRecord {
     public String toString() {
         String data =
                 Arrays.stream(indexedTemplates)
-                        .map(v -> v.values().toString())
-                        .collect(Collectors.joining(", "));
+                        .map(SchemaAndValues::toString)
+                        .collect(Collectors.joining(","));
         return String.format(
-                "MappedRecord [expandedTemplates=[%s], fieldsMap=%s]", data, fieldsMap);
+                "MappedRecord (expandedTemplates=[%s], fieldsMap=%s)", data, fieldsMap);
     }
 }
