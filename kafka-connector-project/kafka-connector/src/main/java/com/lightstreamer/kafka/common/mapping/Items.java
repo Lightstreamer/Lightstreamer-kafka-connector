@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class Items {
@@ -69,7 +70,52 @@ public class Items {
      */
     public interface SubscribedItems extends Iterable<SubscribedItem> {
         static SubscribedItems of(Collection<SubscribedItem> items) {
-            return () -> items.iterator();
+            SubscribedItems subscribedItems = create();
+            items.forEach(subscribedItems::add);
+            return subscribedItems;
+
+            // return () -> items.iterator();
+        }
+
+        static SubscribedItems create() {
+            return new SubscribedItemsImpl();
+        }
+
+        default void add(SubscribedItem item) {}
+
+        default SubscribedItem remove(String item) {
+            return null;
+        }
+
+        default SubscribedItem get(String itemName) {
+            return null;
+        }
+    }
+
+    static class SubscribedItemsImpl implements SubscribedItems {
+
+        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
+
+        SubscribedItemsImpl() {}
+
+        @Override
+        public void add(SubscribedItem item) {
+            items.put(item.toString(), item);
+        }
+
+        @Override
+        public SubscribedItem remove(String itemName) {
+            return items.remove(itemName);
+        }
+
+        @Override
+        public SubscribedItem get(String itemName) {
+            return items.get(itemName);
+        }
+
+        @Override
+        public java.util.Iterator<SubscribedItem> iterator() {
+            return items.values().iterator();
         }
     }
 
@@ -100,8 +146,7 @@ public class Items {
         DefaultItem(String prefix, Map<String, String> values) {
             this.valuesMap = values;
             this.schema = Schema.from(prefix, values.keySet());
-            this.str =
-                    String.format("(%s-<%s>), {%s}", prefix, values.toString(), schema.toString());
+            this.str = SchemaAndValues.format(this);
         }
 
         @Override
@@ -318,4 +363,10 @@ public class Items {
     }
 
     private Items() {}
+
+    public static void main(String[] args) {
+        SubscribedItem i = Items.subscribedFrom("hello", "prefix", Map.of("a", "1", "b", "2"));
+        System.out.println(i.schema());
+        System.out.println(i);
+    }
 }
