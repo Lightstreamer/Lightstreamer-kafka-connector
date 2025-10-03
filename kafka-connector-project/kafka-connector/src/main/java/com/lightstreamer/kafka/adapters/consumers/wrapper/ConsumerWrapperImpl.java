@@ -133,9 +133,13 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         } finally {
             log.atDebug().log("Start closing Kafka Consumer");
             recordConsumer.close();
-            consumer.close();
-            latch.countDown();
-            log.atDebug().log("Kafka Consumer closed");
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                log.atError().setCause(e).log("Error while closing the Kafka Consumer");
+            } finally {
+                latch.countDown();
+            }
         }
     }
 
