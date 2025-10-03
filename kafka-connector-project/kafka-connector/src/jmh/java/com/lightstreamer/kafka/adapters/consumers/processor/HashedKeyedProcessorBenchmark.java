@@ -19,8 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.Records;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -104,7 +103,7 @@ public class HashedKeyedProcessorBenchmark {
         fibos = Collections.nCopies(taskCount, fibo);
 
         RecordMapper<String, JsonNode> recordMapper =
-                newRecordMapper(BenchmarksUtils.newConfigurator(TOPICS));
+                BenchmarksUtils.newRecordMapper(BenchmarksUtils.newConfigurator(TOPICS, "JSON"));
 
         listener = new BenchmarksUtils.FakeItemEventListener(bh);
         this.recordProcessor =
@@ -112,15 +111,7 @@ public class HashedKeyedProcessorBenchmark {
         // Generate the test records.
         this.consumerRecords =
                 RecordConsumerSupport.flatRecords(
-                        Records.consumerRecords(TOPICS, partitions, fibo, keySize));
-    }
-
-    private static RecordMapper<String, JsonNode> newRecordMapper(
-            ConsumerTriggerConfig<String, JsonNode> config) {
-        return RecordMapper.<String, JsonNode>builder()
-                .withTemplateExtractors(config.itemTemplates().groupExtractors())
-                .withFieldExtractor(config.fieldsExtractor())
-                .build();
+                        JsonRecords.consumerRecords(TOPICS, partitions, fibo, keySize));
     }
 
     private SubscribedItems subscriptions(int subscriptions) {

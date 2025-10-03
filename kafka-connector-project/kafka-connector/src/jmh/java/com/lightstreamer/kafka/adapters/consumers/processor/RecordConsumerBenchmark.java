@@ -18,10 +18,12 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.Records;
+import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
+import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -42,9 +44,9 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,151 +56,204 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Thread)
-@Warmup(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 15, time = 20, timeUnit = TimeUnit.SECONDS)
-// @Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
-// @Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 public class RecordConsumerBenchmark {
-
-    static final int WARMUP_CYCLES = 100;
 
     static String[] TOPICS = {"users", "users2"};
 
     private static final Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
 
-    @Param({"1"})
-    int threads = 4;
+    @State(Scope.Thread)
+    public static class Json {
 
-    int partitions = 4;
+        @Param({"1"})
+        int partitions;
 
-    // @Param({"true", "false"})
-    boolean preferSingleThread = false;
+        @Param({"1"})
+        int threads;
 
-    // @Param({"100", "200", "500"})
-    @Param({"500"})
-    int numOfRecords = 40;
+        // @Param({"true", "false"})
+        boolean preferSingleThread = false;
 
-    // @Param({"2", "4"})
-    int numOfKeys = 500;
+        // @Param({"100", "200", "500"})
+        @Param({"1000"})
+        int numOfRecords;
 
-    // @Param({"20", "200", "2000"})
-    int subscriptions = 500;
+        @Param({"10"})
+        int numOfKeys = 500;
 
-    @Param({"ORDER_BY_PARTITION"})
-    String ordering;
+        @Param({"1"})
+        int subscriptions;
 
-    ConsumerRecords<String, JsonNode> consumerRecords;
-    FakeItemEventListener listener;
-    FakeOffsetService offsetService;
-    RecordConsumer<String, JsonNode> recordConsumer;
+        @Param({"ORDER_BY_PARTITION"})
+        String ordering;
 
-    AtomicInteger iterations = new AtomicInteger();
+        ConsumerRecords<String, JsonNode> consumerRecords;
+        FakeItemEventListener listener;
+        FakeOffsetService offsetService;
+        RecordConsumer<String, JsonNode> recordConsumer;
 
-    private SubscribedItems subscribedItems;
+        AtomicInteger iterations = new AtomicInteger();
 
-    @Setup(Level.Trial)
-    public void setUpTrial(Blackhole bh) {
-        this.listener = new FakeItemEventListener(bh);
-        this.offsetService = new FakeOffsetService();
+        private SubscribedItems subscribedItems;
+
+        @Setup(Level.Trial)
+        public void setUpTrial(Blackhole bh) {
+            this.listener = new FakeItemEventListener(bh);
+            this.offsetService = new FakeOffsetService();
+        }
+
+        @Setup(Level.Iteration)
+        public void setUp() {
+            iterations.set(0);
+            // Reuse the listener and offsetService created in setUpTrial
+            ConsumerTriggerConfig<String, JsonNode> config =
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON");
+
+            // Configure the RecordMapper.
+            RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
+
+            // Make the RecordConsumer.
+            subscribedItems = subscriptions(subscriptions);
+            this.recordConsumer =
+                    RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
+                            .subscribedItems(subscribedItems)
+                            .enforceCommandMode(false)
+                            .eventListener(listener)
+                            .offsetService(offsetService)
+                            .errorStrategy(config.errorHandlingStrategy())
+                            .logger(log)
+                            .threads(threads)
+                            .ordering(OrderStrategy.valueOf(ordering))
+                            .preferSingleThread(preferSingleThread)
+                            .build();
+
+            // Generate the test records.
+            this.consumerRecords =
+                    JsonRecords.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
+        }
+
+        @TearDown(Level.Iteration)
+        public void tearDown() {
+            System.out.println("Invoke " + iterations);
+            recordConsumer.close();
+            listener.show();
+        }
     }
 
-    @Setup(Level.Iteration)
-    public void setUp() {
-        iterations.set(0);
-        // Reuse the listener and offsetService created in setUpTrial
-        ConsumerTriggerConfig<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS);
+    @State(Scope.Thread)
+    public static class Protobuf {
 
-        // Configure the RecordMapper.
-        RecordMapper<String, JsonNode> recordMapper = newRecordMapper(config);
+        @Param({"1"})
+        int partitions;
 
-        // Make the RecordConsumer.
-        subscribedItems = subscriptions(subscriptions);
-        this.recordConsumer =
-                RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
-                        .subscribedItems(subscribedItems)
-                        .enforceCommandMode(false)
-                        .eventListener(listener)
-                        .offsetService(offsetService)
-                        .errorStrategy(config.errorHandlingStrategy())
-                        .logger(log)
-                        .threads(threads)
-                        .ordering(OrderStrategy.valueOf(ordering))
-                        .preferSingleThread(preferSingleThread)
-                        .build();
+        @Param({"1"})
+        int threads;
 
-        // Generate the test records.
-        this.consumerRecords = Records.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
+        // @Param({"true", "false"})
+        boolean preferSingleThread = false;
+
+        // @Param({"100", "200", "500"})
+        @Param({"1000"})
+        int numOfRecords;
+
+        @Param({"10"})
+        int numOfKeys = 500;
+
+        @Param({"1"})
+        int subscriptions;
+
+        @Param({"ORDER_BY_PARTITION"})
+        String ordering;
+
+        ConsumerRecords<String, DynamicMessage> consumerRecords;
+        FakeItemEventListener listener;
+        FakeOffsetService offsetService;
+        RecordConsumer<String, DynamicMessage> recordConsumer;
+
+        AtomicInteger iterations = new AtomicInteger();
+
+        private SubscribedItems subscribedItems;
+
+        @Setup(Level.Trial)
+        public void setUpTrial(Blackhole bh) {
+            this.listener = new FakeItemEventListener(bh);
+            this.offsetService = new FakeOffsetService();
+        }
+
+        @Setup(Level.Iteration)
+        public void setUp() {
+            iterations.set(0);
+            // Reuse the listener and offsetService created in setUpTrial
+            ConsumerTriggerConfig<String, DynamicMessage> config =
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF");
+
+            // Configure the RecordMapper.
+            RecordMapper<String, DynamicMessage> recordMapper =
+                    BenchmarksUtils.newRecordMapper(config);
+
+            // Make the RecordConsumer.
+            subscribedItems = subscriptions(subscriptions);
+            this.recordConsumer =
+                    RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
+                            .subscribedItems(subscribedItems)
+                            .enforceCommandMode(false)
+                            .eventListener(listener)
+                            .offsetService(offsetService)
+                            .errorStrategy(config.errorHandlingStrategy())
+                            .logger(log)
+                            .threads(threads)
+                            .ordering(OrderStrategy.valueOf(ordering))
+                            .preferSingleThread(preferSingleThread)
+                            .build();
+
+            // Generate the test records.
+            this.consumerRecords =
+                    ProtoRecords.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
+        }
+
+        @TearDown(Level.Iteration)
+        public void tearDown() {
+            System.out.println("Invoke " + iterations);
+            recordConsumer.close();
+            listener.show();
+        }
     }
 
-    private static RecordMapper<String, JsonNode> newRecordMapper(
-            ConsumerTriggerConfig<String, JsonNode> config) {
-        return RecordMapper.<String, JsonNode>builder()
-                .withTemplateExtractors(config.itemTemplates().groupExtractors())
-                .withFieldExtractor(config.fieldsExtractor())
-                .build();
-    }
-
-    @TearDown(Level.Iteration)
-    public void tearDown() {
-        System.out.println("Invoke " + iterations);
-        recordConsumer.close();
-        listener.show();
-    }
-
-    private SubscribedItems subscriptions(int subscriptions) {
+    private static SubscribedItems subscriptions(int subscriptions) {
         Map<String, SubscribedItem> items = new HashMap<>();
         for (int i = 0; i < subscriptions; i++) {
             // String key = i == 0 ? String.valueOf(i) : "-" + i;
             String key = String.valueOf(i);
-            String input = newItem(key, key, key + "-son");
+            String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
             items.put(input, Items.subscribedFrom(input, new Object()));
         }
         return SubscribedItems.of(items.values());
     }
 
-    private static String newItem(String key, String tag, String sonTag) {
-        return "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, tag, sonTag);
+    @Benchmark
+    public void consumeWithJson(Json json) {
+        json.iterations.incrementAndGet();
+        json.recordConsumer.consumeRecords(json.consumerRecords);
     }
 
     @Benchmark
-    public void consume() {
-        iterations.incrementAndGet();
-        recordConsumer.consumeRecords(consumerRecords);
+    public void consumeWithProtobuf(Protobuf proto) {
+        proto.iterations.incrementAndGet();
+        proto.recordConsumer.consumeRecords(proto.consumerRecords);
     }
 
     public static void main(String[] args) throws Exception {
-        // test();
-        jmh();
-    }
-
-    public static void test() throws RunnerException, InterruptedException {
-        RecordConsumerBenchmark benchMark = new RecordConsumerBenchmark();
-        benchMark.threads = 16;
-        benchMark.partitions = 2;
-        benchMark.ordering = "UNORDERED";
-        benchMark.numOfRecords = 500;
-        benchMark.subscriptions = 500;
-        benchMark.numOfKeys = 500;
-        benchMark.setUpTrial(
-                new Blackhole(
-                        "Today's password is swordfish. I understand instantiating Blackholes directly is dangerous."));
-        benchMark.setUp();
-        System.out.println("Start running");
-
-        // Multiplexer.ENABLE_DUMP = false;
-        // for (int i = 0; i < WARMUP_CYCLES; i++) {
-        //     benchMark.recordConsumer.consumeRecords(benchMark.consumerRecords);
-        // }
-
-        benchMark.recordConsumer.consumeRecords(benchMark.consumerRecords);
-        benchMark.tearDown();
-    }
-
-    private static void jmh() throws RunnerException {
-
         Options opt =
-                new OptionsBuilder().include(RecordConsumerBenchmark.class.getSimpleName()).build();
+                new OptionsBuilder()
+                        .warmupIterations(5)
+                        .warmupTime(TimeValue.seconds(5))
+                        .measurementTime(TimeValue.seconds(10))
+                        .measurementIterations(10)
+                        .include(RecordConsumerBenchmark.class.getSimpleName())
+                        .build();
 
         new Runner(opt).run();
     }

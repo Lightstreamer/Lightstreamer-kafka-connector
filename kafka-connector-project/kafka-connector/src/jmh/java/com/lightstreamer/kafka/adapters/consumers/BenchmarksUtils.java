@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
@@ -29,6 +30,7 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTrigge
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
+import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
@@ -222,7 +224,7 @@ public class BenchmarksUtils {
         }
     }
 
-    public static class Records {
+    public static class JsonRecords {
 
         static record Guy(String name, String surname, String tag, int age, List<Guy> children) {
             public Guy(String name, String surname, String tag, int age) {
@@ -296,6 +298,95 @@ public class BenchmarksUtils {
         }
     }
 
+    public static class ProtoRecords {
+
+        public static List<KafkaRecord<String, DynamicMessage>> kafkaRecords(
+                String[] topics, int partitions, int numOfRecords, int keySize) {
+            ConsumerRecords<String, DynamicMessage> records =
+                    consumerRecords(topics, partitions, numOfRecords, keySize);
+            List<KafkaRecord<String, DynamicMessage>> kafkaRecords =
+                    new ArrayList<>(records.count());
+            records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
+            return kafkaRecords;
+        }
+
+        public static ConsumerRecords<String, DynamicMessage> consumerRecords(
+                String[] topics, int partitions, int numOfRecords, int keys) {
+            var recordsToPartition =
+                    new HashMap<TopicPartition, List<ConsumerRecord<String, DynamicMessage>>>();
+            for (String topic : topics) {
+                for (int partition = 0; partition < partitions; partition++) {
+                    TopicPartition tp = new TopicPartition(topic, partition);
+                    recordsToPartition.put(
+                            tp, makeRecords(tp, numOfRecords / partitions, keys / partitions));
+                }
+            }
+
+            return new ConsumerRecords<>(recordsToPartition);
+        }
+
+        private static List<ConsumerRecord<String, DynamicMessage>> makeRecords(
+                TopicPartition tp, int recordsPerPartition, int keySize) {
+            ObjectMapper om = new ObjectMapper();
+
+            Function<Integer, String> keyGenerator =
+                    offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
+
+            List<ConsumerRecord<String, DynamicMessage>> records =
+                    new ArrayList<>(recordsPerPartition);
+            for (int i = 0; i < recordsPerPartition; i++) {
+                // Setup the record attribute
+                String name =
+                        new SecureRandom()
+                                .ints(20, 48, 122)
+                                .filter(Character::isLetterOrDigit)
+                                .mapToObj(Character::toString)
+                                .collect(Collectors.joining());
+                String surname =
+                        new SecureRandom()
+                                .ints(20, 48, 122)
+                                .filter(Character::isLetterOrDigit)
+                                .mapToObj(Character::toString)
+                                .collect(Collectors.joining());
+                int age = new SecureRandom().nextInt(20, 40);
+                int sonAge = new SecureRandom().nextInt(0, 4);
+
+                String key = keyGenerator.apply(i);
+
+                // Prepare the Guy object: a parent with two kids
+                DynamicMessage parent =
+                        DynamicMessage.newBuilder(
+                                        com.lightstreamer.kafka.benchmarks.Guy.newBuilder()
+                                                .setName(name)
+                                                .setSurname(surname)
+                                                .setTag(key)
+                                                .setAge(age)
+                                                .addChildren(
+                                                        com.lightstreamer.kafka.benchmarks.Guy
+                                                                .newBuilder()
+                                                                .setName(name + "-son")
+                                                                .setSurname(surname)
+                                                                .setTag(key + "-son")
+                                                                .setAge(sonAge)
+                                                                .build())
+                                                .addChildren(
+                                                        com.lightstreamer.kafka.benchmarks.Guy
+                                                                .newBuilder()
+                                                                .setName(name + "-son2")
+                                                                .setSurname(surname)
+                                                                .setTag(key + "-son2")
+                                                                .setAge(sonAge + 2)
+                                                                .build())
+                                                .build())
+                                .build();
+
+                // Build the ConsumerRecord from the JSON and add it to the collection
+                records.add(new ConsumerRecord<>(tp.topic(), tp.partition(), i, key, parent));
+            }
+            return records;
+        }
+    }
+
     private static List<KafkaRecord<String, JsonNode>> initializeRecords(int size)
             throws JsonProcessingException, JsonMappingException {
         ObjectMapper om = new ObjectMapper();
@@ -364,41 +455,40 @@ public class BenchmarksUtils {
     }
 
     @SuppressWarnings("unchecked")
-    public static ConsumerTriggerConfig<String, JsonNode> newConfigurator(String[] topic) {
+    public static <T> ConsumerTriggerConfig<String, T> newConfigurator(
+            String[] topic, String valueType) {
         File adapterdir;
         try {
             adapterdir = Files.createTempDirectory("adapter_dir").toFile();
-            return (ConsumerTriggerConfig<String, JsonNode>)
-                    new ConnectorConfigurator(basicParameters(topic, 1, "ORDER_BY_KEY"), adapterdir)
+            if ("PROTOBUF".equals(valueType)) {
+                // Copy the descriptor file to the temp directory
+                System.out.println(new File(".").getAbsolutePath());
+                var source =
+                        new File(
+                                "kafka-connector-project/kafka-connector/build/generated/sources/proto/jmh/descriptor_set.desc");
+                var target = new File(adapterdir, "descriptor_set.desc");
+                Files.copy(source.toPath(), target.toPath());
+            }
+            return (ConsumerTriggerConfig<String, T>)
+                    new ConnectorConfigurator(basicParameters(topic, valueType), adapterdir)
                             .configure();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static ConsumerTriggerConfig<String, JsonNode> newConfigurator(
-            String[] topic, int threads, String ordering) {
-        File adapterdir;
-        try {
-            adapterdir = Files.createTempDirectory("adapter_dir").toFile();
-            return (ConsumerTriggerConfig<String, JsonNode>)
-                    new ConnectorConfigurator(basicParameters(topic, threads, ordering), adapterdir)
-                            .configure();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static Map<String, String> basicParameters(String[] topics, int threads, String ordering) {
+    static Map<String, String> basicParameters(String[] topics, String valueType) {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
-        adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
-        adapterParams.put(ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(threads));
-        adapterParams.put(ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY, ordering);
+        adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, valueType);
+        if (valueType.equals("PROTOBUF")) {
+            adapterParams.put(
+                    ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
+            adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
+        }
         adapterParams.put(
                 "item-template.users",
                 "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
@@ -410,5 +500,13 @@ public class BenchmarksUtils {
         adapterParams.put("field.age", "#{VALUE.age}");
         adapterParams.put("field.tag", "#{VALUE.tag}");
         return adapterParams;
+    }
+
+    public static <T> RecordMapper<String, T> newRecordMapper(
+            ConsumerTriggerConfig<String, T> config) {
+        return RecordMapper.<String, T>builder()
+                .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                .withFieldExtractor(config.fieldsExtractor())
+                .build();
     }
 }
