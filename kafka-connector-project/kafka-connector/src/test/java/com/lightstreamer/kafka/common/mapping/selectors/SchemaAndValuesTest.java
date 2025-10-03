@@ -108,8 +108,7 @@ public class SchemaAndValuesTest {
         values.put("field2", "value2");
         SchemaAndValues schemaAndValues = SchemaAndValues.from(schema, values);
 
-        assertThat(schemaAndValues.toString())
-                .isEqualTo("(schema-<{field1=value1, field2=value2}>)");
+        assertThat(schemaAndValues.toString()).isEqualTo("schema-[field1=value1,field2=value2]");
     }
 
     @Test
@@ -118,6 +117,6 @@ public class SchemaAndValuesTest {
         Map<String, String> values = Collections.emptyMap();
         SchemaAndValues schemaAndValues = SchemaAndValues.from(schema, values);
 
-        assertThat(schemaAndValues.toString()).isEqualTo("(schema-<{}>)");
+        assertThat(schemaAndValues.toString()).isEqualTo("schema");
     }
 }
