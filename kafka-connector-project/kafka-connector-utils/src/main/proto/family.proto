@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+
+option java_multiple_files = true;
+option java_package = "com.lightstreamer.kafka.benchmarks";
+option java_outer_classname = "FamilyProto";
+
+message Guy {
+  string name = 1;
+  string surname = 2:
+  string tag = 3;
+  repeated Guy children = 4;
+}
