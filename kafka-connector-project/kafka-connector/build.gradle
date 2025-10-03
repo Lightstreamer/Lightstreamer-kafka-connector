@@ -27,12 +27,6 @@ publishing {
 
 
 sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/proto'
-        }
-    }
-
     jmh {
         java {
             srcDir 'src/jmh'
@@ -217,7 +211,7 @@ distributions {
 
 task jmh(type: JavaExec, description: 'Execute JMH benchmarks') {
     classpath = sourceSets.jmh.runtimeClasspath
-    main = 'org.openjdk.jmh.Main'
+    mainClass = 'org.openjdk.jmh.Main'
 }
 
 build.dependsOn javadoc, compileJmhJava
