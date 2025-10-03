@@ -32,7 +32,6 @@ import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,11 +45,12 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     private final Function<SubscribedItems, ConsumerWrapper<K, V>> consumerWrapper;
     private final Logger log;
     private final ExecutorService pool;
-    private final ConcurrentHashMap<String, SubscribedItem> subscribedItems;
+    // private final ConcurrentHashMap<String, SubscribedItem> subscribedItems;
     private final AtomicInteger itemsCounter;
     private final ReentrantLock consumerLock;
     private volatile ConsumerWrapper<K, V> consumer;
     private CompletableFuture<Void> consuming;
+    private SubscribedItems ss;
 
     public ConsumerTriggerImpl(
             ConsumerTriggerConfig<K, V> config,
@@ -71,9 +71,10 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         this.consumerWrapper = consumerWrapper;
         this.log = LogFactory.getLogger(config.connectionName());
         this.pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "ConsumerTrigger"));
-        this.subscribedItems = new ConcurrentHashMap<>();
+        // this.subscribedItems = new ConcurrentHashMap<>();
         this.itemsCounter = new AtomicInteger(0);
         this.consumerLock = new ReentrantLock();
+        this.ss = SubscribedItems.create();
     }
 
     public final int getItemsCounter() {
@@ -96,7 +97,8 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
             }
 
             log.atInfo().log("Subscribed to item [{}]", item);
-            subscribedItems.put(item, newItem);
+            // subscribedItems.put(item, newItem);
+            ss.add(newItem);
             if (itemsCounter.incrementAndGet() == 1) {
                 consuming = startConsuming();
             }
@@ -112,7 +114,8 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         consumerLock.lock();
         log.atTrace().log("Lock acquired...");
         try {
-            consumer = consumerWrapper.apply(SubscribedItems.of(subscribedItems.values()));
+            // consumer = consumerWrapper.apply(SubscribedItems.of(subscribedItems.values()));
+            consumer = consumerWrapper.apply(ss);
             return CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
             log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
@@ -128,7 +131,8 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
 
     @Override
     public final Item unsubscribe(String item) throws SubscriptionException {
-        Item removedItem = subscribedItems.remove(item);
+        // Item removedItem = subscribedItems.remove(item);
+        Item removedItem = ss.remove(item);
         if (removedItem == null) {
             throw new SubscriptionException(
                     "Unsubscribing from unexpected item [%s]".formatted(item));
@@ -163,6 +167,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
 
     // Only for testing purposes
     Item getSubscribedItem(String itemName) {
-        return subscribedItems.get(itemName);
+        // return subscribedItems.get(itemName);
+        return ss.get(itemName);
     }
 }
