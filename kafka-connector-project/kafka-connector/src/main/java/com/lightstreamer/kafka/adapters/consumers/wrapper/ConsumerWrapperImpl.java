@@ -93,7 +93,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
         Concurrency concurrency = config.concurrency();
         // Take care of holes in offset sequence only if parallel processing.
-        boolean manageHoles = concurrency.isParallel();
+        boolean manageHoles = false; //concurrency.isParallel();
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
@@ -263,12 +263,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     private void doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
-        log.atInfo().log("Polling records");
         try {
             ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
             log.atDebug().log("Received records");
             recordConsumer.accept(records);
-            log.atInfo().log("Consumed {} records", records.count());
+            log.atDebug().log("Consumed {} records", records.count());
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
