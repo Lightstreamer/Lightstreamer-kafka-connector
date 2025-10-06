@@ -66,12 +66,10 @@ class DefaultSchemaAndValues implements SchemaAndValues {
 
     private final Schema schema;
     private final Map<String, String> values;
-    private final String str;
 
     DefaultSchemaAndValues(Schema schema, Map<String, String> values) {
         this.schema = schema;
-        this.values = Collections.unmodifiableMap(values);
-        this.str = SchemaAndValues.format(this);
+        this.values = values;
     }
 
     @Override
@@ -96,6 +94,6 @@ class DefaultSchemaAndValues implements SchemaAndValues {
 
     @Override
     public String toString() {
-        return str;
+        return SchemaAndValues.format(this);
     }
 }
