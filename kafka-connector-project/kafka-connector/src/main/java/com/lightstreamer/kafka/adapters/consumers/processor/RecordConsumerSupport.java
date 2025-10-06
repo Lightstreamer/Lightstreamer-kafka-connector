@@ -257,10 +257,10 @@ class RecordConsumerSupport {
                 log.atDebug().log(() -> "Filtering updates");
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
-                log.atInfo().log("Routing record to {} items", routable.size());
+                log.atDebug().log("Routing record to {} items", routable.size());
                 processUpdates(updates, routable);
             } else {
-                log.atInfo().log("No routable items found");
+                log.atDebug().log("No routable items found");
             }
         }
 
