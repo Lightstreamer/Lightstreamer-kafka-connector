@@ -18,13 +18,14 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 
 import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,19 +57,13 @@ public class ItemReferenceTest {
 
     @Test
     void shouldCreateTemplates() {
-        ItemReference i1 =
-                ItemReference.template(
-                        new TemplateExpression(
-                                "template-prefix", Map.of("a", Expressions.Expression("VALUE"))));
+        ItemReference i1 = ItemReference.template(Template("template-prefix-#{a=VALUE}"));
         assertThat(i1.isTemplate()).isTrue();
         assertThat(i1.template().prefix()).isEqualTo("template-prefix");
         assertThat(i1.template().params()).containsExactly("a", Expressions.Expression("VALUE"));
         assertThrows(RuntimeException.class, () -> i1.itemName());
 
-        ItemReference i2 =
-                ItemReference.template(
-                        new TemplateExpression(
-                                "template-prefix", Map.of("a", Expressions.Expression("VALUE"))));
+        ItemReference i2 = ItemReference.template(Template("template-prefix-#{a=VALUE}"));
         assertThat(i1.equals(i2)).isTrue();
         assertThat(i1.hashCode() == i2.hashCode()).isTrue();
     }
