@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
 import static org.junit.Assert.assertThrows;
@@ -33,9 +33,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
