@@ -25,7 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
