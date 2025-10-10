@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.kvp;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
