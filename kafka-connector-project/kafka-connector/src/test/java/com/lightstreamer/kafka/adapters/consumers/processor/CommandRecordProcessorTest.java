@@ -19,8 +19,8 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandRecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items;
