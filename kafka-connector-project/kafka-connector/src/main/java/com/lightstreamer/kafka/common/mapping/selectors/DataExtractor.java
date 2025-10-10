@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import java.util.Collections;
 import java.util.Map;
@@ -31,7 +31,7 @@ public interface DataExtractor<K, V> {
      * @param record the Kafka record containing the key and value to be processed
      * @return a {@link SchemaAndValues} object representing the extracted schema and values
      */
-    SchemaAndValues extractData(KafkaRecord<K, V> record);
+    SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException;
 
     /**
      * Retrieves the schema associated with the data extractor.
