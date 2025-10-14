@@ -53,7 +53,7 @@ public class ItemTest {
 
     @ParameterizedTest
     @MethodSource("provideData")
-    public void shouldSubscribeFromExpression(
+    public void shouldSubscribeFromSubscriptionExpression(
             String prefix, Set<Data> inputParams, String expectedNormalizedString) {
         SortedSet<Data> params = new TreeSet<>(inputParams);
         SubscribedItem item =
@@ -93,7 +93,7 @@ public class ItemTest {
 
     @ParameterizedTest
     @MethodSource("provideExpressions")
-    public void shouldSubscribeStringExpression(
+    public void shouldSubscribeFromStringExpression(
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
@@ -105,6 +105,13 @@ public class ItemTest {
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
         assertThat(item.asNormalizedString()).isEqualTo(expectedNormalizedString);
+
+        SubscribedItem item2 = Items.subscribedFrom(expression);
+        assertThat(item2).isNotNull();
+        assertThat(item2.itemHandle()).isSameInstanceAs(expression);
+        assertThat(item2.schema().name()).isEqualTo(expectedPrefix);
+        assertThat(item2.schema().keys()).isEqualTo(expectedKeys);
+        assertThat(item2.asNormalizedString()).isEqualTo(expectedNormalizedString);
     }
 
     static Stream<Arguments> provideEqualValues() {
