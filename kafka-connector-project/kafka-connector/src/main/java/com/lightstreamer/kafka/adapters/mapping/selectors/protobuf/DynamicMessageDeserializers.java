@@ -33,6 +33,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
@@ -57,10 +58,18 @@ public class DynamicMessageDeserializers {
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
             try {
-                dynamicSchema =
-                        DynamicSchema.parseFrom(
-                                Files.newInputStream(getSchemaFile(isKey).toPath()));
+                File schemaFile = getSchemaFile(isKey);
+                dynamicSchema = DynamicSchema.parseFrom(Files.newInputStream(schemaFile.toPath()));
                 messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
+                if (messageDescriptor == null) {
+                    throw new IllegalArgumentException(
+                            "Message type "
+                                    + "["
+                                    + messageTypeName
+                                    + "]"
+                                    + " not found in schema "
+                                    + schemaFile.getAbsolutePath());
+                }
             } catch (IOException | DescriptorValidationException e) {
                 throw new RuntimeException(e);
             }
@@ -86,7 +95,10 @@ public class DynamicMessageDeserializers {
 
     private static Deserializer<DynamicMessage> newDeserializer(
             ConnectorConfig config, boolean isKey) {
-        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
+        if ((isKey && config.hasKeySchemaFile() && config.getProtobufKeyMessageType() != null)
+                || (!isKey
+                        && config.hasValueSchemaFile()
+                        && config.getProtobufValueMessageType() != null)) {
             DynamicMessageLocalDeserializer jsonNodeLocalDeserializer =
                     new DynamicMessageLocalDeserializer();
             jsonNodeLocalDeserializer.preConfigure(config, isKey);
