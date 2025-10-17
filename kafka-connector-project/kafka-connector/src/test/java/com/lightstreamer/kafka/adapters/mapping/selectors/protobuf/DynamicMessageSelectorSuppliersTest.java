@@ -55,8 +55,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class DynamicMessageSelectorSuppliersTest {
@@ -134,8 +134,8 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
-        Path adapterDir = Files.createTempDirectory("adapter_dir");
-        Path protoKeySchemaFile = Files.createTempFile(adapterDir, "proto-key-schema-", ".desc");
+        Path adapterDir = Paths.get("src/test/resources");
+        Path protoKeySchemaFile = adapterDir.resolve("person.proto.desc");
 
         // Configure the key evaluator type, but leave default settings for
         // RECORD_VALUE_EVALUATOR_TYPE (String)
@@ -148,22 +148,21 @@ public class DynamicMessageSelectorSuppliersTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                                 protoKeySchemaFile.getFileName().toString(),
                                 RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
-                                "keyMessage"));
+                                "InvalidMessageType"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
         assertThat(ie)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Message type [keyMessage] not found in schema "
-                                + protoKeySchemaFile.toString());
+                        "Message type [InvalidMessageType] not found in schema "
+                                + protoKeySchemaFile.toAbsolutePath().toString());
     }
 
     @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
-        Path adapterDir = Files.createTempDirectory("adapter_dir");
-        Path protoValueSchemaFile =
-                Files.createTempFile(adapterDir, "proto-value-schema-", ".desc");
+        Path adapterDir = Paths.get("src/test/resources");
+        Path protoValueSchemaFile = adapterDir.resolve("person.proto.desc");
 
         // Configure the value evaluator type, but leave default settings for
         // RECORD_KEY_EVALUATOR_TYPE (String)
@@ -184,7 +183,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 .hasMessageThat()
                 .isEqualTo(
                         "Message type [valueMessage] not found in schema "
-                                + protoValueSchemaFile.toString());
+                                + protoValueSchemaFile.toAbsolutePath().toString());
     }
 
     @Test
@@ -204,17 +203,6 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
-        // Configure the value evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        IllegalArgumentException ie =
-                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not PROTOBUF");
-    }
-
-    @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType2() {
         // Configure the value evaluator type, but leave default settings for
         // RECORD_VALUE_EVALUATOR_TYPE (String)
         ConnectorConfig config = ConnectorConfigProvider.minimal();
