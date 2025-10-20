@@ -25,9 +25,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
-import java.util.function.BiFunction;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -127,6 +127,18 @@ public class Expressions {
 
     public record TemplateExpression(String prefix, Map<String, ExtractionExpression> params) {}
 
+    public record SubscriptionExpression(String prefix, SortedSet<Data> dataSet) {
+
+        public Schema schema() {
+            return Schema.from(
+                    prefix, dataSet.stream().map(Data::name).collect(Collectors.toSet()));
+        }
+
+        public String asCanonicalItemName() {
+            return Data.buildItemName(dataSet.toArray(new Data[0]), prefix());
+        }
+    }
+
     public static class ExpressionException extends RuntimeException {
 
         private static final long serialVersionUID = 1L;
@@ -153,31 +165,37 @@ public class Expressions {
     // PRIVATE NESTED CLASSES & RECORDS
     // ================================
 
-    private abstract static sealed class Parser<R, M>
-            permits SubscriptionParser, TemplateParser, SimpleSubscriptionParser {
+    private static final class Parser<R> {
 
+        interface ParseResultBuilder<R> {
+
+            void notifyPrefix(String prefix);
+
+            boolean notifyParam(String key, String value);
+
+            R build();
+        }
+
+        private static final Pattern PARAM = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
+
+        private final Pattern globalPattern;
+        private final Supplier<ParseResultBuilder<R>> builderSupplier;
         private final String errorMsg;
 
-        Parser(String errorMsg) {
-            this.errorMsg = errorMsg;
+        private Parser(ParserBuilder<R> builder) {
+            this.globalPattern = builder.globalPattern;
+            this.builderSupplier = builder.resultBuilder;
+            this.errorMsg = builder.errorMsg;
         }
 
         R parse(String expression) {
-            return parse(expression, HashMap::new, this::build);
-        }
-
-        R parse(
-                String expression,
-                Supplier<Map<String, M>> paramsSupplier,
-                BiFunction<String, Map<String, M>, R> builder) {
-            Pattern globalPattern = globalPattern();
             Matcher globalMatcher = globalPattern.matcher(nonNullString(expression));
             if (!globalMatcher.matches()) {
                 throw new ExpressionException(errorMsg);
             }
 
-            String prefix = globalMatcher.group(1);
-            Map<String, M> bindParams = paramsSupplier.get();
+            ParseResultBuilder<R> resultBuilder = this.builderSupplier.get();
+            resultBuilder.notifyPrefix(globalMatcher.group(1));
             String queryString = globalMatcher.group(3);
             if (queryString != null) {
                 Matcher localMatcher = PARAM.matcher(queryString);
@@ -188,7 +206,7 @@ public class Expressions {
                     }
                     String key = localMatcher.group(2);
                     String value = localMatcher.group(3);
-                    if (bindParams.put(key, remapValue(value)) != null) {
+                    if (!resultBuilder.notifyParam(key, value)) {
                         throw new ExpressionException("No duplicated keys are allowed");
                     }
                     previousEnd = localMatcher.end();
@@ -198,92 +216,100 @@ public class Expressions {
                 }
             }
 
-            return builder.apply(prefix, bindParams);
+            return resultBuilder.build();
         }
 
-        abstract Pattern globalPattern();
+        private static class ParserBuilder<R> {
 
-        abstract M remapValue(String value);
+            private Pattern globalPattern;
+            private Supplier<ParseResultBuilder<R>> resultBuilder;
+            private String errorMsg;
 
-        abstract R build(String prefix, Map<String, M> params);
-    }
+            ParserBuilder<R> withResultBuilder(Supplier<ParseResultBuilder<R>> resultBuilder) {
+                this.resultBuilder = resultBuilder;
+                return this;
+            }
 
-    private static final class SubscriptionParser extends Parser<SchemaAndValues, String> {
+            ParserBuilder<R> withGlobalPattern(Pattern globalPattern) {
+                this.globalPattern = globalPattern;
+                return this;
+            }
 
-        private final Pattern subscribedGlobal =
-                Pattern.compile("([a-zA-Z0-9_-]+)(-" + INDEX_REGEX + ")?");
+            ParserBuilder<R> withErrorMsg(String errorMsg) {
+                this.errorMsg = errorMsg;
+                return this;
+            }
 
-        private SubscriptionParser() {
-            super("Invalid Item");
-        }
-
-        @Override
-        Pattern globalPattern() {
-            return subscribedGlobal;
-        }
-
-        @Override
-        String remapValue(String value) {
-            return value;
-        }
-
-        @Override
-        SchemaAndValues build(String prefix, Map<String, String> params) {
-            return SchemaAndValues.from(prefix, params);
+            Parser<R> build() {
+                return new Parser<>(this);
+            }
         }
     }
 
-    private static final class SimpleSubscriptionParser extends Parser<String, String> {
+    private static final class TemplateBuilder
+            implements Parser.ParseResultBuilder<TemplateExpression> {
 
-        private final Pattern normalizerGlobal =
-                Pattern.compile("([a-zA-Z0-9_-]+)(-" + INDEX_REGEX + ")?");
-
-        private SimpleSubscriptionParser() {
-            super("Invalid expression");
-        }
-
-        @Override
-        Pattern globalPattern() {
-            return normalizerGlobal;
-        }
-
-        @Override
-        String remapValue(String value) {
-            return value;
-        }
-
-        @Override
-        String build(String prefix, Map<String, String> params) {
-            return SchemaAndValues.formatWithArraySort(prefix, params);
-        }
-    }
-
-    private static final class TemplateParser
-            extends Parser<TemplateExpression, ExtractionExpression> {
-
-        private final Pattern templateGlobal =
-                Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$");
-
+        private final Map<String, ExtractionExpression> params = new HashMap<>();
         private final ExtractionExpressionParser extractionExpressionParser;
+        private String prefix;
 
-        private TemplateParser(ExtractionExpressionParser extractionExpressionParser) {
-            super("Invalid template expression");
+        private TemplateBuilder(ExtractionExpressionParser extractionExpressionParser) {
             this.extractionExpressionParser = extractionExpressionParser;
         }
 
         @Override
-        Pattern globalPattern() {
-            return templateGlobal;
+        public void notifyPrefix(String prefix) {
+            this.prefix = prefix;
         }
 
         @Override
-        ExtractionExpression remapValue(String value) {
-            return extractionExpressionParser.parse(value);
+        public boolean notifyParam(String key, String value) {
+            if (params.containsKey(key)) {
+                return false;
+            }
+            params.put(key, extractionExpressionParser.parse(value));
+            return true;
         }
 
         @Override
-        TemplateExpression build(String prefix, Map<String, ExtractionExpression> params) {
+        public TemplateExpression build() {
             return new TemplateExpression(prefix, params);
+        }
+    }
+
+    private abstract static sealed class AbstractSubscriptionBuilder<S>
+            implements Parser.ParseResultBuilder<S>
+            permits SubscriptionBuilder, CanonicalItemNameBuilder {
+
+        protected final TreeSet<Data> dataSet = new TreeSet<>();
+        protected String prefix;
+
+        @Override
+        public final void notifyPrefix(String prefix) {
+            this.prefix = prefix;
+        }
+
+        @Override
+        public final boolean notifyParam(String key, String value) {
+            return dataSet.add(Data.from(key, value));
+        }
+    }
+
+    private static final class SubscriptionBuilder
+            extends AbstractSubscriptionBuilder<SubscriptionExpression> {
+
+        @Override
+        public SubscriptionExpression build() {
+            return new SubscriptionExpression(prefix, dataSet);
+        }
+    }
+
+    private static final class CanonicalItemNameBuilder
+            extends AbstractSubscriptionBuilder<String> {
+
+        @Override
+        public String build() {
+            return Data.buildItemName(dataSet.toArray(new Data[0]), prefix);
         }
     }
 
@@ -334,6 +360,8 @@ public class Expressions {
 
     static class ExtractionExpressionParser {
 
+        private static final Pattern FIELD = Pattern.compile(SELECTION_REGEX);
+
         ExtractionExpression parseWrapped(String wrappedExpression) {
             Matcher matcher = FIELD.matcher(nonNullString(wrappedExpression));
             if (!matcher.matches()) {
@@ -361,9 +389,8 @@ public class Expressions {
 
     private static final String SELECTION_REGEX = "\\#\\{(.+)\\}";
     private static final String INDEX_REGEX = "\\[(.*)\\]";
-
-    private static final Pattern PARAM = Pattern.compile("(([a-zA-Z\\._]\\w*)=([^,]+)),?");
-    private static final Pattern FIELD = Pattern.compile(SELECTION_REGEX);
+    private static final Pattern SUBSCRIPTION_GLOBAL_PATTERN =
+            Pattern.compile("([a-zA-Z0-9_-]+)(-" + INDEX_REGEX + ")?");
 
     private static final Expressions EXPRESSIONS = new Expressions();
 
@@ -371,16 +398,30 @@ public class Expressions {
     // INSTANCE FIELDS
     // ================================
 
-    // Parsers
-    private final SubscriptionParser subscriptionParser = new SubscriptionParser();
-
     private final ExtractionExpressionParser extractionExpressionParser =
             new ExtractionExpressionParser();
 
-    private final TemplateParser templateParser = new TemplateParser(extractionExpressionParser);
+    private final Parser<TemplateExpression> templateParser =
+            new Parser.ParserBuilder<TemplateExpression>()
+                    .withGlobalPattern(
+                            Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$"))
+                    .withResultBuilder(() -> new TemplateBuilder(extractionExpressionParser))
+                    .withErrorMsg("Invalid template expression")
+                    .build();
 
-    private final SimpleSubscriptionParser simpleSubscriptionParser =
-            new SimpleSubscriptionParser();
+    private final Parser<SubscriptionExpression> subscriptionParser =
+            new Parser.ParserBuilder<SubscriptionExpression>()
+                    .withGlobalPattern(SUBSCRIPTION_GLOBAL_PATTERN)
+                    .withResultBuilder(SubscriptionBuilder::new)
+                    .withErrorMsg("Invalid Item")
+                    .build();
+
+    private final Parser<String> canonicalItemNameParser =
+            new Parser.ParserBuilder<String>()
+                    .withGlobalPattern(SUBSCRIPTION_GLOBAL_PATTERN)
+                    .withResultBuilder(CanonicalItemNameBuilder::new)
+                    .withErrorMsg("Invalid Item")
+                    .build();
 
     // ================================
     // CONSTRUCTORS
@@ -400,91 +441,12 @@ public class Expressions {
         return EXPRESSIONS.parseWrapped(wrappedExpression);
     }
 
-    public static SchemaAndValues Subscription(String subscriptionExpression) {
+    public static SubscriptionExpression Subscription(String subscriptionExpression) {
         return EXPRESSIONS.parseSubscription(subscriptionExpression);
     }
 
-    /**
-     * Normalizes the given subscription expression to a canonical string format.
-     *
-     * <p>This method takes a subscription expression that may contain parameters in square brackets
-     * and normalizes it by:
-     *
-     * <ul>
-     *   <li>Parsing the expression into a prefix and parameter key-value pairs
-     *   <li>Sorting the parameters alphabetically by key
-     *   <li>Formatting the result in a consistent canonical form
-     * </ul>
-     *
-     * <h3>Expression Format</h3>
-     *
-     * The input expression follows the pattern: {@code prefix-[key1=value1,key2=value2,...]}
-     *
-     * <ul>
-     *   <li><strong>prefix</strong>: A valid identifier containing alphanumeric characters,
-     *       underscores, or hyphens
-     *   <li><strong>parameters</strong>: Optional comma-separated key-value pairs enclosed in
-     *       square brackets
-     * </ul>
-     *
-     * <h3>Normalization Process</h3>
-     *
-     * <ol>
-     *   <li>Extract the prefix and parameters from the input expression
-     *   <li>Parse parameters into key-value pairs
-     *   <li>Sort parameters alphabetically by key for consistent ordering
-     *   <li>Reconstruct the expression with sorted parameters
-     * </ol>
-     *
-     * <h3>Examples</h3>
-     *
-     * <pre>{@code
-     * // Simple expression without parameters
-     * Expressions.Normalize("item1")
-     * // Returns: "item1"
-     *
-     * // Expression with parameters (already sorted)
-     * Expressions.Normalize("item1-[field1=value1,field2=value2]")
-     * // Returns: "item1-[field1=value1,field2=value2]"
-     *
-     * // Expression with unsorted parameters (gets normalized)
-     * Expressions.Normalize("item1-[zebra=last,alpha=first,beta=middle]")
-     * // Returns: "item1-[alpha=first,beta=middle,zebra=last]"
-     *
-     * // Expression with special characters in values
-     * Expressions.Normalize("topic_name-[partition=1,offset=12345]")
-     * // Returns: "topic_name-[offset=12345,partition=1]"
-     * }</pre>
-     *
-     * <h3>Use Cases</h3>
-     *
-     * <ul>
-     *   <li><strong>Subscription matching</strong>: Ensures consistent comparison of subscription
-     *       expressions
-     *   <li><strong>Caching</strong>: Provides stable keys for caching parsed expressions
-     *   <li><strong>Routing</strong>: Enables reliable routing based on normalized subscription
-     *       identifiers
-     *   <li><strong>Deduplication</strong>: Helps identify duplicate subscriptions with different
-     *       parameter orders
-     * </ul>
-     *
-     * @param expression the subscription expression string to normalize. Can be a simple identifier
-     *     or an identifier with parameters in square brackets
-     * @return the normalized expression string with parameters sorted alphabetically by key, or the
-     *     original prefix if no parameters are present
-     * @throws ExpressionException if the expression format is invalid or contains duplicate
-     *     parameter keys
-     * @see #Subscription(String) for parsing subscription expressions into structured objects
-     */
-    public static String Normalize(String expression) {
-        return Normalize(expression, TreeMap::new, SchemaAndValues::formatWithAlreadySorted);
-    }
-
-    static String Normalize(
-            String expression,
-            Supplier<Map<String, String>> defaultParamsSupplier,
-            BiFunction<String, Map<String, String>, String> formatter) {
-        return EXPRESSIONS.normalizeSubscription(expression, defaultParamsSupplier, formatter);
+    public static String CanonicalItemName(String expression) {
+        return EXPRESSIONS.canonicalItemName(expression);
     }
 
     public static ExtractionExpression Expression(String expression) {
@@ -499,15 +461,12 @@ public class Expressions {
         return templateParser.parse(templateExpression);
     }
 
-    SchemaAndValues parseSubscription(String subscriptionExpression) {
+    SubscriptionExpression parseSubscription(String subscriptionExpression) {
         return subscriptionParser.parse(subscriptionExpression);
     }
 
-    String normalizeSubscription(
-            String expression,
-            Supplier<Map<String, String>> defaultParamsSupplier,
-            BiFunction<String, Map<String, String>, String> formatter) {
-        return simpleSubscriptionParser.parse(expression, defaultParamsSupplier, formatter);
+    String canonicalItemName(String expression) {
+        return canonicalItemNameParser.parse(expression);
     }
 
     ExtractionExpression parseWrapped(String wrappedExpression) {
@@ -532,7 +491,7 @@ public class Expressions {
         return tokens;
 
         // Split on dot, keeping empty tokens if there are consecutive dots
-        //  return expression.split("\\.");
+        // return expression.split("\\.");
     }
 
     static String nonNullString(String str) {
