@@ -24,13 +24,15 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -163,8 +165,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
     }
 
-    private static class ConnectKeySelectorSupplier
-            implements SelectorSupplier<KeySelector<Object>> {
+    private static class ConnectKeySelectorSupplier implements KeySelectorSupplier<Object> {
 
         ConnectKeySelectorSupplier() {}
 
@@ -172,6 +173,11 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         public KeySelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return new ConnectKeySelector(name, expression);
+        }
+
+        @Override
+        public Deserializer<Object> deserializer() {
+            throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
         }
     }
 
@@ -196,13 +202,17 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
     }
 
-    private static class ConnectValueSelectorSupplier
-            implements SelectorSupplier<ValueSelector<Object>> {
+    private static class ConnectValueSelectorSupplier implements ValueSelectorSupplier<Object> {
 
         @Override
         public ValueSelector<Object> newSelector(String name, ExtractionExpression expression)
                 throws ExtractionException {
             return new ConnectValueSelector(name, expression);
+        }
+
+        @Override
+        public Deserializer<Object> deserializer() {
+            throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
         }
     }
 
@@ -231,12 +241,12 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             new ConnectValueSelectorSupplier();
 
     @Override
-    public SelectorSupplier<KeySelector<Object>> keySelectorSupplier() {
+    public KeySelectorSupplier<Object> keySelectorSupplier() {
         return keySelectorSupplier;
     }
 
     @Override
-    public SelectorSupplier<ValueSelector<Object>> valueSelectorSupplier() {
+    public ValueSelectorSupplier<Object> valueSelectorSupplier() {
         return valueSelectorSupplier;
     }
 }
