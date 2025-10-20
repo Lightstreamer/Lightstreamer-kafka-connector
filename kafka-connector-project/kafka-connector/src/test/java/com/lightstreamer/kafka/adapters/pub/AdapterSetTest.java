@@ -258,19 +258,21 @@ public class AdapterSetTest {
 
     static Stream<Arguments> provideGetIItems() {
         return Stream.of(
-                Arguments.of("item-[c=1,a=2,b=3] item-[b=1,c=2,a=3]", List.of("item-[a=2,b=3,c=1]", "item-[a=3,b=1,c=2]")),
+                Arguments.of(
+                        "item-[c=1,a=2,b=3] item-[b=1,c=2,a=3]",
+                        List.of("item-[a=2,b=3,c=1]", "item-[a=3,b=1,c=2]")),
                 Arguments.of("", Collections.emptyList()));
     }
 
     @ParameterizedTest
     @MethodSource("provideGetIItems")
-    void shouldGetItems(String input, List<String> expected)
+    void shouldGetItems(String input, List<String> normalizedItems)
             throws MetadataProviderException, ItemsException {
         doInit();
 
         String[] items =
                 connectorMetadataAdapter.getItems("user", "sessionId", input, "dataAdapter");
-        assertThat(items).asList().isEqualTo(expected);
+        assertThat(items).asList().isEqualTo(normalizedItems);
     }
 
     private TableInfo[] mkTable(String adapterName, Mode mode) {
