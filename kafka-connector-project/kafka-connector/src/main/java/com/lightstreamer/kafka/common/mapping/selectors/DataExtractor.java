@@ -26,12 +26,29 @@ import java.util.Map;
 public interface DataExtractor<K, V> {
 
     /**
-     * Extracts schema and values from the given Kafka record.
+     * Extracts data from a Kafka record and returns it as a map of string key-value pairs.
      *
-     * @param record the Kafka record containing the key and value to be processed
-     * @return a {@link SchemaAndValues} object representing the extracted schema and values
+     * @param record the Kafka record to extract data from, containing both key and value of types K
+     *     and V
+     * @return a map where both keys and values are strings, representing the extracted data
+     * @throws ValueException if an error occurs during the extraction process or if the record
+     *     contains data that cannot be properly converted to the expected format
      */
-    SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException;
+    Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException;
+
+    /**
+     * Extracts and returns the canonical item name from the given Kafka record.
+     *
+     * <p>This method processes the provided Kafka record to determine the appropriate canonical
+     * item identifier that will be used for mapping purposes within the Lightstreamer Kafka
+     * connector.
+     *
+     * @param record the Kafka record containing the key and value data to extract from
+     * @return the canonical item name as a String representation
+     * @throws ValueException if the extraction process fails due to invalid or incompatible data in
+     *     the record, or if the required mapping information cannot be determined
+     */
+    String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException;
 
     /**
      * Retrieves the schema associated with the data extractor.
