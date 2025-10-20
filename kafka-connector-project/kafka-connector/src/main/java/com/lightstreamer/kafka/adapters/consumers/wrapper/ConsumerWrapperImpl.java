@@ -92,8 +92,9 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
         Concurrency concurrency = config.concurrency();
+
         // Take care of holes in offset sequence only if parallel processing.
-        boolean manageHoles = false; //concurrency.isParallel();
+        boolean manageHoles = concurrency.isParallel();
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
@@ -293,3 +294,4 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atInfo().log("Shut down Kafka consumer");
     }
 }
+
