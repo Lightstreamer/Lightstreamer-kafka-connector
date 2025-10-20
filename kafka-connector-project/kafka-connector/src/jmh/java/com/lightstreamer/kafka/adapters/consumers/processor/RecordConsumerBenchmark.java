@@ -26,16 +26,17 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -50,12 +51,12 @@ import org.openjdk.jmh.runner.options.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Thread)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 2, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 4, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
@@ -81,11 +82,12 @@ public class RecordConsumerBenchmark {
         @Param({"1000"})
         int numOfRecords;
 
-        @Param({"10"})
-        int numOfKeys = 500;
+       @Param({"100"}) // "50000", "100000"})
+        int numOfSubscriptions = 5000;
 
-        @Param({"1"})
-        int subscriptions;
+        // @Param({ "50000" })
+        int numOfKeys = numOfSubscriptions;
+
 
         @Param({"ORDER_BY_PARTITION"})
         String ordering;
@@ -94,8 +96,6 @@ public class RecordConsumerBenchmark {
         FakeItemEventListener listener;
         FakeOffsetService offsetService;
         RecordConsumer<String, JsonNode> recordConsumer;
-
-        AtomicInteger iterations = new AtomicInteger();
 
         private SubscribedItems subscribedItems;
 
@@ -107,16 +107,15 @@ public class RecordConsumerBenchmark {
 
         @Setup(Level.Iteration)
         public void setUp() {
-            iterations.set(0);
             // Reuse the listener and offsetService created in setUpTrial
             ConsumerTriggerConfig<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON");
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3);
 
             // Configure the RecordMapper.
             RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
-            subscribedItems = subscriptions(subscriptions);
+            subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
             this.recordConsumer =
                     RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
@@ -137,7 +136,6 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            System.out.println("Invoke " + iterations);
             recordConsumer.close();
             listener.show();
         }
@@ -159,11 +157,11 @@ public class RecordConsumerBenchmark {
         @Param({"1000"})
         int numOfRecords;
 
-        @Param({"10"})
-        int numOfKeys = 500;
+        @Param({"100"}) // "50000", "100000"})
+        int numOfSubscriptions = 5000;
 
-        @Param({"1"})
-        int subscriptions;
+        // @Param({ "50000" })
+        int numOfKeys = numOfSubscriptions;
 
         @Param({"ORDER_BY_PARTITION"})
         String ordering;
@@ -172,8 +170,6 @@ public class RecordConsumerBenchmark {
         FakeItemEventListener listener;
         FakeOffsetService offsetService;
         RecordConsumer<String, DynamicMessage> recordConsumer;
-
-        AtomicInteger iterations = new AtomicInteger();
 
         private SubscribedItems subscribedItems;
 
@@ -185,17 +181,16 @@ public class RecordConsumerBenchmark {
 
         @Setup(Level.Iteration)
         public void setUp() {
-            iterations.set(0);
             // Reuse the listener and offsetService created in setUpTrial
             ConsumerTriggerConfig<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF");
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
 
             // Configure the RecordMapper.
             RecordMapper<String, DynamicMessage> recordMapper =
                     BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
-            subscribedItems = subscriptions(subscriptions);
+            subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
             this.recordConsumer =
                     RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
@@ -216,36 +211,22 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            System.out.println("Invoke " + iterations);
             recordConsumer.close();
             listener.show();
         }
     }
 
-    private static SubscribedItems subscriptions(int subscriptions) {
-        Map<String, SubscribedItem> items = new HashMap<>();
-        for (int i = 0; i < subscriptions; i++) {
-            // String key = i == 0 ? String.valueOf(i) : "-" + i;
-            String key = String.valueOf(i);
-            String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
-            items.put(input, Items.subscribedFrom(input, new Object()));
-        }
-        return SubscribedItems.of(items.values());
-    }
-
     @Benchmark
     public void consumeWithJson(Json json) {
-        json.iterations.incrementAndGet();
         json.recordConsumer.consumeRecords(json.consumerRecords);
     }
 
     @Benchmark
     public void consumeWithProtobuf(Protobuf proto) {
-        proto.iterations.incrementAndGet();
         proto.recordConsumer.consumeRecords(proto.consumerRecords);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main1(String[] args) throws Exception {
         Options opt =
                 new OptionsBuilder()
                         .warmupIterations(5)
