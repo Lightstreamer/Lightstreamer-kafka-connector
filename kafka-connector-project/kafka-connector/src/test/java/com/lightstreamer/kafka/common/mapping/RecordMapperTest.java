@@ -46,6 +46,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 
@@ -177,8 +179,8 @@ public class RecordMapperTest {
                         "aValue",
                         new RecordHeaders().add("header-key1", "header-value1".getBytes()));
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
-        String[] expandedFromTestsTopic = mappedRecord1.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord1.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "prefix1-[partition=150,value=aValue]",
@@ -196,8 +198,8 @@ public class RecordMapperTest {
                         "anotherValue",
                         new RecordHeaders().add("header-key1", "header-value1".getBytes()));
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromAnotherTopic = mappedRecord2.expanded();
-        assertThat(expandedFromAnotherTopic)
+        String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
+        assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("prefix3-[value=anotherValue]");
         assertThat(mappedRecord2.fieldsMap())
@@ -213,7 +215,7 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord3 =
                 Records.record("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 
@@ -254,8 +256,8 @@ public class RecordMapperTest {
         // Record published to topic "topic0": mapping
         KafkaRecord<String, String> kafkaRecord1 = Records.record("topic0", "aKey", "aValue");
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
-        String[] expandedFromTestsTopic = mappedRecord1.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord1.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "prefix1-[partition=150,value=aValue]",
@@ -267,8 +269,8 @@ public class RecordMapperTest {
         // Record published to topic "topic1": mapping
         KafkaRecord<String, String> kafkaRecord2 = Records.record("topic1", "aKey2", "aValue2");
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromTopic1 = mappedRecord2.expanded();
-        assertThat(expandedFromTopic1)
+        String[] canonicalItemNamesFromTopic1 = mappedRecord2.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTopic1)
                 .asList()
                 .containsExactly(
                         "prefix1-[partition=150,value=aValue2]",
@@ -281,8 +283,8 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord3 =
                 Records.record("anotherTopicA", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        String[] expandedFromAnotherTopicA = mappedRecord3.expanded();
-        assertThat(expandedFromAnotherTopicA)
+        String[] canonicalItemNamesFromAnotherTopicA = mappedRecord3.canonicalItemNames();
+        assertThat(canonicalItemNamesFromAnotherTopicA)
                 .asList()
                 .containsExactly("prefix3-[value=anotherValue]");
         assertThat(mappedRecord3.fieldsMap())
@@ -292,7 +294,7 @@ public class RecordMapperTest {
         KafkaRecord<String, String> kafkaRecord4 =
                 Records.record("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord4 = mapper.map(kafkaRecord4);
-        assertThat(mappedRecord4.expanded()).isEmpty();
+        assertThat(mappedRecord4.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord4.fieldsMap()).isEmpty();
     }
 
@@ -340,8 +342,8 @@ public class RecordMapperTest {
         KafkaRecord<String, JsonNode> kafkaRecord =
                 Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
-        String[] expandedFromTestsTopic = mappedRecord.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "test-[name=joe]",
@@ -354,8 +356,8 @@ public class RecordMapperTest {
         KafkaRecord<String, JsonNode> kafkaRecord2 =
                 Records.record(TEST_TOPIC_2, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromAnotherTopic = mappedRecord2.expanded();
-        assertThat(expandedFromAnotherTopic)
+        String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
+        assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[grandChildName=gloria,thirdChildName=serena]");
         assertThat(mappedRecord2.fieldsMap())
@@ -365,7 +367,7 @@ public class RecordMapperTest {
         KafkaRecord<String, JsonNode> kafkaRecord3 =
                 Records.record("undefinedTopic", "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 
@@ -404,7 +406,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldNotSkipFieldMMappingFailure() throws ExtractionException {
+    public void shouldNotSkipFieldMappingFailure() throws ExtractionException {
         boolean skipOnFailure = false;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
@@ -436,8 +438,9 @@ public class RecordMapperTest {
         assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
     }
 
-    @Test
-    public void shouldNotMapDueToTemplateFailure() throws ExtractionException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldNotMapDueToTemplateFailure(boolean skipOnFailure) throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
                         .withTemplateExtractor(
@@ -455,16 +458,24 @@ public class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        false,
+                                        // This flag is irrelevant when failure happens in template
+                                        // extractor
+                                        skipOnFailure,
                                         false))
                         .build();
         assertThat(mapper.hasExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
-        KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
-        ValueException ve = assertThrows(ValueException.class, () -> mapper.map(kafkaRecord));
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                mapper.map(
+                                        Records.record(
+                                                TEST_TOPIC_1,
+                                                "",
+                                                SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
     }
 
@@ -512,8 +523,8 @@ public class RecordMapperTest {
         KafkaRecord<String, GenericRecord> kafkaRecord =
                 Records.record(TEST_TOPIC_1, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
-        String[] expandedFromTestsTopic = mappedRecord.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "test-[name=joe]",
@@ -526,8 +537,8 @@ public class RecordMapperTest {
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
                 Records.record(TEST_TOPIC_2, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromAnotherTopic = mappedRecord2.expanded();
-        assertThat(expandedFromAnotherTopic)
+        String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
+        assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[grandChildName=gloria,thirdChildName=serena]");
         assertThat(mappedRecord2.fieldsMap())
@@ -537,7 +548,7 @@ public class RecordMapperTest {
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
                 Records.record("undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 
@@ -586,8 +597,8 @@ public class RecordMapperTest {
         KafkaRecord<String, DynamicMessage> kafkaRecord =
                 Records.record(TEST_TOPIC_1, "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
-        String[] expandedFromTestsTopic = mappedRecord.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "test-[name=joe]",
@@ -600,8 +611,8 @@ public class RecordMapperTest {
         KafkaRecord<String, DynamicMessage> kafkaRecord2 =
                 Records.record(TEST_TOPIC_2, "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromAnotherTopic = mappedRecord2.expanded();
-        assertThat(expandedFromAnotherTopic)
+        String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
+        assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[country=Italy,phoneNumber=012345]");
 
@@ -613,7 +624,7 @@ public class RecordMapperTest {
                 Records.record(
                         "undefinedTopic", "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 
@@ -662,8 +673,8 @@ public class RecordMapperTest {
         KafkaRecord<Object, Object> kafkaRecord =
                 Records.sinkFromValue(TEST_TOPIC_1, message.schema(), message);
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
-        String[] expandedFromTestsTopic = mappedRecord.expanded();
-        assertThat(expandedFromTestsTopic)
+        String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
+        assertThat(canonicalItemNamesFromTestsTopic)
                 .asList()
                 .containsExactly(
                         "test-[name=joe]",
@@ -676,8 +687,8 @@ public class RecordMapperTest {
         KafkaRecord<Object, Object> kafkaRecord2 =
                 Records.sinkFromValue(TEST_TOPIC_2, message.schema(), message);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
-        String[] expandedFromAnotherTopic = mappedRecord2.expanded();
-        assertThat(expandedFromAnotherTopic)
+        String[] itemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
+        assertThat(itemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[grandChildName=gloria,thirdChildName=serena]");
         assertThat(mappedRecord2.fieldsMap())
@@ -687,7 +698,7 @@ public class RecordMapperTest {
         KafkaRecord<Object, Object> kafkaRecord3 =
                 Records.record("undefinedTopic", message.schema(), message);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
-        assertThat(mappedRecord3.expanded()).isEmpty();
+        assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 }
