@@ -103,7 +103,7 @@ public class HashedKeyedProcessorBenchmark {
         fibos = Collections.nCopies(taskCount, fibo);
 
         RecordMapper<String, JsonNode> recordMapper =
-                BenchmarksUtils.newRecordMapper(BenchmarksUtils.newConfigurator(TOPICS, "JSON"));
+                BenchmarksUtils.newRecordMapper(BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3));
 
         listener = new BenchmarksUtils.FakeItemEventListener(bh);
         this.recordProcessor =
@@ -163,7 +163,7 @@ public class HashedKeyedProcessorBenchmark {
                 });
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main1(String[] args) throws Exception {
         // test();
         jmh();
     }
