@@ -40,6 +40,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import org.openjdk.jmh.profile.AsyncProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -48,11 +49,10 @@ import org.openjdk.jmh.runner.options.TimeValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.SECONDS)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 10, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
@@ -66,32 +66,36 @@ public class RecordMapperBenchmarks {
         @Param({"1"})
         int partitions;
 
-        // @Param({"1", "100", "1000"})
-        @Param({"1000"})
-        public int numOfRecords;
+        public int numOfRecords = 1;
 
-        @Param({"10"})
-        int numOfKeys = 10;
-
-        @Param({"1"})
+        @Param({"100"}) // "50000", "100000"})
         int numOfSubscriptions = 5000;
+
+        // @Param({ "50000" })
+        int numOfKeys = numOfSubscriptions;
+
+        @Param({"1", "2", "3"})
+        int numOfTemplateParams = 3;
 
         public RecordMapper<String, DynamicMessage> mapper;
         private List<KafkaRecord<String, DynamicMessage>> records;
 
-        private SubscribedItems subscribedItems = subscriptions(numOfSubscriptions);
+        private SubscribedItems subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
         private MappedRecord mappedRecord;
+
+        private KafkaRecord<String, DynamicMessage> record;
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             ConsumerTriggerConfig<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF");
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
 
             this.mapper = BenchmarksUtils.newRecordMapper(config);
-            this.mappedRecord = mapper.map(records.get(0));
+            this.record = records.get(0);
+            this.mappedRecord = mapper.map(record);
         }
     }
 
@@ -101,15 +105,16 @@ public class RecordMapperBenchmarks {
         @Param({"1"})
         int partitions;
 
-        // @Param({"1", "100", "1000"})
-        @Param({"1000"})
-        public int numOfRecords;
+        public int numOfRecords = 1;
 
-        @Param({"10"})
-        int numOfKeys = 10;
-
-        @Param({"1"})
+        @Param({"100"}) // "50000", "100000"})
         int numOfSubscriptions = 5000;
+
+        // @Param({ "50000" })
+        int numOfKeys = numOfSubscriptions;
+
+        @Param({"1", "2", "3"})
+        int numOfTemplateParams = 3;
 
         // @Param({"true", "false"})
         @Param({"false"})
@@ -117,65 +122,50 @@ public class RecordMapperBenchmarks {
 
         public RecordMapper<String, JsonNode> mapper;
         private List<KafkaRecord<String, JsonNode>> records;
+        private KafkaRecord<String, JsonNode> record;
 
-        private SubscribedItems subscribedItems = subscriptions(numOfSubscriptions);
+        private SubscribedItems subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
         private MappedRecord mappedRecord;
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             ConsumerTriggerConfig<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON");
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
 
             this.mapper = BenchmarksUtils.newRecordMapper(config);
-            this.mappedRecord = mapper.map(records.get(0));
+            this.record = records.get(0);
+            this.mappedRecord = mapper.map(record);
         }
-    }
-
-    private static SubscribedItems subscriptions(int subscriptions) {
-        ConcurrentHashMap<String, SubscribedItem> items = new ConcurrentHashMap<>();
-        for (int i = 0; i < subscriptions; i++) {
-            String key = i == 0 ? String.valueOf(i) : "-" + i;
-            String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
-            items.put(input, Items.subscribedFrom(input, new Object()));
-        }
-        return SubscribedItems.of(items.values());
     }
 
     @Benchmark
     public void measureMapWithJson(Json json, Blackhole bh) throws ExtractionException {
-        for (int i = 0; i < json.numOfRecords; i++) {
-            MappedRecord map = json.mapper.map(json.records.get(i));
-            bh.consume(map);
-        }
+        MappedRecord map = json.mapper.map(json.record);
+        bh.consume(map);
     }
 
     @Benchmark
     public void measureMapWithProtobuf(Protobuf proto, Blackhole bh) throws ExtractionException {
-        for (int i = 0; i < proto.numOfRecords; i++) {
-            MappedRecord map = proto.mapper.map(proto.records.get(i));
-            bh.consume(map);
-        }
+        MappedRecord map = proto.mapper.map(proto.record);
+        bh.consume(map);
     }
 
-    // @Benchmark
-    // public void measureMapOriginal(Blackhole bh) throws ExtractionException {
-    //     for (int i = 0; i < numOfRecords; i++) {
-    //         MappedRecord map = mapper.mapOriginal(records.get(i));
-    //         bh.consume(map);
-    //         // System.out.println(map);
-    //     }
-    // }
+    @Benchmark
+    public void measureMapAndFieldsMapWithJson(Json plan, Blackhole bh) throws ExtractionException {
+        MappedRecord map = plan.mapper.map(plan.records.get(0));
+        Map<String, String> filtered = map.fieldsMap();
+        bh.consume(filtered);
+    }
 
-    // @Benchmark
-    public void measureMapAndFilterWithJson(Json plan, Blackhole bh) throws ExtractionException {
-        for (int i = 0; i < plan.numOfRecords; i++) {
-            MappedRecord map = plan.mapper.map(plan.records.get(i));
-            Map<String, String> filtered = map.fieldsMap();
-            bh.consume(filtered);
-        }
+    @Benchmark
+    public void measureMapAndFieldsMapWithProtobuf(Protobuf plan, Blackhole bh)
+            throws ExtractionException {
+        MappedRecord map = plan.mapper.map(plan.records.get(0));
+        Map<String, String> filtered = map.fieldsMap();
+        bh.consume(filtered);
     }
 
     @Benchmark
@@ -191,12 +181,21 @@ public class RecordMapperBenchmarks {
     }
 
     public static void main(String[] args) throws Exception {
+        String profilerOptions =
+                String.join(
+                        ";",
+                        "libPath=/home/gianluca/ls-projects/lightstreamer-kafka-connector-main/async-profiler-4.1-linux-x64/lib/libasyncProfiler.so",
+                        "output=flamegraph",
+                        "simple=true",
+                        "event=cpu",
+                        "dir=./profile-results-fixes");
         Options opt =
                 new OptionsBuilder()
                         .warmupIterations(5)
                         .warmupTime(TimeValue.seconds(5))
                         .measurementTime(TimeValue.seconds(10))
                         .measurementIterations(10)
+                        .addProfiler(AsyncProfiler.class, profilerOptions)
                         .include(RecordMapperBenchmarks.class.getSimpleName())
                         .build();
 
