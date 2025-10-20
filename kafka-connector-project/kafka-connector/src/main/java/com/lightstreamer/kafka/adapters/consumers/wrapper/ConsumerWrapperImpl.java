@@ -294,4 +294,3 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atInfo().log("Shut down Kafka consumer");
     }
 }
-
