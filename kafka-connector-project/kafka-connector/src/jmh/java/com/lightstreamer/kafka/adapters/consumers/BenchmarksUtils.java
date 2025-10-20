@@ -30,6 +30,8 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTrigge
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -327,8 +329,6 @@ public class BenchmarksUtils {
 
         private static List<ConsumerRecord<String, DynamicMessage>> makeRecords(
                 TopicPartition tp, int recordsPerPartition, int keySize) {
-            ObjectMapper om = new ObjectMapper();
-
             Function<Integer, String> keyGenerator =
                     offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
 
@@ -456,28 +456,33 @@ public class BenchmarksUtils {
 
     @SuppressWarnings("unchecked")
     public static <T> ConsumerTriggerConfig<String, T> newConfigurator(
-            String[] topic, String valueType) {
+            String[] topic, String valueType, int templateParams) {
         File adapterdir;
         try {
             adapterdir = Files.createTempDirectory("adapter_dir").toFile();
             if ("PROTOBUF".equals(valueType)) {
                 // Copy the descriptor file to the temp directory
-                System.out.println(new File(".").getAbsolutePath());
-                var source =
-                        new File(
-                                "kafka-connector-project/kafka-connector/build/generated/sources/proto/jmh/descriptor_set.desc");
+                var source = new File("./build/generated/sources/proto/jmh/descriptor_set.desc");
                 var target = new File(adapterdir, "descriptor_set.desc");
                 Files.copy(source.toPath(), target.toPath());
             }
             return (ConsumerTriggerConfig<String, T>)
-                    new ConnectorConfigurator(basicParameters(topic, valueType), adapterdir)
+                    new ConnectorConfigurator(
+                                    basicParameters(topic, valueType, templateParams), adapterdir)
                             .configure();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static Map<String, String> basicParameters(String[] topics, String valueType) {
+    static Map<String, String> basicParameters(
+            String[] topics, String valueType, int templateParams) {
+        List<String> templates =
+                List.of(
+                        "users-#{key=KEY}",
+                        "users-#{key=KEY,tag=VALUE.tag}",
+                        "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
+        System.out.println("Using template: " + templates.get(templateParams - 1));
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -489,9 +494,7 @@ public class BenchmarksUtils {
                     ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
             adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
         }
-        adapterParams.put(
-                "item-template.users",
-                "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
+        adapterParams.put("item-template.users", templates.get(templateParams - 1));
         for (String t : topics) {
             adapterParams.put("map." + t + ".to", "item-template.users");
         }
@@ -508,5 +511,15 @@ public class BenchmarksUtils {
                 .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
+    }
+
+    public static SubscribedItems subscriptions(int subscriptions) {
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        for (int i = 0; i < subscriptions; i++) {
+            String key = String.valueOf(i);
+            String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
+            subscribedItems.add(Items.subscribedFrom(input, new Object()));
+        }
+        return subscribedItems;
     }
 }
