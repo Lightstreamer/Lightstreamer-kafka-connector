@@ -207,8 +207,7 @@ public class ConsumerWrapperImplTest {
 
         // Check the OffsetService
         OffsetService offsetService = consumerWrapper.getOffsetService();
-        assertThat(offsetService.canManageHoles());
-
+        assertThat(offsetService.canManageHoles()).isEqualTo(expectedParallelism);
         assertThat(consumerWrapper.getOffsetService().offsetStore()).isPresent();
     }
 
