@@ -63,7 +63,7 @@ public class ItemTest {
         assertThat(schema.name()).isEqualTo(prefix);
         assertThat(schema.keys())
                 .isEqualTo(inputParams.stream().map(Data::name).collect(Collectors.toSet()));
-        assertThat(item.asNormalizedString()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
     }
 
     static Stream<Arguments> provideExpressions() {
@@ -104,14 +104,14 @@ public class ItemTest {
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item.asNormalizedString()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
 
         SubscribedItem item2 = Items.subscribedFrom(expression);
         assertThat(item2).isNotNull();
         assertThat(item2.itemHandle()).isSameInstanceAs(expression);
         assertThat(item2.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item2.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item2.asNormalizedString()).isEqualTo(expectedNormalizedString);
+        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
     }
 
     static Stream<Arguments> provideEqualValues() {
