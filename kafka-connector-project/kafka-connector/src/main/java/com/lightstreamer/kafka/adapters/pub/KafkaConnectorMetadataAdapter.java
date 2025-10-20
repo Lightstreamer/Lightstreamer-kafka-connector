@@ -19,12 +19,14 @@ package com.lightstreamer.kafka.adapters.pub;
 
 import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
+import com.lightstreamer.interfaces.metadata.ItemsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
@@ -204,6 +206,60 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         }
 
         onUnsubscription(sessionID, tables);
+    }
+
+    /**
+     * @hidden
+     */
+    @Override
+    public final String[] getItems(
+            String user, String sessionID, String itemList, String dataAdapter)
+            throws ItemsException {
+        String[] items = remapItems(user, sessionID, itemList, dataAdapter);
+        String[] canonicalItems = new String[items.length];
+        for (int i = 0; i < items.length; i++) {
+            canonicalItems[i] = Expressions.CanonicalItemName(items[i]);
+        }
+        return canonicalItems;
+    }
+
+    /**
+     * Remaps a list of items for a specific user session and data adapter.
+     *
+     * <p>This method processes a whitespace-separated string of items and converts it into an array
+     * of individual item names. If the input is null or empty after trimming, an empty array is
+     * returned.
+     *
+     * <p><strong>Override this method</strong> to provide custom item resolution logic
+     *
+     * @param user a User name
+     * @param sessionID a Session ID
+     * @param itemList an Item List specification (whitespace-separated item names)
+     * @param dataAdapter the name of the Data Adapter to which the Item List is targeted
+     * @return an array of strings containing the individual item names, or an empty array if the
+     *     input is null or empty
+     * @throws ItemsException if there are issues with the items during the remapping process
+     */
+    public String[] remapItems(String user, String sessionID, String itemList, String dataAdapter)
+            throws ItemsException {
+        if (itemList == null || itemList.trim().isEmpty()) {
+            return new String[0];
+        }
+
+        return itemList.trim().split("\\s+");
+    }
+
+    @Override
+    @Deprecated
+    public final String[] getItems(String user, String sessionID, String itemList)
+            throws ItemsException {
+        return null;
+    }
+
+    @Override
+    @Deprecated
+    public final String[] getItems(String user, String itemList) throws ItemsException {
+        return null;
     }
 
     private void notifyDataAdapter(String connectionName, boolean enabled) {
