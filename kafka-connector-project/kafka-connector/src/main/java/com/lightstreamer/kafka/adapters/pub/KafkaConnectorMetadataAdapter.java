@@ -17,11 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.pub;
 
-import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.ItemsException;
+import com.lightstreamer.interfaces.metadata.MetadataProviderAdapter;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.NotificationException;
+import com.lightstreamer.interfaces.metadata.SchemaException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
@@ -47,7 +48,7 @@ import javax.annotation.Nullable;
  *
  * <p>For the sake of simplicity, this documentation shows only the hook methods.
  */
-public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
+public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
@@ -55,7 +56,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
 
-    private Logger log;
+    private Logger logger;
 
     private GlobalConfig globalConfig;
 
@@ -71,6 +72,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         configureLogging(configDir);
         METADATA_ADAPTER = this;
         postInit(params, configDir);
+        logger.atInfo().log("Metadata Adapter \"{}\" initialized", params.get("adapters_conf.id"));
     }
 
     /**
@@ -104,7 +106,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     private void configureLogging(File configDir) throws ConfigException {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
-        this.log = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
+        this.logger = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
     }
 
     /**
@@ -123,8 +125,10 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     }
 
     private void forceUnsubscriptionAll(String dataAdapterName) {
-        log.atDebug().log(
-                "Forcing unsubscription from all active items of data adapter {}", dataAdapterName);
+        logger.atWarn()
+                .log(
+                        "Forcing unsubscription from all active items of data adapter {}",
+                        dataAdapterName);
         tablesBySession.values().stream()
                 .flatMap(m -> m.values().stream())
                 .filter(t -> t.getDataAdapter().equals(dataAdapterName))
@@ -133,11 +137,11 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private void forceUnsubscription(TableInfo tableInfo) {
         String items = Arrays.toString(tableInfo.getSubscribedItems());
-        log.atDebug().log("Forcing unsubscription from items {}", items);
+        logger.atDebug().log("Forcing unsubscription from items {}", items);
         tableInfo
                 .forceUnsubscription()
                 .toCompletableFuture()
-                .thenRun(() -> log.atDebug().log("Forced unsubscription from item {}", items));
+                .thenRun(() -> logger.atDebug().log("Forced unsubscription from item {}", items));
     }
 
     /**
@@ -180,7 +184,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             Map<String, TableInfo> tables =
                     tablesBySession.computeIfAbsent(sessionID, id -> new ConcurrentHashMap<>());
             tables.put(item, table);
-            log.atDebug().log("Added subscription [{}] to session [{}]", item, sessionID);
+            logger.atDebug().log("Added subscription [{}] to session [{}]", item, sessionID);
         }
     }
 
@@ -201,7 +205,8 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
             for (String item : items) {
                 tablesByItem.remove(item);
-                log.atDebug().log("Removed subscription [{}] from session [{}]", item, sessionID);
+                logger.atDebug().log(
+                        "Removed subscription [{}] from session [{}]", item, sessionID);
             }
         }
 
@@ -221,6 +226,27 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
             canonicalItems[i] = Expressions.CanonicalItemName(items[i]);
         }
         return canonicalItems;
+    }
+
+    /**
+     * Resolves a Field List specification supplied in a Request. The names of the Fields in the
+     * List are returned.
+     *
+     * <p>Field List specifications are expected to be formed by simply concatenating the names of
+     * the contained Fields, in a space separated way.
+     *
+     * @param user a User name. Not used.
+     * @param sessionID a Session ID. Not used.
+     * @param itemList the specification of the Item List whose Items the Field List is to be
+     *     applied to
+     * @param fieldList a Field List specification
+     * @return an array of strings with the names of the Fields in the List.
+     */
+    @Override
+    public String[] getSchema(
+            String user, String sessionID, String group, String dataAdapter, String schema)
+            throws ItemsException, SchemaException {
+        return schema.trim().split("\\s+");
     }
 
     /**
@@ -247,19 +273,6 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
         }
 
         return itemList.trim().split("\\s+");
-    }
-
-    @Override
-    @Deprecated
-    public final String[] getItems(String user, String sessionID, String itemList)
-            throws ItemsException {
-        return null;
-    }
-
-    @Override
-    @Deprecated
-    public final String[] getItems(String user, String itemList) throws ItemsException {
-        return null;
     }
 
     private void notifyDataAdapter(String connectionName, boolean enabled) {
