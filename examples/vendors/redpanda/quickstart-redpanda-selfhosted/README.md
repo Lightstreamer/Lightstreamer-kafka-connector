@@ -2,7 +2,7 @@
 
 This folder contains a variant of the [_QuickStart_](../../../../README.md#quick-start-set-up-in-5-minutes) app configured to use _Redpanda_ as the target broker.
 
-The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with [_Redpanda Self-Managed QuickStart](https://docs.redpanda.com/current/get-started/quick-start/).
+The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with [_Redpanda Self-Managed QuickStart_](https://docs.redpanda.com/current/get-started/quick-start/).
 In particular, the previous `broker` service has been replaced with the following definition:
 
 ```yaml
