@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
@@ -82,12 +81,11 @@ public class RecordConsumerBenchmark {
         @Param({"1000"})
         int numOfRecords;
 
-       @Param({"100"}) // "50000", "100000"})
+        @Param({"100"}) // "50000", "100000"})
         int numOfSubscriptions = 5000;
 
         // @Param({ "50000" })
         int numOfKeys = numOfSubscriptions;
-
 
         @Param({"ORDER_BY_PARTITION"})
         String ordering;
@@ -151,7 +149,7 @@ public class RecordConsumerBenchmark {
         int threads;
 
         // @Param({"true", "false"})
-        boolean preferSingleThread = false;
+        boolean preferSingleThread = true;
 
         // @Param({"100", "200", "500"})
         @Param({"1000"})
