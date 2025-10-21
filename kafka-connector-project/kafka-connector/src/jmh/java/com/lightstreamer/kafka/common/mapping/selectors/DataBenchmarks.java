@@ -99,7 +99,7 @@ public class DataBenchmarks {
     }
 
     @Benchmark
-    public void buildItemName(Blackhole bh) {
+    public void buildItemNameArray(Blackhole bh) {
         String result = Data.buildItemName(sortedDataArray, schemaName);
         bh.consume(result);
     }
