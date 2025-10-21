@@ -82,7 +82,7 @@ public class DataExtractorBenchmarks {
     @State(Scope.Thread)
     public static class Json {
 
-        // @Param({"1", "2", "3"})
+        @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
         DataExtractor<String, JsonNode> templateExtractor;
