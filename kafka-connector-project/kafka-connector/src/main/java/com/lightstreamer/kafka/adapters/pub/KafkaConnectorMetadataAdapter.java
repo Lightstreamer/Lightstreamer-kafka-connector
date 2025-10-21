@@ -235,12 +235,17 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      * <p>Field List specifications are expected to be formed by simply concatenating the names of
      * the contained Fields, in a space separated way.
      *
-     * @param user a User name. Not used.
-     * @param sessionID a Session ID. Not used.
-     * @param itemList the specification of the Item List whose Items the Field List is to be
-     *     applied to
-     * @param fieldList a Field List specification
-     * @return an array of strings with the names of the Fields in the List.
+     * @param user a User name
+     * @param sessionID a Session ID
+     * @param group the name of the Item Group (or specification of the Item List) whose Items the
+     *     Schema is to be applied to
+     * @param dataAdapter the name of the Data Adapter to which the subscription is targeted
+     * @param schema a Field Schema name (or Field List specification)
+     * @return an array with the names of the Fields in the Schema
+     * @throws ItemsException if the supplied Item Group name (or Item List specification) is not
+     *     recognized
+     * @throws SchemaException if the supplied Field Schema name (or Field List specification) is
+     *     not recognized
      */
     @Override
     public String[] getSchema(
