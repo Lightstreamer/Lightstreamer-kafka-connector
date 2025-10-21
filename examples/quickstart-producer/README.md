@@ -1,4 +1,4 @@
-# Producer for the Quick Start App
+# Producer for the QuickStart App
 
 This folder contains the Gradle project of the Kafka native producer used for the _Quick Start_ App. See the [Quick Start](../../README.md#quick-start-set-up-in-5-minutes) section for more details.
 
