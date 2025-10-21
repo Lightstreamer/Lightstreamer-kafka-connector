@@ -32,6 +32,7 @@
 
 - **Code Structure**: Removed commented-out code and unnecessary blank lines for cleaner codebase. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
+
 ## [1.2.10] (2025-09-18)
 
 **Improvements**
