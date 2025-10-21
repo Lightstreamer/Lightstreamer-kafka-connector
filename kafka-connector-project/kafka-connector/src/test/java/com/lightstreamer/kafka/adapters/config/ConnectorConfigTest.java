@@ -101,8 +101,8 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -734,7 +734,7 @@ public class ConnectorConfigTest {
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [#{}] while evaluating [field1]: <Invalid expression>");
+                        "Got the following error while evaluating the field [field1] containing the expression [#{}]: <Invalid expression>");
 
         params.put("field.field1", "#{VALUE}");
         assertDoesNotThrow(() -> new ConnectorConfig(params));

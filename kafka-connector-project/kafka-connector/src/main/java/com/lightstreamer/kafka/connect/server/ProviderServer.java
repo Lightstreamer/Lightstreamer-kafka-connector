@@ -66,11 +66,9 @@ public final class ProviderServer implements ProxyCommunicator {
 
     private static class DefaultProviderServerConnection implements ProviderServerConnection {
 
-        private final ProviderServerOptions options;
         private final ServerSocket serverSocket;
 
         DefaultProviderServerConnection(ProviderServerOptions options) throws IOException {
-            this.options = options;
             this.serverSocket = new ServerSocket(options.port);
         }
 

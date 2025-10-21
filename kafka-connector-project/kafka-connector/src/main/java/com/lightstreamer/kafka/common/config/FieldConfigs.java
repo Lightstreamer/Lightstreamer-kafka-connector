@@ -17,10 +17,10 @@
 
 package com.lightstreamer.kafka.common.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
@@ -45,8 +45,8 @@ public class FieldConfigs {
                 expressions.put(fieldName, Expressions.Wrapped(wrappedExpression));
             } catch (ExpressionException e) {
                 throw new ConfigException(
-                        "Found the invalid expression [%s] while evaluating [%s]: <%s>"
-                                .formatted(wrappedExpression, fieldName, e.getMessage()));
+                        "Got the following error while evaluating the field [%s] containing the expression [%s]: <%s>"
+                                .formatted(fieldName, wrappedExpression, e.getMessage()));
             }
         }
     }

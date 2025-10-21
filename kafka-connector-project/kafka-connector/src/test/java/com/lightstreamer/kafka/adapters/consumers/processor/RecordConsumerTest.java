@@ -38,6 +38,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
@@ -118,7 +119,7 @@ public class RecordConsumerTest {
 
         String item = "item";
         this.subscriptions =
-                () -> Collections.singleton(Items.subscribedFrom(item, new Object())).iterator();
+                SubscribedItems.of(Collections.singleton(Items.subscribedFrom(item, new Object())));
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);

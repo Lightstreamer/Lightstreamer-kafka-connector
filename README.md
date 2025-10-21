@@ -42,7 +42,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [`schema.registry.url`](#schemaregistryurl)
     - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
     - [Encryption Parameters](#encryption-parameters-1)
-    - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+    - [Schema Registry QuickStart](#quick-start-schema-registry-example)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -112,7 +112,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
+![QuickStart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -199,7 +199,7 @@ LS_HOME/
 
 ## Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_QuickStart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -337,7 +337,7 @@ where you have to replace `username` and `password` with the credentials generat
 
 ### 3. Publish the Events
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quick Start_ app.
+   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
@@ -719,9 +719,9 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start SSL Example
+#### SSL QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 ### Broker Authentication Parameters
 
@@ -901,17 +901,17 @@ When this mechanism is specified, you can configure the following authentication
 > [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
-#### Quick Start Confluent Cloud Example
+#### Confluent Cloud QuickStart
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-#### Quick Start with Redpanda Serverless Example
+#### Redpanda Serverless QuickStart
 
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start with Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless QuickStart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
-#### Quick Start with MSK Example
+#### MSL QuickStart
 
-Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
+Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK QuickStart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
 ### Record Evaluation
 
@@ -1641,9 +1641,9 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start Schema Registry Example
+#### Schema Registry QuickStart 
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Client Side Error Handling
 
@@ -1867,7 +1867,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _QuickStart_ app.
 
 ## Supported Converters
 
