@@ -114,7 +114,6 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         consumerLock.lock();
         log.atTrace().log("Lock acquired...");
         try {
-            // consumer = consumerWrapper.apply(SubscribedItems.of(subscribedItems.values()));
             consumer = consumerWrapper.apply(ss);
             return CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
