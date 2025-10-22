@@ -25,7 +25,6 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -141,6 +140,16 @@ public class ItemsTest {
         assertThat(item1.equals(item2)).isTrue();
     }
 
+    @Test
+    public void shouldSubscribeToEqualItemsIrrespectiveOfTheParamOrders() {
+        Object itemHandle = new Object();
+        SubscribedItem item1 =
+                Items.subscribedFrom("prefix-[name1=field1,name2=field2]", itemHandle);
+        SubscribedItem item2 =
+                Items.subscribedFrom("prefix-[name2=field2,name1=field1]", itemHandle);
+        assertThat(item1.equals(item2)).isTrue();
+    }
+
     static Stream<Arguments> provideNotEqualItems() {
         return Stream.of(
                 arguments(List.of(Data.from("n1", "1")), List.of(Data.from("n2", "2"))),
@@ -177,14 +186,5 @@ public class ItemsTest {
                         new SubscriptionExpression("anotherPrefix", new TreeSet<>(sameValues)),
                         itemHandle);
         assertThat(item1.equals(item2)).isFalse();
-    }
-
-    @Test
-    public void shouldSubscribeMatchableItemsIrrespectiveOfTheParamOrders() {
-        SubscribedItem item1 =
-                Items.subscribedFrom("prefix-[name1=field1,name2=field2]", new Object());
-        SubscribedItem item2 =
-                Items.subscribedFrom("prefix-[name2=field2,name1=field1]", new Object());
-        assertThat(item1.matches(item2)).isTrue();
     }
 }
