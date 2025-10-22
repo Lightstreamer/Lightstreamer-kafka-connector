@@ -83,13 +83,13 @@ public class RecordRoutingTest {
     @MethodSource("itemArgs")
     public void shouldRouteFromSimpleItems(
             List<String> topics,
-            String item,
+            String itemName,
             List<SubscribedItem> routable,
             List<SubscribedItem> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.mkSimpleItems(
-                        OthersSelectorSuppliers.String(), topics, List.of(item));
+                        OthersSelectorSuppliers.String(), topics, List.of(itemName));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
                         .withTemplateExtractors(templates.groupExtractors())
@@ -98,11 +98,11 @@ public class RecordRoutingTest {
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
             SubscribedItems subscribedItems = SubscribedItems.create();
-            for (int i = 0; i < routable.size(); i++) {
-                subscribedItems.addItem("routableItem" + i, routable.get(i));
+            for (SubscribedItem item : routable) {
+                subscribedItems.addItem(item);
             }
-            for (int i = 0; i < nonRoutable.size(); i++) {
-                subscribedItems.addItem("onRoutableItem" + i, nonRoutable.get(i));
+            for (SubscribedItem item : nonRoutable) {
+                subscribedItems.addItem(item);
             }
 
             Set<SubscribedItem> routed = mapped.route(subscribedItems);
@@ -183,8 +183,8 @@ public class RecordRoutingTest {
             List<SubscribedItem> all =
                     Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream()).toList();
             SubscribedItems subscribed = SubscribedItems.create();
-            for (int i = 0; i < all.size(); i++) {
-                subscribed.addItem("item" + i, all.get(i));
+            for (SubscribedItem item : all) {
+                subscribed.addItem(item);
             }
 
             Set<SubscribedItem> routed = mapped.route(subscribed);
@@ -232,11 +232,11 @@ public class RecordRoutingTest {
         JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
         MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
         SubscribedItems subscribedItems = SubscribedItems.create();
-        for (int i = 0; i < routable.size(); i++) {
-            subscribedItems.addItem("routableItem" + i, routable.get(i));
+        for (SubscribedItem item : routable) {
+            subscribedItems.addItem(item);
         }
-        for (int i = 0; i < nonRoutable.size(); i++) {
-            subscribedItems.addItem("nonRoutableItem" + i, nonRoutable.get(i));
+        for (SubscribedItem item : nonRoutable) {
+            subscribedItems.addItem(item);
         }
 
         Set<SubscribedItem> routed = mapped.route(subscribedItems);
@@ -271,7 +271,7 @@ public class RecordRoutingTest {
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
 
         SubscribedItems subscribedItems = SubscribedItems.create();
-        subscribedItems.addItem(subscribingItemName, subscribedItem);
+        subscribedItems.addItem(subscribedItem);
         Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
@@ -308,7 +308,7 @@ public class RecordRoutingTest {
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
 
         SubscribedItems subscribedItems = SubscribedItems.create();
-        subscribedItems.addItem(subscribingItemName, subscribedItem);
+        subscribedItems.addItem(subscribedItem);
         Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
@@ -341,7 +341,7 @@ public class RecordRoutingTest {
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
         List<String> implicitItems =
-                mapped.routeAll().stream().map(SubscribedItem::asText).toList();
+                mapped.routeAll().stream().map(SubscribedItem::asCanonicalItemName).toList();
 
         assertThat(implicitItems)
                 .containsExactly(
