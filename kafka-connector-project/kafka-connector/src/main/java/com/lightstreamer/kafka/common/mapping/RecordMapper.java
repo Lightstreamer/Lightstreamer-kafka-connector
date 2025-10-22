@@ -31,11 +31,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -268,7 +270,7 @@ public interface RecordMapper<K, V> {
      * @return {@code true} if at least one template extractor is configured, {@code false}
      *     otherwise
      */
-    boolean hasExtractors();
+    boolean hasTemplateExtractors();
 
     /**
      * Indicates whether this mapper has a field extractor configured for generating data updates.
@@ -422,12 +424,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         Collection<DataExtractor<K, V>> getExtractors(String topic);
     }
 
-    static record PatternAndExtractors<K, V>(
-            Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
+    static record PatternAndTemplateExtractors<K, V>(
+            Pattern pattern, Set<DataExtractor<K, V>> templateExtractors) {}
 
     private final DataExtractor<K, V> fieldExtractor;
     private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
-    private final Collection<PatternAndExtractors<K, V>> patterns;
+    private final Collection<PatternAndTemplateExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
     private final boolean regexEnabled;
 
@@ -441,16 +443,16 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
                 regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
-    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList() {
+    private Collection<PatternAndTemplateExtractors<K, V>> mayFillPatternsList() {
         if (!regexEnabled) {
             return Collections.emptyList();
         }
 
-        Collection<PatternAndExtractors<K, V>> pe = new ArrayList<>();
+        Collection<PatternAndTemplateExtractors<K, V>> pe = new ArrayList<>();
         Set<String> topics = templateExtractors.keySet();
         for (String topicRegEx : topics) {
             pe.add(
-                    new PatternAndExtractors<>(
+                    new PatternAndTemplateExtractors<>(
                             Pattern.compile(topicRegEx), templateExtractors.get(topicRegEx)));
         }
         return pe;
@@ -461,14 +463,14 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     private Collection<DataExtractor<K, V>> getMatchingExtractors(String topic) {
-        Collection<DataExtractor<K, V>> extractors = new ArrayList<>();
-        for (PatternAndExtractors<K, V> p : patterns) {
+        Collection<DataExtractor<K, V>> matchingTemplateExtractors = new ArrayList<>();
+        for (PatternAndTemplateExtractors<K, V> p : patterns) {
             Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
-                extractors.addAll(p.extractors());
+                matchingTemplateExtractors.addAll(p.templateExtractors());
             }
         }
-        return extractors;
+        return matchingTemplateExtractors;
     }
 
     @Override
@@ -477,7 +479,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public boolean hasExtractors() {
+    public boolean hasTemplateExtractors() {
         return !templateExtractors.isEmpty();
     }
 
@@ -505,7 +507,8 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractAsCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractAsMap(record), record.value() == null);
+        return new DefaultMappedRecord(
+                canonicalItems, () -> fieldExtractor.extractAsMap(record), record.value() == null);
     }
 }
 
@@ -521,17 +524,25 @@ final class DefaultMappedRecord implements MappedRecord {
     // when not needed (i.e. when routing only).
     private final Supplier<Map<String, String>> fieldsMapSupplier;
 
+    private boolean payloadNull;
+
     private DefaultMappedRecord() {
-        this(new String[0], EMPTY_FIELDS_MAP);
+        this(new String[0], EMPTY_FIELDS_MAP, true);
     }
 
     DefaultMappedRecord(String[] itemNames) {
-        this(itemNames, EMPTY_FIELDS_MAP);
+        this(itemNames, EMPTY_FIELDS_MAP, true);
     }
 
     DefaultMappedRecord(String[] canonicalItems, Supplier<Map<String, String>> fieldsMap) {
+        this(canonicalItems, fieldsMap, false);
+    }
+
+    DefaultMappedRecord(
+            String[] canonicalItems, Supplier<Map<String, String>> fieldsMap, boolean payloadNull) {
         this.itemNames = canonicalItems;
         this.fieldsMapSupplier = fieldsMap;
+        this.payloadNull = payloadNull;
     }
 
     @Override
@@ -544,9 +555,9 @@ final class DefaultMappedRecord implements MappedRecord {
         Set<SubscribedItem> result = new HashSet<>();
 
         for (String itemName : itemNames) {
-            SubscribedItem item = subscribedItems.get(itemName);
-            if (item != null) {
-                result.add(item);
+            Optional<SubscribedItem> item = subscribedItems.getItem(itemName);
+            if (item.isPresent()) {
+                result.add(item.get());
             }
         }
         return result;
@@ -556,8 +567,8 @@ final class DefaultMappedRecord implements MappedRecord {
     public Set<SubscribedItem> routeAll() {
         Set<SubscribedItem> result = new HashSet<>();
 
-        for (SchemaAndValues e : indexedTemplates) {
-            result.add(Items.subscribedFrom(e));
+        for (String itemName : itemNames) {
+            result.add(Items.subscribedFrom(itemName));
         }
 
         return result;
