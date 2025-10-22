@@ -22,7 +22,8 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 public class VersionUtils {
-    static Pattern VERSION = Pattern.compile("\\d\\.\\d\\.\\d(-.+)?");
+
+    static Pattern VERSION = Pattern.compile("\\d\\.\\d\\.\\d+(-.+)?");
 
     /** Gets the current version as stored in the resources/version.properties file */
     public static String currentVersion() {

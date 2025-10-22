@@ -46,6 +46,38 @@ dependencies {
 
 ext {
     connectConfigDir = "${parent.projectDir}/config/kafka-connect-config"
+    licenseConfigDir = "${parent.projectDir}/config/license-config"
+    outputLicensesDir = "${parent.projectDir}/licenses"
+}
+
+import com.github.jk1.license.filter.*
+import com.github.jk1.license.render.*
+import org.sample.*
+
+licenseReport {
+    filters = [
+        new ExcludeDependenciesWithoutArtifactsFilter (),
+        new LicenseBundleNormalizer(bundlePath: "$parent.projectDir/config/license-config/license-normalizer-bundle.json")
+    ]
+
+    renderers  = [
+        new TextReportRenderer(),
+        new SimpleHtmlReportRenderer(),
+        new KafkaConnectorLicenseRenderer(
+        "$outputLicensesDir/THIRD-PARTY-LIBRARIES.txt",
+        "$outputLicensesDir/THIRD-PARTY-LIBRARIES.csv",
+        "$licenseConfigDir/custom-license-urls.properties"),
+    ]
+
+    excludes = [
+        'com.lightstreamer:ls-adapter-inprocess',
+        'com.lightstreamer:ls-adapter-remote',
+        'com.lightstreamer:ls-log-adapter-java',
+        'com.google.code.findbugs:jsr305',
+        'org.apache.kafka:connect-api',
+        'org.apache.kafka:connect-json',
+        'javax.ws.rs:javax.ws.rs-api'
+    ]
 }
 
 jar {
@@ -107,6 +139,10 @@ distributions {
                 exclude "javax.ws.rs-api-*"
                 exclude "connect-*"
             }
+
+            from (outputLicensesDir) {
+                include "THIRD-PARTY-LIBRARIES.txt"
+            }
         }
     }
 
@@ -121,13 +157,17 @@ distributions {
                 into "lib"
                 include "ls-adapter-remote*"
                 include "ls-log-adapter*"
-                include "jsr305*"
-                include "javax.ws.rs-api-*"
             }
 
             from ("${rootDir}/..") {
                 into "doc"
                 include "LICENSE"
+            }
+
+            from (outputLicensesDir) {
+                into "doc"
+                include "THIRD-PARTY-LIBRARIES-connect.txt"
+                rename {"THIRD-PARTY-LIBRARIES.txt"}
             }
 
             from (connectConfigDir) {
