@@ -60,12 +60,19 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         private final SchemaAndValue data;
+        private final String name;
 
-        SchemaAndValueNode(SchemaAndValue data) {
+        SchemaAndValueNode(String name, SchemaAndValue data) {
+            this.name = name;
             this.data = data;
             if (data.schema() == null) {
                 throw ValueException.nonSchemaAssociated();
             }
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -103,7 +110,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
                             yield new SchemaAndValue(field.schema(), struct.get(field));
                         }
                     };
-            return new SchemaAndValueNode(schemaAndValue);
+            return new SchemaAndValueNode(name, schemaAndValue);
         }
 
         @Override
@@ -126,7 +133,8 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             @SuppressWarnings("unchecked")
             List<Object> array = (List<Object>) data.value();
             Schema elementsSchema = data.schema().valueSchema();
-            return new SchemaAndValueNode(new SchemaAndValue(elementsSchema, array.get(index)));
+            return new SchemaAndValueNode(
+                    name + "[" + index + "]", new SchemaAndValue(elementsSchema, array.get(index)));
         }
 
         @Override
@@ -144,7 +152,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public String asText() {
+        public String text() {
             Object value = data.value();
             if (value != null) {
                 if (value instanceof Struct struct) {
@@ -190,9 +198,9 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
-        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
-                    new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
+                    name, new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
         }
     }
 
@@ -220,9 +228,9 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
-        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
-                    new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
+                    name, new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
         }
     }
 
