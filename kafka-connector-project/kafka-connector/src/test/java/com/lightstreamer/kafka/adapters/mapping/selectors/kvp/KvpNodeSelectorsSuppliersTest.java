@@ -203,8 +203,9 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                VALUE.A    | Cannot retrieve field [A] from a null object
-                VALUE.B    | Cannot retrieve field [B] from a null object
+                VALUE      | Cannot retrieve field [VALUE] from a null object
+                VALUE.A    | Cannot retrieve field [VALUE] from a null object
+                VALUE.B    | Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -310,8 +311,9 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                KEY.A      | Cannot retrieve field [A] from a null object
-                KEY.B      | Cannot retrieve field [B] from a null object
+                KEY        | Cannot retrieve field [KEY] from a null object
+                KEY.A      | Cannot retrieve field [KEY] from a null object
+                KEY.B      | Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {
