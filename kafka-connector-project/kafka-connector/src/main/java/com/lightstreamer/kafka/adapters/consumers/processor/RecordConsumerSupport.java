@@ -277,15 +277,15 @@ class RecordConsumerSupport {
         }
 
         public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().update(sub.asText(), updates, isSnapshot);
+            listener().update(sub.asCanonicalItemName(), updates, isSnapshot);
         }
 
         public void clearSnapshot(SubscribedItem sub) {
-            listener().clearSnapshot(sub.asText());
+            listener().clearSnapshot(sub.asCanonicalItemName());
         }
 
         public void endOfSnapshot(SubscribedItem sub) {
-            listener().endOfSnapshot(sub.asText());
+            listener().endOfSnapshot(sub.asCanonicalItemName());
         }
     }
 
@@ -453,18 +453,20 @@ class RecordConsumerSupport {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
-            // Since the field maps are immutable, we have to wrap them with a new map
-            // to allow modifications.
-            Map<String, String> toBeDecorate = new HashMap<>(record.fieldsMap());
             if (record.isPayloadNull()) {
                 // If the payload is null, just send a DELETE command
+                Map<String, String> toBeDecorate = new HashMap<>(record.fieldsMap());
                 getLogger()
                         .atDebug()
                         .log(
                                 "Payload is null, sending DELETE command for key: %s",
                                 Key.KEY.lookUp(toBeDecorate));
-                return CommandMode.deleteEvent(toBeDecorate);
+                return CommandMode.DELETE_EVENT;
             }
+            // Since the field maps are immutable, we have to wrap them with a new map
+            // to allow modifications.
+            Map<String, String> toBeDecorate = new HashMap<>(record.fieldsMap());
+
             return CommandMode.decorate(toBeDecorate, Command.ADD);
         }
 
@@ -666,10 +668,10 @@ class RecordConsumerSupport {
         private void route(MappedRecord mappedRecord) {
             Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
             if (routable.size() > 0) {
-                log.atInfo().log(() -> "Routing record to %d items".formatted(routable.size()));
+                log.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
                 processUpdatesStrategy.processUpdates(updater, mappedRecord, routable);
             } else {
-                log.atInfo().log("No routable items found");
+                log.atDebug().log("No routable items found");
             }
         }
 
