@@ -22,4 +22,8 @@ import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpressi
 public interface SelectorSupplier<S extends Selector> {
 
     S newSelector(String name, ExtractionExpression expression) throws ExtractionException;
+
+    default S newSelector(ExtractionExpression expression) throws ExtractionException {
+        return newSelector("*", expression);
+    }
 }
