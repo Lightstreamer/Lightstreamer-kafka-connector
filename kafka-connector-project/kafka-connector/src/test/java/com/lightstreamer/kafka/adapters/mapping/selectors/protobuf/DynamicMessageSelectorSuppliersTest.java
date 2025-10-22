@@ -18,12 +18,16 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -35,7 +39,7 @@ import com.google.protobuf.TextFormat;
 import com.google.protobuf.TextFormat.InvalidEscapeSequenceException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -50,6 +54,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class DynamicMessageSelectorSuppliersTest {
@@ -126,6 +133,60 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
+    public void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
+        Path adapterDir = Paths.get("src/test/resources");
+        Path protoKeySchemaFile = adapterDir.resolve("person.proto.desc");
+
+        // Configure the key evaluator type, but leave default settings for
+        // RECORD_VALUE_EVALUATOR_TYPE (String)
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                "PROTOBUF",
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                protoKeySchemaFile.getFileName().toString(),
+                                RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
+                                "InvalidMessageType"));
+        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
+        assertThat(ie)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Message type [InvalidMessageType] not found in schema "
+                                + protoKeySchemaFile.toAbsolutePath().toString());
+    }
+
+    @Test
+    public void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
+        Path adapterDir = Paths.get("src/test/resources");
+        Path protoValueSchemaFile = adapterDir.resolve("person.proto.desc");
+
+        // Configure the value evaluator type, but leave default settings for
+        // RECORD_KEY_EVALUATOR_TYPE (String)
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                "PROTOBUF",
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                protoValueSchemaFile.getFileName().toString(),
+                                RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
+                                "valueMessage"));
+        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
+        assertThat(ie)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Message type [valueMessage] not found in schema "
+                                + protoValueSchemaFile.toAbsolutePath().toString());
+    }
+
+    @Test
     public void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -174,6 +235,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """
                 EXPRESSION                                | EXPECTED
                 VALUE.name                                | joe
+                VALUE['name']                             | joe
                 VALUE.email                               | <EMPTY>
                 VALUE.mainAddress.zip                     | <EMPTY>
                 VALUE.mainAddress.country.name            | <EMPTY>
@@ -261,9 +323,10 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                VALUE,                       Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib,             Cannot retrieve field [VALUE] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [VALUE] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -285,6 +348,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """
                 EXPRESSION                              | EXPECTED
                 KEY.name                                | joe
+                KEY['name']                             | joe
                 KEY.email                               | <EMPTY>
                 KEY.mainAddress.zip                     | <EMPTY>
                 KEY.mainAddress.country.name            | <EMPTY>
@@ -371,10 +435,11 @@ public class DynamicMessageSelectorSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                KEY,                       Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib,             Cannot retrieve field [KEY] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [KEY] from a null object
+                KEY.no_children[0],        Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {

@@ -24,10 +24,10 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -169,7 +169,7 @@ public interface SubscriptionsHandler<K, V> {
                 }
 
                 log.atInfo().log("Subscribed to item [{}]", item);
-                subscribedItems.addItem(item, newItem);
+                subscribedItems.addItem(newItem);
                 onSubscribedItem();
             } catch (ExpressionException e) {
                 log.atError().setCause(e).log();

@@ -15,10 +15,18 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.common.expressions;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
+<<<<<<< HEAD:kafka-connector-project/kafka-connector/src/test/java/com/lightstreamer/kafka/common/expressions/ConstantTest.java
+=======
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+
+>>>>>>> start-consuming-at-startup:kafka-connector-project/kafka-connector/src/test/java/com/lightstreamer/kafka/common/mapping/selectors/ConstantTest.java
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;

@@ -87,7 +87,7 @@
         <!-- Map the "key" field to the record key (which is the position id).
              This is the mandatory key used by the COMMAND mode subscription
          -->
-        <param name="field.key">#{KEY}</param>
+        <!-- <param name="field.key">#{KEY}</param> -->
 
         <!-- Map other fields from the record value to Lightstreamer fields -->
         <param name="field.account_id">#{HEADERS['account_id']}</param>

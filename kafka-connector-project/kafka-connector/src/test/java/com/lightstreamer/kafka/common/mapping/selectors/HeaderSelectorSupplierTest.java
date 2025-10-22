@@ -18,20 +18,22 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.Assert.assertThrows;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.header.ConnectHeaders;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 
 public class HeaderSelectorSupplierTest {
 
@@ -59,14 +61,19 @@ public class HeaderSelectorSupplierTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,           EXPECTED
-                HEADERS.name,         joe
-                HEADERS[0],           joe
-                HEADERS['name'],      joe
-                HEADERS.signature,    YWJjZA==
-                HEADERS['signature'], YWJjZA==
-                HEADERS.accountId[0], 12345
-                HEADERS.accountId[1], 67890
+                EXPRESSION,              EXPECTED
+                HEADERS.name,            joe
+                HEADERS['name'],         joe
+                HEADERS[0],              joe
+                HEADERS.signature,       YWJjZA==
+                HEADERS['signature'],    YWJjZA==
+                HEADERS[1],              YWJjZA==
+                HEADERS.accountId[0],    12345
+                HEADERS.accountId[1],    67890
+                HEADERS['accountId'][0], 12345
+                HEADERS['accountId'][1], 67890
+                HEADERS[2],              12345
+                HEADERS[3],              67890
                         """)
     public void shouldExtractRecordHeaders(String expressionStr, String expected)
             throws ExtractionException {
@@ -76,20 +83,44 @@ public class HeaderSelectorSupplierTest {
                 .isEqualTo(expected);
     }
 
+    @Test
+    public void shouldExtractMultiRecordHeaders() throws ExtractionException {
+        KafkaRecord<String, String> record =
+                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+        Collection<Data> data = headersSelector(Expression("HEADERS")).extractMulti(record);
+        assertThat(data).hasSize(4);
+        assertThat(data)
+                .containsExactly(
+                        Data.from("name", "joe"),
+                        Data.from("signature", "YWJjZA=="),
+                        Data.from("accountId", "12345"),
+                        Data.from("accountId", "67890"));
+
+        data = headersSelector(Expression("HEADERS['accountId']")).extractMulti(record);
+        assertThat(data).hasSize(2);
+        assertThat(data)
+                .containsExactly(Data.from("accountId", "12345"), Data.from("accountId", "67890"));
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
             textBlock =
                     """
                 EXPRESSION,           EXPECTED
-                HEADERS.name,         joe
-                HEADERS[0],           joe
-                HEADERS['name'],      joe
-                HEADERS.signature,    YWJjZA==
-                HEADERS['signature'], YWJjZA==
-                HEADERS.accountId[0], 12345
-                HEADERS.accountId[1], 67890
-                        """)
+                HEADERS.name,            joe
+                HEADERS['name'],         joe
+                HEADERS[0],              joe
+                HEADERS.signature,       YWJjZA==
+                HEADERS['signature'],    YWJjZA==
+                HEADERS[1],              YWJjZA==
+                HEADERS.accountId[0],    12345
+                HEADERS.accountId[1],    67890
+                HEADERS['accountId'][0], 12345
+                HEADERS['accountId'][1], 67890
+                HEADERS[2],              12345
+                HEADERS[3],              67890
+                    """)
     public void shouldExtractConnectHeaders(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<Object, Object> record =
@@ -112,8 +143,9 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId,            The expression [HEADERS.accountId] must evaluate to a non-complex object
                 HEADERS.accountId[0].account, Cannot retrieve field [account] from a scalar object
                 HEADERS['accountId'],         The expression [HEADERS['accountId']] must evaluate to a non-complex object
-                            """)
-    public void shouldNotExtractRecordHeader(String expressionStr, String errorMessage) {
+                HEADERS[4],                   Field not found at index [4]
+                     """)
+    public void shouldNotExtractRecordHeaders(String expressionStr, String errorMessage) {
         KafkaRecord<String, String> record =
                 Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
         ValueException ve =
@@ -137,8 +169,9 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId,            The expression [HEADERS.accountId] must evaluate to a non-complex object
                 HEADERS.accountId[0].account, Cannot retrieve field [account] from a scalar object
                 HEADERS['accountId'],         The expression [HEADERS['accountId']] must evaluate to a non-complex object
-                            """)
-    public void shouldNotExtractConnectHeader(String expressionStr, String errorMessage) {
+                HEADERS[4],                   Field not found at index [4]
+                    """)
+    public void shouldNotExtractConnectHeaders(String expressionStr, String errorMessage) {
         KafkaRecord<Object, Object> record =
                 Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
         ValueException ve =
@@ -158,7 +191,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS           | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890}
                 HEADERS.accountId | [12345, 67890]
                         """)
-    public void shouldExtractRecordHeaderWithNonScalars(String expressionStr, String expected)
+    public void shouldExtractRecordHeadersWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
                 Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
@@ -177,7 +210,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS           | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890}
                 HEADERS.accountId | [12345, 67890]
                         """)
-    public void shouldExtractConnectHeaderWithNonScalars(String expressionStr, String expected)
+    public void shouldExtractConnectHeadersWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<Object, Object> record =
                 Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);

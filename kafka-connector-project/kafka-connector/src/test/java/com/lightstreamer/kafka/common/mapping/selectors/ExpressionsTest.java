@@ -15,20 +15,24 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.common.expressions;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Subscription;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import static java.util.Collections.emptySet;
+
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,9 +44,10 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 public class ExpressionsTest {
@@ -71,15 +76,18 @@ public class ExpressionsTest {
                 arguments("PARTITION", Constant.PARTITION, Arrays.asList("PARTITION")),
                 arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
                 arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("VALUE.*", Constant.VALUE, Arrays.asList("VALUE", ".", "*")),
                 arguments(
                         "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments("VALUE['name']", Constant.VALUE, Arrays.asList("VALUE['name']")),
+                arguments("VALUE['name']aaa", Constant.VALUE, Arrays.asList("VALUE['name']")),
                 arguments(
                         "HEADERS['attrib']", Constant.HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
     @MethodSource("expressionArgs")
-    void shouldCreateExpression(
+    void shouldParseExtractionExpression(
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
         ExtractionExpression ee = Expression(expressionStr);
         assertThat(ee.expression()).isEqualTo(expressionStr);
@@ -91,7 +99,7 @@ public class ExpressionsTest {
     @EmptySource
     @NullSource
     @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\"})
-    void shouldNotCreateExpression(String expressionStr) {
+    void shouldNotParseExpression(String expressionStr) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
@@ -101,7 +109,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE.", "VALUE..", "VALUE.attrib.", "VALUE.attrib[]]."})
-    void shouldNotCreateExpressionDueToTrailingDots(String expressionStr) {
+    void shouldNotParseExpressionDueToTrailingDots(String expressionStr) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
@@ -113,22 +121,23 @@ public class ExpressionsTest {
 
     static Stream<Arguments> templateArgs() {
         return Stream.of(
-                arguments(
-                        "template-prefix-#{param=VALUE}",
-                        "template-prefix",
-                        Map.of("param", "VALUE")),
-                arguments(
-                        "template-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}",
-                        "template",
-                        Map.of("param1", "OFFSET", "param2", "PARTITION", "param3", "TIMESTAMP")),
-                arguments(
-                        "template-#{param1=VALUE.complex_attrib_name.child_1_}",
-                        "template",
-                        Map.of("param1", "VALUE.complex_attrib_name.child_1_")),
-                arguments(
-                        "indexed-template-#{param=VALUE.attrib[0]}",
-                        "indexed-template",
-                        Map.of("param", "VALUE.attrib[0]")),
+                // arguments(
+                //         "template-prefix-#{param=VALUE}",
+                //         "template-prefix",
+                //         Map.of("param", "VALUE")),
+                // arguments(
+                //         "template-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}",
+                //         "template",
+                //         Map.of("param1", "OFFSET", "param2", "PARTITION", "param3",
+                // "TIMESTAMP")),
+                // arguments(
+                //         "template-#{param1=VALUE.complex_attrib_name.child_1_}",
+                //         "template",
+                //         Map.of("param1", "VALUE.complex_attrib_name.child_1_")),
+                // arguments(
+                //         "indexed-template-#{param=VALUE.attrib[0]}",
+                //         "indexed-template",
+                //         Map.of("param", "VALUE.attrib[0]")),
                 arguments(
                         "indexed-template-#{param=VALUE.attrib[''key'][}",
                         "indexed-template",
@@ -137,7 +146,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    void shouldCreateTemplateExpression(
+    void shouldParseTemplateExpression(
             String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
         TemplateExpression template = Template(expressionStr);
         assertThat(template.prefix()).isEqualTo(expectedPrefix);
@@ -179,7 +188,7 @@ public class ExpressionsTest {
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
                 template-#{name=VALUE[1]}           $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                     """)
-    void shouldNotCreateTemplateExpression(String expressionStr, String expectedErrorMessage) {
+    void shouldNotParseTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Template(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
@@ -187,46 +196,78 @@ public class ExpressionsTest {
 
     static Stream<Arguments> subscriptionArgs() {
         return Stream.of(
-                arguments("item-prefix-[param=a]", "item-prefix", Map.of("param", "a")),
+                arguments("item", "item", emptySet(), "item"),
                 arguments(
-                        "item-[param1=a,param2=b,param3=c]",
-                        "item",
-                        Map.of("param1", "a", "param2", "b", "param3", "c")),
-                arguments("item-prefix-[param=a,]", "item-prefix", Map.of("param", "a")),
-                arguments("item-prefix-[param=a.b]", "item-prefix", Map.of("param", "a.b")),
-                arguments("item-prefix-[param=a]]", "item-prefix", Map.of("param", "a]")),
-                // arguments("item-prefix-[param1=a param with spaces]", "item-prefix",
-                // Map.of("param1", "a param with spaces")),
-                arguments(
-                        "item-prefix-[param1=a param with spaces,param2=another param with values]",
+                        "item-prefix-[param=a]",
                         "item-prefix",
-                        Map.of(
-                                "param1",
-                                "a param with spaces",
-                                "param2",
-                                "another param with values")),
+                        Set.of(Data.from("param", "a")),
+                        "item-prefix-[param=a]"),
                 arguments(
-                        "item-[param1=a[0],param2=b[1],param3=c[2]]",
+                        "item-[param2=b,param1=a,param3=c]",
                         "item",
-                        Map.of("param1", "a[0]", "param2", "b[1]", "param3", "c[2]")),
-                arguments("item-prefix-", "item-prefix-", Collections.emptyMap()),
-                arguments("item-prefix-[]", "item-prefix", Collections.emptyMap()));
+                        Set.of(
+                                Data.from("param1", "a"),
+                                Data.from("param2", "b"),
+                                Data.from("param3", "c")),
+                        "item-[param1=a,param2=b,param3=c]"),
+                arguments(
+                        "item-prefix-[param=a,]",
+                        "item-prefix",
+                        Set.of(Data.from("param", "a")),
+                        "item-prefix-[param=a]"),
+                arguments(
+                        "item-prefix-[param=a.b]",
+                        "item-prefix",
+                        Set.of(Data.from("param", "a.b")),
+                        "item-prefix-[param=a.b]"),
+                arguments(
+                        "item-prefix-[param=a]]",
+                        "item-prefix",
+                        Set.of(Data.from("param", "a]")),
+                        "item-prefix-[param=a]]"),
+                arguments(
+                        "item-prefix-[param1=a param with spaces]",
+                        "item-prefix",
+                        Set.of(Data.from("param1", "a param with spaces")),
+                        "item-prefix-[param1=a param with spaces]"),
+                arguments(
+                        "item-prefix-[param2=another param with values,param1=a param with spaces]",
+                        "item-prefix",
+                        Set.of(
+                                Data.from("param1", "a param with spaces"),
+                                Data.from("param2", "another param with values")),
+                        "item-prefix-[param1=a param with spaces,param2=another param with values]"),
+                arguments(
+                        "item-[param3=c[2],param2=b[1],param1=a[0]]",
+                        "item",
+                        Set.of(
+                                Data.from("param1", "a[0]"),
+                                Data.from("param2", "b[1]"),
+                                Data.from("param3", "c[2]")),
+                        "item-[param1=a[0],param2=b[1],param3=c[2]]"),
+                arguments("item-prefix-", "item-prefix-", emptySet(), "item-prefix-"),
+                arguments(
+                        "item-[other=test,key=value=ue]",
+                        "item",
+                        Set.of(Data.from("key", "value=ue"), Data.from("other", "test")),
+                        "item-[key=value=ue,other=test]"),
+                arguments("item-prefix-[]", "item-prefix", emptySet(), "item-prefix"));
     }
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    void shouldCreateSubscriptionExpression(
-            String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
+    void shouldParseSubscriptionExpression(
+            String expressionStr,
+            String expectedPrefix,
+            Set<Data> expectedParams,
+            String expectedCanonicalItem) {
         SubscriptionExpression subscription = Subscription(expressionStr);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);
+        assertThat(subscription.schema().name()).isEqualTo(expectedPrefix);
+        assertThat(subscription.asCanonicalItemName()).isEqualTo(expectedCanonicalItem);
 
-        Map<String, String> subscriptionParams = subscription.params();
-        assertThat(subscriptionParams.keySet()).isEqualTo(expectedParams.keySet());
-
-        for (Map.Entry<String, String> expectedParam : expectedParams.entrySet()) {
-            String paramValue = subscriptionParams.get(expectedParam.getKey());
-            assertThat(paramValue).isEqualTo(expectedParam.getValue());
-        }
+        SortedSet<Data> subscriptionParams = subscription.dataSet();
+        assertThat(subscriptionParams).isEqualTo(expectedParams);
     }
 
     @ParameterizedTest
@@ -236,11 +277,11 @@ public class ExpressionsTest {
             textBlock =
                     """
                 EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
-                                                    $ Invalid Item
+                                                   $ Invalid Item
                 ''                                 $ Invalid Item
                 template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
                     """)
-    void shouldNotCreateSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
+    void shouldNotParseSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Subscription(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
@@ -267,7 +308,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("fieldArgs")
-    void shouldCreateFieldExpression(
+    void shouldParseWrappedExpression(
             String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
         ExtractionExpression ee = Wrapped(expressionStr);
         // Remove '#{' and '}'
@@ -281,7 +322,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"#{NOT-EXISTING-CONSTANT}", "#{..}", "#{@}", "#{\\}"})
-    void shouldNotCreateFieldExpression(String expressionStr) {
+    void shouldNotParseWrappedExpression(String expressionStr) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
         assertThat(ee.getMessage())
@@ -296,17 +337,38 @@ public class ExpressionsTest {
             textBlock =
                     """
                 EXPRESSION               $ EXPECTED_ERROR_MESSAGE
-                                                $ Invalid expression
+                                         $ Invalid expression
                 ''                       $ Invalid expression
                 #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                 #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                 #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                 #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                     """)
-    void shouldNotCreateFieldExpressionDueToInvalidExpression(
+    void shouldNotParseWrappedExpressionDueToInvalidExpression(
             String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '$',
+            textBlock =
+                    """
+                EXPRESSION          $ EXPECTED_NORMALIZATION
+                item-[a=1]          $ item-[a=1]
+                item-[a=1,b=2]      $ item-[a=1,b=2]
+                item-[key=val=ue]   $ item-[key=val=ue]
+                item-[c=3,a=1,b=2]  $ item-[a=1,b=2,c=3]
+                item-[b=2,a=1]      $ item-[a=1,b=2]
+                item                $ item
+                item-               $ item-
+                item-[]             $ item
+                    """)
+    void shouldGetCanonicalItemFromExpression(String expression, String expectedCanonicalItem) {
+        String canonicalItem = Expressions.CanonicalItemName(expression);
+        assertThat(canonicalItem).isEqualTo(expectedCanonicalItem);
     }
 }

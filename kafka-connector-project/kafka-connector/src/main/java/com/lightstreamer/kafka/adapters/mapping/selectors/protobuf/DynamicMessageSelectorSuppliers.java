@@ -27,9 +27,9 @@ import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -101,6 +101,50 @@ public class DynamicMessageSelectorSuppliers
      */
     interface ProtobufNode extends Node<ProtobufNode> {
 
+        default ProtobufNode get(String name) {
+            return NullNode.INSTANCE;
+        }
+
+        default boolean has(String propertyname) {
+            return false;
+        }
+
+        default ProtobufNode get(int index) {
+            return NullNode.INSTANCE;
+        }
+
+        default boolean isArray() {
+            return false;
+        }
+
+        default boolean isScalar() {
+            return false;
+        }
+
+        default int size() {
+            return 0;
+        }
+
+        static class NullNode implements ProtobufNode {
+
+            private static final NullNode INSTANCE = new NullNode();
+
+            @Override
+            public String name() {
+                return "null";
+            }
+
+            @Override
+            public String text() {
+                return "null";
+            }
+
+            @Override
+            public boolean isNull() {
+                return true;
+            }
+        }
+
         /**
          * Creates a new {@link ProtobufNode} instance based on the provided value and field
          * descriptor.
@@ -113,7 +157,7 @@ public class DynamicMessageSelectorSuppliers
         static ProtobufNode newNode(Object value, FieldDescriptor fieldDescriptor) {
             Type type = fieldDescriptor.getType();
             return switch (type) {
-                case MESSAGE -> new MessageWrapperNode((Message) value);
+                case MESSAGE -> new MessageWrapperNode(fieldDescriptor.getName(), (Message) value);
                 default -> new ScalarFieldNode(value, fieldDescriptor);
             };
         }
@@ -130,10 +174,17 @@ public class DynamicMessageSelectorSuppliers
 
         private final Message message;
         private final Descriptor descriptor;
+        private final String name;
 
-        MessageWrapperNode(Message message) {
+        MessageWrapperNode(String name, Message message) {
             this.message = message;
+            this.name = name;
             this.descriptor = message.getDescriptorForType();
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -156,7 +207,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return message.toString();
         }
     }
@@ -183,6 +234,11 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
+        public String name() {
+            return fieldDescriptor.getName();
+        }
+
+        @Override
         public boolean isArray() {
             return true;
         }
@@ -199,7 +255,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
@@ -236,6 +292,11 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
+        public String name() {
+            return fieldDescriptor.getName();
+        }
+
+        @Override
         public boolean has(String propertyname) {
             return map.containsKey(propertyname);
         }
@@ -247,7 +308,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
@@ -277,12 +338,17 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
+        public String name() {
+            return fieldDescriptor.getName();
+        }
+
+        @Override
         public boolean isScalar() {
             return true;
         }
 
         @Override
-        public String asText() {
+        public String text() {
             if (fieldDescriptor.getType().equals(Type.BYTES)) {
                 return ((ByteString) value).toStringUtf8();
             }
@@ -341,7 +407,10 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.key(), MessageWrapperNode::new, checkScalar);
+            return super.eval(
+                    record::key,
+                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
+                    checkScalar);
         }
     }
 
@@ -398,7 +467,10 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.value(), MessageWrapperNode::new, checkScalar);
+            return super.eval(
+                    record::value,
+                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
+                    checkScalar);
         }
     }
 

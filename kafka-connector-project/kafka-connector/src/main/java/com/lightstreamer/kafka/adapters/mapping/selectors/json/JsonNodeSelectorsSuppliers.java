@@ -20,9 +20,9 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -35,16 +35,25 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
-    private static class JsonNodeNode implements Node<JsonNodeNode> {
+    static class JsonNodeNode implements Node<JsonNodeNode> {
 
+        private final String name;
         private final JsonNode node;
 
-        JsonNodeNode(JsonNode node) {
+        JsonNodeNode(String name, JsonNode node) {
+            this.name = name;
             this.node = node;
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -54,7 +63,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
 
         @Override
         public JsonNodeNode get(String propertyName) {
-            return new JsonNodeNode(node.get(propertyName));
+            return new JsonNodeNode(propertyName, node.get(propertyName));
         }
 
         @Override
@@ -69,7 +78,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
 
         @Override
         public JsonNodeNode get(int index) {
-            return new JsonNodeNode(node.get(index));
+            return new JsonNodeNode(name + "[" + index + "]", node.get(index));
         }
 
         @Override
@@ -82,8 +91,22 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
             return node.isValueNode();
         }
 
-        @Override
-        public String asText() {
+        public void visit(Consumer<Data> visitor) {
+            if (node.isObject()) {
+                node.fields()
+                        .forEachRemaining(
+                                entry -> {
+                                    visitor.accept(
+                                            Data.from(
+                                                    entry.getKey(),
+                                                    entry.getValue().isValueNode()
+                                                            ? entry.getValue().asText(null)
+                                                            : entry.getValue().toString()));
+                                });
+            }
+        }
+
+        public String text() {
             return node.isValueNode() ? node.asText(null) : node.toString();
         }
     }
@@ -107,6 +130,12 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
+        public KeySelector<JsonNode> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            return new JsonNodeKeySelector("*", expression);
+        }
+
+        @Override
         public Deserializer<JsonNode> deserializer() {
             return deserializer;
         }
@@ -123,7 +152,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public Data extractKey(KafkaRecord<JsonNode, ?> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.key(), JsonNodeNode::new, checkScalar);
+            return eval(record::key, JsonNodeNode::new, checkScalar);
         }
     }
 
@@ -162,7 +191,13 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public Data extractValue(KafkaRecord<?, JsonNode> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.value(), JsonNodeNode::new, checkScalar);
+            return eval(record::value, JsonNodeNode::new, checkScalar);
+        }
+
+        @Override
+        public Collection<Data> extractValues(KafkaRecord<?, JsonNode> record)
+                throws ValueException {
+            return evalMulti(record::value, JsonNodeNode::new);
         }
     }
 

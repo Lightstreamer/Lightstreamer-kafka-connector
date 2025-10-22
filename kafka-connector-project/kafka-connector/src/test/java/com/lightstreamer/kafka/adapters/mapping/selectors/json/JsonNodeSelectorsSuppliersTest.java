@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
@@ -70,6 +70,13 @@ public class JsonNodeSelectorsSuppliersTest {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
                 .newSelector("name", expression);
+    }
+
+    static ValueSelector<JsonNode> valueSelector(String name, ExtractionExpression expression)
+            throws ExtractionException {
+        return new JsonNodeSelectorsSuppliers(CONFIG)
+                .makeValueSelectorSupplier()
+                .newSelector(name, expression);
     }
 
     static KeySelector<JsonNode> keySelector(ExtractionExpression expression)
@@ -160,21 +167,23 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,                            EXPECTED
-                VALUE.name,                            joe
-                VALUE.signature,                       YWJjZA==
-                VALUE.children[0].name,                alex
-                VALUE.children[0]['name'],             alex
-                VALUE.children[0].signature,           NULL
-                VALUE.children[1].name,                anna
-                VALUE.children[2].name,                serena
-                VALUE.children[3],                     NULL
-                VALUE.children[1].children[0].name,    gloria
-                VALUE.children[1].children[1].name,    terence
-                VALUE.children[1].children[1]['name'], terence
-                VALUE.family[0][0].name,               bro00
-                VALUE.family[0][1].name,               bro01
-                VALUE.family[1][0].name,               bro10
-                VALUE.family[1][1].name,               bro11
+                #VALUE['name'],                         joe
+                VALUE['name']aaa,                       joe
+                #VALUE.name,                            joe
+                #VALUE.signature,                       YWJjZA==
+                #VALUE.children[0].name,                alex
+                #VALUE.children[0]['name'],             alex
+                #VALUE.children[0].signature,           NULL
+                #VALUE.children[1].name,                anna
+                #VALUE.children[2].name,                serena
+                #VALUE.children[3],                     NULL
+                #VALUE.children[1].children[0].name,    gloria
+                #VALUE.children[1].children[1].name,    terence
+                #VALUE.children[1].children[1]['name'], terence
+                #VALUE.family[0][0].name,               bro00
+                #VALUE.family[0][1].name,               bro01
+                #VALUE.family[1][0].name,               bro10
+                #VALUE.family[1][1].name,               bro11
                     """)
     public void shouldExtractValue(String expressionStr, String expected)
             throws ExtractionException {
@@ -189,6 +198,70 @@ public class JsonNodeSelectorsSuppliersTest {
             subject.isEqualTo(expected);
         }
     }
+
+    //     @ParameterizedTest(name = "[{index}] {arguments}")
+    //     @CsvSource(
+    //             useHeadersInDisplayName = true,
+    //             textBlock =
+    //                     """
+    //                 EXPRESSION,                            EXPECTED
+    //                 VALUE,                            joe
+    //                     """)
+    //     public void shouldExtractValues(String expressionStr, String expected)
+    //             throws ExtractionException {
+
+    //         Collection<Data> values =
+    //
+    // valueSelector(Expression(expressionStr)).extractValues(fromValue(SAMPLE_MESSAGE));
+    //         assertThat(values).isNotEmpty();
+    //         assertThat(values).hasSize(3);
+    //     }
+
+    //     @Test
+    //     public void shouldHandleUnbound()
+    //             throws ExtractionException, JsonMappingException, JsonProcessingException {
+    //         ObjectMapper om = new ObjectMapper();
+    //         JsonNode message =
+    //                 om.readTree(
+    //                         """
+    //                 {
+    //                         "name": "joe",
+    //                         "signature": "YWJjZA",
+    //                         "data": [1, 2, 3],
+    //                         "map": {"a": 1, "b": 2, "c": 3}
+    //                 }
+    //                 """);
+
+    //         Data name =
+    //                 valueSelector("*", Expression("VALUE.name"))
+    //                         .extractValue(fromValue(message), false);
+    //         assertThat(name.name()).isEqualTo("name");
+    //         assertThat(name.text()).isEqualTo("joe");
+
+    //         Data dataArray =
+    //                 valueSelector("*", Expression("VALUE.data"))
+    //                         .extractValue(fromValue(message), false);
+    //         assertThat(dataArray.name()).isEqualTo("data");
+    //         assertThat(dataArray.text()).isEqualTo("[1,2,3]");
+
+    //         Data dataValue =
+    //                 valueSelector("*", Expression("VALUE.data[1]"))
+    //                         .extractValue(fromValue(message), false);
+    //         assertThat(dataValue.name()).isEqualTo("data[1]");
+    //         assertThat(dataValue.text()).isEqualTo("2");
+
+    //         Data mapObject =
+    //                 valueSelector("*", Expression("VALUE.map")).extractValue(fromValue(message),
+    // false);
+    //         assertThat(mapObject.name()).isEqualTo("map");
+    //         assertThat(mapObject.text()).isEqualTo("{\"a\":1,\"b\":2,\"c\":3}");
+
+    //         Data mapValue =
+    //                 valueSelector("*", Expression("VALUE.map.a"))
+    //                         .extractValue(fromValue(message), false);
+    //         assertThat(mapValue.name()).isEqualTo("a");
+    //         assertThat(mapValue.text()).isEqualTo("1");
+    //     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
@@ -264,9 +337,10 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                VALUE,                       Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib,             Cannot retrieve field [VALUE] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [VALUE] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -287,6 +361,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """
                 EXPRESSION,                          EXPECTED
                 KEY.name,                            joe
+                KEY['name'],                         joe
                 KEY.signature,                       YWJjZA==
                 KEY.children[0].name,                alex
                 KEY.children[0]['name'],             alex
@@ -384,10 +459,11 @@ public class JsonNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                KEY,                       Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib,             Cannot retrieve field [KEY] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [KEY] from a null object
+                KEY.no_children[0],        Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {

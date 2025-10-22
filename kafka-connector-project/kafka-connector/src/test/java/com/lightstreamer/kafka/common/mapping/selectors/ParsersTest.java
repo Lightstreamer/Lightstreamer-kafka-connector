@@ -23,9 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,7 +78,22 @@ public class ParsersTest {
                         "name", Expressions.Expression("VALUE.a"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
+        assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
+        assertThat(p.hasNext()).isFalse();
+    }
+
+    @Test
+    void shouldOneStarTokenFollowingTheRoot() throws ExtractionException {
+        Parsers.ParsingContext p =
+                new Parsers.ParsingContext(
+                        "name", Expressions.Expression("VALUE.*"), Constant.VALUE);
+        p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("*");
         assertThat(p.hasNext()).isFalse();
     }
 
@@ -89,6 +103,8 @@ public class ParsersTest {
                 new Parsers.ParsingContext(
                         "name", Expressions.Expression("VALUE.a.b"), Constant.VALUE);
         p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isTrue();

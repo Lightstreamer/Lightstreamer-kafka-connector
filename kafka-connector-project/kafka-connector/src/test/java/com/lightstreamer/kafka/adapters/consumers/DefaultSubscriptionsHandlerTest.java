@@ -109,7 +109,7 @@ public class DefaultSubscriptionsHandlerTest {
         assertThat(subscriptionHandler.consumeAtStartup()).isFalse();
         assertThat(subscriptionHandler.allowImplicitItems()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
@@ -149,7 +149,7 @@ public class DefaultSubscriptionsHandlerTest {
                         () -> subscriptionHandler.subscribe("@invalidItem@", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
@@ -166,7 +166,7 @@ public class DefaultSubscriptionsHandlerTest {
         // Removal of subscribed item actual happens in the unsubscribe method
         // invoked by the Kernel following the forced unsubscription
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems()).hasSize(1);
+        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
 
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
@@ -183,7 +183,7 @@ public class DefaultSubscriptionsHandlerTest {
         // Removal of subscribed item actual happens in the unsubscribe method
         // invoked by the Kernel following the forced unsubscription
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems()).hasSize(1);
+        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
 
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
@@ -199,7 +199,7 @@ public class DefaultSubscriptionsHandlerTest {
                         () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Item does not match any defined item templates");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems()).isEmpty();
+        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }

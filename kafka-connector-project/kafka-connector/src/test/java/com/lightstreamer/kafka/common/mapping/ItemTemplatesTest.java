@@ -19,8 +19,8 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
 
@@ -150,7 +150,7 @@ public class ItemTemplatesTest {
     public void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_1, "item-template.template1,simple-item-1");
+                        TEST_TOPIC_1, "item-template.template1,template1");
 
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "stock-#{index=KEY.attrib}"));
@@ -163,9 +163,9 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("stock", Set.of("index")),
-                        Schema.from("simple-item-1", emptySet()));
+                        Schema.from("template1", emptySet()));
 
-        assertThat(templates.matches(Items.subscribedFrom("simple-item-1"))).isTrue();
+        assertThat(templates.matches(Items.subscribedFrom("template1"))).isTrue();
         assertThat(templates.matches(Items.subscribedFrom("stock-[index=1]"))).isTrue();
         assertThat(templates.matches(Items.subscribedFrom("stock-[index=2]"))).isTrue();
         assertThat(templates.matches(Items.subscribedFrom("simple-item-2"))).isFalse();

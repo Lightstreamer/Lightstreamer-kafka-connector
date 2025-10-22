@@ -277,15 +277,15 @@ class RecordConsumerSupport {
         }
 
         public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().update(sub.asText(), updates, isSnapshot);
+            listener().update(sub.asCanonicalItemName(), updates, isSnapshot);
         }
 
         public void clearSnapshot(SubscribedItem sub) {
-            listener().clearSnapshot(sub.asText());
+            listener().clearSnapshot(sub.asCanonicalItemName());
         }
 
         public void endOfSnapshot(SubscribedItem sub) {
-            listener().endOfSnapshot(sub.asText());
+            listener().endOfSnapshot(sub.asCanonicalItemName());
         }
     }
 
@@ -453,19 +453,16 @@ class RecordConsumerSupport {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
-            // Since the field maps are immutable, we have to wrap them with a new map
-            // to allow modifications.
-            Map<String, String> toBeDecorate = new HashMap<>(record.fieldsMap());
+            Map<String, String> event = record.fieldsMap();
             if (record.isPayloadNull()) {
-                // If the payload is null, just send a DELETE command
+                String key = Key.KEY.lookUp(event);
                 getLogger()
                         .atDebug()
-                        .log(
-                                "Payload is null, sending DELETE command for key: %s",
-                                Key.KEY.lookUp(toBeDecorate));
-                return CommandMode.deleteEvent(toBeDecorate);
+                        .log("Payload is null, sending DELETE command for key: %s", key);
+                return CommandMode.deleteEvent(event);
             }
-            return CommandMode.decorate(toBeDecorate, Command.ADD);
+
+            return CommandMode.decorate(event, Command.ADD);
         }
 
         @Override
@@ -478,16 +475,19 @@ class RecordConsumerSupport {
 
         static String SNAPSHOT = "snapshot";
 
-        static Map<String, String> DELETE_EVENT =
-                Map.of(Key.COMMAND.toString(), Command.DELETE.toString());
-
         static Map<String, String> decorate(Map<String, String> event, Command command) {
             event.put(Key.COMMAND.toString(), command.toString());
             return event;
         }
 
         static Map<String, String> deleteEvent(Map<String, String> event) {
-            return decorate(event, Command.DELETE);
+            // Creates a new event with only the key field: all other fields are discarded because
+            // they are not relevant for the deletion operation.
+            Map<String, String> deleteEvent = new HashMap<>();
+            deleteEvent.put(Key.KEY.key(), Key.KEY.lookUp(event));
+
+            // Decorate the event with DELETE command
+            return decorate(deleteEvent, Command.DELETE);
         }
 
         enum Command {
@@ -667,10 +667,10 @@ class RecordConsumerSupport {
         private void route(MappedRecord mappedRecord) {
             Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
             if (routable.size() > 0) {
-                log.atInfo().log(() -> "Routing record to %d items".formatted(routable.size()));
+                log.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
                 processUpdatesStrategy.processUpdates(updater, mappedRecord, routable);
             } else {
-                log.atInfo().log("No routable items found");
+                log.atDebug().log("No routable items found");
             }
         }
 
