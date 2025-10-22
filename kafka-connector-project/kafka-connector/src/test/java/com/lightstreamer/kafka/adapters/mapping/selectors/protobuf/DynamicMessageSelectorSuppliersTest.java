@@ -174,6 +174,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """
                 EXPRESSION                                | EXPECTED
                 VALUE.name                                | joe
+                VALUE['name']                             | joe
                 VALUE.email                               | <EMPTY>
                 VALUE.mainAddress.zip                     | <EMPTY>
                 VALUE.mainAddress.country.name            | <EMPTY>
@@ -261,9 +262,10 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                VALUE,                       Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib,             Cannot retrieve field [VALUE] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [VALUE] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -285,6 +287,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """
                 EXPRESSION                              | EXPECTED
                 KEY.name                                | joe
+                KEY['name']                             | joe
                 KEY.email                               | <EMPTY>
                 KEY.mainAddress.zip                     | <EMPTY>
                 KEY.mainAddress.country.name            | <EMPTY>
@@ -371,10 +374,11 @@ public class DynamicMessageSelectorSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION,                EXPECTED_ERROR_MESSAGE
+                KEY,                       Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib,             Cannot retrieve field [KEY] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [KEY] from a null object
+                KEY.no_children[0],        Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {
