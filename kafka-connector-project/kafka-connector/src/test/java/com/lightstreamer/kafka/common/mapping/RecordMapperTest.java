@@ -64,7 +64,7 @@ public class RecordMapperTest {
     public void shouldBuildEmptyMapper() {
         RecordMapper<String, String> mapper = builder().build();
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isFalse();
+        assertThat(mapper.hasTemplateExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
     }
@@ -82,7 +82,7 @@ public class RecordMapperTest {
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
@@ -106,7 +106,7 @@ public class RecordMapperTest {
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
@@ -133,7 +133,7 @@ public class RecordMapperTest {
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasExtractors()).isFalse();
+        assertThat(mapper.hasTemplateExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isTrue();
     }
 
@@ -168,7 +168,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
 
         // Record published to topic "topic": mapping
@@ -249,7 +249,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isTrue();
 
@@ -334,7 +334,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -394,7 +394,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -427,7 +427,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -463,7 +463,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -515,7 +515,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -589,7 +589,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -664,7 +664,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasExtractors()).isTrue();
+        assertThat(mapper.hasTemplateExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
