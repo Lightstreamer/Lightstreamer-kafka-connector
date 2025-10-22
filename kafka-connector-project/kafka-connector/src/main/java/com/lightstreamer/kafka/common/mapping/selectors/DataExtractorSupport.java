@@ -17,18 +17,16 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class DataExtractorSupport {
 
@@ -45,12 +43,19 @@ class DataExtractorSupport {
 
     private static final class DataExtractorImpl<K, V> implements DataExtractor<K, V> {
 
-        private final Schema schema;
-        private final WrapperSelectors<K, V> wrapperSelectors;
-        private final boolean skipOnFailure;
-        private final List<Function<KafkaRecord<K, V>, Data>> extractors = new ArrayList<>();
-        private final boolean mapNonScalars;
+        private static record WrapperSelectors<K, V>(
+                KeySelectorSupplier<K> keySelectorSupplier,
+                ValueSelectorSupplier<V> valueSelectorSupplier,
+                ConstantSelectorSupplier constantSelectorSupplier,
+                HeadersSelectorSupplier headersSelectorSupplier) {}
 
+        private final Schema schema;
+        private final boolean skipOnFailure;
+        private final Function<KafkaRecord<K, V>, Data>[] extractors;
+        private final boolean mapNonScalars;
+        private Function<KafkaRecord<K, V>, String> extractAsCanonical;
+
+        @SuppressWarnings("unchecked")
         DataExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
                 String schemaName,
@@ -59,21 +64,50 @@ class DataExtractorSupport {
                 boolean mapNonScalars)
                 throws ExtractionException {
 
-            this.wrapperSelectors = mkWrapperSelectors(sSuppliers, expressions);
-            this.schema = mkSchema(schemaName);
             this.skipOnFailure = skipOnFailure;
             this.mapNonScalars = mapNonScalars;
-            for (KeySelector<K> keySelector : wrapperSelectors.keySelectors()) {
-                this.extractors.add(record -> keySelector.extractKey(record, !mapNonScalars));
+            HeadersSelectorSupplier headersSelectorSupplier = new HeadersSelectorSupplier();
+            ConstantSelectorSupplier constantSelectorSupplier =
+                    new ConstantSelectorSupplier(
+                            Constant.OFFSET,
+                            Constant.PARTITION,
+                            Constant.TIMESTAMP,
+                            Constant.TOPIC);
+
+            WrapperSelectors<K, V> wrapperSelectors =
+                    new WrapperSelectors<>(
+                            sSuppliers.keySelectorSupplier(),
+                            sSuppliers.valueSelectorSupplier(),
+                            constantSelectorSupplier,
+                            headersSelectorSupplier);
+
+            Set<String> schemaKeys = new HashSet<>();
+            this.extractors =
+                    (Function<KafkaRecord<K, V>, Data>[]) new Function[expressions.size()];
+            Map<String, ExtractionExpression> sortedExpressions = new TreeMap<>(expressions);
+            int index = 0;
+            for (Map.Entry<String, ExtractionExpression> boundExpression :
+                    sortedExpressions.entrySet()) {
+                String key = boundExpression.getKey();
+                schemaKeys.add(key);
+                Function<KafkaRecord<K, V>, Data> dataExtractor =
+                        createDataExtractor(wrapperSelectors, key, boundExpression.getValue());
+                this.extractors[index++] = dataExtractor;
             }
-            for (ValueSelector<V> valueSelector : wrapperSelectors.valueSelectors()) {
-                this.extractors.add(record -> valueSelector.extractValue(record, !mapNonScalars));
-            }
-            for (ConstantSelector constantSelector : wrapperSelectors.metaSelectors()) {
-                this.extractors.add(record -> constantSelector.extract(record));
-            }
-            for (GenericSelector headerSelector : wrapperSelectors.headersSelectors()) {
-                this.extractors.add(record -> headerSelector.extract(record));
+
+            this.schema = Schema.from(schemaName, schemaKeys);
+            switch (this.extractors.length) {
+                case 0 -> this.extractAsCanonical = record -> schemaName;
+                case 1 ->
+                        this.extractAsCanonical =
+                                record ->
+                                        Data.buildItemNameSingle(
+                                                this.extractors[0].apply(record), schemaName);
+                default ->
+                        this.extractAsCanonical =
+                                record ->
+                                        Data.buildItemName(
+                                                this.extractDataArray(record), schemaName);
             }
         }
 
@@ -93,24 +127,86 @@ class DataExtractorSupport {
         }
 
         @Override
-        public SchemaAndValues extractData(KafkaRecord<K, V> record) throws ValueException {
-            BuildableSchemaAndValues schemaAndValues = new BuildableSchemaAndValues(schema);
-            for (Function<KafkaRecord<K, V>, Data> extractor : this.extractors) {
+        public Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException {
+            Map<String, String> values = new HashMap<>();
+            for (int i = 0; i < this.extractors.length; i++) {
                 try {
-                    Data data = extractor.apply(record);
-                    schemaAndValues.addValueNoKeyCheck(data.name(), data.text());
+                    Data data = this.extractors[i].apply(record);
+                    values.put(data.name(), data.text());
                 } catch (ValueException ve) {
                     if (!skipOnFailure) {
                         throw ve;
                     }
                 }
             }
-            return schemaAndValues;
+            return values;
+        }
+
+        @Override
+        public String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
+            return extractAsCanonical.apply(record);
+        }
+
+        private Data[] extractDataArray(KafkaRecord<K, V> record) {
+            Data[] data = new Data[this.extractors.length];
+            for (int i = 0; i < this.extractors.length; i++) {
+                data[i] = this.extractors[i].apply(record);
+            }
+            return data;
+        }
+
+        private Function<KafkaRecord<K, V>, Data> createDataExtractor(
+                WrapperSelectors<K, V> wrapperSelectors,
+                String key,
+                ExtractionExpression expression)
+                throws ExtractionException {
+            Function<KafkaRecord<K, V>, Data> dataExtractor =
+                    switch (expression.constant()) {
+                        case KEY -> {
+                            KeySelector<K> keySelector =
+                                    mkSelector(
+                                            wrapperSelectors.keySelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield record -> keySelector.extractKey(record, !mapNonScalars);
+                        }
+                        case VALUE -> {
+                            ValueSelector<V> valueSelector =
+                                    mkSelector(
+                                            wrapperSelectors.valueSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield record -> valueSelector.extractValue(record, !mapNonScalars);
+                        }
+                        case HEADERS -> {
+                            GenericSelector headerSelector =
+                                    mkSelector(
+                                            wrapperSelectors.headersSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield record -> headerSelector.extract(record);
+                        }
+                        default -> {
+                            ConstantSelector constantSelector =
+                                    mkSelector(
+                                            wrapperSelectors.constantSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield record -> constantSelector.extract(record);
+                        }
+                    };
+            return dataExtractor;
+        }
+
+        static <T extends Selector> T mkSelector(
+                SelectorSupplier<T> selectorSupplier, String param, ExtractionExpression expression)
+                throws ExtractionException {
+            return selectorSupplier.newSelector(param, expression);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(wrapperSelectors, schema, skipOnFailure, mapNonScalars);
+            return Objects.hash(schema, skipOnFailure, mapNonScalars);
         }
 
         @Override
@@ -118,91 +214,10 @@ class DataExtractorSupport {
             if (this == obj) return true;
 
             return obj instanceof DataExtractorImpl<?, ?> other
-                    && Objects.equals(wrapperSelectors, other.wrapperSelectors)
                     && Objects.equals(schema, other.schema)
                     && Objects.equals(skipOnFailure, other.skipOnFailure)
-                    && Objects.equals(skipOnFailure, other.mapNonScalars);
+                    && Objects.equals(mapNonScalars, other.mapNonScalars);
         }
-
-        private Schema mkSchema(String schemaName) {
-            Stream<String> keyNames = wrapperSelectors.keySelectors().stream().map(Selector::name);
-            Stream<String> valueNames =
-                    wrapperSelectors.valueSelectors().stream().map(Selector::name);
-            Stream<String> metaNames =
-                    wrapperSelectors.metaSelectors().stream().map(Selector::name);
-            Stream<String> headerNames =
-                    wrapperSelectors.headersSelectors().stream().map(Selector::name);
-
-            return Schema.from(
-                    schemaName,
-                    Stream.of(metaNames, keyNames, valueNames, headerNames)
-                            .flatMap(Function.identity())
-                            .collect(Collectors.toSet()));
-        }
-    }
-
-    private static class Appender<T extends Selector> {
-
-        private final Set<T> selectors;
-        private final SelectorSupplier<T> selectorSupplier;
-
-        Appender(Set<T> selectors, SelectorSupplier<T> selectorSupplier) {
-            this.selectors = selectors;
-            this.selectorSupplier = selectorSupplier;
-        }
-
-        void append(String param, ExtractionExpression expression) throws ExtractionException {
-            T newSelector = selectorSupplier.newSelector(param, expression);
-            if (!selectors.add(newSelector)) {
-                throw ExtractionException.invalidExpression(param, expression.expression());
-            }
-        }
-    }
-
-    private static record WrapperSelectors<K, V>(
-            Set<KeySelector<K>> keySelectors,
-            Set<ValueSelector<V>> valueSelectors,
-            Set<ConstantSelector> metaSelectors,
-            Set<GenericSelector> headersSelectors) {
-
-        WrapperSelectors() {
-            this(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
-        }
-    }
-
-    private static <K, V> WrapperSelectors<K, V> mkWrapperSelectors(
-            KeyValueSelectorSuppliers<K, V> sSuppliers,
-            Map<String, ExtractionExpression> expressions)
-            throws ExtractionException {
-
-        WrapperSelectors<K, V> ws = new WrapperSelectors<>();
-        Appender<KeySelector<K>> kFiller =
-                new Appender<>(ws.keySelectors(), sSuppliers.keySelectorSupplier());
-        Appender<ValueSelector<V>> vFiller =
-                new Appender<>(ws.valueSelectors(), sSuppliers.valueSelectorSupplier());
-        Appender<ConstantSelector> mFiller =
-                new Appender<>(
-                        ws.metaSelectors(),
-                        new ConstantSelectorSupplier(
-                                Constant.OFFSET,
-                                Constant.PARTITION,
-                                Constant.TIMESTAMP,
-                                Constant.TOPIC));
-        Appender<GenericSelector> hFiller =
-                new Appender<>(ws.headersSelectors(), new HeadersSelectorSupplier());
-
-        for (Map.Entry<String, ExtractionExpression> boundExpression : expressions.entrySet()) {
-            Constant root = boundExpression.getValue().constant();
-            Appender<?> filler =
-                    switch (root) {
-                        case KEY -> kFiller;
-                        case VALUE -> vFiller;
-                        case HEADERS -> hFiller;
-                        default -> mFiller;
-                    };
-            filler.append(boundExpression.getKey(), boundExpression.getValue());
-        }
-        return ws;
     }
 
     private DataExtractorSupport() {}

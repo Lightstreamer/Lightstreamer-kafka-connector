@@ -420,7 +420,7 @@ public class ConnectorConfiguratorTest {
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [value] while evaluating [template]: <Invalid template expression>");
+                        "Got the following error while evaluating the template [template] containing the expression [value]: <Invalid template expression>");
     }
 
     @Test
@@ -462,13 +462,13 @@ public class ConnectorConfiguratorTest {
         return Stream.of(
                 arguments(
                         "NOT_WITHIN_BRACKET_NOTATION",
-                        "Found the invalid expression [NOT_WITHIN_BRACKET_NOTATION] while evaluating [fieldName1]: <Invalid expression>"),
+                        "Got the following error while evaluating the field [fieldName1] containing the expression [NOT_WITHIN_BRACKET_NOTATION]: <Invalid expression>"),
                 arguments(
                         "VALUE",
-                        "Found the invalid expression [VALUE] while evaluating [fieldName1]: <Invalid expression>"),
+                        "Got the following error while evaluating the field [fieldName1] containing the expression [VALUE]: <Invalid expression>"),
                 arguments(
                         "#{UNRECOGNIZED}",
-                        "Found the invalid expression [#{UNRECOGNIZED}] while evaluating [fieldName1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>"));
+                        "Got the following error while evaluating the field [fieldName1] containing the expression [#{UNRECOGNIZED}]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>"));
     }
 
     @ParameterizedTest
@@ -519,8 +519,8 @@ public class ConnectorConfiguratorTest {
                         ConfigException.class, () -> newConfigurator(updatedConfigs).configure());
         assertThat(e.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression ["
+                        "Got the following error while evaluating the template [template1] containing the expression ["
                                 + expression
-                                + "] while evaluating [template1]: <Invalid template expression>");
+                                + "]: <Invalid template expression>");
     }
 }

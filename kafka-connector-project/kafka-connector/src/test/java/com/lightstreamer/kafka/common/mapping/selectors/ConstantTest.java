@@ -15,12 +15,14 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.common.expressions;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

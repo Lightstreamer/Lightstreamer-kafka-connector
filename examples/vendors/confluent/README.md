@@ -116,7 +116,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/vendors/confluent/quickstart-confluent/`](/examples/vendors/confluent/quickstart-confluent/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
+![QuickStart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -217,7 +217,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_QuickStart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStartConfluentCloud` in the file as follows:
 
@@ -423,7 +423,7 @@ As shown in the [source code](web-client/index.html), consuming live data from t
 
    ```js
    var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
-   stockSubscription.setDataAdapter("QuickStart");
+   stockSubscription.setDataAdapter("QuickStartConfluentCloud");
    stockSubscription.addListener(stocksGrid);
    lsClient.subscribe(stockSubscription);
    ```
@@ -780,7 +780,7 @@ Example:
 
 #### Quick Start SSL Example
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 ### Broker Authentication Parameters
 
@@ -1640,9 +1640,9 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start Schema Registry Example
+#### Schema Registry QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Client Side Error Handling
 
@@ -1866,7 +1866,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _QuickStart_ app.
 
 ## Supported Converters
 

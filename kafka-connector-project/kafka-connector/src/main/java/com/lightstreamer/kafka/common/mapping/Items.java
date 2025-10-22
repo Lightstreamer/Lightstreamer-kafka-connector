@@ -28,14 +28,13 @@ import static java.util.stream.Collectors.toSet;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,7 +49,10 @@ import java.util.regex.Pattern;
 
 public class Items {
 
-    public interface Item extends SchemaAndValues {}
+    public interface Item {
+
+        Schema schema();
+    }
 
     public interface SubscribedItem extends Item {
 
@@ -59,6 +61,8 @@ public class Items {
         boolean isSnapshot();
 
         void setSnapshot(boolean flag);
+
+        String asCanonicalItemName();
     }
 
     /**
@@ -219,43 +223,36 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
-    static class DefaultSubscribedItem implements SubscribedItem {
+    private static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
-        private final SchemaAndValues schemaAndValues;
+        private final String normalizedString;
+        private final Schema schema;
         private boolean snapshotFlag;
 
-        DefaultSubscribedItem(SchemaAndValues schemaAndValues) {
-            this(null, schemaAndValues);
-        }
-
-        DefaultSubscribedItem(Object itemHandle, SchemaAndValues schemaAndValues) {
-            this.schemaAndValues = Objects.requireNonNull(schemaAndValues);
+        DefaultSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+            this.normalizedString = expression.asCanonicalItemName();
+            this.schema = expression.schema();
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, schemaAndValues);
+            return Objects.hash(itemHandle, normalizedString);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             return obj instanceof DefaultSubscribedItem other
-                    && Objects.equals(schemaAndValues, other.schemaAndValues)
+                    && normalizedString.equals(other.normalizedString)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
 
         @Override
         public Schema schema() {
-            return schemaAndValues.schema();
-        }
-
-        @Override
-        public Map<String, String> values() {
-            return schemaAndValues.values();
+            return schema;
         }
 
         @Override
@@ -274,8 +271,8 @@ public class Items {
         }
 
         @Override
-        public String toString() {
-            return schemaAndValues.toString();
+        public String asCanonicalItemName() {
+            return normalizedString;
         }
     }
 
@@ -292,7 +289,7 @@ public class Items {
         }
 
         public boolean matches(Item item) {
-            return schema.matches(item.schema());
+            return schema.equals(item.schema());
         }
 
         DataExtractor<K, V> selectors() {
@@ -369,6 +366,19 @@ public class Items {
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
         }
+    }
+
+    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
+        return subscribedFrom(input, input);
+    }
+
+    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
+            throws ExpressionException {
+        return subscribedFrom(Expressions.Subscription(input), itemHandle);
+    }
+
+    static SubscribedItem subscribedFrom(SubscriptionExpression expression, Object itemHandle) {
+        return new DefaultSubscribedItem(expression, itemHandle);
     }
 
     public static <K, V> ItemTemplates<K, V> templatesFrom(

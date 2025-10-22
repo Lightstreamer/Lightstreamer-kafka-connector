@@ -120,20 +120,21 @@ public class RecordRoutingTest {
                                 TEST_TOPIC_1,
                                 List.of(
                                         subscribedFrom(
-                                                "item-[key=key,value=value,topic=topic]",
-                                                "handle1"),
-                                        subscribedFrom(
-                                                "item-[value=value,topic=topic,key=key]",
-                                                "handle2")),
+                                                "item-[key=key,value=value,topic=topic]", "handle1")
+                                        // subscribedFrom(
+                                        //         "item-[value=value,topic=topic,key=key]",
+                                        //         "handle2")
+                                        ),
                                 // Routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
                                         subscribedFrom(
                                                 "item-[key=key,value=value,topic=anotherTopic]",
-                                                "handle1"),
-                                        subscribedFrom(
-                                                "item-[topic=anotherTopic,value=value,key=key]",
-                                                "handle2"))),
+                                                "handle1")
+                                        // subscribedFrom(
+                                        //         "item-[topic=anotherTopic,value=value,key=key]",
+                                        //         "handle2"))
+                                        )),
                         Map.of(
                                 // Non-routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,

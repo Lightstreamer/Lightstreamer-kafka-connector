@@ -58,14 +58,14 @@ public class Mocks {
     public static class MockConsumer<K, V>
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
 
-        private KafkaException commitException;
+        private RuntimeException commitException;
         private KafkaException listTopicException;
 
         public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
             super(offsetResetStrategy);
         }
 
-        public void setCommitException(KafkaException exception) {
+        public void setCommitException(RuntimeException exception) {
             this.commitException = exception;
         }
 

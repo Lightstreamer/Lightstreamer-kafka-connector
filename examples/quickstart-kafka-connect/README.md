@@ -1,12 +1,12 @@
-# Quick Start for Kafka Connect
+# Kafka Connect QuickStart
 
-This folder contains the resources required to build a version of the [_Quick Start_]((../../README.md#quick-start-set-up-in-5-minutes)) app based on the Kafka Connect Lightstreamer Sink Connector plugin.
+This folder contains the resources required to build a version of the [_QuickStart_]((../../README.md#quick-start-set-up-in-5-minutes)) app based on the Kafka Connect Lightstreamer Sink Connector plugin.
 
-![Quickstart Diagram](../../pictures/quickstart-kafka-connect-diagram.png)
+![QuickStart Diagram](../../pictures/quickstart-kafka-connect-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the connector running on Kafka Connect and Lightstreamer Server.
 
-As with the original _Quick Start_, this app is structured as a Docker Compose stack. The Docker Compose file comprises the following services:
+As with the original _QuickStart_, this app is structured as a Docker Compose stack. The Docker Compose file comprises the following services:
 
 1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). 
 

@@ -23,7 +23,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -233,7 +232,7 @@ public class Offsets {
                 log.atTrace().log("Offsets to commit: {}", offsets);
                 consumer.commitSync(offsets);
                 log.atInfo().log("Offsets committed");
-            } catch (KafkaException e) {
+            } catch (RuntimeException e) {
                 log.atError().setCause(e).log("Unable to commit offsets");
                 if (!ignoreErrors) {
                     log.atDebug().log("Rethrowing the error");

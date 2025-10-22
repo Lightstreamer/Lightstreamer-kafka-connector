@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
+import com.lightstreamer.interfaces.metadata.ItemsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
@@ -51,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -281,6 +283,46 @@ public class AdapterSetTest {
         assertThat(closedTables).isNotNull();
         assertThat(closedTables.sessionId()).isEqualTo("sessionId");
         assertThat(closedTables.tables()).isEqualTo(tables);
+    }
+
+    static Stream<Arguments> provideRemapItems() {
+        return Stream.of(
+                Arguments.of("item1 item2", List.of("item1", "item2")),
+                Arguments.of(" item1   item2 ", List.of("item1", "item2")),
+                Arguments.of("item1", List.of("item1")),
+                Arguments.of("item-1 item_2 item.3", List.of("item-1", "item_2", "item.3")),
+                Arguments.of("", Collections.emptyList()),
+                Arguments.of("   ", Collections.emptyList()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideRemapItems")
+    void shouldRemapItems(String input, List<String> expected)
+            throws MetadataProviderException, ItemsException {
+        doInit();
+
+        String[] items =
+                connectorMetadataAdapter.remapItems("user", "sessionId", input, "dataAdapter");
+        assertThat(items).asList().isEqualTo(expected);
+    }
+
+    static Stream<Arguments> provideGetIItems() {
+        return Stream.of(
+                Arguments.of(
+                        "item-[c=1,a=2,b=3] item-[b=1,c=2,a=3]",
+                        List.of("item-[a=2,b=3,c=1]", "item-[a=3,b=1,c=2]")),
+                Arguments.of("", Collections.emptyList()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideGetIItems")
+    void shouldGetItems(String input, List<String> normalizedItems)
+            throws MetadataProviderException, ItemsException {
+        doInit();
+
+        String[] items =
+                connectorMetadataAdapter.getItems("user", "sessionId", input, "dataAdapter");
+        assertThat(items).asList().isEqualTo(normalizedItems);
     }
 
     static Stream<Arguments> modes() {
