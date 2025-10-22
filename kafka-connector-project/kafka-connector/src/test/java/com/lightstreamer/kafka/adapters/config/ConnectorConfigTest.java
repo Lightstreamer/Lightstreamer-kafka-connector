@@ -1299,7 +1299,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGeCommandModeEnforce() {
+    public void shouldGetCommandModeEnforce() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.isCommandEnforceEnabled()).isFalse();
 
