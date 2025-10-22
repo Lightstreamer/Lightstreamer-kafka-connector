@@ -100,15 +100,15 @@ public class MappedRecordTest {
         SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
 
         SubscribedItems subscribedItems1 = SubscribedItems.create();
-        subscribedItems1.addItem("item1", matchingItem1);
-        subscribedItems1.addItem("item2", matchingItem2);
-        subscribedItems1.addItem("item3", notMatchingBindParameters);
-        subscribedItems1.addItem("item4", notMatchingSchema);
+        subscribedItems1.addItem(matchingItem1);
+        subscribedItems1.addItem(matchingItem2);
+        subscribedItems1.addItem(notMatchingBindParameters);
+        subscribedItems1.addItem(notMatchingSchema);
         assertThat(record.route(subscribedItems1)).containsExactly(matchingItem1, matchingItem2);
 
         SubscribedItems subscribedItems2 = SubscribedItems.create();
-        subscribedItems2.addItem("item3", notMatchingBindParameters);
-        subscribedItems2.addItem("item4", notMatchingSchema);
+        subscribedItems2.addItem(notMatchingBindParameters);
+        subscribedItems2.addItem(notMatchingSchema);
         assertThat(record.route(subscribedItems2)).isEmpty();
     }
 
@@ -125,23 +125,21 @@ public class MappedRecordTest {
         SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
         SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
         SubscribedItems subscribedItems = SubscribedItems.create();
-        subscribedItems.addItem("simple-item-1", matchingItem1);
-        subscribedItems.addItem("simple-item-2", matchingItem2);
-        subscribedItems.addItem("simple-item-3", notMatchingItem);
+        subscribedItems.addItem(matchingItem1);
+        subscribedItems.addItem(matchingItem2);
+        subscribedItems.addItem(notMatchingItem);
         assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
     }
 
     @Test
     public void shouldRouteAll() {
-        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
-        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
         DefaultMappedRecord record =
                 new DefaultMappedRecord(
-                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
+                        List.of("simple-item-1", "simple-item-2").toArray(new String[0]));
 
         Set<SubscribedItem> routeAll = record.routeAll();
-        SubscribedItem autoSubscription1 = Items.subscribedFrom(expandedTemplate1);
-        SubscribedItem autoSubscription2 = Items.subscribedFrom(expandedTemplate2);
+        SubscribedItem autoSubscription1 = Items.subscribedFrom("simple-item-1");
+        SubscribedItem autoSubscription2 = Items.subscribedFrom("simple-item-2");
         assertThat(routeAll).containsExactly(autoSubscription1, autoSubscription2);
     }
 }
