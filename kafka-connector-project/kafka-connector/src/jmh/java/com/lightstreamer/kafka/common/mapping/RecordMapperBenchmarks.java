@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.common.mapping;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -87,7 +87,7 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
-            ConsumerTriggerConfig<String, DynamicMessage> config =
+            Config<String, DynamicMessage> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
@@ -129,7 +129,7 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
-            ConsumerTriggerConfig<String, JsonNode> config =
+            Config<String, JsonNode> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(

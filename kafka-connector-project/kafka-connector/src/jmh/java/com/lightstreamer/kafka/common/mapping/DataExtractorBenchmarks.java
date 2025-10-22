@@ -24,7 +24,7 @@ import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -70,7 +70,7 @@ public class DataExtractorBenchmarks {
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
-            ConsumerTriggerConfig<String, DynamicMessage> config =
+            Config<String, DynamicMessage> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
             templateExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
@@ -92,7 +92,7 @@ public class DataExtractorBenchmarks {
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
-            ConsumerTriggerConfig<String, JsonNode> config =
+            Config<String, JsonNode> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
             templateExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
