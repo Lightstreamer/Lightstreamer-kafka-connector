@@ -19,13 +19,14 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 
@@ -106,8 +107,7 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            ConsumerTriggerConfig<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3);
+            Config<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3);
 
             // Configure the RecordMapper.
             RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
@@ -117,7 +117,7 @@ public class RecordConsumerBenchmark {
             this.recordConsumer =
                     RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .enforceCommandMode(false)
+                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
                             .errorStrategy(config.errorHandlingStrategy())
@@ -134,7 +134,7 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            recordConsumer.close();
+            recordConsumer.terminate();
             listener.show();
         }
     }
@@ -180,7 +180,7 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            ConsumerTriggerConfig<String, DynamicMessage> config =
+            Config<String, DynamicMessage> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
 
             // Configure the RecordMapper.
@@ -192,7 +192,7 @@ public class RecordConsumerBenchmark {
             this.recordConsumer =
                     RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .enforceCommandMode(false)
+                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
                             .errorStrategy(config.errorHandlingStrategy())
@@ -209,7 +209,7 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            recordConsumer.close();
+            recordConsumer.terminate();
             listener.show();
         }
     }
