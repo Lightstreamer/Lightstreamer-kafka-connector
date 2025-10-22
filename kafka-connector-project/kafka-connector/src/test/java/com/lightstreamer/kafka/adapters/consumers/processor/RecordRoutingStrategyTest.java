@@ -94,7 +94,7 @@ public class RecordRoutingStrategyTest {
 
     private static RecordRoutingStrategy defaultStrategy() {
         SubscribedItems subscribed = SubscribedItems.create();
-        subscribed.addItem("item", Items.subscribedFrom("item", new Object()));
+        subscribed.addItem(Items.subscribedFrom("item", new Object()));
         return new DefaultRoutingStrategy(subscribed);
     }
 
