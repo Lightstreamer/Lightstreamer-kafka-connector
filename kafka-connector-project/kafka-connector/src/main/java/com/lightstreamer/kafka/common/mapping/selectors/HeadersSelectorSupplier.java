@@ -24,13 +24,49 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector> {
 
     interface HeaderNode extends Node<HeaderNode> {
+
+        default HeaderNode get(String propertyName) {
+            return null;
+        }
+
+        default boolean has(String propertyName) {
+            return false;
+        }
+
+        default HeaderNode get(int index) {
+            return null;
+        }
+
+        default boolean isArray() {
+            return true;
+        }
+
+        default boolean isScalar() {
+            return !isArray();
+        }
+
+        default Iterator<KafkaHeader> iterator() {
+            return Collections.emptyIterator();
+        }
+
+        @Override
+        default void visit(Consumer<Data> visitor) {
+            Iterator<KafkaHeader> iter = iterator();
+            while (iter.hasNext()) {
+                KafkaHeader header = iter.next();
+                visitor.accept(Data.from(header.key(), HeaderNode.toText(header)));
+            }
+        }
 
         static String toText(KafkaHeader header) {
             return new String(header.value(), StandardCharsets.UTF_8);
@@ -40,33 +76,51 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
     static class SingleHeaderNode implements HeaderNode {
 
         private final KafkaHeader header;
+        private String name = "";
 
-        SingleHeaderNode(KafkaHeader header) {
+        SingleHeaderNode(String name, KafkaHeader header) {
+            this.name = name;
             this.header = header;
         }
 
         @Override
-        public String asText() {
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public String text() {
             return HeaderNode.toText(header);
         }
 
         @Override
-        public boolean isScalar() {
-            return true;
-        }
-    }
-
-    static class ArrayHeaderNode implements HeaderNode {
-
-        private final List<KafkaHeader> headers;
-
-        ArrayHeaderNode(List<KafkaHeader> headers) {
-            this.headers = headers;
+        public boolean isArray() {
+            return false;
         }
 
         @Override
-        public boolean isArray() {
-            return true;
+        public int size() {
+            return 0;
+        }
+
+        @Override
+        public void visit(Consumer<Data> visitor) {
+            visitor.accept(Data.from(header.key(), text()));
+        }
+    }
+
+    static class SubArrayHeaderNode implements HeaderNode {
+
+        private final List<KafkaHeader> headers;
+        private final String name;
+
+        SubArrayHeaderNode(String name, List<KafkaHeader> headers) {
+            this.name = name;
+            this.headers = headers;
+        }
+
+        public String name() {
+            return name;
         }
 
         @Override
@@ -75,12 +129,26 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
         }
 
         @Override
-        public Node<HeaderNode> get(int index) {
-            return new SingleHeaderNode(headers.get(index));
+        public void visit(Consumer<Data> visitor) {
+            Iterator<KafkaHeader> iter = headers.iterator();
+            while (iter.hasNext()) {
+                KafkaHeader header = iter.next();
+                visitor.accept(Data.from(header.key(), HeaderNode.toText(header)));
+            }
         }
 
         @Override
-        public String asText() {
+        public HeaderNode get(int index) {
+            return new SingleHeaderNode(name + "[" + index + "]", headers.get(index));
+        }
+
+        @Override
+        public Iterator<KafkaHeader> iterator() {
+            return headers.iterator();
+        }
+
+        @Override
+        public String text() {
             return headers.stream()
                     .map(HeaderNode::toText)
                     .collect(Collectors.joining(", ", "[", "]"));
@@ -90,29 +158,35 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
     static class HeadersNode implements HeaderNode {
 
         private final KafkaHeaders headers;
+        private final String name;
 
-        HeadersNode(KafkaHeaders headers) {
+        HeadersNode(String name, KafkaHeaders headers) {
+            this.name = name;
             this.headers = headers;
         }
 
         @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
         public boolean has(String propertyname) {
-            return headers.lastHeader(propertyname) != null;
+            return headers.has(propertyname);
         }
 
         @Override
-        public Node<HeaderNode> get(String propertyname) {
+        public HeaderNode get(String propertyname) {
             List<KafkaHeader> headersList = headers.headers(propertyname);
-            return switch (headersList.size()) {
-                case 0 -> Node.nullNode();
-                case 1 -> new SingleHeaderNode(headersList.get(0));
-                default -> new ArrayHeaderNode(headersList);
-            };
-        }
+            if (headersList == null) {
+                return null;
+            }
 
-        @Override
-        public boolean isArray() {
-            return true;
+            if (headersList.size() == 1) {
+                return new SingleHeaderNode(propertyname, headersList.get(0));
+            }
+
+            return new SubArrayHeaderNode(propertyname, headersList);
         }
 
         @Override
@@ -121,17 +195,22 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
         }
 
         @Override
-        public Node<HeaderNode> get(int index) {
-            return new SingleHeaderNode(headers.get(index));
+        public HeaderNode get(int index) {
+            KafkaHeader header = headers.get(index);
+            String name =
+                    header.localIndex() == -1
+                            ? header.key()
+                            : header.key() + "[" + header.localIndex() + "]";
+            return new SingleHeaderNode(name, header);
         }
 
         @Override
-        public boolean isScalar() {
-            return false;
+        public Iterator<KafkaHeader> iterator() {
+            return headers.iterator();
         }
 
         @Override
-        public String asText() {
+        public String text() {
             StringBuilder sb = new StringBuilder();
             sb.append("{");
             Iterator<KafkaHeader> iter = headers.iterator();
@@ -157,10 +236,12 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
 
         @Override
         public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
-            return super.eval(
-                    () -> record.headers(),
-                    h -> Node.rootNode(() -> new HeadersNode(h)),
-                    checkScalar);
+            return eval(record::headers, HeadersNode::new, checkScalar);
+        }
+
+        @Override
+        public Collection<Data> extractMulti(KafkaRecord<?, ?> record) throws ValueException {
+            return evalMulti(record::headers, HeadersNode::new);
         }
     }
 
