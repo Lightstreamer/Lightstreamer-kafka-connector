@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.expressions.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
 import static org.junit.Assert.assertThrows;
@@ -33,8 +33,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -86,37 +87,28 @@ public class DataExtractorTest {
     static Stream<Arguments> extractorFromExtractionExpressions() {
         return Stream.of(
                 arguments(
-                        TEST_SCHEMA,
-                        EMPTY_MAP,
-                        false,
-                        false,
-                        Schema.empty(TEST_SCHEMA),
-                        EMPTY_MAP,
-                        TEST_SCHEMA),
+                        TEST_SCHEMA, EMPTY_MAP, false, false, Schema.empty(TEST_SCHEMA), EMPTY_MAP),
                 arguments(
                         TEST_SCHEMA,
                         Map.of("name", Expression("VALUE")),
                         true,
                         false,
                         Schema.from(TEST_SCHEMA, Set.of("name")),
-                        Map.of("name", "aValue"),
-                        TEST_SCHEMA + "-[name=aValue]"),
+                        Map.of("name", "aValue")),
                 arguments(
                         "aSchemaName",
                         Map.of("value", Expression("VALUE"), "key", Expression("KEY")),
                         false,
                         true,
                         Schema.from("aSchemaName", Set.of("value", "key")),
-                        Map.of("key", "aKey", "value", "aValue"),
-                        "aSchemaName-[key=aKey,value=aValue]"),
+                        Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         "anotherSchemaName",
                         Map.of("value1", Expression("VALUE"), "key1", Expression("KEY")),
                         true,
                         false,
                         Schema.from("anotherSchemaName", Set.of("value1", "key1")),
-                        Map.of("key1", "aKey", "value1", "aValue"),
-                        "anotherSchemaName-[key1=aKey,value1=aValue]"),
+                        Map.of("key1", "aKey", "value1", "aValue")),
                 arguments(
                         "mySchemaName",
                         Map.of(
@@ -129,8 +121,7 @@ public class DataExtractorTest {
                         false,
                         true,
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "topic")),
-                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1"),
-                        "mySchemaName-[partition=150,timestamp=-1,topic=record-topic]"),
+                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
                 arguments(
                         "mySchemaName",
                         Map.of(
@@ -141,8 +132,7 @@ public class DataExtractorTest {
                         true,
                         false,
                         Schema.from("mySchemaName", Set.of("header1", "header2")),
-                        Map.of("header1", "header-value1", "header2", "header-value2"),
-                        "mySchemaName-[header1=header-value1,header2=header-value2]"));
+                        Map.of("header1", "header-value1", "header2", "header-value2")));
     }
 
     @ParameterizedTest
@@ -153,8 +143,7 @@ public class DataExtractorTest {
             boolean skipOnFailure,
             boolean mapNonScalars,
             Schema expectedSchema,
-            Map<String, String> expectedValues,
-            String expectedCompactedString)
+            Map<String, String> expectedValues)
             throws ExtractionException {
         DataExtractor<String, String> extractor =
                 extractor(String(), schemaName, expressions, skipOnFailure, mapNonScalars);
@@ -169,10 +158,9 @@ public class DataExtractorTest {
                         .add("header-key2", "header-value2".getBytes());
         KafkaRecord<String, String> kafkaRecord =
                 Records.recordWithHeaders("aKey", "aValue", headers);
-        Map<String, String> values = extractor.extractAsMap(kafkaRecord);
+        SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
+        Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
-        assertThat(extractor.extractAsCanonicalItem(kafkaRecord))
-                .isEqualTo(expectedCompactedString);
     }
 
     static Stream<Arguments> extractorArgumentsFromTemplateExpressions() {
@@ -180,30 +168,25 @@ public class DataExtractorTest {
                 arguments(
                         Template("prefix-#{name=VALUE}"),
                         Schema.from("prefix", Set.of("name")),
-                        Map.of("name", "aValue"),
-                        "prefix-[name=aValue]"),
+                        Map.of("name", "aValue")),
                 arguments(
                         Template("aTemplate-#{value=VALUE,key=KEY}"),
                         Schema.from("aTemplate", Set.of("value", "key")),
-                        Map.of("key", "aKey", "value", "aValue"),
-                        "aTemplate-[key=aKey,value=aValue]"),
+                        Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         Template("anotherTemplate-#{value1=VALUE,key1=KEY}"),
                         Schema.from("anotherTemplate", Set.of("value1", "key1")),
-                        Map.of("key1", "aKey", "value1", "aValue"),
-                        "anotherTemplate-[key1=aKey,value1=aValue]"),
+                        Map.of("key1", "aKey", "value1", "aValue")),
                 arguments(
                         Template(
                                 "mySchemaName-#{timestamp=TIMESTAMP,partition=PARTITION,topic=TOPIC}"),
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "topic")),
-                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1"),
-                        "mySchemaName-[partition=150,timestamp=-1,topic=record-topic]"),
+                        Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
                 arguments(
                         Template(
                                 "mySchemaName-#{timestamp=TIMESTAMP,partition=PARTITION,headers=HEADERS[0]}"),
                         Schema.from("mySchemaName", Set.of("timestamp", "partition", "headers")),
-                        Map.of("partition", "150", "timestamp", "-1", "headers", "header-value1"),
-                        "mySchemaName-[headers=header-value1,partition=150,timestamp=-1]"));
+                        Map.of("partition", "150", "timestamp", "-1", "headers", "header-value1")));
     }
 
     @ParameterizedTest
@@ -211,8 +194,7 @@ public class DataExtractorTest {
     public void shouldCreateAndExtractValuesFromTemplateExpressions(
             TemplateExpression templateExpression,
             Schema expectedSchema,
-            Map<String, String> expectedValues,
-            String expectedCompactedString)
+            Map<String, String> expectedValues)
             throws ExtractionException {
         DataExtractor<String, String> extractor = extractor(String(), templateExpression);
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
@@ -223,10 +205,9 @@ public class DataExtractorTest {
         KafkaRecord<String, String> kafkaRecord =
                 Records.recordWithHeaders("aKey", "aValue", headers);
 
-        Map<String, String> values = extractor.extractAsMap(kafkaRecord);
+        SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
+        Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEqualTo(expectedValues);
-        assertThat(extractor.extractAsCanonicalItem(kafkaRecord))
-                .isEqualTo(expectedCompactedString);
     }
 
     @Test
@@ -237,9 +218,9 @@ public class DataExtractorTest {
         assertThat(extractor.mapNonScalars()).isFalse();
 
         KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
-        Map<String, String> values = extractor.extractAsMap(kafkaRecord);
+        SchemaAndValues schemaAndValues = extractor.extractData(kafkaRecord);
+        Map<String, String> values = schemaAndValues.values();
         assertThat(values).isEmpty();
-        assertThat(extractor.extractAsCanonicalItem(kafkaRecord)).isEqualTo(TEST_SCHEMA);
     }
 
     @Test
@@ -257,27 +238,15 @@ public class DataExtractorTest {
                         false);
 
         // We expect that the whole extraction fails
-        ValueException ve =
-                assertThrows(
-                        ValueException.class,
-                        () ->
-                                extractor.extractAsMap(
-                                        Records.record(
-                                                "aKey", SampleJsonNodeProvider().sampleMessage())));
-        assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
-
-        ve =
-                assertThrows(
-                        ValueException.class,
-                        () ->
-                                extractor.extractAsCanonicalItem(
-                                        Records.record(
-                                                "aKey", SampleJsonNodeProvider().sampleMessage())));
-        assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
+        assertThrows(
+                ValueException.class,
+                () ->
+                        extractor.extractData(
+                                Records.record("aKey", SampleJsonNodeProvider().sampleMessage())));
     }
 
     @Test
-    public void shouldSkipFailureExtractionAsMap() throws ExtractionException {
+    public void shouldSkipFailureExtraction() throws ExtractionException {
         DataExtractor<String, JsonNode> extractor =
                 extractor(
                         TestSelectorSuppliers.JsonValue(),
@@ -291,10 +260,10 @@ public class DataExtractorTest {
                         false);
 
         // We expect that only the extraction related to the VALUE.undefined_attrib fails
-        KafkaRecord<String, JsonNode> record =
-                Records.record("aKey", SampleJsonNodeProvider().sampleMessage());
-        Map<String, String> tryExtractData = extractor.extractAsMap(record);
-        assertThat(tryExtractData).containsAtLeast("name", "joe");
+        SchemaAndValues tryExtractData =
+                extractor.extractData(
+                        Records.record("aKey", SampleJsonNodeProvider().sampleMessage()));
+        assertThat(tryExtractData.values()).containsAtLeast("name", "joe");
     }
 
     @Test
@@ -317,14 +286,11 @@ public class DataExtractorTest {
         JsonNode message = om.readTree("{\"name\": \"joe\"}");
 
         // Extract the value from the Kafka Record
-        KafkaRecord<String, JsonNode> record = Records.record("aValue", message);
-        Map<String, String> tryExtractData = extractor.extractAsMap(record);
+        SchemaAndValues tryExtractData = extractor.extractData(Records.record("aValue", message));
 
         // Ensure that both the complex object and the simple attribute are extracted correctly
-        assertThat(tryExtractData)
+        assertThat(tryExtractData.values())
                 .containsExactly("complexObject", message.toString(), "simpleAttribute", "joe");
-        assertThat(extractor.extractAsCanonicalItem(record))
-                .isEqualTo("fields-[complexObject={\"name\":\"joe\"},simpleAttribute=joe]");
     }
 
     @Test
@@ -350,7 +316,7 @@ public class DataExtractorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> extractor.extractAsMap(Records.record("aValue", message)));
+                        () -> extractor.extractData(Records.record("aValue", message)));
         assertThat(ve.getMessage())
                 .contains("The expression [VALUE] must evaluate to a non-complex object");
     }

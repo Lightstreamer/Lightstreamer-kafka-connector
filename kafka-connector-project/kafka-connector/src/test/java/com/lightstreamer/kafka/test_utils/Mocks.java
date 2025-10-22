@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -57,14 +58,14 @@ public class Mocks {
     public static class MockConsumer<K, V>
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
 
-        private RuntimeException commitException;
+        private KafkaException commitException;
         private KafkaException listTopicException;
 
         public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
             super(offsetResetStrategy);
         }
 
-        public void setCommitException(RuntimeException exception) {
+        public void setCommitException(KafkaException exception) {
             this.commitException = exception;
         }
 
@@ -254,8 +255,8 @@ public class Mocks {
         }
 
         @Override
-        public String[] canonicalItemNames() {
-            return new String[0];
+        public Set<SchemaAndValues> expanded() {
+            return Collections.emptySet();
         }
 
         @Override

@@ -129,7 +129,7 @@ public class RecordConsumerTest {
 
         String item = "item";
         this.subscriptions = SubscribedItems.create();
-        this.subscriptions.addItem(Items.subscribedFrom(item, new Object()));
+        this.subscriptions.addItem(item, Items.subscribedFrom(item, new Object()));
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);

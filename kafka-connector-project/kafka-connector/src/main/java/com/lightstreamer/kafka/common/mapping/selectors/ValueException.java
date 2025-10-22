@@ -31,14 +31,6 @@ public class ValueException extends RuntimeException {
         return mkException("Cannot retrieve field [%s] from a scalar object", field);
     }
 
-    public static ValueException scalarObject(int index) throws ValueException {
-        return mkException("Cannot retrieve index [%d] from a scalar object", index);
-    }
-
-    public static ValueException arrayObject(String field) throws ValueException {
-        return mkException("Cannot retrieve field [%s] from an array object", field);
-    }
-
     public static ValueException nullObject(String nullField, int index) throws ValueException {
         return mkException("Cannot retrieve index [%d] from null object [%s]", index, nullField);
     }

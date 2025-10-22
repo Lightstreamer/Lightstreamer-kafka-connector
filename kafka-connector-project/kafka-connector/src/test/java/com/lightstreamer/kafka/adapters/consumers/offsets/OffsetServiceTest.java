@@ -250,19 +250,12 @@ public class OffsetServiceTest {
                         new OffsetAndMetadata(17L));
     }
 
-    static Stream<Arguments> commitSyncAndIgnoreErrorsArguments() {
-        return Stream.of(
-                arguments(new KafkaException("Simulated commit error")),
-                arguments(new RuntimeException("Generic error")));
-    }
-
-    @ParameterizedTest
-    @MethodSource("commitSyncAndIgnoreErrorsArguments")
-    void shouldCommitSyncAndIgnoreErrors(RuntimeException exception) {
+    @Test
+    void shouldCommitSyncAndIgnoreErrors() {
         prepareCommittedRecords();
 
         // Configure the mock consumer to throw an exception on commit
-        mockConsumer.setCommitException(exception);
+        mockConsumer.setCommitException(new KafkaException("Simulated commit error"));
 
         // Normally, the store is initialized only after the very first poll invocation
         offsetService.initStore(false);

@@ -113,9 +113,9 @@ public class FieldConfigsTest {
                 assertThrows(ConfigException.class, () -> FieldConfigs.from(fieldMappings));
         assertThat(ee.getMessage())
                 .isEqualTo(
-                        "Got the following error while evaluating the field [field1] containing the expression ["
+                        "Found the invalid expression ["
                                 + expression
-                                + "]: <Invalid expression>");
+                                + "] while evaluating [field1]: <Invalid expression>");
     }
 
     @ParameterizedTest
@@ -128,8 +128,8 @@ public class FieldConfigsTest {
 
         assertThat(ee.getMessage())
                 .isEqualTo(
-                        "Got the following error while evaluating the field [field1] containing the expression ["
+                        "Found the invalid expression ["
                                 + fieldExpression
-                                + "]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>");
+                                + "] while evaluating [field1]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>");
     }
 }

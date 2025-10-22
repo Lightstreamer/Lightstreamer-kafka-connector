@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import java.util.Collection;
-import java.util.List;
-
 public interface GenericSelector extends Selector {
 
     default Data extract(KafkaRecord<?, ?> record) throws ValueException {
@@ -27,8 +24,4 @@ public interface GenericSelector extends Selector {
     }
 
     Data extract(KafkaRecord<?, ?> record, boolean checkScalar);
-
-    default Collection<Data> extractMulti(KafkaRecord<?, ?> record) throws ValueException {
-        return List.of(extract(record, true));
-    }
 }

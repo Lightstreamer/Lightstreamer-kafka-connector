@@ -28,17 +28,18 @@ import static java.util.stream.Collectors.toSet;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
+import com.lightstreamer.kafka.common.expressions.ExpressionException;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,10 +50,7 @@ import java.util.regex.Pattern;
 
 public class Items {
 
-    public interface Item {
-
-        Schema schema();
-    }
+    public interface Item extends SchemaAndValues {}
 
     public interface SubscribedItem extends Item {
 
@@ -61,8 +59,6 @@ public class Items {
         boolean isSnapshot();
 
         void setSnapshot(boolean flag);
-
-        String asCanonicalItemName();
     }
 
     /**
@@ -72,15 +68,7 @@ public class Items {
      *
      * @see SubscribedItem
      */
-    public interface SubscribedItems {
-
-        static SubscribedItems of(Collection<SubscribedItem> items) {
-            SubscribedItems subscribedItems = SubscribedItems.create();
-            for (SubscribedItem item : items) {
-                subscribedItems.addItem(item);
-            }
-            return subscribedItems;
-        }
+    public interface SubscribedItems extends Iterable<SubscribedItem> {
 
         /**
          * Creates a new empty instance of SubscribedItems.
@@ -110,11 +98,12 @@ public class Items {
         }
 
         /**
-         * Adds a subscribed item to the collection.
+         * Adds a subscribed item to the collection with the specified name as identifier.
          *
+         * @param itemName the name for the item being added
          * @param item the subscribed item to be added to the collection
          */
-        void addItem(SubscribedItem item);
+        void addItem(String itemName, SubscribedItem item);
 
         /**
          * Removes a subscribed item identified by the given name.
@@ -134,22 +123,7 @@ public class Items {
          */
         Optional<SubscribedItem> getItem(String itemName);
 
-        /**
-         * Checks if this collection of subscribed items is empty.
-         *
-         * @return {@code true} if this collection contains no subscribed items, {@code false}
-         *     otherwise
-         */
-        boolean isEmpty();
-
-        /**
-         * Returns the number of subscribed items in this collection.
-         *
-         * @return the number of subscribed items
-         */
-        int size();
-
-        /** Clears all subscribed items. */
+        /** Clears all subscribe items. */
         void clear();
     }
 
@@ -160,12 +134,17 @@ public class Items {
         private NOPSubscribedItems() {}
 
         @Override
+        public Iterator<SubscribedItem> iterator() {
+            return Collections.emptyIterator();
+        }
+
+        @Override
         public boolean acceptSubscriptions() {
             return false; // No subscriptions are accepted in NOP mode
         }
 
         @Override
-        public void addItem(SubscribedItem item) {
+        public void addItem(String itemName, SubscribedItem item) {
             // No operation
         }
 
@@ -177,16 +156,6 @@ public class Items {
         @Override
         public Optional<SubscribedItem> getItem(String itemName) {
             return Optional.empty();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public int size() {
-            return 0;
         }
 
         @Override
@@ -198,14 +167,22 @@ public class Items {
     private static class DefaultSubscribedItems implements SubscribedItems {
 
         private final Map<String, SubscribedItem> sourceItems;
+        private final Iterator<SubscribedItem> iterator;
 
         DefaultSubscribedItems() {
             this.sourceItems = new ConcurrentHashMap<>();
+            this.iterator = sourceItems.values().iterator();
         }
 
         @Override
-        public void addItem(SubscribedItem item) {
-            sourceItems.put(item.asCanonicalItemName(), item);
+        public Iterator<SubscribedItem> iterator() {
+            // return iterator;
+            return sourceItems.values().iterator();
+        }
+
+        @Override
+        public void addItem(String itemName, SubscribedItem item) {
+            sourceItems.put(itemName, item);
         }
 
         @Override
@@ -216,16 +193,6 @@ public class Items {
         @Override
         public Optional<SubscribedItem> getItem(String itemName) {
             return Optional.ofNullable(sourceItems.get(itemName));
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return sourceItems.isEmpty();
-        }
-
-        @Override
-        public int size() {
-            return sourceItems.size();
         }
 
         @Override
@@ -252,36 +219,43 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
-    private static class DefaultSubscribedItem implements SubscribedItem {
+    static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
-        private final String normalizedString;
-        private final Schema schema;
+        private final SchemaAndValues schemaAndValues;
         private boolean snapshotFlag;
 
-        DefaultSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.normalizedString = expression.asCanonicalItemName();
-            this.schema = expression.schema();
+        DefaultSubscribedItem(SchemaAndValues schemaAndValues) {
+            this(null, schemaAndValues);
+        }
+
+        DefaultSubscribedItem(Object itemHandle, SchemaAndValues schemaAndValues) {
+            this.schemaAndValues = Objects.requireNonNull(schemaAndValues);
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, normalizedString);
+            return Objects.hash(itemHandle, schemaAndValues);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             return obj instanceof DefaultSubscribedItem other
-                    && normalizedString.equals(other.normalizedString)
+                    && Objects.equals(schemaAndValues, other.schemaAndValues)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
 
         @Override
         public Schema schema() {
-            return schema;
+            return schemaAndValues.schema();
+        }
+
+        @Override
+        public Map<String, String> values() {
+            return schemaAndValues.values();
         }
 
         @Override
@@ -300,8 +274,8 @@ public class Items {
         }
 
         @Override
-        public String asCanonicalItemName() {
-            return normalizedString;
+        public String toString() {
+            return schemaAndValues.toString();
         }
     }
 
@@ -318,7 +292,7 @@ public class Items {
         }
 
         public boolean matches(Item item) {
-            return schema.equals(item.schema());
+            return schema.matches(item.schema());
         }
 
         DataExtractor<K, V> selectors() {
@@ -397,19 +371,6 @@ public class Items {
         }
     }
 
-    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return subscribedFrom(input, input);
-    }
-
-    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
-            throws ExpressionException {
-        return subscribedFrom(Expressions.Subscription(input), itemHandle);
-    }
-
-    static SubscribedItem subscribedFrom(SubscriptionExpression expression, Object itemHandle) {
-        return new DefaultSubscribedItem(expression, itemHandle);
-    }
-
     public static <K, V> ItemTemplates<K, V> templatesFrom(
             TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
@@ -424,6 +385,26 @@ public class Items {
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
+    }
+
+    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
+        return subscribedFrom(input, input);
+    }
+
+    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
+            throws ExpressionException {
+        SubscriptionExpression result = Expressions.Subscription(input);
+        return subscribedFrom(itemHandle, result.prefix(), result.params());
+    }
+
+    public static SubscribedItem subscribedFrom(SchemaAndValues schemaAndValues)
+            throws ExpressionException {
+        return new DefaultSubscribedItem(schemaAndValues);
+    }
+
+    private static SubscribedItem subscribedFrom(
+            Object itemHandle, String prefix, Map<String, String> values) {
+        return new DefaultSubscribedItem(itemHandle, SchemaAndValues.from(prefix, values));
     }
 
     private Items() {}

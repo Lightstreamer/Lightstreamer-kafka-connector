@@ -70,6 +70,7 @@
         <!--
         param name="group.id">kafka-connector-group</param>
         -->
+        <param name="group.id">quick-start-group</param>
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
 

@@ -23,7 +23,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
  */
 public interface KeyValueSelectorSuppliers<K, V> {
 
-    KeySelectorSupplier<K> keySelectorSupplier();
+    SelectorSupplier<KeySelector<K>> keySelectorSupplier();
 
-    ValueSelectorSupplier<V> valueSelectorSupplier();
+    SelectorSupplier<ValueSelector<V>> valueSelectorSupplier();
 }

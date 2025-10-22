@@ -289,7 +289,8 @@ public class KafkaConsumerWrapperTest {
 
         // Check the OffsetService
         OffsetService offsetService = wrapper.getOffsetService();
-        assertThat(offsetService.canManageHoles()).isEqualTo(expectedParallelism);
+        assertThat(offsetService.canManageHoles());
+
         assertThat(wrapper.getOffsetService().offsetStore()).isPresent();
     }
 

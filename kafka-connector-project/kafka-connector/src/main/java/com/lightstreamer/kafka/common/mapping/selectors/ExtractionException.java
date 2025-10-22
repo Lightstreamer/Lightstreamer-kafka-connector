@@ -34,7 +34,7 @@ public class ExtractionException extends Exception {
     public static ExtractionException invalidExpression(String name, String expression)
             throws ExtractionException {
         return new ExtractionException(
-                "Got the following error while evaluating [%s] while evaluating [%s]"
+                "Found the invalid expression [%s] while evaluating [%s]"
                         .formatted(expression, name));
     }
 

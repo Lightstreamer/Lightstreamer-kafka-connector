@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import java.util.Collection;
-import java.util.List;
-
 public interface KeySelector<K> extends Selector {
 
     default Data extractKey(KafkaRecord<K, ?> record) throws ValueException {
@@ -27,8 +24,4 @@ public interface KeySelector<K> extends Selector {
     }
 
     Data extractKey(KafkaRecord<K, ?> record, boolean checkScalar) throws ValueException;
-
-    default Collection<Data> extractKeys(KafkaRecord<K, ?> record) throws ValueException {
-        return List.of(extractKey(record, true));
-    }
 }

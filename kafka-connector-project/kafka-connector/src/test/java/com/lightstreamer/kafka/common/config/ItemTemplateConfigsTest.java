@@ -22,8 +22,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -142,9 +142,10 @@ public class ItemTemplateConfigsTest {
                                         Map.of("template-name", templateExpression)));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Got the following error while evaluating the template [template-name] containing the expression ["
+                        "Found the invalid expression ["
                                 + templateExpression
-                                + "]: <Invalid template expression>");
+                                + "] while"
+                                + " evaluating [template-name]: <Invalid template expression>");
     }
 
     @Test
@@ -159,6 +160,7 @@ public class ItemTemplateConfigsTest {
                                                 "item-#{name=VALUE,name=PARTITION}")));
         assertThat(ce.getMessage())
                 .isEqualTo(
-                        "Got the following error while evaluating the template [template-name] containing the expression [item-#{name=VALUE,name=PARTITION}]: <No duplicated keys are allowed>");
+                        "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while"
+                                + " evaluating [template-name]: <No duplicated keys are allowed>");
     }
 }

@@ -17,114 +17,61 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.expressions.Constant;
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.utils.Either;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Parsers {
+public interface Parsers {
 
-    public interface Node<T extends Node<T>> extends Data {
+    public interface Node<T extends Node<T>> {
 
-        String name();
-
-        default T self() {
-            @SuppressWarnings("unchecked")
-            T self = (T) this;
-            return self;
+        default boolean has(String propertyname) {
+            return false;
         }
 
-        default T getProperty(String propertyName) {
-            if (isNull()) {
-                throw ValueException.nullObject(propertyName);
-            }
+        default Node<T> get(String propertyName) {
+            return nullNode();
+        }
 
-            if (isScalar()) {
-                throw ValueException.scalarObject(propertyName);
-            }
+        default boolean isArray() {
+            return false;
+        }
 
-            if (!has(propertyName)) {
-                throw ValueException.fieldNotFound(propertyName);
-            }
-            return get(propertyName);
+        default int size() {
+            return 0;
+        }
+
+        default Node<T> get(int index) {
+            return nullNode();
         }
 
         default boolean isNull() {
             return false;
         }
 
-        boolean isScalar();
-
-        boolean has(String propertyname);
-
-        T get(String propertyName);
-
-        default T getIndexed(int index) {
-            if (isNull()) {
-                throw ValueException.nullObject(name(), index);
-            }
-
-            // if (isScalar()) {
-            //     throw ValueException.scalarObject(index);
-            // }
-
-            if (isArray()) {
-                if (index < size()) {
-                    return get(index);
-                } else {
-                    throw ValueException.indexOfOutBounds(index);
-                }
-            }
-
-            throw ValueException.noIndexedField(name());
+        default boolean isScalar() {
+            return false;
         }
 
-        boolean isArray();
-
-        int size();
-
-        T get(int index);
-
-        String text();
-
-        default void visit(Consumer<Data> visitor) {}
-
-        default List<Data> toData() {
-            List<Data> result = new ArrayList<>();
-            visit(result::add);
-            return result;
+        default String asText() {
+            return "";
         }
 
         static <K, T extends Node<T>> Node<T> checkNull(
-                Supplier<K> obj, BiFunction<String, K, T> nodeFactory) {
+                Supplier<K> obj, Function<K, Node<T>> nodeFactory) {
             K object = obj.get();
             if (object == null) {
                 return nullNode();
             }
-            return rootNode(propertyName -> nodeFactory.apply(propertyName, object));
-        }
-
-        abstract class BaseNode<T extends BaseNode<T>> implements Node<T> {
-
-            private final String name;
-
-            BaseNode(String name) {
-                this.name = Objects.requireNonNull(name);
-            }
-
-            @Override
-            public String name() {
-                return name;
-            }
+            return nodeFactory.apply(object);
         }
 
         @SuppressWarnings("unchecked")
@@ -141,11 +88,6 @@ public class Parsers {
             }
 
             @Override
-            public String name() {
-                return "NULL NODE";
-            }
-
-            @Override
             public boolean isNull() {
                 return true;
             }
@@ -155,87 +97,122 @@ public class Parsers {
                 return true;
             }
 
-            public boolean has(String propertyname) {
-                return false;
-            }
-
             @Override
-            public T get(String propertyName) {
-                return null;
-            }
-
-            @Override
-            public boolean isArray() {
-                return false;
-            }
-
-            @Override
-            public int size() {
-                return 0;
-            }
-
-            @Override
-            public T get(int index) {
-                return null;
-            }
-
-            @Override
-            public String text() {
+            public String asText() {
                 return "null";
             }
         }
 
-        static <T extends Node<T>> Node<T> rootNode(Function<String, T> rootNodeFactory) {
-            return new RootNode<>(rootNodeFactory);
+        static <T extends Node<T>> Node<T> rootNode(Supplier<Node<T>> rootNodeFactory) {
+            return new Node<T>() {
+
+                @Override
+                public boolean isScalar() {
+                    return false;
+                }
+
+                @Override
+                public boolean has(String propertyname) {
+                    return true;
+                }
+
+                @Override
+                public Node<T> get(String propertyName) {
+                    // Here propertyName is irrelevant, as this method will always return
+                    // the root node, which can be VALUE, KEY, HEADERS, etc.
+                    return rootNodeFactory.get();
+                }
+            };
         }
+    }
 
-        static class RootNode<T extends Node<T>> implements Node<T> {
+    public interface NodeEvaluator<T extends Node<T>> {
 
-            private final Function<String, T> rootNodeFactory;
+        static class IdentityEvaluator<T extends Node<T>> implements NodeEvaluator<T> {
 
-            RootNode(Function<String, T> rootNodeFactory) {
-                this.rootNodeFactory = Objects.requireNonNull(rootNodeFactory);
-            }
+            private static final IdentityEvaluator<?> INSTANCE = new IdentityEvaluator<>();
 
             @Override
             public String name() {
-                return "ROOT";
+                return "root";
             }
 
             @Override
-            public boolean isScalar() {
-                return false;
+            public Node<T> eval(Node<T> node) throws ValueException {
+                return node;
             }
+        }
 
-            @Override
-            public boolean has(String propertyname) {
-                return true;
-            }
+        @SuppressWarnings("unchecked")
+        static <T extends Node<T>> NodeEvaluator<T> identity() {
+            return (NodeEvaluator<T>) IdentityEvaluator.INSTANCE;
+        }
 
-            @Override
-            public T get(String propertyName) {
-                return rootNodeFactory.apply(propertyName);
-            }
+        String name();
 
-            @Override
-            public boolean isArray() {
-                return false;
-            }
+        Node<T> eval(Node<T> node) throws ValueException;
+    }
 
-            @Override
-            public int size() {
-                return 0;
-            }
+    public static final class LinkedNodeEvaluator<T extends Node<T>> {
 
-            @Override
-            public T get(int index) {
-                return null;
-            }
+        private LinkedNodeEvaluator<T> next;
+        private final NodeEvaluator<T> current;
 
-            @Override
-            public String text() {
-                return "ROOT";
-            }
+        LinkedNodeEvaluator(NodeEvaluator<T> evaluator) {
+            this.current = evaluator;
+        }
+
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        public Node<T> eval(Node<T> node) throws ValueException {
+            return current.eval(node);
+        }
+
+        public LinkedNodeEvaluator<T> next() {
+            return next;
+        }
+    }
+
+    public static class GeneralizedKey {
+
+        static GeneralizedKey index(int index) {
+            return new GeneralizedKey(index);
+        }
+
+        static GeneralizedKey key(String key) {
+            return new GeneralizedKey(key);
+        }
+
+        private Either<String, Integer> genericKey;
+
+        GeneralizedKey(String key) {
+            genericKey = Either.left(key);
+        }
+
+        GeneralizedKey(int index) {
+            genericKey = Either.right(index);
+        }
+
+        public boolean isKey() {
+            return genericKey.isLeft();
+        }
+
+        public String key() {
+            return genericKey.getLeft();
+        }
+
+        public boolean isIndex() {
+            return genericKey.isRight();
+        }
+
+        public int index() {
+            return genericKey.getRight();
+        }
+
+        public String toString() {
+            return isKey() ? "Key = [%s]".formatted(key()) : "Index = [%d]".formatted(index());
         }
     }
 
@@ -271,6 +248,10 @@ public class Parsers {
             if (!expectedRoot.equals(expression.constant())) {
                 throw ExtractionException.expectedRootToken(name, expectedRoot.toString());
             }
+
+            if (!Constant.HEADERS.equals(expectedRoot)) {
+                next();
+            }
         }
 
         boolean hasNext() {
@@ -281,118 +262,6 @@ public class Parsers {
             String currentToken = tokens[tokenIndex];
             tokenIndex += 2;
             return currentToken;
-        }
-    }
-
-    abstract static class NodeEvaluator<T extends Node<T>> {
-
-        private final String propertyName;
-        private NodeEvaluator<T> next;
-
-        NodeEvaluator(String name) {
-            this.propertyName = Objects.requireNonNull(name);
-        }
-
-        final String propertyName() {
-            return propertyName;
-        }
-
-        final boolean hasNext() {
-            return next != null;
-        }
-
-        abstract T eval(Node<T> node) throws ValueException;
-
-        final void setNext(NodeEvaluator<T> next) {
-            this.next = next;
-        }
-
-        NodeEvaluator<T> next() {
-            return next;
-        }
-    }
-
-    private static class PropertyGetter<T extends Node<T>> extends NodeEvaluator<T> {
-
-        static <T extends Node<T>> T get(String name, Node<T> node) {
-            return node.getProperty(name);
-        }
-
-        PropertyGetter(String propertyName) {
-            super(propertyName);
-        }
-
-        @Override
-        public T eval(Node<T> node) {
-            return get(propertyName(), node);
-        }
-    }
-
-    private static class ArrayGetter<T extends Node<T>> extends NodeEvaluator<T> {
-
-        private final List<GeneralizedKey> indexes;
-
-        ArrayGetter(String propertyName, List<GeneralizedKey> indexes) {
-            super(propertyName);
-            this.indexes = Objects.requireNonNull(indexes);
-        }
-
-        T get(int index, Node<T> node) {
-            return node.getIndexed(index);
-        }
-
-        @Override
-        public T eval(Node<T> node) {
-            T result = node.getProperty(propertyName());
-            for (GeneralizedKey i : indexes) {
-                if (i.isIndex()) {
-                    result = get(i.index(), result);
-                } else {
-                    result = PropertyGetter.get(i.key(), result);
-                }
-            }
-            return result;
-        }
-    }
-
-    private static class GeneralizedKey {
-
-        static GeneralizedKey index(int index) {
-            return new GeneralizedKey(index);
-        }
-
-        static GeneralizedKey key(String key) {
-            return new GeneralizedKey(key);
-        }
-
-        private Either<String, Integer> genericKey;
-
-        GeneralizedKey(String key) {
-            genericKey = Either.left(key);
-        }
-
-        GeneralizedKey(int index) {
-            genericKey = Either.right(index);
-        }
-
-        boolean isKey() {
-            return genericKey.isLeft();
-        }
-
-        String key() {
-            return genericKey.getLeft();
-        }
-
-        boolean isIndex() {
-            return genericKey.isRight();
-        }
-
-        int index() {
-            return genericKey.getRight();
-        }
-
-        public String toString() {
-            return isKey() ? "Key = [%s]".formatted(key()) : "Index = [%d]".formatted(index());
         }
     }
 
@@ -426,49 +295,54 @@ public class Parsers {
             return indexes;
         }
 
-        public SelectorExpressionParser() {}
+        private Function<String, NodeEvaluator<T>> fieldEvaluatorFactory;
+        private BiFunction<String, List<GeneralizedKey>, NodeEvaluator<T>> arrayEvaluatorFactory;
 
-        public NodeEvaluator<T> parse(ParsingContext ctx) throws ExtractionException {
-            ctx.matchRoot();
-            return parseTokens(ctx);
+        public SelectorExpressionParser(
+                Function<String, NodeEvaluator<T>> fieldEvaluator,
+                BiFunction<String, List<GeneralizedKey>, NodeEvaluator<T>> arrayEvaluator) {
+            this.fieldEvaluatorFactory = fieldEvaluator;
+            this.arrayEvaluatorFactory = arrayEvaluator;
         }
 
-        private NodeEvaluator<T> parseTokens(ParsingContext ctx) throws ExtractionException {
-            NodeEvaluator<T> previous = null, head = null;
+        public LinkedNodeEvaluator<T> parse(ParsingContext ctx) throws ExtractionException {
+            LinkedNodeEvaluator<T> root = parseRoot(ctx);
+            return parseTokens(root, ctx);
+        }
+
+        private LinkedNodeEvaluator<T> parseRoot(ParsingContext ctx) throws ExtractionException {
+            ctx.matchRoot();
+            return new LinkedNodeEvaluator<T>(NodeEvaluator.identity());
+        }
+
+        private LinkedNodeEvaluator<T> parseTokens(LinkedNodeEvaluator<T> head, ParsingContext ctx)
+                throws ExtractionException {
+            LinkedNodeEvaluator<T> current = head;
             while (ctx.hasNext()) {
                 String token = ctx.next();
                 if (token.isBlank()) {
                     throw ExtractionException.missingToken(ctx.name(), ctx.expression());
                 }
-
-                NodeEvaluator<T> current = createEvaluator(ctx, token);
-                if (previous != null) {
-                    previous.next = current;
+                int lbracket = token.indexOf('[');
+                NodeEvaluator<T> node;
+                if (lbracket != -1) {
+                    String indexedExpression = token.substring(lbracket);
+                    List<GeneralizedKey> indexes = parseIndexes(ctx, indexedExpression);
+                    if (indexes.isEmpty()) {
+                        throw ExtractionException.invalidIndexedExpression(
+                                ctx.name(), ctx.expression());
+                    }
+                    String field = token.substring(0, lbracket);
+                    node = arrayEvaluatorFactory.apply(field, indexes);
                 } else {
-                    head = current;
+                    node = fieldEvaluatorFactory.apply(token);
                 }
-                previous = current;
+                LinkedNodeEvaluator<T> linkedNode = new LinkedNodeEvaluator<>(node);
+                current.next = linkedNode;
+                current = linkedNode;
             }
 
             return head;
-        }
-
-        private NodeEvaluator<T> createEvaluator(ParsingContext ctx, String token)
-                throws ExtractionException {
-            int lbracket = token.indexOf('[');
-
-            if (lbracket != -1) {
-                String indexedExpression = token.substring(lbracket);
-                List<GeneralizedKey> indexes = parseIndexes(ctx, indexedExpression);
-                if (indexes.isEmpty()) {
-                    throw ExtractionException.invalidIndexedExpression(
-                            ctx.name(), ctx.expression());
-                }
-                String field = token.substring(0, lbracket);
-                return new ArrayGetter<>(field, indexes);
-            }
-
-            return new PropertyGetter<>(token);
         }
     }
 }

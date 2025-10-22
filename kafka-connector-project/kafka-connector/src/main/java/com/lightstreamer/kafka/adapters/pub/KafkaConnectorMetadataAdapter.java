@@ -17,18 +17,15 @@
 
 package com.lightstreamer.kafka.adapters.pub;
 
+import com.lightstreamer.adapters.metadata.LiteralBasedProvider;
 import com.lightstreamer.interfaces.metadata.CreditsException;
-import com.lightstreamer.interfaces.metadata.ItemsException;
-import com.lightstreamer.interfaces.metadata.MetadataProviderAdapter;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
-import com.lightstreamer.interfaces.metadata.SchemaException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.common.config.ConfigException;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
@@ -49,7 +46,7 @@ import javax.annotation.Nullable;
  *
  * <p>For the sake of simplicity, this documentation shows only the hook methods.
  */
-public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
+public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
@@ -58,7 +55,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
     private final Map<String, Map<String, TableInfo>> tablesBySession = new ConcurrentHashMap<>();
 
-    private Logger logger;
+    private Logger log;
 
     private GlobalConfig globalConfig;
 
@@ -74,7 +71,6 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
         configureLogging(configDir);
         METADATA_ADAPTER = this;
         postInit(params, configDir);
-        logger.atInfo().log("Metadata Adapter \"{}\" initialized", params.get("adapters_conf.id"));
     }
 
     /**
@@ -108,7 +104,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     private void configureLogging(File configDir) throws ConfigException {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
-        this.logger = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
+        this.log = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
     }
 
     /**
@@ -155,10 +151,8 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     }
 
     private void forceUnsubscriptionAll(String dataAdapterName) {
-        logger.atWarn()
-                .log(
-                        "Forcing unsubscription from all active items of data adapter {}",
-                        dataAdapterName);
+        log.atDebug().log(
+                "Forcing unsubscription from all active items of data adapter {}", dataAdapterName);
         tablesBySession.values().stream()
                 .flatMap(m -> m.values().stream())
                 .filter(t -> t.getDataAdapter().equals(dataAdapterName))
@@ -167,11 +161,11 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
     private void forceUnsubscription(TableInfo tableInfo) {
         String items = Arrays.toString(tableInfo.getSubscribedItems());
-        logger.atDebug().log("Forcing unsubscription from items {}", items);
+        log.atDebug().log("Forcing unsubscription from items {}", items);
         tableInfo
                 .forceUnsubscription()
                 .toCompletableFuture()
-                .thenRun(() -> logger.atDebug().log("Forced unsubscription from item {}", items));
+                .thenRun(() -> log.atDebug().log("Forced unsubscription from item {}", items));
     }
 
     /**
@@ -215,7 +209,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
             Map<String, TableInfo> tables =
                     tablesBySession.computeIfAbsent(sessionID, id -> new ConcurrentHashMap<>());
             tables.put(item, table);
-            logger.atDebug().log("Added subscription [{}] to session [{}]", item, sessionID);
+            log.atDebug().log("Added subscription [{}] to session [{}]", item, sessionID);
         }
     }
 
@@ -236,79 +230,11 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
             Map<String, TableInfo> tablesByItem = tablesBySession.get(sessionID);
             for (String item : items) {
                 tablesByItem.remove(item);
-                logger.atDebug().log(
-                        "Removed subscription [{}] from session [{}]", item, sessionID);
+                log.atDebug().log("Removed subscription [{}] from session [{}]", item, sessionID);
             }
         }
 
         onUnsubscription(sessionID, tables);
-    }
-
-    /**
-     * @hidden
-     */
-    @Override
-    public final String[] getItems(
-            String user, String sessionID, String itemList, String dataAdapter)
-            throws ItemsException {
-        String[] items = remapItems(user, sessionID, itemList, dataAdapter);
-        String[] canonicalItems = new String[items.length];
-        for (int i = 0; i < items.length; i++) {
-            canonicalItems[i] = Expressions.CanonicalItemName(items[i]);
-        }
-        return canonicalItems;
-    }
-
-    /**
-     * Resolves a Field List specification supplied in a Request. The names of the Fields in the
-     * List are returned.
-     *
-     * <p>Field List specifications are expected to be formed by simply concatenating the names of
-     * the contained Fields, in a space separated way.
-     *
-     * @param user a User name
-     * @param sessionID a Session ID
-     * @param group the name of the Item Group (or specification of the Item List) whose Items the
-     *     Schema is to be applied to
-     * @param dataAdapter the name of the Data Adapter to which the subscription is targeted
-     * @param schema a Field Schema name (or Field List specification)
-     * @return an array with the names of the Fields in the Schema
-     * @throws ItemsException if the supplied Item Group name (or Item List specification) is not
-     *     recognized
-     * @throws SchemaException if the supplied Field Schema name (or Field List specification) is
-     *     not recognized
-     */
-    @Override
-    public String[] getSchema(
-            String user, String sessionID, String group, String dataAdapter, String schema)
-            throws ItemsException, SchemaException {
-        return schema.trim().split("\\s+");
-    }
-
-    /**
-     * Remaps a list of items for a specific user session and data adapter.
-     *
-     * <p>This method processes a whitespace-separated string of items and converts it into an array
-     * of individual item names. If the input is null or empty after trimming, an empty array is
-     * returned.
-     *
-     * <p><strong>Override this method</strong> to provide custom item resolution logic
-     *
-     * @param user a User name
-     * @param sessionID a Session ID
-     * @param itemList an Item List specification (whitespace-separated item names)
-     * @param dataAdapter the name of the Data Adapter to which the Item List is targeted
-     * @return an array of strings containing the individual item names, or an empty array if the
-     *     input is null or empty
-     * @throws ItemsException if there are issues with the items during the remapping process
-     */
-    public String[] remapItems(String user, String sessionID, String itemList, String dataAdapter)
-            throws ItemsException {
-        if (itemList == null || itemList.trim().isEmpty()) {
-            return new String[0];
-        }
-
-        return itemList.trim().split("\\s+");
     }
 
     private void notifyDataAdapter(KafkaConnectorDataAdapterOpts opts) {
@@ -398,7 +324,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
     @Override
     public boolean modeMayBeAllowed(String item, String dataAdapter, Mode mode) {
-        logger.atDebug().log(
+        log.atDebug().log(
                 "Checking if mode {} is allowed for item {} in data adapter {}",
                 mode,
                 item,

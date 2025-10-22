@@ -248,8 +248,6 @@ public class DynamicMessageDeserializerTest {
                                 "true",
                                 RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE,
-                                RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
-                                "Person",
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -257,9 +255,7 @@ public class DynamicMessageDeserializerTest {
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080",
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-                                TEST_SCHEMA_FILE,
-                                RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
-                                "Person"));
+                                TEST_SCHEMA_FILE));
 
         try (Deserializer<DynamicMessage> deser =
                 DynamicMessageDeserializers.KeyDeserializer(config)) {
