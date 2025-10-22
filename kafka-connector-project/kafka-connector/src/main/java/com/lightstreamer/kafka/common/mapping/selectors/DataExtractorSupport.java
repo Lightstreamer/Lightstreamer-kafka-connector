@@ -192,7 +192,8 @@ class DataExtractorSupport {
                 new Appender<>(ws.headersSelectors(), new HeadersSelectorSupplier());
 
         for (Map.Entry<String, ExtractionExpression> boundExpression : expressions.entrySet()) {
-            Constant root = boundExpression.getValue().constant();
+            ExtractionExpression expression = boundExpression.getValue();
+            Constant root = expression.constant();
             Appender<?> filler =
                     switch (root) {
                         case KEY -> kFiller;
@@ -200,7 +201,7 @@ class DataExtractorSupport {
                         case HEADERS -> hFiller;
                         default -> mFiller;
                     };
-            filler.append(boundExpression.getKey(), boundExpression.getValue());
+            filler.append(boundExpression.getKey(), expression);
         }
         return ws;
     }
