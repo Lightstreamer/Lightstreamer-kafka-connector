@@ -19,8 +19,8 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
@@ -166,7 +167,7 @@ public class RecordProcessorTest {
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
         // Subscribe to "item1" and process the record
-        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         processor.process(record);
 
         // Verify that the real-time update has been routed
@@ -180,7 +181,7 @@ public class RecordProcessorTest {
         consumer.resetSnapshotEvent();
 
         // Add subscription "item2" and process the record
-        subscribedItems.addItem("item2", Items.subscribedFrom("item2", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item2", new Object()));
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
@@ -193,7 +194,7 @@ public class RecordProcessorTest {
         processor = processor(subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
-        subscribedItems.addItem("item3", Items.subscribedFrom("item3", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item3", new Object()));
         processor.process(record);
         // Verify that the update has NOT been routed
         assertThat(smartConsumer.getCounter()).isEqualTo(0);
@@ -206,7 +207,7 @@ public class RecordProcessorTest {
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
 
         // Subscribe to "item1" and process the record
-        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         processor.process(record);
 
         // Verify that the real-time update has been routed
@@ -221,7 +222,7 @@ public class RecordProcessorTest {
         smartConsumer.resetSnapshotEvent();
 
         // Add subscription "item2" and process the record
-        subscribedItems.addItem("item2", Items.subscribedFrom("item2", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item2", new Object()));
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
@@ -235,7 +236,7 @@ public class RecordProcessorTest {
         processor = processor(subscribedItems, ProcessUpdatesStrategy.autoCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
-        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         processor.process(recordWithNullPayload);
 
         // Verify that the real-time update has been routed
@@ -268,7 +269,7 @@ public class RecordProcessorTest {
 
         if (!allowImplicitItems) {
             // Subscribe to "item1" and process the record
-            subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
+            subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         }
 
         ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
@@ -301,7 +302,7 @@ public class RecordProcessorTest {
         processor = processor(subscribedItems, ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        subscribedItems.addItem("item1", Items.subscribedFrom("item1", new Object()));
+        subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
@@ -325,7 +326,7 @@ public class RecordProcessorTest {
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.addItem("item1", item);
+        subscribedItems.addItem(item);
 
         ConsumerRecord<String, String> record =
                 Records.ConsumerRecord(TEST_TOPIC, "snapshot", "CS");
@@ -353,7 +354,7 @@ public class RecordProcessorTest {
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.addItem("item1", item);
+        subscribedItems.addItem(item);
 
         // Consume a record with a "snapshot" key and a wrong command
         ConsumerRecord<String, String> record =
@@ -380,7 +381,7 @@ public class RecordProcessorTest {
         // Subscribe to "item1" and process the record
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.addItem("item1", item);
+        subscribedItems.addItem(item);
 
         ConsumerRecord<String, String> record =
                 Records.ConsumerRecord(TEST_TOPIC, "snapshot", "EOS");
@@ -405,7 +406,7 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1"
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
-        subscribedItems.addItem("item1", item);
+        subscribedItems.addItem(item);
 
         // Process a record containing a regular command
         var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");
@@ -449,7 +450,7 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1"
         SubscribedItem item = Items.subscribedFrom("item1", new Object());
-        subscribedItems.addItem("item1", item);
+        subscribedItems.addItem(item);
 
         // Process a record containing a regular command
         var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");
