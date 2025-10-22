@@ -79,7 +79,22 @@ public class ParsersTest {
                         "name", Expressions.Expression("VALUE.a"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
+        assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
+        assertThat(p.hasNext()).isFalse();
+    }
+
+    @Test
+    void shouldOneStarTokenFollowingTheRoot() throws ExtractionException {
+        Parsers.ParsingContext p =
+                new Parsers.ParsingContext(
+                        "name", Expressions.Expression("VALUE.*"), Constant.VALUE);
+        p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("*");
         assertThat(p.hasNext()).isFalse();
     }
 
@@ -89,6 +104,8 @@ public class ParsersTest {
                 new Parsers.ParsingContext(
                         "name", Expressions.Expression("VALUE.a.b"), Constant.VALUE);
         p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isTrue();
