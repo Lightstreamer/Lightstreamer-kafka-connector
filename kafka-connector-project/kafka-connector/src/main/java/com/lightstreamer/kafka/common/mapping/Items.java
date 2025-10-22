@@ -37,8 +37,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSupplier
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,7 +72,15 @@ public class Items {
      *
      * @see SubscribedItem
      */
-    public interface SubscribedItems extends Iterable<SubscribedItem> {
+    public interface SubscribedItems {
+
+        static SubscribedItems of(Collection<SubscribedItem> items) {
+            SubscribedItems subscribedItems = SubscribedItems.create();
+            for (SubscribedItem item : items) {
+                subscribedItems.addItem(item);
+            }
+            return subscribedItems;
+        }
 
         /**
          * Creates a new empty instance of SubscribedItems.
@@ -102,12 +110,11 @@ public class Items {
         }
 
         /**
-         * Adds a subscribed item to the collection with the specified name as identifier.
+         * Adds a subscribed item to the collection.
          *
-         * @param itemName the name for the item being added
          * @param item the subscribed item to be added to the collection
          */
-        void addItem(String itemName, SubscribedItem item);
+        void addItem(SubscribedItem item);
 
         /**
          * Removes a subscribed item identified by the given name.
@@ -127,7 +134,22 @@ public class Items {
          */
         Optional<SubscribedItem> getItem(String itemName);
 
-        /** Clears all subscribe items. */
+        /**
+         * Checks if this collection of subscribed items is empty.
+         *
+         * @return {@code true} if this collection contains no subscribed items, {@code false}
+         *     otherwise
+         */
+        boolean isEmpty();
+
+        /**
+         * Returns the number of subscribed items in this collection.
+         *
+         * @return the number of subscribed items
+         */
+        int size();
+
+        /** Clears all subscribed items. */
         void clear();
     }
 
@@ -138,17 +160,12 @@ public class Items {
         private NOPSubscribedItems() {}
 
         @Override
-        public Iterator<SubscribedItem> iterator() {
-            return Collections.emptyIterator();
-        }
-
-        @Override
         public boolean acceptSubscriptions() {
             return false; // No subscriptions are accepted in NOP mode
         }
 
         @Override
-        public void addItem(String itemName, SubscribedItem item) {
+        public void addItem(SubscribedItem item) {
             // No operation
         }
 
@@ -160,6 +177,16 @@ public class Items {
         @Override
         public Optional<SubscribedItem> getItem(String itemName) {
             return Optional.empty();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public int size() {
+            return 0;
         }
 
         @Override
@@ -171,22 +198,14 @@ public class Items {
     private static class DefaultSubscribedItems implements SubscribedItems {
 
         private final Map<String, SubscribedItem> sourceItems;
-        private final Iterator<SubscribedItem> iterator;
 
         DefaultSubscribedItems() {
             this.sourceItems = new ConcurrentHashMap<>();
-            this.iterator = sourceItems.values().iterator();
         }
 
         @Override
-        public Iterator<SubscribedItem> iterator() {
-            // return iterator;
-            return sourceItems.values().iterator();
-        }
-
-        @Override
-        public void addItem(String itemName, SubscribedItem item) {
-            sourceItems.put(itemName, item);
+        public void addItem(SubscribedItem item) {
+            sourceItems.put(item.asCanonicalItemName(), item);
         }
 
         @Override
@@ -197,6 +216,16 @@ public class Items {
         @Override
         public Optional<SubscribedItem> getItem(String itemName) {
             return Optional.ofNullable(sourceItems.get(itemName));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return sourceItems.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return sourceItems.size();
         }
 
         @Override
@@ -395,26 +424,6 @@ public class Items {
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
-    }
-
-    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return subscribedFrom(input, input);
-    }
-
-    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
-            throws ExpressionException {
-        SubscriptionExpression result = Expressions.Subscription(input);
-        return subscribedFrom(itemHandle, result.prefix(), result.params());
-    }
-
-    public static SubscribedItem subscribedFrom(SchemaAndValues schemaAndValues)
-            throws ExpressionException {
-        return new DefaultSubscribedItem(schemaAndValues);
-    }
-
-    private static SubscribedItem subscribedFrom(
-            Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultSubscribedItem(itemHandle, SchemaAndValues.from(prefix, values));
     }
 
     private Items() {}
