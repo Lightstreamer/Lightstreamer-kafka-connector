@@ -323,7 +323,7 @@ public class KafkaConnectorMetadataAdapter extends LiteralBasedProvider {
     }
 
     @Override
-    public boolean modeMayBeAllowed(String item, String dataAdapter, Mode mode) {
+    public final boolean modeMayBeAllowed(String item, String dataAdapter, Mode mode) {
         log.atDebug().log(
                 "Checking if mode {} is allowed for item {} in data adapter {}",
                 mode,
