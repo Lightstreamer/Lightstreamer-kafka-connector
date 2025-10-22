@@ -22,6 +22,9 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.EventUpdater;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -107,7 +110,11 @@ public class HashedKeyedProcessorBenchmark {
 
         listener = new BenchmarksUtils.FakeItemEventListener(bh);
         this.recordProcessor =
-                new DefaultRecordProcessor<>(recordMapper, subscriptions(20), listener);
+                new DefaultRecordProcessor<>(
+                        recordMapper,
+                        EventUpdater.create(listener, false),
+                        ProcessUpdatesStrategy.defaultStrategy(),
+                        RecordRoutingStrategy.fromSubscribedItems(subscriptions(20)));
         // Generate the test records.
         this.consumerRecords =
                 RecordConsumerSupport.flatRecords(
