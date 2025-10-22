@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -87,6 +88,8 @@ public interface RecordMapper<K, V> {
          * @return a set of subscribed items that match the record's data
          */
         Set<SubscribedItem> route(SubscribedItems subscribed);
+
+        // void route(SubscribedItems subscribedItem, Consumer<SubscribedItem> consumer);
 
         /**
          * Returns all items that can be derived from the record, regardless of whether they match
@@ -313,7 +316,7 @@ final class DefaultMappedRecord implements MappedRecord {
     public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        // The following seems the most performant way  populate the set of
+        // The following seems the most performant way populate the set of
         // routable subscriptions.
         for (SubscribedItem item : subscribedItems) {
             for (SchemaAndValues e : indexedTemplates) {
@@ -324,6 +327,17 @@ final class DefaultMappedRecord implements MappedRecord {
             }
         }
         return result;
+    }
+
+    public void route(SubscribedItems subscribedItems, Consumer<SubscribedItem> consumer) {
+        for (SubscribedItem item : subscribedItems) {
+            for (SchemaAndValues e : indexedTemplates) {
+                if (e.matches(item)) {
+                    consumer.accept(item);
+                    break;
+                }
+            }
+        }
     }
 
     @Override
