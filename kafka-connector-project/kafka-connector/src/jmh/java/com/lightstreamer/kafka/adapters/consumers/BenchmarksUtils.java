@@ -64,7 +64,6 @@ public class BenchmarksUtils {
         // Stores all item events sent through the update method.
         public List<Map<String, ?>> events = new ArrayList<>();
         private Blackhole blackHole;
-        private AtomicInteger counter;
 
         public FakeItemEventListener(Blackhole bh) {
             this.blackHole = bh;
