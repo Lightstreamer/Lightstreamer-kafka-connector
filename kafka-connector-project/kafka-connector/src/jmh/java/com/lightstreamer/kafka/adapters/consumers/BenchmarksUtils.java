@@ -26,17 +26,15 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
-import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -51,12 +49,10 @@ import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -437,38 +433,21 @@ public class BenchmarksUtils {
                         Optional.empty()));
     }
 
-    public static class FakeAdminInterface implements AdminInterface {
-
-        private final String topic;
-
-        public FakeAdminInterface(String topic) {
-            this.topic = topic;
-        }
-
-        @Override
-        public void close() throws Exception {}
-
-        @Override
-        public Set<String> listTopics(ListTopicsOptions options) throws Exception {
-            return Collections.singleton(topic);
-        }
-    }
-
     @SuppressWarnings("unchecked")
-    public static <T> ConsumerTriggerConfig<String, T> newConfigurator(
+    public static <T> Config<String, T> newConfigurator(
             String[] topic, String valueType, int templateParams) {
-        File adapterdir;
+        File adapterDir;
         try {
-            adapterdir = Files.createTempDirectory("adapter_dir").toFile();
+            adapterDir = Files.createTempDirectory("adapter_dir").toFile();
             if ("PROTOBUF".equals(valueType)) {
                 // Copy the descriptor file to the temp directory
                 var source = new File("./build/generated/sources/proto/jmh/descriptor_set.desc");
-                var target = new File(adapterdir, "descriptor_set.desc");
+                var target = new File(adapterDir, "descriptor_set.desc");
                 Files.copy(source.toPath(), target.toPath());
             }
-            return (ConsumerTriggerConfig<String, T>)
+            return (Config<String, T>)
                     new ConnectorConfigurator(
-                                    basicParameters(topic, valueType, templateParams), adapterdir)
+                                    basicParameters(topic, valueType, templateParams), adapterDir)
                             .configure();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -505,8 +484,7 @@ public class BenchmarksUtils {
         return adapterParams;
     }
 
-    public static <T> RecordMapper<String, T> newRecordMapper(
-            ConsumerTriggerConfig<String, T> config) {
+    public static <T> RecordMapper<String, T> newRecordMapper(Config<String, T> config) {
         return RecordMapper.<String, T>builder()
                 .withTemplateExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
@@ -518,7 +496,7 @@ public class BenchmarksUtils {
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
             String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
-            subscribedItems.add(Items.subscribedFrom(input, new Object()));
+            subscribedItems.addItem(Items.subscribedFrom(input, new Object()));
         }
         return subscribedItems;
     }
