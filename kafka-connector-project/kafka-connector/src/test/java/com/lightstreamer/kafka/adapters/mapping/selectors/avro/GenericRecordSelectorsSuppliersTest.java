@@ -23,7 +23,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -33,8 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -46,12 +45,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public class GenericRecordSelectorsSuppliersTest {
 
@@ -157,7 +153,6 @@ public class GenericRecordSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                            |  EXPECTED
-                VALUE['name']                         |  joe
                 VALUE.name                            |  joe
                 VALUE.preferences['pref1']            |  pref_value1
                 VALUE.preferences['pref2']            |  pref_value2
@@ -189,28 +184,6 @@ public class GenericRecordSelectorsSuppliersTest {
             subject.isEqualTo(expected);
         }
     }
-
-    static Stream<Arguments> multiValueExpressions() {
-        return Stream.of(
-                Arguments.of(
-                        "VALUE.preferences",
-                        List.of(
-                                Data.from("pref1", "pref_value1"),
-                                Data.from("pref2", "pref_value2"))),
-                Arguments.of(
-                        "VALUE.documents",
-                        List.of(Data.from("id", "{\"doc_id\": \"ID123\", \"doc_type\": \"ID\"}"))));
-    }
-
-    //     @ParameterizedTest(name = "[{index}] {arguments}")
-    //     @MethodSource("multiValueExpressions")
-    //     public void shouldExtractMultiValues(String expressionStr, List<Data> expected)
-    //             throws ExtractionException {
-    //         Collection<Data> values =
-    //
-    // valueSelector(Expression(expressionStr)).extractValues(fromValue(SAMPLE_MESSAGE));
-    //         assertThat(values).containsExactlyElementsIn(expected);
-    //     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
@@ -281,10 +254,9 @@ public class GenericRecordSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE,                       Cannot retrieve field [VALUE] from a null object
-                VALUE.no_attrib,             Cannot retrieve field [VALUE] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [VALUE] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -306,7 +278,6 @@ public class GenericRecordSelectorsSuppliersTest {
                     """
                 EXPRESSION                          | EXPECTED
                 KEY.name                            | joe
-                KEY['name']                         | joe
                 KEY.preferences['pref1']            | pref_value1
                 KEY.preferences['pref2']            | pref_value2
                 KEY.documents['id'].doc_id          | ID123
@@ -403,11 +374,10 @@ public class GenericRecordSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                KEY,                       Cannot retrieve field [KEY] from a null object
-                KEY.no_attrib,             Cannot retrieve field [KEY] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [KEY] from a null object
-                KEY.no_children[0],        Cannot retrieve field [KEY] from a null object
+                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
+                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {
