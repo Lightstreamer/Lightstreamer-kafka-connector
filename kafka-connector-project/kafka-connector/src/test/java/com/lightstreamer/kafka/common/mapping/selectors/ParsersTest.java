@@ -23,9 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
