@@ -222,14 +222,29 @@ public class StreamingDataAdapterTest {
 
     static Stream<Arguments> events() {
         return Stream.of(
-                Arguments.of(List.of(mkRecord(1, 1)), 2, 2),
-                Arguments.of(List.of(mkRecord(10, 1), mkRecord(44, 2)), 3, 4));
+                Arguments.of(
+                        List.of(mkRecord(1, 1)),
+                        2,
+                        2,
+                        List.of(Map.of("field1", "1"), Map.of("field1", "1"))),
+                Arguments.of(
+                        List.of(mkRecord(10, 1), mkRecord(44, 2)),
+                        3,
+                        4,
+                        List.of(
+                                Map.of("field1", "10"),
+                                Map.of("field1", "10"),
+                                Map.of("field1", "44"),
+                                Map.of("field1", "44"))));
     }
 
     @ParameterizedTest
     @MethodSource("events")
     public void shouldStreamEvents(
-            Collection<SinkRecord> records, int expectedOffset, int expectedDeliveredEvents)
+            Collection<SinkRecord> records,
+            int expectedOffset,
+            int expectedDeliveredEvents,
+            List<Map<String, String>> expectedUpdates)
             throws SubscriptionException, FailureException {
         StreamingDataAdapter adapter = newAdapter();
         FakeItemEventListener eventsListener = new FakeItemEventListener();
@@ -242,6 +257,9 @@ public class StreamingDataAdapterTest {
         // Since we have subscribed to two items, we expect the total number of real-time updates to
         // be twice the number of records.
         assertThat(eventsListener.events).hasSize(expectedDeliveredEvents);
+
+        // Verify that the ItemEventListener has been updated only with the non-failed field.
+        assertThat(eventsListener.events).isEqualTo(expectedUpdates);
 
         // Verify that the next offset for the involved partition
         Map<TopicPartition, OffsetAndMetadata> currentOffsets = adapter.getCurrentOffsets();
