@@ -1,0 +1,100 @@
+
+/*
+ * Copyright (C) 2025 Lightstreamer Srl
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+package com.lightstreamer.kafka.common.mapping.selectors;
+
+import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
+
+public class DynamicDataExtractor<K, V> implements DataExtractor<K, V> {
+
+    private interface Extractor<K, V> extends Function<KafkaRecord<K, V>, Collection<Data>> {}
+
+    private final List<Extractor<K, V>> extractors = new ArrayList<>();
+    private final Schema schema;
+    private boolean skipOnFailure;
+
+    public DynamicDataExtractor(
+            KeyValueSelectorSuppliers<K, V> suppliers,
+            String schema,
+            List<ExtractionExpression> expressions,
+            boolean skipOnFailure,
+            boolean mapNonScalars)
+            throws ExtractionException {
+        this.schema = Schema.empty(schema);
+        this.skipOnFailure = skipOnFailure;
+
+        initExpressions(suppliers, expressions);
+    }
+
+    private void initExpressions(
+            KeyValueSelectorSuppliers<K, V> suppliers, List<ExtractionExpression> expressions)
+            throws ExtractionException {
+        SelectorSupplier<ValueSelector<V>> value = suppliers.valueSelectorSupplier();
+        SelectorSupplier<KeySelector<K>> key = suppliers.keySelectorSupplier();
+        SelectorSupplier<GenericSelector> headers = new HeadersSelectorSupplier();
+
+        for (ExtractionExpression expr : expressions) {
+            extractors.add(
+                    switch (expr.constant()) {
+                        case KEY -> {
+                            KeySelector<K> newKeySelector = key.newSelector(expr);
+                            yield ((Extractor<K, V>) record -> newKeySelector.extractKeys(record));
+                        }
+
+                        case VALUE -> {
+                            ValueSelector<V> valueSelector = value.newSelector(expr);
+                            yield ((Extractor<K, V>) record -> valueSelector.extractValues(record));
+                        }
+
+                        case HEADERS -> {
+                            GenericSelector headerSelector = headers.newSelector(expr);
+                            yield ((Extractor<K, V>) record -> headerSelector.extractMulti(record));
+                        }
+
+                        default -> null;
+                    });
+        }
+    }
+
+    @Override
+    public Schema schema() {
+        return null;
+    }
+
+    @Override
+    public SchemaAndValues extractData(KafkaRecord<K, V> record) {
+        BuildableSchemaAndValues schemaAndValues = new BuildableSchemaAndValues(schema);
+        for (Extractor<K, V> extractor : this.extractors) {
+            try {
+                Collection<Data> data = extractor.apply(record);
+                for (Data item : data) {
+                    schemaAndValues.addValueNoKeyCheck(item.name(), item.text());
+                }
+            } catch (ValueException ve) {
+                if (!skipOnFailure) {
+                    throw ve;
+                }
+            }
+        }
+        return schemaAndValues;
+    }
+}
