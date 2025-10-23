@@ -20,84 +20,74 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
-import static java.util.Collections.emptyMap;
-
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class MappedRecordTest {
 
     @Test
     public void shouldCreateSimpleMappedRecord() {
-        SchemaAndValues expandedTemplate = SchemaAndValues.from("schema", Map.of("key", "aKey"));
-        SchemaAndValues fieldsMap = SchemaAndValues.from("fields", Map.of("field1", "value1"));
-        DefaultMappedRecord record = new DefaultMappedRecord(Set.of(expandedTemplate), fieldsMap);
-        assertThat(record.expanded()).containsExactly(expandedTemplate);
+        String[] canonicalItemNames = {"schema-[key=aKey]"};
+        Map<String, String> fieldsMap = Map.of("field1", "value1");
+
+        DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames, () -> fieldsMap);
         assertThat(record.fieldsMap()).containsExactly("field1", "value1");
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[schema-[key=aKey]], fieldsMap=fields-[field1=value1]]");
+                        "MappedRecord (canonicalItemNames=[schema-[key=aKey]], fieldsMap={field1=value1})");
     }
 
     @Test
     public void shouldCreateMappedRecord() {
-        Map<String, String> map1 = new LinkedHashMap<>();
-        map1.put("key", "aKey");
-        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("schema1", map1);
-        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("schema2", emptyMap());
+        String[] canonicalItemNames =
+                List.of(
+                                "schema1-[key=aKey]",
+                                "schema2",
+                                "schema3-[partition=aPartition,value=aValue]")
+                        .toArray(new String[0]);
 
-        Map<String, String> map2 = new LinkedHashMap<>();
-        map2.put("value", "aValue");
-        map2.put("partition", "aPartition");
-        SchemaAndValues expandedTemplate3 = SchemaAndValues.from("schema3", map2);
+        Map<String, String> fieldsMap = new TreeMap<>();
+        fieldsMap.put("field1", "value1");
+        fieldsMap.put("field2", "value2");
+        fieldsMap.put("field3", null);
 
-        Set<SchemaAndValues> expandedTemplates = new LinkedHashSet<>();
-        expandedTemplates.add(expandedTemplate1);
-        expandedTemplates.add(expandedTemplate2);
-        expandedTemplates.add(expandedTemplate3);
-
-        Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("field1", "value1");
-        fields.put("field2", "value2");
-        fields.put("field3", null);
-        SchemaAndValues fieldsMap = SchemaAndValues.from("fields", fields);
-
-        DefaultMappedRecord record = new DefaultMappedRecord(expandedTemplates, fieldsMap);
-        assertThat(record.expanded())
-                .containsExactly(expandedTemplate1, expandedTemplate2, expandedTemplate3);
+        DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames, () -> fieldsMap);
+        assertThat(record.canonicalItemNames())
+                .asList()
+                .containsExactly(
+                        "schema1-[key=aKey]",
+                        "schema2",
+                        "schema3-[partition=aPartition,value=aValue]");
         assertThat(record.fieldsMap())
                 .containsExactly("field1", "value1", "field2", "value2", "field3", null);
         assertThat(record.toString())
                 .isEqualTo(
-                        "MappedRecord [expandedTemplates=[schema1-[key=aKey], schema2, schema3-[partition=aPartition,value=aValue]], fieldsMap=fields-[field1=value1,field2=value2,field3=null]]");
+                        "MappedRecord (canonicalItemNames=[schema1-[key=aKey],schema2,schema3-[partition=aPartition,value=aValue]], fieldsMap={field1=value1, field2=value2, field3=null})");
     }
 
     @Test
-    public void shouldNotHaveExpandedTemplatesAndFieldsMapIfNOP() {
-        assertThat(DefaultMappedRecord.NOPRecord.expanded()).isEmpty();
+    public void shouldNotHaveCanonicalItemNNamesAndFieldsMapIfNOP() {
+        assertThat(DefaultMappedRecord.NOPRecord.canonicalItemNames()).isEmpty();
         assertThat(DefaultMappedRecord.NOPRecord.fieldsMap()).isEmpty();
         assertThat(DefaultMappedRecord.NOPRecord.toString())
-                .isEqualTo("MappedRecord [expandedTemplates=[], fieldsMap=NOSCHEMA]");
+                .isEqualTo("MappedRecord (canonicalItemNames=[], fieldsMap={})");
     }
 
     @Test
-    public void shouldRouteMatchingParameterizedItems() {
-        SchemaAndValues expandedTemplate1 =
-                SchemaAndValues.from(
-                        "schema1", Map.of("topic", "aTopic", "partition", "aPartition"));
-        SchemaAndValues expandedTemplate2 =
-                SchemaAndValues.from("schema2", Map.of("key", "aKey", "value", "aValue"));
-        Set<SchemaAndValues> expandedTemplates = Set.of(expandedTemplate1, expandedTemplate2);
-        DefaultMappedRecord record =
-                new DefaultMappedRecord(expandedTemplates, SchemaAndValues.nop());
+    public void shouldRouteParameterizedItems() {
+        String canonicalItemName = "schema1-[partition=aPartition,topic=aTopic]";
+        String canonicalItemName2 = "schema2-[key=aKey,value=aValue]";
+        String[] canonicalItemNames =
+                List.of(canonicalItemName, canonicalItemName2).toArray(new String[0]);
+
+        DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames);
 
         // This item should match the expandedTemplate 1: routable
         SubscribedItem matchingItem1 =
@@ -110,49 +100,46 @@ public class MappedRecordTest {
         SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
 
         SubscribedItems subscribedItems1 = SubscribedItems.create();
-        subscribedItems1.addItem("item1", matchingItem1);
-        subscribedItems1.addItem("item2", matchingItem2);
-        subscribedItems1.addItem("item3", notMatchingBindParameters);
-        subscribedItems1.addItem("item4", notMatchingSchema);
+        subscribedItems1.addItem(matchingItem1);
+        subscribedItems1.addItem(matchingItem2);
+        subscribedItems1.addItem(notMatchingBindParameters);
+        subscribedItems1.addItem(notMatchingSchema);
         assertThat(record.route(subscribedItems1)).containsExactly(matchingItem1, matchingItem2);
 
         SubscribedItems subscribedItems2 = SubscribedItems.create();
-        subscribedItems2.addItem("item3", notMatchingBindParameters);
-        subscribedItems2.addItem("item4", notMatchingSchema);
+        subscribedItems2.addItem(notMatchingBindParameters);
+        subscribedItems2.addItem(notMatchingSchema);
         assertThat(record.route(subscribedItems2)).isEmpty();
     }
 
     @Test
-    public void shouldRouteMatchingSimpleItems() {
-        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
-        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
+    public void shouldRouteSimpleItems() {
+        String canonicalItemName1 = "simple-item-1";
+        String canonicalItemName2 = "simple-item-2";
         DefaultMappedRecord record =
                 new DefaultMappedRecord(
-                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
-        assertThat(record.expanded()).containsExactly(expandedTemplate1, expandedTemplate2);
+                        List.of(canonicalItemName1, canonicalItemName2).toArray(new String[0]));
         assertThat(record.fieldsMap()).isEmpty();
 
         SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
         SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
         SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
         SubscribedItems subscribedItems = SubscribedItems.create();
-        subscribedItems.addItem("simple-item-1", matchingItem1);
-        subscribedItems.addItem("simple-item-2", matchingItem2);
-        subscribedItems.addItem("simple-item-3", notMatchingItem);
+        subscribedItems.addItem(matchingItem1);
+        subscribedItems.addItem(matchingItem2);
+        subscribedItems.addItem(notMatchingItem);
         assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
     }
 
     @Test
     public void shouldRouteAll() {
-        SchemaAndValues expandedTemplate1 = SchemaAndValues.from("simple-item-1", emptyMap());
-        SchemaAndValues expandedTemplate2 = SchemaAndValues.from("simple-item-2", emptyMap());
         DefaultMappedRecord record =
                 new DefaultMappedRecord(
-                        Set.of(expandedTemplate1, expandedTemplate2), SchemaAndValues.nop());
+                        List.of("simple-item-1", "simple-item-2").toArray(new String[0]));
 
         Set<SubscribedItem> routeAll = record.routeAll();
-        SubscribedItem autoSubscription1 = Items.subscribedFrom(expandedTemplate1);
-        SubscribedItem autoSubscription2 = Items.subscribedFrom(expandedTemplate2);
+        SubscribedItem autoSubscription1 = Items.subscribedFrom("simple-item-1");
+        SubscribedItem autoSubscription2 = Items.subscribedFrom("simple-item-2");
         assertThat(routeAll).containsExactly(autoSubscription1, autoSubscription2);
     }
 }
