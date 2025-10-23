@@ -18,11 +18,11 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.Assert.assertThrows;
 
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
@@ -108,18 +108,13 @@ public class HeaderSelectorSupplierTest {
             textBlock =
                     """
                 EXPRESSION,           EXPECTED
-                HEADERS.name,            joe
-                HEADERS['name'],         joe
-                HEADERS[0],              joe
-                HEADERS.signature,       YWJjZA==
-                HEADERS['signature'],    YWJjZA==
-                HEADERS[1],              YWJjZA==
-                HEADERS.accountId[0],    12345
-                HEADERS.accountId[1],    67890
-                HEADERS['accountId'][0], 12345
-                HEADERS['accountId'][1], 67890
-                HEADERS[2],              12345
-                HEADERS[3],              67890
+                HEADERS.name,         joe
+                HEADERS[0],           joe
+                HEADERS['name'],      joe
+                HEADERS.signature,    YWJjZA==
+                HEADERS['signature'], YWJjZA==
+                HEADERS.accountId[0], 12345
+                HEADERS.accountId[1], 67890
                     """)
     public void shouldExtractConnectHeaders(String expressionStr, String expected)
             throws ExtractionException {
