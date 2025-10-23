@@ -53,7 +53,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -67,7 +66,6 @@ public class BenchmarksUtils {
 
         public FakeItemEventListener(Blackhole bh) {
             this.blackHole = bh;
-            counter = new AtomicInteger();
         }
 
         @Override
