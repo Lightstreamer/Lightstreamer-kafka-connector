@@ -23,9 +23,9 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -508,7 +508,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         }
 
         return new DefaultMappedRecord(
-                canonicalItems, () -> fieldExtractor.extractAsMap(record), record.value() == null);
+                canonicalItems, () -> fieldExtractor.extractAsMap(record), record.isPayloadNull());
     }
 }
 
