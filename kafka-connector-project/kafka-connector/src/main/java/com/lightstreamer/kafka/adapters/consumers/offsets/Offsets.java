@@ -17,11 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
@@ -80,7 +80,7 @@ public class Offsets {
 
     public interface OffsetStore {
 
-        void save(ConsumerRecord<?, ?> record);
+        void save(KafkaRecord<?, ?> record);
 
         default Map<TopicPartition, OffsetAndMetadata> current() {
             return Collections.emptyMap();
@@ -115,7 +115,7 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed);
 
-        boolean notHasPendingOffset(ConsumerRecord<?, ?> record);
+        boolean notHasPendingOffset(KafkaRecord<?, ?> record);
 
         boolean canManageHoles();
 
@@ -125,7 +125,7 @@ public class Offsets {
 
         void commitAsync();
 
-        void updateOffsets(ConsumerRecord<?, ?> record);
+        void updateOffsets(KafkaRecord<?, ?> record);
 
         void onAsyncFailure(Throwable th);
 
@@ -197,7 +197,7 @@ public class Offsets {
         }
 
         @Override
-        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
             Collection<Long> pendingOffsetsList =
                     pendingOffsetsMap.getOrDefault(
                             new TopicPartition(record.topic(), record.partition()),
@@ -249,7 +249,7 @@ public class Offsets {
         }
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {
+        public void updateOffsets(KafkaRecord<?, ?> record) {
             offsetStore.save(record);
         }
 
@@ -275,17 +275,19 @@ public class Offsets {
         private interface OffsetAndMetadataFactory {
 
             OffsetAndMetadata newOffsetAndMetadata(
-                    ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
+                    KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
         }
 
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
-        private final Logger log;
+        private final Logger logger;
         private OffsetAndMetadataFactory factory;
 
         OffsetStoreImpl(
-                Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles, Logger log) {
+                Map<TopicPartition, OffsetAndMetadata> committed,
+                boolean manageHoles,
+                Logger logger) {
             this.offsets = new ConcurrentHashMap<>(committed);
-            this.log = log;
+            this.logger = logger;
             this.factory =
                     manageHoles
                             ? OffsetStoreImpl::mkNewOffsetAndMetadata
@@ -299,7 +301,7 @@ public class Offsets {
         }
 
         @Override
-        public void save(ConsumerRecord<?, ?> record) {
+        public void save(KafkaRecord<?, ?> record) {
             TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
             offsets.compute(
                     topicPartition,
@@ -308,7 +310,7 @@ public class Offsets {
         }
 
         private static OffsetAndMetadata mkNewOffsetAndMetadata(
-                ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
+                KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
             String lastMetadata = lastOffsetAndMetadata.metadata();
             long lastOffset = lastOffsetAndMetadata.offset();
             long newOffset = lastOffset;
