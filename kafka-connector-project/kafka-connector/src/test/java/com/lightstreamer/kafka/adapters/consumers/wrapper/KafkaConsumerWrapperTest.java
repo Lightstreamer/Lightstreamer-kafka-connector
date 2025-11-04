@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
@@ -43,6 +44,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
@@ -51,7 +54,6 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -90,7 +92,7 @@ public class KafkaConsumerWrapperTest {
     private MockMetadataListener metadataListener;
     private MockItemEventListener itemEventListener;
 
-    private MockConsumer<String, String> mockConsumer;
+    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer;
 
     @BeforeEach
     public void setUp() {
@@ -334,13 +336,13 @@ public class KafkaConsumerWrapperTest {
                         new OffsetAndMetadata(0L, "1")));
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
         // Invoke the method and verify that the task has been actually invoked with the
         // expected simulated records
-        ConsumerRecords<String, String> filtered = wrapper.initStoreAndConsume(records);
-        assertThat(filtered.count()).isEqualTo(records.count() - 2);
+        int filtered = wrapper.initStoreAndConsume(KafkaRecords.from(records));
+        assertThat(filtered).isEqualTo(records.count() - 2);
     }
 
     private void updateOffsets(HashMap<TopicPartition, Long> offsets) {
@@ -369,7 +371,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -379,15 +381,15 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecord<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        for (ConsumerRecord<String, String> record : received) {
+                        for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
                     }
@@ -422,7 +424,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -432,15 +434,15 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecord<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        for (ConsumerRecord<String, String> record : received) {
+                        for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
                     }
@@ -475,7 +477,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -489,15 +491,15 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecord<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        for (ConsumerRecord<String, String> record : received) {
+                        for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
                     }
@@ -531,7 +533,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -548,15 +550,15 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecord<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        for (ConsumerRecord<String, String> record : received) {
+                        for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
                     }
@@ -605,7 +607,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -620,15 +622,15 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecord<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        for (ConsumerRecord<String, String> record : received) {
+                        for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
                     }
@@ -687,7 +689,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -737,7 +739,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -899,7 +901,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(

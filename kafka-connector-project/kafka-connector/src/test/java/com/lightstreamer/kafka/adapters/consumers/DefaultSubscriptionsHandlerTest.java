@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -72,14 +73,14 @@ public class DefaultSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        Mocks.MockConsumer<String, String> consumer =
+        Mocks.MockConsumer<Deferred<String>, Deferred<String>> consumer =
                 new Mocks.MockConsumer<>(OffsetResetStrategy.EARLIEST);
         for (String topic : topics) {
             consumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
 
-        Supplier<Consumer<String, String>> supplier =
+        Supplier<Consumer<Deferred<String>, Deferred<String>>> supplier =
                 () -> {
                     if (exceptionOnConnection) {
                         throw new KafkaException("Simulated Exception");

@@ -59,8 +59,8 @@ public class SubscriptionsHandlerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void shouldCreateDefaultSubscriptionsHandler(boolean allowImplicitItems) {
-        SubscriptionsHandler<?, ?> subscriptionsHandler =
-                SubscriptionsHandler.builder()
+        SubscriptionsHandler<String, String> subscriptionsHandler =
+                SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
                         .withMetadataListener(metadataListener)
                         .atStartup(false, allowImplicitItems)
@@ -78,8 +78,8 @@ public class SubscriptionsHandlerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void shouldCreateAtSubscriptionsHandler(boolean allowImplicitItems) {
-        SubscriptionsHandler<?, ?> subscriptionsHandler =
-                SubscriptionsHandler.builder()
+        SubscriptionsHandler<String, String> subscriptionsHandler =
+                SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
                         .withMetadataListener(metadataListener)
                         .atStartup(true, allowImplicitItems)
