@@ -17,7 +17,10 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import java.util.List;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
+
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -34,11 +37,27 @@ public interface TaskExecutor<S> {
     }
 
     default <E> void executeBatch(
-            List<? extends E> events,
+            Collection<? extends E> events,
             Function<? super E, ? extends S> sequence,
             BiConsumer<? super S, ? super E> task) {
         CountDownLatch latch = new CountDownLatch(events.size());
         for (E event : events) {
+            S seq = sequence.apply(event);
+            execute(event, seq, wrapTask(task, latch));
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    default <K, V> void executeKafkaBatch(
+            KafkaRecords<K, V> records,
+            Function<KafkaRecord<K, V>, ? extends S> sequence,
+            BiConsumer<? super S, KafkaRecord<K, V>> task) {
+        CountDownLatch latch = new CountDownLatch(records.count());
+        for (KafkaRecord<K, V> event : records) {
             S seq = sequence.apply(event);
             execute(event, seq, wrapTask(task, latch));
         }
