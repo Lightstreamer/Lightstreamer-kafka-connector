@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import java.util.HashMap;
 import java.util.HashSet;

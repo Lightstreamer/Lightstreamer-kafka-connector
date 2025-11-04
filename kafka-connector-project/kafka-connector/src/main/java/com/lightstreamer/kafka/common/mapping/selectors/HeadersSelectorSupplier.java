@@ -19,9 +19,10 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeader;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeader;
+import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
