@@ -23,6 +23,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
@@ -33,6 +34,7 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperCo
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -134,9 +136,9 @@ public class KafkaConsumerWrapper<K, V> {
 
     private final Config<K, V> config;
     private final MetadataListener metadataListener;
-    private final Logger log;
+    private final Logger logger;
     private final RecordMapper<K, V> recordMapper;
-    private final Consumer<K, V> consumer;
+    private final Consumer<Deferred<K>, Deferred<V>> consumer;
     private final OffsetService offsetService;
     private final RecordConsumer<K, V> recordConsumer;
     private volatile Thread hook;
@@ -148,11 +150,11 @@ public class KafkaConsumerWrapper<K, V> {
             MetadataListener metadataListener,
             ItemEventListener itemEventListener,
             SubscribedItems subscribedItems,
-            Supplier<Consumer<K, V>> consumerSupplier)
+            Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier)
             throws KafkaException {
         this.config = config;
         this.metadataListener = metadataListener;
-        this.log = LogFactory.getLogger(config.connectionName());
+        this.logger = LogFactory.getLogger(config.connectionName());
         this.recordMapper =
                 RecordMapper.<K, V>builder()
                         .withTemplateExtractors(config.itemTemplates().groupExtractors())
@@ -161,17 +163,17 @@ public class KafkaConsumerWrapper<K, V> {
                         .build();
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
-        log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
+        logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
         // Instantiate the Kafka Consumer
         this.consumer = consumerSupplier.get();
-        log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
+        logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
 
         Concurrency concurrency = config.concurrency();
         // Take care of holes in offset sequence only if parallel processing.
         boolean manageHoles = concurrency.isParallel();
-        this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
+        this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
@@ -182,7 +184,7 @@ public class KafkaConsumerWrapper<K, V> {
                         .eventListener(itemEventListener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
-                        .logger(log)
+                        .logger(logger)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
@@ -197,17 +199,17 @@ public class KafkaConsumerWrapper<K, V> {
         lock.lock();
         try {
             if (!status.isConnected()) {
-                log.atError()
-                        .log("The current consumer's state does not allow to can't start the loop");
+                logger.atError()
+                        .log("The current consumer's state does not allow starting the loop");
                 return status;
             }
 
             CompletableFuture<FutureStatus.State> initStage =
                     CompletableFuture.supplyAsync(this::init, pool);
             if (waitForInit) {
-                log.atDebug().log("Blocking until initialization completes");
+                logger.atDebug().log("Blocking until initialization completes");
                 State state = initStage.join();
-                log.atDebug().log("Initialization completed");
+                logger.atDebug().log("Initialization completed");
                 if (state.initFailed()) {
                     // In case of failure, immediately return a failed status.
                     // This is mandatory for use cases where the initialization must be
@@ -229,7 +231,7 @@ public class KafkaConsumerWrapper<K, V> {
 
     FutureStatus.State init() {
         if (!subscribed()) {
-            log.atWarn().log("Initialization failed because no topics are subscribed");
+            logger.atWarn().log("Initialization failed because no topics are subscribed");
             closeConsumer();
             metadataListener.forceUnsubscriptionAll();
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
@@ -239,7 +241,7 @@ public class KafkaConsumerWrapper<K, V> {
             pollOnce(this::initStoreAndConsume);
             pollAvailable(this::consumeRecords);
         } catch (KafkaException e) {
-            log.atWarn().log("Initialization failed because of an exception");
+            logger.atWarn().log("Initialization failed because of an exception");
             closeConsumer();
             metadataListener.forceUnsubscriptionAll();
             return FutureStatus.State.INIT_FAILED_BY_EXCEPTION;
@@ -251,7 +253,7 @@ public class KafkaConsumerWrapper<K, V> {
         this.hook =
                 new Thread(
                         () -> {
-                            log.atInfo().log("Invoked shutdown hook");
+                            logger.atInfo().log("Invoked shutdown hook");
                             doShutdown();
                         });
         Runtime.getRuntime().addShutdownHook(hook);
@@ -261,14 +263,14 @@ public class KafkaConsumerWrapper<K, V> {
         ItemTemplates<K, V> templates = config.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
-            log.debug("Subscribing to the requested pattern {}", pattern.pattern());
+            logger.debug("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
             return true;
         }
         // Original requested topics.
         Set<String> topics = new HashSet<>(templates.topics());
-        log.atInfo().log("Subscribing to requested topics [{}]", topics);
-        log.atDebug().log("Checking existing topics on Kafka");
+        logger.atInfo().log("Subscribing to requested topics [{}]", topics);
+        logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
         try {
@@ -281,7 +283,7 @@ public class KafkaConsumerWrapper<K, V> {
 
             // Can't subscribe at all. Force unsubscription and exit the loop.
             if (topics.isEmpty()) {
-                log.atWarn().log("Requested topics not found");
+                logger.atWarn().log("Requested topics not found");
                 return false;
             }
 
@@ -291,7 +293,7 @@ public class KafkaConsumerWrapper<K, V> {
                         topics.stream()
                                 .map(s -> "\"%s\"".formatted(s))
                                 .collect(Collectors.joining(","));
-                log.atWarn()
+                logger.atWarn()
                         .log(
                                 "Actually subscribing to the following existing topics [{}]",
                                 loggableTopics);
@@ -299,74 +301,76 @@ public class KafkaConsumerWrapper<K, V> {
             consumer.subscribe(topics, offsetService);
             return true;
         } catch (Exception e) {
-            log.atError().setCause(e).log();
+            logger.atError().setCause(e).log();
             return false;
         }
     }
 
-    void pollOnce(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer)
+    void pollOnce(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
             throws KafkaException {
-        log.atInfo().log(
+        logger.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed");
         pool(recordConsumer, Duration.ofMillis(100));
-        log.atInfo().log("First poll completed");
+        logger.atInfo().log("First poll completed");
     }
 
-    void pollAvailable(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer)
+    void pollAvailable(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
             throws KafkaException {
-        log.atInfo().log("Polling all available records");
+        logger.atInfo().log("Polling all available records");
         while (pool(recordConsumer, Duration.ofMillis(100)) > 0)
             ;
-        log.atInfo().log("All available records polled");
+        logger.atInfo().log("All available records polled");
     }
 
     private int pool(
-            java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer, Duration duration)
+            java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer, Duration duration)
             throws KafkaException {
-        log.atInfo().log("Polling records");
+        logger.atInfo().log("Polling records");
         try {
-            ConsumerRecords<K, V> records = consumer.poll(duration);
-            log.atDebug().log("Received records");
-            recordConsumer.accept(records);
-            log.atInfo().log("Consumed {} records", records.count());
+            ConsumerRecords<Deferred<K>, Deferred<V>> records = consumer.poll(duration);
+            logger.atDebug().log("Received records");
+            // -- To - RocksDB
+            recordConsumer.accept(KafkaRecords.from(records));
+
+            logger.atInfo().log("Consumed {} records", records.count());
             return records.count();
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
         } catch (KafkaException ke) {
-            log.atError().setCause(ke).log("Unrecoverable exception");
+            logger.atError().setCause(ke).log("Unrecoverable exception");
             metadataListener.forceUnsubscriptionAll();
             throw ke;
         }
     }
 
     private void closeConsumer() {
-        log.atDebug().log("Start closing Kafka Consumer");
+        logger.atDebug().log("Start closing Kafka Consumer");
         // Ensure that all pending offsets are committed
         recordConsumer.terminate();
         try {
             consumer.close();
         } catch (Exception e) {
-            log.atError().setCause(e).log("Error while closing the Kafka Consumer");
+            logger.atError().setCause(e).log("Error while closing the Kafka Consumer");
         }
-        log.atDebug().log("Kafka Consumer closed");
+        logger.atDebug().log("Kafka Consumer closed");
     }
 
     FutureStatus.State loop(State previousState) {
         if (previousState.initFailed()) {
-            log.atError().log("Loop is in a failed state, no records will be consumed");
+            logger.atError().log("Loop is in a failed state, no records will be consumed");
             return previousState;
         }
 
         // Install the shutdown hook
         installShutdownHook();
-        log.atDebug().log("Shutdown hook set");
+        logger.atDebug().log("Shutdown hook set");
         try {
             pollForEver(this::consumeRecords);
         } catch (WakeupException e) {
-            log.atDebug().log("Kafka Consumer woken up");
+            logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
-            log.atError().setCause(e).log("Unrecoverable exception during polling");
+            logger.atError().setCause(e).log("Unrecoverable exception during polling");
             return FutureStatus.State.LOOP_CLOSED_BY_EXCEPTION;
         } finally {
             closeConsumer();
@@ -374,9 +378,9 @@ public class KafkaConsumerWrapper<K, V> {
         return FutureStatus.State.LOOP_CLOSED_BY_WAKEUP;
     }
 
-    void pollForEver(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer)
+    void pollForEver(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
             throws KafkaException {
-        log.atInfo().log("Starting infinite pool");
+        logger.atInfo().log("Starting infinite pool");
         for (; ; ) {
             pool(recordConsumer, POLL_DURATION);
         }
@@ -386,14 +390,14 @@ public class KafkaConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    ConsumerRecords<K, V> initStoreAndConsume(ConsumerRecords<K, V> records) {
+    int initStoreAndConsume(KafkaRecords<K, V> records) {
         offsetService.initStore(isFromLatest());
         // Consume all the records that don't have a pending offset, which have therefore
         // already delivered to the clients.
         return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
     }
 
-    void consumeRecords(ConsumerRecords<K, V> records) {
+    void consumeRecords(KafkaRecords<K, V> records) {
         recordConsumer.consumeRecords(records);
     }
 
@@ -406,7 +410,7 @@ public class KafkaConsumerWrapper<K, V> {
             // if (status.isConnected()
             doShutdown();
             if (this.hook != null) {
-                log.atDebug().log("Removing shutdown hook");
+                logger.atDebug().log("Removing shutdown hook");
                 Runtime.getRuntime().removeShutdownHook(this.hook);
                 this.hook = null;
             }
@@ -417,16 +421,16 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private void doShutdown() {
-        log.atInfo().log("Shutting down Kafka consumer");
-        log.atDebug().log("Waking up consumer");
+        logger.atInfo().log("Shutting down Kafka consumer");
+        logger.atDebug().log("Waking up consumer");
         consumer.wakeup();
-        log.atDebug().log("Consumer woken up, waiting for graceful thread completion");
+        logger.atDebug().log("Consumer woken up, waiting for graceful thread completion");
         status.join();
-        log.atInfo().log("Kafka consumer shut down");
+        logger.atInfo().log("Kafka consumer shut down");
     }
 
     // Only for testing purposes
-    Consumer<K, V> getInternalConsumer() {
+    Consumer<Deferred<K>, Deferred<V>> getInternalConsumer() {
         return consumer;
     }
 
