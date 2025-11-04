@@ -36,10 +36,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Records;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -212,17 +212,17 @@ public class RecordProcessorTest {
                 Arguments.of(
                         false,
                         defaultMapper(),
-                        Records.ConsumerRecord(TEST_TOPIC, 0, "a-1"),
+                        Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
                         Map.of("aKey", "a", "aValue", "1a")),
                 Arguments.of(
                         false,
                         defaultMapper(),
-                        Records.ConsumerRecord(TEST_TOPIC, 0, "a-2"),
+                        Records.KafkaRecord(TEST_TOPIC, 0, "a-2"),
                         Map.of("aKey", "a", "aValue", "2a")),
                 Arguments.of(
                         false,
                         mapperWithNoFieldsExtractor(),
-                        Records.ConsumerRecord(TEST_TOPIC, 0, "a-2"),
+                        Records.KafkaRecord(TEST_TOPIC, 0, "a-2"),
                         Collections.emptyMap()));
     }
 
@@ -231,7 +231,7 @@ public class RecordProcessorTest {
     public void shouldProcess(
             boolean allowImplicitItems,
             RecordMapper<String, String> mapper,
-            ConsumerRecord<String, String> record,
+            KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
         subscribedItems = allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
         EventConsumer consumer = allowImplicitItems ? legacyConsumer : smartConsumer;
@@ -270,7 +270,7 @@ public class RecordProcessorTest {
 
         // Subscribe to the unexpected "item3" and process the record
         subscribedItems.addItem(Items.subscribedFrom("item3", new Object()));
-        processor.process(Records.ConsumerRecord(TEST_TOPIC, 0, "a-1"));
+        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
         // Verify that the update has NOT been routed
         assertThat(smartConsumer.getCounter()).isEqualTo(0);
     }
@@ -278,17 +278,17 @@ public class RecordProcessorTest {
     static Stream<Arguments> recordsForAutoCommandMode() {
         return Stream.of(
                 Arguments.of(
-                        Records.ConsumerRecord(TEST_TOPIC, 0, "a-1"),
+                        Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
                         Map.of("key", "a", "valueField", "1a", "command", "ADD")),
                 Arguments.of(
-                        Records.ConsumerRecord(TEST_TOPIC, "a", null),
+                        Records.KafkaRecord(TEST_TOPIC, "a", null),
                         Map.of("key", "a", "command", "DELETE")));
     }
 
     @ParameterizedTest
     @MethodSource("recordsForAutoCommandMode")
     public void shouldProcessRecordWithAutoCommandMode(
-            ConsumerRecord<String, String> record, Map<String, String> expectedFields) {
+            KafkaRecord<String, String> record, Map<String, String> expectedFields) {
         subscribedItems = SubscribedItems.create();
         processor =
                 processor(
@@ -349,7 +349,7 @@ public class RecordProcessorTest {
             subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
         }
 
-        ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
         // Verify that the nor clear snapshot neither end of snapshot were called
@@ -382,7 +382,7 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         subscribedItems.addItem(Items.subscribedFrom("item1", new Object()));
-        ConsumerRecord<String, String> record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
         // Verify that the real-time update has NOT been routed
@@ -410,8 +410,7 @@ public class RecordProcessorTest {
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
-        ConsumerRecord<String, String> record =
-                Records.ConsumerRecord(TEST_TOPIC, "snapshot", "CS");
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "snapshot", "CS");
         processor.process(record);
 
         // Verify that only clearSnapshot was called
@@ -441,8 +440,8 @@ public class RecordProcessorTest {
         subscribedItems.addItem(item);
 
         // Consume a record with a "snapshot" key and a wrong command
-        ConsumerRecord<String, String> record =
-                Records.ConsumerRecord(TEST_TOPIC, "snapshot", wrongCommand);
+        KafkaRecord<String, String> record =
+                Records.KafkaRecord(TEST_TOPIC, "snapshot", wrongCommand);
         processor.process(record);
 
         // Verify that the nor clear snapshot neither end of snapshot were called
@@ -470,8 +469,7 @@ public class RecordProcessorTest {
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
-        ConsumerRecord<String, String> record =
-                Records.ConsumerRecord(TEST_TOPIC, "snapshot", "EOS");
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "snapshot", "EOS");
         processor.process(record);
 
         // Verify only end of snapshot was called
@@ -499,7 +497,7 @@ public class RecordProcessorTest {
         subscribedItems.addItem(item);
 
         // Process a record containing a regular command
-        var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");
+        var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
         processor.process(addRecord);
 
         // Verify that the real-time update has been routed
@@ -509,7 +507,7 @@ public class RecordProcessorTest {
         assertThat(smartConsumer.isSnapshotEvent()).isTrue();
 
         // Then process a record containing an end of snapshot command
-        var eosRecord = Records.ConsumerRecord(TEST_TOPIC, "snapshot", "EOS");
+        var eosRecord = Records.KafkaRecord(TEST_TOPIC, "snapshot", "EOS");
         processor.process(eosRecord);
 
         // Verify that the end of snapshot was called
@@ -520,7 +518,7 @@ public class RecordProcessorTest {
         int currentCounter = smartConsumer.getCounter();
         for (String command : List.of("ADD", "UPDATE", "DELETE")) {
             currentCounter++;
-            var record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
+            var record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
             processor.process(record);
             // Verify that the real-time update has been routed
             assertThat(smartConsumer.getCounter()).isEqualTo(currentCounter);
@@ -546,14 +544,14 @@ public class RecordProcessorTest {
         subscribedItems.addItem(item);
 
         // Process a record containing a regular command
-        var addRecord = Records.ConsumerRecord(TEST_TOPIC, "aKey", "ADD");
+        var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
         processor.process(addRecord);
 
         assertThat(smartConsumer.getCounter()).isEqualTo(1);
         assertThat(smartConsumer.isSnapshotEvent()).isTrue();
 
         // Then process a record containing a clear snapshot command
-        var clsRecord = Records.ConsumerRecord(TEST_TOPIC, "snapshot", "CS");
+        var clsRecord = Records.KafkaRecord(TEST_TOPIC, "snapshot", "CS");
         processor.process(clsRecord);
         assertThat(listener.smartClearSnapshotCalled()).isTrue();
 
@@ -562,7 +560,7 @@ public class RecordProcessorTest {
         int currentCounter = smartConsumer.getCounter();
         for (String command : List.of("ADD", "UPDATE", "DELETE")) {
             currentCounter++;
-            var record = Records.ConsumerRecord(TEST_TOPIC, "aKey", command);
+            var record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
             processor.process(record);
             // Verify that the real-time update has been routed
             assertThat(smartConsumer.getCounter()).isEqualTo(currentCounter);

@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
@@ -46,6 +47,7 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
@@ -125,7 +127,7 @@ public class RecordConsumerTest {
                 new ConnectorConfigurator(
                         ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
 
-        this.config = (Config<String, String>) connectorConfigurator.configure();
+        this.config = (Config<String, String>) connectorConfigurator.consumerConfig();
 
         String item = "item";
         this.subscriptions = SubscribedItems.create();
@@ -175,18 +177,20 @@ public class RecordConsumerTest {
 
     @Test
     public void testRecordGeneration() {
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 generateRecords("topic", 40, List.of("a", "b", "c"));
         assertThat(records).hasSize(40);
 
-        List<ConsumerRecord<String, String>> recordByPartition =
+        List<ConsumerRecord<Deferred<String>, Deferred<String>>> recordByPartition =
                 records.records(new TopicPartition("topic", 0));
         Map<String, List<Integer>> byKey =
                 recordByPartition.stream()
                         .collect(
                                 groupingBy(
-                                        ConsumerRecord::key,
-                                        mapping(r -> extractNumberedSuffix(r.value()), toList())));
+                                        r -> r.key().load(),
+                                        mapping(
+                                                r -> extractNumberedSuffix(r.value().load()),
+                                                toList())));
         Collection<List<Integer>> keyOrdered = byKey.values();
         for (List<Integer> list : keyOrdered) {
             assertThat(list).isInOrder();
@@ -687,7 +691,8 @@ public class RecordConsumerTest {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
         // the same topic
         List<String> keys = List.of("a", "b", "c", "d");
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 2);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 2);
 
         // Create a list to store all the delivered events
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -701,7 +706,7 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
 
             for (String key : keys) {
@@ -731,15 +736,15 @@ public class RecordConsumerTest {
         int partitionsOnTopic2 = 2;
 
         // Generate records on different topics
-        ConsumerRecords<String, String> recordsOnTopic1 =
+        ConsumerRecords<Deferred<String>, Deferred<String>> recordsOnTopic1 =
                 generateRecords("topic1", numOfRecords, keys, partitionsOnTopic1);
-        ConsumerRecords<String, String> recordsOnTopic2 =
+        ConsumerRecords<Deferred<String>, Deferred<String>> recordsOnTopic2 =
                 generateRecords("topic2", numOfRecords, keys, partitionsOnTopic2);
 
         // Assemble an instance of ConsumerRecords with the generated records
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
-                new HashMap<>();
-        Consumer<? super ConsumerRecord<String, String>> action =
+        Map<TopicPartition, List<ConsumerRecord<Deferred<String>, Deferred<String>>>>
+                recordsByPartition = new HashMap<>();
+        Consumer<? super ConsumerRecord<Deferred<String>, Deferred<String>>> action =
                 consumerRecord ->
                         recordsByPartition.compute(
                                 new TopicPartition(
@@ -753,7 +758,8 @@ public class RecordConsumerTest {
                                 });
         recordsOnTopic1.forEach(action);
         recordsOnTopic2.forEach(action);
-        ConsumerRecords<String, String> allRecords = new ConsumerRecords<>(recordsByPartition);
+        ConsumerRecords<Deferred<String>, Deferred<String>> allRecords =
+                new ConsumerRecords<>(recordsByPartition);
 
         // Create a list to store all the delivered events
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -767,7 +773,7 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(allRecords);
+            recordConsumer.consumeRecords(KafkaRecords.from(allRecords));
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
             for (int partition = 0; partition < partitionsOnTopic1; partition++) {
                 assertDeliveredEventsOrder(partition, deliveredEvents, "topic1");
@@ -804,7 +810,8 @@ public class RecordConsumerTest {
     public void shouldDeliverPartitionBasedOrderWithNoKey(
             int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> events = Collections.synchronizedList(new ArrayList<>());
@@ -816,7 +823,7 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
             Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
@@ -835,7 +842,8 @@ public class RecordConsumerTest {
     @MethodSource("iterations")
     public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -847,7 +855,7 @@ public class RecordConsumerTest {
                         OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
             // Reset the delivered events list for next iteration
             deliveredEvents.clear();
@@ -858,7 +866,8 @@ public class RecordConsumerTest {
     public void shouldConsumeFiltered() {
         // Generate records distributed into three partitions
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 99, keys, 3);
 
         // Make the RecordConsumer.
         List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
@@ -870,7 +879,7 @@ public class RecordConsumerTest {
                         OrderStrategy.UNORDERED);
 
         // Consume only the records published to partition 0
-        recordConsumer.consumeFilteredRecords(records, c -> c.partition() == 0);
+        recordConsumer.consumeFilteredRecords(KafkaRecords.from(records), c -> c.partition() == 0);
         // Verify that only 1/3 of total published record have been consumed
         assertThat(deliveredEvents.size()).isEqualTo(records.count() / 3);
     }
@@ -888,7 +897,8 @@ public class RecordConsumerTest {
     @MethodSource("handleErrors")
     public void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -909,7 +919,9 @@ public class RecordConsumerTest {
                         .preferSingleThread(true)
                         .build();
 
-        assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
+        assertThrows(
+                KafkaException.class,
+                () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
 
         List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
         // For single-threaded processing, processing will stop upon first failure, therefore only
@@ -927,7 +939,8 @@ public class RecordConsumerTest {
     public void shouldIgnoreErrorsOnlyIfValueException(
             int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -950,12 +963,14 @@ public class RecordConsumerTest {
                         .build();
 
         if (exception instanceof ValueException) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
             // Ensure that all offsets are committed (even the offending ones)
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             assertThat(consumedRecords).hasSize(records.count());
         } else {
-            assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
+            assertThrows(
+                    KafkaException.class,
+                    () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             int expectedNumOfProcessedRecords =
                     numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
