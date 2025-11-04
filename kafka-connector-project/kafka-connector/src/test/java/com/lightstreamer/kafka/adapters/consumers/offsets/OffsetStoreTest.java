@@ -20,9 +20,9 @@ package com.lightstreamer.kafka.adapters.consumers.offsets;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
@@ -36,8 +36,8 @@ public class OffsetStoreTest {
 
     private static String TEST_TOPIC = "topic";
 
-    static ConsumerRecord<?, ?> Record(int partition, String id) {
-        return Records.ConsumerRecord(TEST_TOPIC, partition, id);
+    static KafkaRecord<?, ?> Record(int partition, String id) {
+        return Records.KafkaRecord(TEST_TOPIC, partition, id);
     }
 
     private OffsetStore repo;
