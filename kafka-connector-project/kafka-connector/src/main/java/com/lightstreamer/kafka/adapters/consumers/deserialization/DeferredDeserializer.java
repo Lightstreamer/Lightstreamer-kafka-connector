@@ -23,14 +23,13 @@ import java.util.Map;
 
 /**
  * A wrapper deserializer that defers the actual deserialization process until the value is needed.
- * 
+ *
  * <p>This deserializer wraps another deserializer and returns a {@link Deferred} object instead of
  * performing immediate deserialization. The actual deserialization is postponed until the deferred
  * value is accessed, which can help optimize performance by avoiding unnecessary deserialization
- * operations for data that might not be used.</p>
- * 
+ * operations for data that might not be used.
+ *
  * @param <T> the type of object that will be deserialized by the inner deserializer
- * 
  * @see Deserializer
  * @see Deferred
  */
