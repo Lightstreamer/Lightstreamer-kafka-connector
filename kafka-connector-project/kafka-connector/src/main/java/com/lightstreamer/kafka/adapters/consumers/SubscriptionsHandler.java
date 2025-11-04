@@ -21,6 +21,8 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.DeferredDeserializer;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -44,8 +46,8 @@ import java.util.function.Supplier;
 
 public interface SubscriptionsHandler<K, V> {
 
-    static Builder builder() {
-        return new Builder();
+    static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
     }
 
     void subscribe(String item, Object itemHandle) throws SubscriptionException;
@@ -62,54 +64,50 @@ public interface SubscriptionsHandler<K, V> {
 
     boolean allowImplicitItems();
 
-    static class Builder {
+    static class Builder<K, V> {
 
-        private Config<?, ?> consumerConfig;
+        private Config<K, V> consumerConfig;
         private MetadataListener metadataListener;
         private boolean consumeAtStartup = true;
         private boolean allowImplicitItems = false;
 
         public Builder() {}
 
-        public Builder withConsumerConfig(Config<?, ?> consumerConfig) {
+        public Builder<K, V> withConsumerConfig(Config<K, V> consumerConfig) {
             this.consumerConfig = consumerConfig;
             return this;
         }
 
-        public Builder withMetadataListener(MetadataListener metadataListener) {
+        public Builder<K, V> withMetadataListener(MetadataListener metadataListener) {
             this.metadataListener = metadataListener;
             return this;
         }
 
-        public Builder atStartup(boolean consumeAtStartup, boolean allowImplicitItems) {
+        public Builder<K, V> atStartup(boolean consumeAtStartup, boolean allowImplicitItems) {
             this.consumeAtStartup = consumeAtStartup;
             this.allowImplicitItems = allowImplicitItems;
             return this;
         }
 
-        public SubscriptionsHandler<?, ?> build() {
-            return create(consumerConfig);
-        }
-
-        private <K, V> SubscriptionsHandler<K, V> create(Config<K, V> config) {
+        public SubscriptionsHandler<K, V> build() {
             if (this.consumeAtStartup) {
                 return new AtStartupSubscriptionsHandler<>(
-                        config,
+                        consumerConfig,
                         this.metadataListener,
                         this.allowImplicitItems,
-                        defaultConsumerSupplier(config));
+                        defaultConsumerSupplier(consumerConfig));
             }
             return new DefaultSubscriptionsHandler<>(
-                    config, this.metadataListener, defaultConsumerSupplier(config));
+                    consumerConfig, this.metadataListener, defaultConsumerSupplier(consumerConfig));
         }
 
-        private static <K, V> Supplier<Consumer<K, V>> defaultConsumerSupplier(
+        private static <K, V> Supplier<Consumer<Deferred<K>, Deferred<V>>> defaultConsumerSupplier(
                 Config<K, V> config) {
             return () ->
                     new KafkaConsumer<>(
                             config.consumerProperties(),
-                            config.deserializers().keyDeserializer(),
-                            config.deserializers().valueDeserializer());
+                            new DeferredDeserializer<>(config.deserializers().keyDeserializer()),
+                            new DeferredDeserializer<>(config.deserializers().valueDeserializer()));
         }
     }
 
@@ -118,9 +116,9 @@ public interface SubscriptionsHandler<K, V> {
         private final Config<K, V> config;
         protected final MetadataListener metadataListener;
         private final boolean allowImplicitItems;
-        private final Supplier<Consumer<K, V>> consumerSupplier;
+        private final Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
 
-        protected final Logger log;
+        protected final Logger logger;
         private final ExecutorService pool;
 
         protected final SubscribedItems subscribedItems;
@@ -134,12 +132,12 @@ public interface SubscriptionsHandler<K, V> {
                 Config<K, V> config,
                 MetadataListener metadataListener,
                 boolean allowImplicitItems,
-                Supplier<Consumer<K, V>> consumerSupplier) {
+                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
             this.config = config;
             this.metadataListener = metadataListener;
             this.allowImplicitItems = allowImplicitItems;
             this.consumerSupplier = consumerSupplier;
-            this.log = LogFactory.getLogger(config.connectionName());
+            this.logger = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems =
@@ -163,37 +161,42 @@ public interface SubscriptionsHandler<K, V> {
             try {
                 SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
                 if (!config.itemTemplates().matches(newItem)) {
-                    log.atWarn().log("Item [{}] does not match any defined item templates", item);
+                    logger.atWarn()
+                            .log("Item [{}] does not match any defined item templates", item);
                     throw new SubscriptionException(
                             "Item does not match any defined item templates");
                 }
 
-                log.atInfo().log("Subscribed to item [{}]", item);
+                logger.atInfo().log("Subscribed to item [{}]", item);
+
                 subscribedItems.addItem(newItem);
+
+                // getSnapshot... -> inviare gli updates di snapshot se richiesto
+
                 onSubscribedItem();
             } catch (ExpressionException e) {
-                log.atError().setCause(e).log();
+                logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
             }
         }
 
         final FutureStatus startConsuming(boolean waitForInit) throws KafkaException {
-            log.atTrace().log("Acquiring consumer lock to start consuming events...");
+            logger.atTrace().log("Acquiring consumer lock to start consuming events...");
             consumerLock.lock();
-            log.atTrace().log("Lock acquired...");
+            logger.atTrace().log("Lock acquired...");
             try {
                 if (consumer == null) {
-                    log.atInfo().log("Consumer not yet initialized, creating a new one...");
+                    logger.atInfo().log("Consumer not yet initialized, creating a new one...");
                     consumer = newConsumer();
-                    log.atInfo().log("New consumer connecting and subscribing...");
+                    logger.atInfo().log("New consumer connecting and subscribing...");
                     futureStatus = consumer.startLoop(pool, waitForInit);
                 } else {
-                    log.atDebug().log("Consumer is already consuming events, nothing to do");
+                    logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
             } finally {
-                log.atTrace().log("Releasing consumer lock...");
+                logger.atTrace().log("Releasing consumer lock...");
                 consumerLock.unlock();
-                log.atTrace().log("Consumer lock released");
+                logger.atTrace().log("Consumer lock released");
             }
             return futureStatus;
         }
@@ -209,23 +212,23 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         final void stopConsuming() {
-            log.atTrace().log("Acquiring consumer lock to stop consuming...");
+            logger.atTrace().log("Acquiring consumer lock to stop consuming...");
             consumerLock.lock();
-            log.atTrace().log("Lock acquired to stop consuming...");
+            logger.atTrace().log("Lock acquired to stop consuming...");
             try {
                 if (consumer != null) {
-                    log.atInfo().log("Stopping consumer...");
+                    logger.atInfo().log("Stopping consumer...");
                     consumer.shutdown();
                     consumer = null;
                     futureStatus = null;
-                    log.atInfo().log("Consumer stopped");
+                    logger.atInfo().log("Consumer stopped");
                 } else {
-                    log.atDebug().log("Consumer is not initialized yet, nothing to do");
+                    logger.atDebug().log("Consumer is not initialized yet, nothing to do");
                 }
             } finally {
-                log.atTrace().log("Releasing consumer lock to stop consuming");
+                logger.atTrace().log("Releasing consumer lock to stop consuming");
                 consumerLock.unlock();
-                log.atTrace().log("Releases consumer lock to stop consuming");
+                logger.atTrace().log("Releases consumer lock to stop consuming");
             }
         }
 
@@ -276,7 +279,7 @@ public interface SubscriptionsHandler<K, V> {
         DefaultSubscriptionsHandler(
                 Config<K, V> config,
                 MetadataListener metadataListener,
-                Supplier<Consumer<K, V>> consumerSupplier) {
+                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
             super(config, metadataListener, false, consumerSupplier);
         }
 
@@ -286,7 +289,7 @@ public interface SubscriptionsHandler<K, V> {
                 try {
                     startConsuming(false);
                 } catch (KafkaException ke) {
-                    log.atError().setCause(ke).log("Unable to connect to Kafka");
+                    logger.atError().setCause(ke).log("Unable to connect to Kafka");
                     metadataListener.forceUnsubscriptionAll();
                 }
             }
@@ -311,7 +314,7 @@ public interface SubscriptionsHandler<K, V> {
                 Config<K, V> config,
                 MetadataListener metadataListener,
                 boolean allowImplicitItems,
-                Supplier<Consumer<K, V>> consumerSupplier) {
+                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
             super(config, metadataListener, allowImplicitItems, consumerSupplier);
         }
 
@@ -327,7 +330,7 @@ public interface SubscriptionsHandler<K, V> {
                     fail("Failed to start consuming from Kafka");
                 }
             } catch (KafkaException ke) {
-                log.atError().setCause(ke).log("Unable to connect to Kafka");
+                logger.atError().setCause(ke).log("Unable to connect to Kafka");
                 fail(ke);
             }
         }
