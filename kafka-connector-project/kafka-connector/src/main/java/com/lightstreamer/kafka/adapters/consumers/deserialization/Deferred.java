@@ -21,19 +21,17 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 /**
  * A deferred loading interface that provides lazy evaluation capabilities for deserialized data.
- * <p>
- * This interface allows for delayed deserialization of data, enabling performance optimizations
+ *
+ * <p>This interface allows for delayed deserialization of data, enabling performance optimizations
  * by deferring expensive deserialization operations until the data is actually needed.
- * </p>
- * 
+ *
  * @param <T> the type of data that will be loaded/deserialized
  */
 public interface Deferred<T> {
 
     /**
-     * Loads and returns the deferred value.
-     * This method triggers the actual loading/computation of the value that was
-     * deferred until this point.
+     * Loads and returns the deferred value. This method triggers the actual loading/computation of
+     * the value that was deferred until this point.
      *
      * @return the loaded value of type T
      */
@@ -48,23 +46,22 @@ public interface Deferred<T> {
 
     /**
      * Returns the raw byte array representation of the deferred value.
-     * <p>
-     * This method provides access to the underlying byte data that represents
-     * the deferred object in its serialized form. The returned byte array
-     * should be treated as immutable to avoid unintended side effects.
-     * </p>
      *
-     * @return the raw byte array containing the serialized data, or {@code null} if
-     *         no data is available
+     * <p>This method provides access to the underlying byte data that represents the deferred
+     * object in its serialized form. The returned byte array should be treated as immutable to
+     * avoid unintended side effects.
+     *
+     * @return the raw byte array containing the serialized data, or {@code null} if no data is
+     *     available
      */
     byte[] rawBytes();
 
     /**
      * Creates a new {@code Deferred} instance that is already resolved with the provided data.
-     * <p>
-     * This factory method returns an eagerly evaluated deferred object that immediately
-     * contains the specified value, bypassing any asynchronous computation or lazy evaluation.
-     * 
+     *
+     * <p>This factory method returns an eagerly evaluated deferred object that immediately contains
+     * the specified value, bypassing any asynchronous computation or lazy evaluation.
+     *
      * @param <T> the type of the data contained in the deferred object
      * @param data the value to wrap in the resolved deferred instance
      * @return a {@code Deferred} instance that is already resolved with the given data
@@ -74,13 +71,13 @@ public interface Deferred<T> {
     }
 
     /**
-     * Creates an eager deferred value that immediately deserializes the provided raw bytes
-     * using the specified deserializer.
-     * 
-     * <p>This method performs the deserialization operation immediately and wraps the result
-     * in an {@code EagerDeferred} instance. The deserialization happens at the time this
-     * method is called, not when the deferred value is accessed.</p>
-     * 
+     * Creates an eager deferred value that immediately deserializes the provided raw bytes using
+     * the specified deserializer.
+     *
+     * <p>This method performs the deserialization operation immediately and wraps the result in an
+     * {@code EagerDeferred} instance. The deserialization happens at the time this method is
+     * called, not when the deferred value is accessed.
+     *
      * @param <T> the type of the deserialized object
      * @param deserializer the deserializer to use for converting the raw bytes
      * @param topic the Kafka topic name, used as context for deserialization
@@ -93,9 +90,9 @@ public interface Deferred<T> {
     }
 
     /**
-     * Creates a deferred deserialization instance that performs lazy evaluation.
-     * The actual deserialization is postponed until the value is explicitly requested,
-     * allowing for efficient memory usage and processing optimization.
+     * Creates a deferred deserialization instance that performs lazy evaluation. The actual
+     * deserialization is postponed until the value is explicitly requested, allowing for efficient
+     * memory usage and processing optimization.
      *
      * @param <T> the type of object to be deserialized
      * @param deserializer the deserializer to use for converting the raw bytes
