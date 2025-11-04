@@ -24,8 +24,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
-import static com.lightstreamer.kafka.test_utils.Records.fromKey;
-import static com.lightstreamer.kafka.test_utils.Records.fromValue;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromKey;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromValue;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -176,7 +176,7 @@ public class GenericRecordSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         valueSelector(Expression(expressionStr))
-                                .extractValue(fromValue(SAMPLE_MESSAGE))
+                                .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -216,7 +216,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(Expression(expressionStr))
-                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -243,7 +243,7 @@ public class GenericRecordSelectorsSuppliersTest {
             throws ExtractionException {
         String extractedData =
                 valueSelector(Expression(expressionStr))
-                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
+                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE_V2), false)
                         .text();
         assertThat(extractedData).isEqualTo(expected);
     }
@@ -265,7 +265,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(Expression(expressionStr))
-                                        .extractValue(fromValue((GenericRecord) null))
+                                        .extractValue(KafkaRecordFromValue((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -299,7 +299,7 @@ public class GenericRecordSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         keySelector(Expression(expressionStr))
-                                .extractKey(fromKey(SAMPLE_MESSAGE))
+                                .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -337,7 +337,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -364,7 +364,7 @@ public class GenericRecordSelectorsSuppliersTest {
             throws ExtractionException {
         String extractedData =
                 keySelector(Expression(expressionStr))
-                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
+                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE_V2), false)
                         .text();
         assertThat(extractedData).isEqualTo(expected);
     }
@@ -386,7 +386,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey((GenericRecord) null))
+                                        .extractKey(KafkaRecordFromKey((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }

@@ -26,8 +26,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
-import static com.lightstreamer.kafka.test_utils.Records.fromKey;
-import static com.lightstreamer.kafka.test_utils.Records.fromValue;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromKey;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -135,7 +135,8 @@ public class KvpNodeSelectorsSuppliersTest {
             throws ExtractionException {
         ExtractionExpression expression = Expression(expressionStr);
         StringSubject subject =
-                assertThat(valueSelector(expression).extractValue(fromValue(INPUT)).text());
+                assertThat(
+                        valueSelector(expression).extractValue(KafkaRecordFromValue(INPUT)).text());
         if (expected.equals("<EMPTY>")) {
             subject.isEmpty();
         } else {
@@ -162,7 +163,10 @@ public class KvpNodeSelectorsSuppliersTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> valueSelector(expression).extractValue(fromValue(INPUT)).text());
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue(KafkaRecordFromValue(INPUT))
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -192,7 +196,9 @@ public class KvpNodeSelectorsSuppliersTest {
         String message = "A@1|B@2";
         ExtractionExpression expression = Expression(expressionString);
         String text =
-                valueSelector(expression, config).extractValue(fromValue(message), false).text();
+                valueSelector(expression, config)
+                        .extractValue(KafkaRecordFromValue(message), false)
+                        .text();
         assertThat(text).isEqualTo(expected);
     }
 
@@ -213,7 +219,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(Expression(expressionStr))
-                                        .extractValue(fromValue((String) null))
+                                        .extractValue(KafkaRecordFromValue((String) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -244,7 +250,7 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
         ExtractionExpression expression = Expression(expressionStr);
         StringSubject subject =
-                assertThat(keySelector(expression).extractKey(fromKey(INPUT)).text());
+                assertThat(keySelector(expression).extractKey(KafkaRecordFromKey(INPUT)).text());
         if (expected.equals("<EMPTY>")) {
             subject.isEmpty();
         } else {
@@ -270,7 +276,7 @@ public class KvpNodeSelectorsSuppliersTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(INPUT)).text());
+                        () -> keySelector(expression).extractKey(KafkaRecordFromKey(INPUT)).text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -299,7 +305,10 @@ public class KvpNodeSelectorsSuppliersTest {
 
         String message = "A@1|B@2";
         ExtractionExpression expression = Expression(expressionString);
-        String text = keySelector(expression, config).extractKey(fromKey(message), false).text();
+        String text =
+                keySelector(expression, config)
+                        .extractKey(KafkaRecordFromKey(message), false)
+                        .text();
         assertThat(text).isEqualTo(expected);
     }
 
@@ -320,7 +329,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey((String) null))
+                                        .extractKey(KafkaRecordFromKey((String) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }

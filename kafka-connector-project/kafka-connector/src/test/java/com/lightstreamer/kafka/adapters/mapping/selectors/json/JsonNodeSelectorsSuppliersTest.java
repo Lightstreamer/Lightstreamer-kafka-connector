@@ -22,8 +22,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
-import static com.lightstreamer.kafka.test_utils.Records.fromKey;
-import static com.lightstreamer.kafka.test_utils.Records.fromValue;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromKey;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -181,7 +181,7 @@ public class JsonNodeSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         valueSelector(Expression(expressionStr))
-                                .extractValue(fromValue(SAMPLE_MESSAGE))
+                                .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -217,7 +217,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(Expression(expressionStr))
-                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -253,7 +253,7 @@ public class JsonNodeSelectorsSuppliersTest {
 
         String extractedData =
                 valueSelector(Expression(expressionString))
-                        .extractValue(fromValue(message), false)
+                        .extractValue(KafkaRecordFromValue(message), false)
                         .text();
         assertThat(extractedData).isEqualTo(expected);
     }
@@ -275,7 +275,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(Expression(expressionStr))
-                                        .extractValue(fromValue((JsonNode) null))
+                                        .extractValue(KafkaRecordFromValue((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -302,7 +302,7 @@ public class JsonNodeSelectorsSuppliersTest {
         StringSubject subject =
                 assertThat(
                         keySelector(Expression(expressionStr))
-                                .extractKey(fromKey(SAMPLE_MESSAGE))
+                                .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
                                 .text());
         if (expected.equals("NULL")) {
             subject.isNull();
@@ -338,7 +338,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -374,7 +374,7 @@ public class JsonNodeSelectorsSuppliersTest {
 
         String text =
                 keySelector(Expression(expressionString))
-                        .extractKey(fromKey(message), false)
+                        .extractKey(KafkaRecordFromKey(message), false)
                         .text();
         assertThat(text).isEqualTo(expected);
     }
@@ -396,7 +396,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey((JsonNode) null))
+                                        .extractKey(KafkaRecordFromKey((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }

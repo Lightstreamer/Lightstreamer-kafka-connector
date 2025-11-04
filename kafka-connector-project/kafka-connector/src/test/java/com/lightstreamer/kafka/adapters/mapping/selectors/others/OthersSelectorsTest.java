@@ -40,9 +40,9 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 
@@ -151,7 +151,7 @@ public class OthersSelectorsTest {
                 othersSelectorSuppliers.makeValueSelectorSupplier();
         Object deserializedData = valueSupplier.deserializer().deserialize("topic", bytes);
 
-        KafkaRecord kafkaRecord = Records.fromValue(deserializedData);
+        KafkaRecord kafkaRecord = Records.KafkaRecordFromValue(deserializedData);
 
         boolean[] checkScalars = {true, false};
         for (boolean checkScalar : checkScalars) {
@@ -172,7 +172,7 @@ public class OthersSelectorsTest {
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
-        KafkaRecord kafkaRecord = Records.fromValue((Object) null);
+        KafkaRecord kafkaRecord = Records.KafkaRecordFromValue((Object) null);
 
         boolean[] checkScalars = {true, false};
         for (boolean checkScalar : checkScalars) {
@@ -198,7 +198,7 @@ public class OthersSelectorsTest {
         byte[] bytes = serde.serializer().serialize("topic", data);
         Object deserializedData = keySupplier.deserializer().deserialize("topic", bytes);
 
-        KafkaRecord kafkaRecord = Records.fromKey(deserializedData);
+        KafkaRecord kafkaRecord = Records.KafkaRecordFromKey(deserializedData);
 
         boolean[] checkScalars = {true, false};
         for (boolean checkScalar : checkScalars) {
@@ -219,7 +219,7 @@ public class OthersSelectorsTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
-        KafkaRecord kafkaRecord = Records.fromKey((Object) null);
+        KafkaRecord kafkaRecord = Records.KafkaRecordFromKey((Object) null);
 
         boolean[] checkScalars = {true, false};
         for (boolean checkScalar : checkScalars) {
