@@ -164,7 +164,7 @@ public class ConnectorConfiguratorTest {
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
         ConnectorConfigurator configurator = newConfigurator(basicParameters());
-        Config<?, ?> consumerConfig = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
         Properties consumerProperties = consumerConfig.consumerProperties();
         assertThat(consumerProperties)
@@ -232,7 +232,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE, "true");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        Config<?, ?> consumerConfig = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
         DataExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
@@ -291,7 +291,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        Config<?, ?> consumerConfig = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
         DataExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
@@ -336,7 +336,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        Config<?, ?> consumerConfig = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
         DataExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Schema schema = fieldsExtractor.schema();
@@ -400,7 +400,7 @@ public class ConnectorConfiguratorTest {
             String fieldMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+                assertThrows(ConfigException.class, () -> newConfigurator(config).consumerConfig());
         assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [field.<...>]");
     }
 
@@ -453,7 +453,7 @@ public class ConnectorConfiguratorTest {
         configs.put("map.topic1.to", "item-template.no-valid-template");
         Map<String, String> config = minimalConfigWith(configs);
         ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+                assertThrows(ConfigException.class, () -> newConfigurator(config).consumerConfig());
 
         assertThat(ce.getMessage()).isEqualTo("No item template [no-valid-template] found");
     }
@@ -486,7 +486,7 @@ public class ConnectorConfiguratorTest {
                         () ->
                                 new ConnectorConfigurator(
                                                 updatedConfigs, new File("src/test/resources"))
-                                        .configure());
+                                        .consumerConfig());
         assertThat(e.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -516,7 +516,8 @@ public class ConnectorConfiguratorTest {
 
         ConfigException e =
                 assertThrows(
-                        ConfigException.class, () -> newConfigurator(updatedConfigs).configure());
+                        ConfigException.class,
+                        () -> newConfigurator(updatedConfigs).consumerConfig());
         assertThat(e.getMessage())
                 .isEqualTo(
                         "Got the following error while evaluating the template [template1] containing the expression ["
