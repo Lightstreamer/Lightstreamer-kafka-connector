@@ -39,19 +39,16 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -255,12 +252,12 @@ class RecordConsumerSupport {
         }
     }
 
-    abstract static sealed class AbstractEventUpdaters implements EventUpdater
+    abstract static sealed class AbstractEventUpdater implements EventUpdater
             permits LegacyEventUpdater, SmartEventUpdater {
 
         private final ItemEventListener listener;
 
-        AbstractEventUpdaters(ItemEventListener listener) {
+        AbstractEventUpdater(ItemEventListener listener) {
             this.listener = listener;
         }
 
@@ -270,7 +267,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static final class LegacyEventUpdater extends AbstractEventUpdaters {
+    static final class LegacyEventUpdater extends AbstractEventUpdater {
 
         LegacyEventUpdater(ItemEventListener listener) {
             super(listener);
@@ -289,7 +286,7 @@ class RecordConsumerSupport {
         }
     }
 
-    static final class SmartEventUpdater extends AbstractEventUpdaters {
+    static final class SmartEventUpdater extends AbstractEventUpdater {
 
         SmartEventUpdater(ItemEventListener listener) {
             super(listener);
@@ -651,11 +648,11 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public final void process(ConsumerRecord<K, V> record) throws ValueException {
+        public final void process(KafkaRecord<K, V> record) throws ValueException {
             log.atDebug().log(() -> "Mapping incoming Kafka record");
             log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
-            MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
+            MappedRecord mappedRecord = recordMapper.map(record);
             // As logging the mapped record is expensive, log lazily it only at trace level.
             log.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
             log.atDebug().log(() -> "Kafka record mapped");
@@ -733,12 +730,12 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
+        public void consumeRecords(KafkaRecords<K, V> records) {
             records.forEach(this::consumeRecord);
             offsetService.commitAsync();
         }
 
-        void consumeRecord(ConsumerRecord<K, V> record) {
+        private void consumeRecord(KafkaRecord<K, V> record) {
             try {
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
@@ -813,9 +810,8 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            List<ConsumerRecord<K, V>> allRecords = flatRecords(records);
-            taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
+        public void consumeRecords(KafkaRecords<K, V> records) {
+            taskExecutor.executeKafkaBatch(records, orderStrategy::getSequence, this::consume);
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
@@ -827,7 +823,7 @@ class RecordConsumerSupport {
             }
         }
 
-        void consume(String sequence, ConsumerRecord<K, V> record) {
+        void consume(String sequence, KafkaRecord<K, V> record) {
             try {
                 logger.atDebug().log(
                         () ->
@@ -845,7 +841,7 @@ class RecordConsumerSupport {
             }
         }
 
-        private void handleError(ConsumerRecord<K, V> record, ValueException ve) {
+        private void handleError(KafkaRecord<K, V> record, ValueException ve) {
             switch (errorStrategy()) {
                 case IGNORE_AND_CONTINUE -> {
                     logger.atWarn().log("Ignoring error");
@@ -879,13 +875,6 @@ class RecordConsumerSupport {
         void onTermination() {
             taskExecutor.shutdown();
         }
-    }
-
-    public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
-        records.partitions()
-                .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
-        return allRecords;
     }
 
     private RecordConsumerSupport() {}
