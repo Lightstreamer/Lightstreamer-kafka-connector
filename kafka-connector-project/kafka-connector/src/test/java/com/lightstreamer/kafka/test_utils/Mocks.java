@@ -30,10 +30,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
@@ -135,7 +135,7 @@ public class Mocks {
     public static class MockOffsetService implements OffsetService {
 
         public static record ConsumedRecordInfo(String topic, int partition, Long offset) {
-            static ConsumedRecordInfo from(ConsumerRecord<?, ?> record) {
+            static ConsumedRecordInfo from(KafkaRecord<?, ?> record) {
                 return new ConsumedRecordInfo(record.topic(), record.partition(), record.offset());
             }
         }
@@ -162,7 +162,7 @@ public class Mocks {
         public void commitAsync() {}
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {
+        public void updateOffsets(KafkaRecord<?, ?> record) {
             records.add(
                     new ConsumedRecordInfo(record.topic(), record.partition(), record.offset()));
         }
@@ -185,7 +185,7 @@ public class Mocks {
         }
 
         @Override
-        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
             throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
         }
 
@@ -214,7 +214,7 @@ public class Mocks {
 
     public static class MockOffsetStore implements OffsetStore {
 
-        private final List<ConsumerRecord<?, ?>> records = new ArrayList<>();
+        private final List<KafkaRecord<?, ?>> records = new ArrayList<>();
         private final Map<TopicPartition, OffsetAndMetadata> topicMap;
 
         public MockOffsetStore(
@@ -223,7 +223,7 @@ public class Mocks {
         }
 
         @Override
-        public void save(ConsumerRecord<?, ?> record) {
+        public void save(KafkaRecord<?, ?> record) {
             records.add(record);
         }
 
@@ -232,7 +232,7 @@ public class Mocks {
             return topicMap;
         }
 
-        public List<ConsumerRecord<?, ?>> getRecords() {
+        public List<KafkaRecord<?, ?>> getRecords() {
             return Collections.unmodifiableList(records);
         }
     }
@@ -313,7 +313,7 @@ public class Mocks {
         }
 
         @Override
-        public void process(ConsumerRecord<K, V> record) throws ValueException {
+        public void process(KafkaRecord<K, V> record) throws ValueException {
             if (e == null) {
                 return;
             }
