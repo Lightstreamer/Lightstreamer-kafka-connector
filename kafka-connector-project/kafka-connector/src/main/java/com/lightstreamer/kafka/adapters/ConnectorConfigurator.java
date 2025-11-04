@@ -64,16 +64,16 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    public Config<?, ?> configure() throws ConfigException {
+    public Config<?, ?> consumerConfig() throws ConfigException {
         try {
-            return doConfigure(config, mkKeyValueSelectorSuppliers(config));
+            return doConsumerConfig(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
             log.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
 
-    private static <K, V> Config<K, V> doConfigure(
+    private static <K, V> Config<K, V> doConsumerConfig(
             ConnectorConfig config, WrapperKeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
