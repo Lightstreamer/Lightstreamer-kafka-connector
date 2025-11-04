@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
@@ -168,7 +169,7 @@ public class DataExtractorTest {
                         .add("header-key1", "header-value1".getBytes())
                         .add("header-key2", "header-value2".getBytes());
         KafkaRecord<String, String> kafkaRecord =
-                Records.recordWithHeaders("aKey", "aValue", headers);
+                Records.KafkaRecordWithHeaders("aKey", "aValue", headers);
         Map<String, String> values = extractor.extractAsMap(kafkaRecord);
         assertThat(values).isEqualTo(expectedValues);
         assertThat(extractor.extractAsCanonicalItem(kafkaRecord))
@@ -221,7 +222,7 @@ public class DataExtractorTest {
 
         Headers headers = new RecordHeaders().add("header-key1", "header-value1".getBytes());
         KafkaRecord<String, String> kafkaRecord =
-                Records.recordWithHeaders("aKey", "aValue", headers);
+                Records.KafkaRecordWithHeaders("aKey", "aValue", headers);
 
         Map<String, String> values = extractor.extractAsMap(kafkaRecord);
         assertThat(values).isEqualTo(expectedValues);
@@ -236,7 +237,7 @@ public class DataExtractorTest {
         assertThat(extractor.skipOnFailure()).isFalse();
         assertThat(extractor.mapNonScalars()).isFalse();
 
-        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = Records.KafkaRecord("aKey", "aValue");
         Map<String, String> values = extractor.extractAsMap(kafkaRecord);
         assertThat(values).isEmpty();
         assertThat(extractor.extractAsCanonicalItem(kafkaRecord)).isEqualTo(TEST_SCHEMA);
@@ -262,7 +263,7 @@ public class DataExtractorTest {
                         ValueException.class,
                         () ->
                                 extractor.extractAsMap(
-                                        Records.record(
+                                        Records.KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
 
@@ -271,7 +272,7 @@ public class DataExtractorTest {
                         ValueException.class,
                         () ->
                                 extractor.extractAsCanonicalItem(
-                                        Records.record(
+                                        Records.KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
     }
@@ -292,7 +293,7 @@ public class DataExtractorTest {
 
         // We expect that only the extraction related to the VALUE.undefined_attrib fails
         KafkaRecord<String, JsonNode> record =
-                Records.record("aKey", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord("aKey", SampleJsonNodeProvider().sampleMessage());
         Map<String, String> tryExtractData = extractor.extractAsMap(record);
         assertThat(tryExtractData).containsAtLeast("name", "joe");
     }
@@ -317,7 +318,7 @@ public class DataExtractorTest {
         JsonNode message = om.readTree("{\"name\": \"joe\"}");
 
         // Extract the value from the Kafka Record
-        KafkaRecord<String, JsonNode> record = Records.record("aValue", message);
+        KafkaRecord<String, JsonNode> record = Records.KafkaRecord("aValue", message);
         Map<String, String> tryExtractData = extractor.extractAsMap(record);
 
         // Ensure that both the complex object and the simple attribute are extracted correctly
@@ -350,7 +351,7 @@ public class DataExtractorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> extractor.extractAsMap(Records.record("aValue", message)));
+                        () -> extractor.extractAsMap(Records.KafkaRecord("aValue", message)));
         assertThat(ve.getMessage())
                 .contains("The expression [VALUE] must evaluate to a non-complex object");
     }

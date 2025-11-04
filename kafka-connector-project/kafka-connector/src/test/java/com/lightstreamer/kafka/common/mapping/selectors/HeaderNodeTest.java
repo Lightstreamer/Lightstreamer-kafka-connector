@@ -26,10 +26,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.ArrayHeaderNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.HeaderNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.HeadersNode;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaConnectHeaders;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaRecordHeaders;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.records.KafkaConnectHeaders;
+import com.lightstreamer.kafka.common.records.KafkaConsumerRecordHeaders;
+import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -51,7 +51,7 @@ public class HeaderNodeTest {
         headers.add("key", "value".getBytes(UTF_8));
 
         HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaRecordHeaders(headers));
+                new HeadersSelectorSupplier.HeadersNode(new KafkaConsumerRecordHeaders(headers));
         assertThat(headersNode.isArray()).isTrue();
         assertThat(headersNode.isScalar()).isFalse();
         assertThat(headersNode.isNull()).isFalse();
@@ -64,7 +64,7 @@ public class HeaderNodeTest {
     static Stream<Arguments> headersForArrayNode() {
         return Stream.of(
                 arguments(
-                        new KafkaRecordHeaders(
+                        new KafkaConsumerRecordHeaders(
                                 new RecordHeaders()
                                         .add("key1", "value1ForKey1".getBytes(UTF_8))
                                         .add("key2", "value1ForKey2".getBytes(UTF_8))
@@ -138,7 +138,7 @@ public class HeaderNodeTest {
     static Stream<Arguments> headersForArrayNode2() {
         return Stream.of(
                 arguments(
-                        new KafkaRecordHeaders(
+                        new KafkaConsumerRecordHeaders(
                                 new RecordHeaders()
                                         .add("key1", "value1ForKey1".getBytes(UTF_8))
                                         .add("key1", "value2ForKey1".getBytes(UTF_8))),
@@ -166,7 +166,7 @@ public class HeaderNodeTest {
     static Stream<Arguments> emptyHeaders() {
         return Stream.of(
                 arguments(
-                        new KafkaRecordHeaders(new RecordHeaders()),
+                        new KafkaConsumerRecordHeaders(new RecordHeaders()),
                         arguments(new KafkaConnectHeaders(new ConnectHeaders()))));
     }
 
@@ -184,7 +184,7 @@ public class HeaderNodeTest {
     static Stream<Arguments> simpleHeaders() {
         return Stream.of(
                 arguments(
-                        new KafkaRecordHeaders(
+                        new KafkaConsumerRecordHeaders(
                                 new RecordHeaders().add("key", "value".getBytes(UTF_8))),
                         arguments(
                                 new KafkaConnectHeaders(

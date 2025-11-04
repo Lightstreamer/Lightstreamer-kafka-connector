@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expre
 import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
@@ -71,7 +72,7 @@ public class HeaderSelectorSupplierTest {
     public void shouldExtractRecordHeaders(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+                Records.KafkaRecordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
         assertThat(headersSelector(Expression(expressionStr)).extract(record).text())
                 .isEqualTo(expected);
     }
@@ -115,7 +116,7 @@ public class HeaderSelectorSupplierTest {
                             """)
     public void shouldNotExtractRecordHeader(String expressionStr, String errorMessage) {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+                Records.KafkaRecordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -161,7 +162,7 @@ public class HeaderSelectorSupplierTest {
     public void shouldExtractRecordHeaderWithNonScalars(String expressionStr, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
-                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+                Records.KafkaRecordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
 
         assertThat(headersSelector(Expression(expressionStr)).extract(record, false).text())
                 .isEqualTo(expected);

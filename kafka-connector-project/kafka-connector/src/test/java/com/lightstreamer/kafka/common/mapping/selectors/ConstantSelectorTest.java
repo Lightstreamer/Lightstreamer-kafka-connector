@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
-import static com.lightstreamer.kafka.test_utils.Records.record;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -71,7 +71,7 @@ public class ConstantSelectorTest {
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
         ExtractionExpression ee = Expression(expression);
-        Data data = selector(ee).extract(record("record-key", "record-value"));
+        Data data = selector(ee).extract(KafkaRecord("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo(expectedValue);
     }
@@ -112,7 +112,7 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
         ConstantSelector selector = cs.newSelector("field_name", expression);
-        Data data = selector.extractKey(record("record-key", "record-value"));
+        Data data = selector.extractKey(KafkaRecord("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-key");
     }
@@ -123,7 +123,7 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
         ConstantSelector selector = cs.newSelector("field_name", expression);
-        Data data = selector.extractValue(record("record-key", "record-value"));
+        Data data = selector.extractValue(KafkaRecord("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-value");
     }
