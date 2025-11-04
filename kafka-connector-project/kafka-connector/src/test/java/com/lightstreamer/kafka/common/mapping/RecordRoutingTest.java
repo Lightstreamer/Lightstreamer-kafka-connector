@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
-import static com.lightstreamer.kafka.test_utils.Records.recordWithHeaders;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJsonValue;
@@ -37,7 +37,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Records;
 
@@ -96,7 +96,7 @@ public class RecordRoutingTest {
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
+            MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
             SubscribedItems subscribedItems = SubscribedItems.create();
             for (SubscribedItem item : routable) {
                 subscribedItems.addItem(item);
@@ -177,7 +177,7 @@ public class RecordRoutingTest {
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
+            MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
             List<SubscribedItem> routableForTopic = routable.get(topic);
             List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
             List<SubscribedItem> all =
@@ -230,7 +230,7 @@ public class RecordRoutingTest {
                         .build();
 
         JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
-        MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
+        MappedRecord mapped = mapper.map(Records.KafkaRecord(TEST_TOPIC_1, "key", jsonNode));
         SubscribedItems subscribedItems = SubscribedItems.create();
         for (SubscribedItem item : routable) {
             subscribedItems.addItem(item);
@@ -259,7 +259,7 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
-                Records.recordWithHeaders(
+                Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
                         SampleGenericRecordProvider().sampleMessage(),
@@ -296,7 +296,7 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                recordWithHeaders(
+                KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
                         SampleJsonNodeProvider().sampleMessage(),
@@ -332,7 +332,7 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                recordWithHeaders(
+                KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
                         SampleJsonNodeProvider().sampleMessage(),
