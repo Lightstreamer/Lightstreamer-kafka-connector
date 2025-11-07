@@ -20,13 +20,13 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
-import java.util.Optional;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import java.util.Optional;
 
 public class SubscribedItemsTest {
 
