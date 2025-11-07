@@ -20,13 +20,13 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 public class SubscribedItemsTest {
 
@@ -34,7 +34,18 @@ public class SubscribedItemsTest {
 
     @BeforeEach
     public void setUp() {
-        subscribedItems = SubscribedItems.create();
+        this.subscribedItems = SubscribedItems.create();
+    }
+
+    @Test
+    public void shouldBeEmptyOnCreation() {
+        assertThat(subscribedItems.isEmpty()).isTrue();
+        assertThat(subscribedItems.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldAcceptSubscriptions() {
+        assertThat(subscribedItems.acceptSubscriptions()).isTrue();
     }
 
     @Test
@@ -42,7 +53,11 @@ public class SubscribedItemsTest {
         SubscribedItem testItem1 = Items.subscribedFrom("item1");
         SubscribedItem testItem2 = Items.subscribedFrom("item2");
         subscribedItems.addItem(testItem1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
+        assertThat(subscribedItems.isEmpty()).isFalse();
+
         subscribedItems.addItem(testItem2);
+        assertThat(subscribedItems.size()).isEqualTo(2);
 
         assertThat(subscribedItems.getItem("item1")).hasValue(testItem1);
         assertThat(subscribedItems.getItem("item2")).hasValue(testItem2);
@@ -82,6 +97,7 @@ public class SubscribedItemsTest {
         assertThat(subscribedItems.size()).isEqualTo(1);
         Optional<SubscribedItem> removed = subscribedItems.removeItem("item1");
         assertThat(subscribedItems.size()).isEqualTo(0);
+        assertThat(subscribedItems.isEmpty()).isTrue();
 
         assertThat(removed).hasValue(testItem1);
         assertThat(subscribedItems.getItem("item1")).isEmpty();
@@ -93,33 +109,6 @@ public class SubscribedItemsTest {
         assertThat(removed).isEmpty();
     }
 
-    // @Test
-    // public void shouldManageSubscriptions() {
-    //     SubscribedItems subscribedItems = SubscribedItems.create();
-    //     assertThat(subscribedItems.acceptSubscriptions()).isTrue();
-    //     assertThat(subscribedItems.isEmpty()).isTrue();
-
-    //     SubscribedItem item1 = subscribedFrom("anItem");
-    //     subscribedItems.addItem(item1);
-    //     assertThat(subscribedItems).hasSize(1);
-    //     assertThat(subscribedItems.getItem("anItem")).hasValue(item1);
-
-    //     SubscribedItem item2 = subscribedFrom("anItem2");
-    //     subscribedItems.addItem(item2);
-    //     assertThat(subscribedItems).hasSize(2);
-    //     assertThat(subscribedItems.getItem("anItem2")).hasValue(item2);
-
-    //     Optional<SubscribedItem> removedItem1 = subscribedItems.removeItem("anItem");
-    //     assertThat(removedItem1).hasValue(item1);
-    //     assertThat(subscribedItems.getItem("anItem")).isEmpty();
-    //     assertThat(subscribedItems).hasSize(1);
-
-    //     Optional<SubscribedItem> removedItem2 = subscribedItems.removeItem("anItem2");
-    //     assertThat(removedItem2).hasValue(item2);
-    //     assertThat(subscribedItems.getItem("anItem2")).isEmpty();
-    //     assertThat(subscribedItems).isEmpty();
-    // }
-
     @Test
     public void shouldNotManageSubscriptionsFromNop() {
         SubscribedItems subscribedItems = SubscribedItems.nop();
@@ -127,6 +116,7 @@ public class SubscribedItemsTest {
 
         SubscribedItem item = subscribedFrom("anItem");
         subscribedItems.addItem(item);
+        assertThat(subscribedItems.getItem("anItem")).isEmpty();
         assertThat(subscribedItems.isEmpty()).isTrue();
         assertThat(subscribedItems.size()).isEqualTo(0);
 
