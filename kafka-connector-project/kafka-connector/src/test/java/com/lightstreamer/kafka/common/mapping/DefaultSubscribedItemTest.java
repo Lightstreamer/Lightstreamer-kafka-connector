@@ -22,13 +22,14 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,93 +43,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultSubscribedItemTest {
 
-    /** Test double for ItemEventListener that records all method calls for verification */
-    private static class TestEventListener implements EventListener {
-
-        private final List<UpdateCall> snapshotUpdates =
-                Collections.synchronizedList(new ArrayList<>());
-        private final List<UpdateCall> realtimeUpdates =
-                Collections.synchronizedList(new ArrayList<>());
-        private final List<UpdateCall> allUpdatesChronological =
-                Collections.synchronizedList(new ArrayList<>());
-        private final List<SubscribedItem> clearSnapshotCalls =
-                Collections.synchronizedList(new ArrayList<>());
-        private final List<SubscribedItem> endOfSnapshotCalls =
-                Collections.synchronizedList(new ArrayList<>());
-
-        @Override
-        public void update(SubscribedItem item, Map<String, String> event, boolean isSnapshot) {
-            Map<String, String> stringMap = (Map<String, String>) event;
-            UpdateCall call = new UpdateCall(item, stringMap, isSnapshot);
-
-            // Add to both category-specific and chronological lists
-            allUpdatesChronological.add(call);
-            if (isSnapshot) {
-                snapshotUpdates.add(call);
-            } else {
-                realtimeUpdates.add(call);
-            }
-        }
-
-        @Override
-        public void clearSnapshot(SubscribedItem item) {
-            clearSnapshotCalls.add(item);
-        }
-
-        @Override
-        public void endOfSnapshot(SubscribedItem item) {
-            endOfSnapshotCalls.add(item);
-        }
-
-        @Override
-        public void failure(Exception exception) {
-            // Not used in tests
-        }
-
-        public List<UpdateCall> getAllUpdatesChronological() {
-            return new ArrayList<>(allUpdatesChronological);
-        }
-
-        public List<UpdateCall> getSnapshotUpdates() {
-            return new ArrayList<>(snapshotUpdates);
-        }
-
-        public List<UpdateCall> getRealtimeUpdates() {
-            return new ArrayList<>(realtimeUpdates);
-        }
-
-        public int getRealtimeUpdateCount() {
-            return realtimeUpdates.size();
-        }
-    }
-
-    private static class UpdateCall {
-        final SubscribedItem item;
-        final Map<String, String> event;
-        final boolean isSnapshot;
-
-        UpdateCall(SubscribedItem item, Map<String, String> event, boolean isSnapshot) {
-            this.item = item;
-            this.event = Map.copyOf(event); // Defensive copy
-            this.isSnapshot = isSnapshot;
-        }
-
-        @Override
-        public String toString() {
-            return String.format(
-                    "UpdateCall{handle=%s, event=%s, isSnapshot=%s}",
-                    item.asCanonicalItemName(), event, isSnapshot);
-        }
-    }
-
-    private TestEventListener testListener;
+    private TestEventListener itemEventListener;
+    private EventListener smartListener;
     private SubscribedItem subscribedItem;
     private final Object itemHandle = "test-item-handle";
 
     @BeforeEach
     void setUp() throws Exception {
-        testListener = new TestEventListener();
-        subscribedItem = Items.subscribedFrom(Expressions.Subscription("test-item"), itemHandle);
+        this.itemEventListener = new TestEventListener();
+        this.smartListener = EventListener.smartEventListener(itemEventListener);
+        this.subscribedItem =
+                Items.subscribedFrom(Expressions.Subscription("test-item"), itemHandle);
     }
 
     @Test
@@ -140,21 +65,22 @@ public class DefaultSubscribedItemTest {
         Map<String, String> queuedEvent2 = Map.of("field1", "queued2");
 
         // Snapshot events should go directly to listener regardless of state
-        subscribedItem.sendSnapshotEvent(snapshotEvent1, testListener);
-        subscribedItem.sendRealtimeEvent(queuedEvent1, testListener);
-        subscribedItem.sendSnapshotEvent(snapshotEvent2, testListener);
-        subscribedItem.sendRealtimeEvent(queuedEvent2, testListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent1, smartListener);
+        subscribedItem.sendRealtimeEvent(queuedEvent1, smartListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent2, smartListener);
+        subscribedItem.sendRealtimeEvent(queuedEvent2, smartListener);
 
         // Verify snapshot events were processed immediately, realtime events queued
-        List<UpdateCall> snapshotUpdates = testListener.getSnapshotUpdates();
+        List<UpdateCall> snapshotUpdates = itemEventListener.getSmartSnapshotUpdates();
         assertThat(snapshotUpdates).hasSize(2);
-        assertThat(snapshotUpdates.get(0).event).isEqualTo(snapshotEvent1);
-        assertThat(snapshotUpdates.get(1).event).isEqualTo(snapshotEvent2);
-        assertThat(testListener.getRealtimeUpdateCount()).isEqualTo(0); // Queued, not processed
+        assertThat(snapshotUpdates.get(0).event()).isEqualTo(snapshotEvent1);
+        assertThat(snapshotUpdates.get(1).event()).isEqualTo(snapshotEvent2);
+        assertThat(itemEventListener.getSmartRealtimeUpdateCount())
+                .isEqualTo(0); // Queued, not processed
 
         // Phase 2: Process snapshot - should flush queued realtime events
-        subscribedItem.snapshotProcessed(testListener);
-        assertThat(testListener.getRealtimeUpdateCount()).isEqualTo(2);
+        subscribedItem.snapshotProcessed(smartListener);
+        assertThat(itemEventListener.getSmartRealtimeUpdateCount()).isEqualTo(2);
 
         // Phase 3: Send mixed events after snapshot processing - all should go directly
         Map<String, String> directEvent1 = Map.of("field1", "direct1");
@@ -162,30 +88,30 @@ public class DefaultSubscribedItemTest {
         Map<String, String> directEvent2 = Map.of("field1", "direct2");
         Map<String, String> snapshotEvent4 = Map.of("field1", "snapshot4");
 
-        subscribedItem.sendRealtimeEvent(directEvent1, testListener);
-        subscribedItem.sendSnapshotEvent(snapshotEvent3, testListener);
-        subscribedItem.sendRealtimeEvent(directEvent2, testListener);
-        subscribedItem.sendSnapshotEvent(snapshotEvent4, testListener);
+        subscribedItem.sendRealtimeEvent(directEvent1, smartListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent3, smartListener);
+        subscribedItem.sendRealtimeEvent(directEvent2, smartListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent4, smartListener);
 
         // Verify final state - all events processed in correct categories
-        List<UpdateCall> finalSnapshotUpdates = testListener.getSnapshotUpdates();
+        List<UpdateCall> finalSnapshotUpdates = itemEventListener.getSmartSnapshotUpdates();
         assertThat(finalSnapshotUpdates).hasSize(4);
-        assertThat(finalSnapshotUpdates.get(2).event).isEqualTo(snapshotEvent3);
-        assertThat(finalSnapshotUpdates.get(3).event).isEqualTo(snapshotEvent4);
+        assertThat(finalSnapshotUpdates.get(2).event()).isEqualTo(snapshotEvent3);
+        assertThat(finalSnapshotUpdates.get(3).event()).isEqualTo(snapshotEvent4);
 
-        List<UpdateCall> realtimeUpdates = testListener.getRealtimeUpdates();
+        List<UpdateCall> realtimeUpdates = itemEventListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(4);
-        assertThat(realtimeUpdates.get(0).event).isEqualTo(queuedEvent1);
-        assertThat(realtimeUpdates.get(1).event).isEqualTo(queuedEvent2);
-        assertThat(realtimeUpdates.get(2).event).isEqualTo(directEvent1);
-        assertThat(realtimeUpdates.get(3).event).isEqualTo(directEvent2);
+        assertThat(realtimeUpdates.get(0).event()).isEqualTo(queuedEvent1);
+        assertThat(realtimeUpdates.get(1).event()).isEqualTo(queuedEvent2);
+        assertThat(realtimeUpdates.get(2).event()).isEqualTo(directEvent1);
+        assertThat(realtimeUpdates.get(3).event()).isEqualTo(directEvent2);
 
         // Verify correct event marking
         for (UpdateCall call : finalSnapshotUpdates) {
-            assertThat(call.isSnapshot).isTrue();
+            assertThat(call.isSnapshot()).isTrue();
         }
         for (UpdateCall call : realtimeUpdates) {
-            assertThat(call.isSnapshot).isFalse();
+            assertThat(call.isSnapshot()).isFalse();
         }
     }
 
@@ -227,7 +153,7 @@ public class DefaultSubscribedItemTest {
                                                         "id",
                                                         realtimeEventPrefix
                                                                 + realtimeEventCounter.get()),
-                                                null);
+                                                smartListener);
                                     }
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -246,12 +172,12 @@ public class DefaultSubscribedItemTest {
                         // snapshotProcessed)
                         // These should be processed immediately, not queued
                         subscribedItem.sendSnapshotEvent(
-                                Map.of("id", snapshotEventPrefix + "1"), testListener);
+                                Map.of("id", snapshotEventPrefix + "1"), smartListener);
                         subscribedItem.sendSnapshotEvent(
-                                Map.of("id", snapshotEventPrefix + "2"), testListener);
+                                Map.of("id", snapshotEventPrefix + "2"), smartListener);
 
                         Thread.sleep(10); // Let some real-time events accumulate
-                        subscribedItem.snapshotProcessed(testListener);
+                        subscribedItem.snapshotProcessed(smartListener);
                         snapshotDoneLatch.countDown();
 
                         // Send post-transition events (both realtime and snapshot)
@@ -287,22 +213,23 @@ public class DefaultSubscribedItemTest {
 
         assertThat(realtimeEventCounter.get())
                 .isEqualTo(expectedTotalRealtimeEvents); // Only stress events are counted
-        assertThat(testListener.getRealtimeUpdateCount()).isEqualTo(expectedTotalRealtimeEvents);
-        assertThat(testListener.getSnapshotUpdates()).hasSize(expectedSnapshotEvents);
+        assertThat(itemEventListener.getSmartRealtimeUpdateCount())
+                .isEqualTo(expectedTotalRealtimeEvents);
+        assertThat(itemEventListener.getSmartSnapshotUpdates()).hasSize(expectedSnapshotEvents);
         assertThat(
-                        testListener.getRealtimeUpdates().stream()
-                                .filter(c -> c.event.get("id").startsWith(realtimeEventPrefix))
+                        itemEventListener.getSmartRealtimeUpdates().stream()
+                                .filter(c -> c.event().get("id").startsWith(realtimeEventPrefix))
                                 .count())
                 .isEqualTo(expectedTotalRealtimeEvents);
-        List<UpdateCall> allUpdatesChronological = testListener.getAllUpdatesChronological();
-        assertThat(testListener.getAllUpdatesChronological()).hasSize(expectedTotalEvents);
+        List<UpdateCall> allUpdatesChronological = itemEventListener.getAllUpdatesChronological();
+        assertThat(itemEventListener.getAllUpdatesChronological()).hasSize(expectedTotalEvents);
 
         // Verify that snapshot events are delivered before real-time events
         List<String> orderedEvents =
                 allUpdatesChronological.stream()
                         .map(
                                 call -> {
-                                    String value = call.event.get("id");
+                                    String value = call.event().get("id");
                                     if (value.startsWith(realtimeEventPrefix)) {
                                         return realtimeEventPrefix + "real-time event";
                                     } else if (value.startsWith(snapshotEventPrefix)) {
@@ -325,26 +252,26 @@ public class DefaultSubscribedItemTest {
         subscribedItem.sendRealtimeEvent(event1, null);
 
         // Process snapshot multiple times (should be idempotent after first call)
-        subscribedItem.snapshotProcessed(testListener);
+        subscribedItem.snapshotProcessed(smartListener);
 
-        int eventsAfterFirstCall = testListener.getRealtimeUpdateCount();
+        int eventsAfterFirstCall = itemEventListener.getSmartRealtimeUpdateCount();
 
-        subscribedItem.snapshotProcessed(testListener);
+        subscribedItem.snapshotProcessed(smartListener);
 
         // Send event after
         Map<String, String> event2 = Map.of("field1", "value2");
-        subscribedItem.sendRealtimeEvent(event2, testListener);
+        subscribedItem.sendRealtimeEvent(event2, smartListener);
 
-        subscribedItem.snapshotProcessed(testListener);
+        subscribedItem.snapshotProcessed(smartListener);
 
         // Should not process any additional events
-        assertThat(testListener.getRealtimeUpdateCount()).isEqualTo(eventsAfterFirstCall);
+        assertThat(itemEventListener.getRealtimeUpdateCount()).isEqualTo(eventsAfterFirstCall);
 
         // Verify events were processed correctly
-        List<UpdateCall> realtimeUpdates = testListener.getRealtimeUpdates();
+        List<UpdateCall> realtimeUpdates = itemEventListener.getRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(2);
-        assertThat(realtimeUpdates.get(0).event).isEqualTo(event1);
-        assertThat(realtimeUpdates.get(1).event).isEqualTo(event2);
+        assertThat(realtimeUpdates.get(0).event()).isEqualTo(event1);
+        assertThat(realtimeUpdates.get(1).event()).isEqualTo(event2);
     }
 
     @Test
@@ -353,36 +280,38 @@ public class DefaultSubscribedItemTest {
         Map<String, String> snapshotEvent1 = Map.of("field1", "snapshot1");
         Map<String, String> snapshotEvent2 = Map.of("field1", "snapshot2");
 
-        subscribedItem.sendSnapshotEvent(snapshotEvent1, testListener);
-        subscribedItem.sendSnapshotEvent(snapshotEvent2, testListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent1, smartListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent2, smartListener);
 
         // Clear snapshot
-        subscribedItem.clearSnapshot(testListener);
+        subscribedItem.clearSnapshot(smartListener);
 
         // Verify clearSnapshot was called
-        assertThat(testListener.clearSnapshotCalls).hasSize(1);
-        assertThat(testListener.clearSnapshotCalls.get(0)).isEqualTo(subscribedItem);
+        assertThat(itemEventListener.getSmartClearSnapshotCalls()).hasSize(1);
+        assertThat(itemEventListener.getSmartClearSnapshotCalls().get(0))
+                .isEqualTo(subscribedItem.itemHandle());
 
         // Send another snapshot event after clearing
         Map<String, String> snapshotEvent3 = Map.of("field1", "snapshot3");
-        subscribedItem.sendSnapshotEvent(snapshotEvent3, testListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent3, smartListener);
 
         // Verify all snapshot events were processed correctly
-        List<UpdateCall> snapshotUpdates = testListener.getSnapshotUpdates();
+        List<UpdateCall> snapshotUpdates = itemEventListener.getSmartSnapshotUpdates();
         assertThat(snapshotUpdates).hasSize(3);
-        assertThat(snapshotUpdates.get(0).event).isEqualTo(snapshotEvent1);
-        assertThat(snapshotUpdates.get(1).event).isEqualTo(snapshotEvent2);
-        assertThat(snapshotUpdates.get(2).event).isEqualTo(snapshotEvent3);
+        assertThat(snapshotUpdates.get(0).event()).isEqualTo(snapshotEvent1);
+        assertThat(snapshotUpdates.get(1).event()).isEqualTo(snapshotEvent2);
+        assertThat(snapshotUpdates.get(2).event()).isEqualTo(snapshotEvent3);
     }
 
     @Test
     void shouldEndSnapshot() {
         // End snapshot
-        subscribedItem.endOfSnapshot(testListener);
+        subscribedItem.endOfSnapshot(smartListener);
 
         // Verify endOfSnapshot was called
-        assertThat(testListener.endOfSnapshotCalls).hasSize(1);
-        assertThat(testListener.endOfSnapshotCalls).containsExactly(subscribedItem);
+        assertThat(itemEventListener.getSmartEndOfSnapshotCalls()).hasSize(1);
+        assertThat(itemEventListener.getSmartEndOfSnapshotCalls())
+                .containsExactly(subscribedItem.itemHandle());
     }
 
     @Test
