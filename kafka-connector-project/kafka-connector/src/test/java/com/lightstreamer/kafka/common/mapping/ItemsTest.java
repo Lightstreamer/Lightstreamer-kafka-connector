@@ -54,7 +54,7 @@ public class ItemsTest {
     @ParameterizedTest
     @MethodSource("provideData")
     public void shouldSubscribeFromSubscriptionExpression(
-            String prefix, Set<Data> inputParams, String expectedNormalizedString) {
+            String prefix, Set<Data> inputParams, String expectedCanonicalItemName) {
         SortedSet<Data> params = new TreeSet<>(inputParams);
         SubscribedItem item =
                 Items.subscribedFrom(new SubscriptionExpression(prefix, params), new Object());
@@ -63,7 +63,7 @@ public class ItemsTest {
         assertThat(schema.name()).isEqualTo(prefix);
         assertThat(schema.keys())
                 .isEqualTo(inputParams.stream().map(Data::name).collect(Collectors.toSet()));
-        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
     }
 
     static Stream<Arguments> provideExpressions() {
@@ -97,21 +97,24 @@ public class ItemsTest {
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
-            String expectedNormalizedString) {
+            String expectedCanonicalItemName) {
         Object handle = new Object();
         SubscribedItem item = Items.subscribedFrom(expression, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
+        assertThat(item.equals(item)).isTrue();
 
         SubscribedItem item2 = Items.subscribedFrom(expression);
         assertThat(item2).isNotNull();
+        // The handle is the expression itself
         assertThat(item2.itemHandle()).isSameInstanceAs(expression);
         assertThat(item2.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item2.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
+        assertThat(item2.equals(item2)).isTrue();
     }
 
     static Stream<Arguments> provideEqualValues() {
