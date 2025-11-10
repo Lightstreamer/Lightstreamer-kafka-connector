@@ -27,7 +27,7 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -71,7 +71,9 @@ public class DataExtractorBenchmarks {
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             Config<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+                    (Config<String, DynamicMessage>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
+                                    .consumerConfig();
             templateExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
@@ -93,7 +95,9 @@ public class DataExtractorBenchmarks {
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             Config<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
+                                    .consumerConfig();
             templateExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
