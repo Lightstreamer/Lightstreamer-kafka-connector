@@ -191,19 +191,11 @@ public interface RecordMapper<K, V> {
          * "stock-[symbol=MSFT]"] but only "stock-[symbol=AAPL]" has active subscribers, only that
          * item will be returned.
          *
-         * @param subscribed the collection of currently active item subscriptions to match against
+         * @param items the collection of currently active item subscriptions to match against
          * @return the subset of subscribed items that match this record's item names; never null
          *     but may be empty
          */
-        Set<SubscribedItem> route(SubscribedItems subscribed);
-
-        /**
-         * Returns all items that can be derived from the record, regardless of whether they match
-         * any specific subscription.
-         *
-         * @return a set of all subscribed items that can be derived from the record's value
-         */
-        Set<SubscribedItem> routeAll();
+        Set<SubscribedItem> route(SubscribedItems items);
 
         /**
          * Determines whether the payload of the record is null.
@@ -551,26 +543,15 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
+    public Set<SubscribedItem> route(SubscribedItems items) {
         Set<SubscribedItem> result = new HashSet<>();
 
         for (String itemName : itemNames) {
-            Optional<SubscribedItem> item = subscribedItems.getItem(itemName);
+            Optional<SubscribedItem> item = items.getItem(itemName);
             if (item.isPresent()) {
                 result.add(item.get());
             }
         }
-        return result;
-    }
-
-    @Override
-    public Set<SubscribedItem> routeAll() {
-        Set<SubscribedItem> result = new HashSet<>();
-
-        for (String itemName : itemNames) {
-            result.add(Items.subscribedFrom(itemName));
-        }
-
         return result;
     }
 
