@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors;
 
+import com.lightstreamer.kafka.adapters.consumers.deserialization.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
@@ -25,13 +26,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 /** Default implementation of the {@code KeyValueSelectorSuppliers} interface. */
 public class WrapperKeyValueSelectorSuppliers<K, V> implements KeyValueSelectorSuppliers<K, V> {
-
-    public interface KeyValueDeserializers<K, V> {
-
-        Deserializer<K> keyDeserializer();
-
-        Deserializer<V> valueDeserializer();
-    }
 
     private static class WrapperDeserializers<K, V> implements KeyValueDeserializers<K, V> {
 
