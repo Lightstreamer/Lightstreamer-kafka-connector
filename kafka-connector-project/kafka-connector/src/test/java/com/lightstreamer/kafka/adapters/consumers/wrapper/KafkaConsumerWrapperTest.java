@@ -41,13 +41,13 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorS
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -90,14 +90,14 @@ public class KafkaConsumerWrapperTest {
 
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
     private MockMetadataListener metadataListener;
-    private MockItemEventListener itemEventListener;
+    private EventListener itemEventListener;
 
     private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer;
 
     @BeforeEach
     public void setUp() {
-        metadataListener = new Mocks.MockMetadataListener();
-        itemEventListener = new Mocks.MockItemEventListener();
+        metadataListener = new MockMetadataListener();
+        itemEventListener = EventListener.smartEventListener(new MockItemEventListener());
         mockConsumer = new MockConsumer<>(resetStrategy);
     }
 
