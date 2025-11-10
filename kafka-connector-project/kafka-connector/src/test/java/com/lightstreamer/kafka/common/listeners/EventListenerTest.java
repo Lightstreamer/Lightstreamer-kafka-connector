@@ -21,8 +21,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.RemoteTestEventListener;
-import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.junit.jupiter.api.Test;
@@ -34,14 +34,14 @@ public class EventListenerTest {
 
     @Test
     public void shouldCreateSmartEventListener() {
-        EventListener listener = EventListener.smartEventListener(new TestEventListener());
+        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
         assertThat(listener).isNotNull();
         assertThat(listener).isInstanceOf(SmartEventListener.class);
     }
 
     @Test
     public void shouldCreateLegacyEventListener() {
-        EventListener listener = EventListener.legacyEventListener(new TestEventListener());
+        EventListener listener = EventListener.legacyEventListener(new MockItemEventListener());
         assertThat(listener).isNotNull();
         assertThat(listener).isInstanceOf(LegacyEventListener.class);
     }
@@ -55,7 +55,7 @@ public class EventListenerTest {
 
     @Test
     public void shouldSendEventsToSmartListener() {
-        TestEventListener itemEventListener = new TestEventListener();
+        MockItemEventListener itemEventListener = new MockItemEventListener();
         EventListener eventListener = EventListener.smartEventListener(itemEventListener);
 
         Map<String, String> updates = Map.of("field1", "value1", "field2", "value2");
@@ -96,7 +96,7 @@ public class EventListenerTest {
 
     @Test
     public void shouldSendEventsToLegacyListener() {
-        TestEventListener itemEventListener = new TestEventListener();
+        MockItemEventListener itemEventListener = new MockItemEventListener();
         EventListener eventListener = EventListener.legacyEventListener(itemEventListener);
 
         Map<String, String> updates = Map.of("field1", "value1", "field2", "value2");
