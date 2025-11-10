@@ -37,8 +37,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
-import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -99,7 +99,7 @@ public class DefaultSubscriptionsHandlerTest {
 
     private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
     private SubscribedItems subscribedItems;
-    private TestEventListener listener = new TestEventListener();
+    private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
         init(false, topics);

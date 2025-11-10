@@ -37,7 +37,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
-import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
@@ -94,7 +94,7 @@ public class AtStartupSubscriptionsHandlerTest {
 
     private AtStartupSubscriptionsHandler<String, String> subscriptionHandler;
     private SubscribedItems subscribedItems;
-    private TestEventListener listener;
+    private MockItemEventListener listener;
 
     void init(boolean allowImplicitItems, String... topics) {
         init(false, allowImplicitItems, topics);
@@ -103,7 +103,7 @@ public class AtStartupSubscriptionsHandlerTest {
     void init(boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
         this.subscriptionHandler =
                 mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
-        this.listener = new TestEventListener();
+        this.listener = new MockItemEventListener();
         this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
