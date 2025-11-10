@@ -27,6 +27,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AtStartupSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -36,9 +37,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
-import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
@@ -49,7 +49,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Supplier;
 
 public class AtStartupSubscriptionsHandlerTest {
 
@@ -77,21 +76,25 @@ public class AtStartupSubscriptionsHandlerTest {
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
 
-        Supplier<Consumer<Deferred<String>, Deferred<String>>> supplier =
-                () -> {
-                    if (exceptionOnConnection) {
-                        throw new KafkaException("Simulated Exception");
-                    }
-                    return consumer;
-                };
+        Builder<String, String> builder =
+                SubscriptionsHandler.<String, String>builder()
+                        .withConsumerConfig(config)
+                        .withMetadataListener(new Mocks.MockMetadataListener())
+                        .withConsumerSupplier(
+                                () -> {
+                                    if (exceptionOnConnection) {
+                                        throw new KafkaException("Simulated Exception");
+                                    }
+                                    return consumer;
+                                })
+                        .atStartup(true, allowImplicitItems);
 
-        return new AtStartupSubscriptionsHandler<>(
-                config, new Mocks.MockMetadataListener(), allowImplicitItems, supplier);
+        return new AtStartupSubscriptionsHandler<>(builder);
     }
 
     private AtStartupSubscriptionsHandler<String, String> subscriptionHandler;
     private SubscribedItems subscribedItems;
-    private MockItemEventListener listener;
+    private TestEventListener listener;
 
     void init(boolean allowImplicitItems, String... topics) {
         init(false, allowImplicitItems, topics);
@@ -100,7 +103,7 @@ public class AtStartupSubscriptionsHandlerTest {
     void init(boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
         this.subscriptionHandler =
                 mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
-        this.listener = new Mocks.MockItemEventListener();
+        this.listener = new TestEventListener();
         this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
@@ -110,7 +113,7 @@ public class AtStartupSubscriptionsHandlerTest {
     public void shouldInit(boolean allowImplicitItems) throws InterruptedException {
         init(allowImplicitItems, "aTopic");
 
-        assertThat(listener.getFailure()).isNull();
+        assertThat(listener.getFailures()).isEmpty();
         assertThat(subscriptionHandler.consumeAtStartup()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isTrue();
         assertThat(subscriptionHandler.allowImplicitItems()).isEqualTo(allowImplicitItems);
@@ -121,7 +124,8 @@ public class AtStartupSubscriptionsHandlerTest {
     public void shouldFailOnInitDueToNonExistingTopic(boolean allowImplicitItems) {
         init(allowImplicitItems, "notExistingTopic");
 
-        Throwable failure = listener.getFailure();
+        assertThat(listener.getFailures()).hasSize(1);
+        Throwable failure = listener.getFailures().get(0);
         assertThat(failure).isNotNull();
         assertThat(failure).hasMessageThat().isEqualTo("Failed to start consuming from Kafka");
         assertThat(subscriptionHandler.isConsuming()).isFalse();
@@ -132,7 +136,8 @@ public class AtStartupSubscriptionsHandlerTest {
     public void shouldFailOnInitDueToExceptionWhileConnecting(boolean allowImplicitItems) {
         init(true, false, "aTopic");
 
-        Throwable failure = listener.getFailure();
+        assertThat(listener.getFailures()).hasSize(1);
+        Throwable failure = listener.getFailures().get(0);
         assertThat(failure).isNotNull();
         assertThat(failure).isInstanceOf(KafkaException.class);
         assertThat(subscriptionHandler.isConsuming()).isFalse();
