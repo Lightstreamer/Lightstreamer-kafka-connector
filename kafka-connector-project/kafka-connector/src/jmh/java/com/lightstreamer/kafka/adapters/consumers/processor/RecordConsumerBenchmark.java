@@ -19,16 +19,19 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -91,7 +94,7 @@ public class RecordConsumerBenchmark {
         @Param({"ORDER_BY_PARTITION"})
         String ordering;
 
-        ConsumerRecords<String, JsonNode> consumerRecords;
+        ConsumerRecords<Deferred<String>, Deferred<JsonNode>> consumerRecords;
         FakeItemEventListener listener;
         FakeOffsetService offsetService;
         RecordConsumer<String, JsonNode> recordConsumer;
@@ -107,7 +110,9 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            Config<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3);
+            Config<String, JsonNode> config =
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3).consumerConfig();
 
             // Configure the RecordMapper.
             RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
@@ -135,7 +140,6 @@ public class RecordConsumerBenchmark {
         @TearDown(Level.Iteration)
         public void tearDown() {
             recordConsumer.terminate();
-            listener.show();
         }
     }
 
@@ -164,7 +168,7 @@ public class RecordConsumerBenchmark {
         @Param({"ORDER_BY_PARTITION"})
         String ordering;
 
-        ConsumerRecords<String, DynamicMessage> consumerRecords;
+        ConsumerRecords<Deferred<String>, Deferred<DynamicMessage>> consumerRecords;
         FakeItemEventListener listener;
         FakeOffsetService offsetService;
         RecordConsumer<String, DynamicMessage> recordConsumer;
@@ -180,8 +184,10 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            Config<String, DynamicMessage> config =
+            ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
+            Config<String, DynamicMessage> config =
+                    (Config<String, DynamicMessage>) configurator.consumerConfig();
 
             // Configure the RecordMapper.
             RecordMapper<String, DynamicMessage> recordMapper =
@@ -210,18 +216,17 @@ public class RecordConsumerBenchmark {
         @TearDown(Level.Iteration)
         public void tearDown() {
             recordConsumer.terminate();
-            listener.show();
         }
     }
 
     @Benchmark
     public void consumeWithJson(Json json) {
-        json.recordConsumer.consumeRecords(json.consumerRecords);
+        json.recordConsumer.consumeRecords(KafkaRecords.from(json.consumerRecords));
     }
 
     @Benchmark
     public void consumeWithProtobuf(Protobuf proto) {
-        proto.recordConsumer.consumeRecords(proto.consumerRecords);
+        proto.recordConsumer.consumeRecords(KafkaRecords.from(proto.consumerRecords));
     }
 
     public static void main1(String[] args) throws Exception {
