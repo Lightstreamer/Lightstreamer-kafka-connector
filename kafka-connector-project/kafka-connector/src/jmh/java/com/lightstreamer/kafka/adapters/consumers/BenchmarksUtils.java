@@ -17,30 +17,29 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DynamicMessage;
-import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.io.File;
@@ -58,7 +57,7 @@ import java.util.stream.Collectors;
 
 public class BenchmarksUtils {
 
-    public static class FakeItemEventListener implements ItemEventListener {
+    public static class FakeItemEventListener implements EventListener {
 
         // Stores all item events sent through the update method.
         public List<Map<String, ?>> events = new ArrayList<>();
@@ -69,97 +68,25 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void update(
-                String itemName,
-                com.lightstreamer.interfaces.data.ItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(String itemName, OldItemEvent event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(String itemName, Map event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(
-                String itemName,
-                com.lightstreamer.interfaces.data.IndexedItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void smartUpdate(
-                Object itemHandle,
-                com.lightstreamer.interfaces.data.ItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
-        }
-
-        @Override
-        public void smartUpdate(Object itemHandle, OldItemEvent event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
-        }
-
-        @Override
-        public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
-            blackHole.consume(event);
+        public void update(SubscribedItem item, Map<String, String> updates, boolean isSnapshot) {
+            blackHole.consume(updates);
             // counter.incrementAndGet();
         }
 
         @Override
-        public void smartUpdate(
-                Object itemHandle,
-                com.lightstreamer.interfaces.data.IndexedItemEvent event,
-                boolean isSnapshot) {}
-
-        @Override
-        public void endOfSnapshot(String itemName) {
+        public void endOfSnapshot(SubscribedItem itemName) {
             throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
         }
 
         @Override
-        public void smartEndOfSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartEndOfSnapshot'");
-        }
-
-        @Override
-        public void clearSnapshot(String itemName) {
+        public void clearSnapshot(SubscribedItem itemName) {
             throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
         }
 
         @Override
-        public void smartClearSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartClearSnapshot'");
-        }
-
-        @Override
-        public void declareFieldDiffOrder(
-                String itemName,
-                Map<String, com.lightstreamer.interfaces.data.DiffAlgorithm[]> algorithmsMap) {
-            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
-        }
-
-        @Override
-        public void smartDeclareFieldDiffOrder(
-                Object itemHandle,
-                Map<String, com.lightstreamer.interfaces.data.DiffAlgorithm[]> algorithmsMap) {
-            throw new UnsupportedOperationException(
-                    "Unimplemented method 'smartDeclareFieldDiffOrder'");
-        }
-
-        @Override
-        public void failure(Throwable e) {
+        public void failure(Exception e) {
             throw new UnsupportedOperationException("Unimplemented method 'failure'");
         }
-
-        public void show() {}
     }
 
     public static class FakeOffsetService implements OffsetService {
@@ -177,7 +104,7 @@ public class BenchmarksUtils {
         public void commitAsync() {}
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {}
+        public void updateOffsets(KafkaRecord<?, ?> record) {}
 
         @Override
         public void onAsyncFailure(Throwable ve) {}
@@ -193,7 +120,7 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
             throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
         }
 
@@ -219,6 +146,15 @@ public class BenchmarksUtils {
         }
     }
 
+    public static class FakeMetadataListener implements MetadataListener {
+
+        @Override
+        public void forceUnsubscription(String item) {}
+
+        @Override
+        public void forceUnsubscriptionAll() {}
+    }
+
     public static class JsonRecords {
 
         static record Guy(String name, String surname, String tag, int age, List<Guy> children) {
@@ -229,17 +165,19 @@ public class BenchmarksUtils {
 
         public static List<KafkaRecord<String, JsonNode>> kafkaRecords(
                 String[] topics, int partitions, int numOfRecords, int keySize) {
-            ConsumerRecords<String, JsonNode> records =
+            ConsumerRecords<Deferred<String>, Deferred<JsonNode>> records =
                     consumerRecords(topics, partitions, numOfRecords, keySize);
             List<KafkaRecord<String, JsonNode>> kafkaRecords = new ArrayList<>(records.count());
             records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
             return kafkaRecords;
         }
 
-        public static ConsumerRecords<String, JsonNode> consumerRecords(
+        public static ConsumerRecords<Deferred<String>, Deferred<JsonNode>> consumerRecords(
                 String[] topics, int partitions, int numOfRecords, int keys) {
             var recordsToPartition =
-                    new HashMap<TopicPartition, List<ConsumerRecord<String, JsonNode>>>();
+                    new HashMap<
+                            TopicPartition,
+                            List<ConsumerRecord<Deferred<String>, Deferred<JsonNode>>>>();
             for (String topic : topics) {
                 for (int partition = 0; partition < partitions; partition++) {
                     TopicPartition tp = new TopicPartition(topic, partition);
@@ -251,14 +189,15 @@ public class BenchmarksUtils {
             return new ConsumerRecords<>(recordsToPartition);
         }
 
-        private static List<ConsumerRecord<String, JsonNode>> makeRecords(
+        private static List<ConsumerRecord<Deferred<String>, Deferred<JsonNode>>> makeRecords(
                 TopicPartition tp, int recordsPerPartition, int keySize) {
             ObjectMapper om = new ObjectMapper();
 
             Function<Integer, String> keyGenerator =
                     offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
 
-            List<ConsumerRecord<String, JsonNode>> records = new ArrayList<>(recordsPerPartition);
+            List<ConsumerRecord<Deferred<String>, Deferred<JsonNode>>> records =
+                    new ArrayList<>(recordsPerPartition);
             for (int i = 0; i < recordsPerPartition; i++) {
                 // Setup the record attribute
                 String name =
@@ -287,46 +226,197 @@ public class BenchmarksUtils {
 
                 // Build the ConsumerRecord from the JSON and add it to the collection
                 JsonNode node = om.valueToTree(parent);
-                records.add(new ConsumerRecord<>(tp.topic(), tp.partition(), i, key, node));
+                records.add(
+                        new ConsumerRecord<>(
+                                tp.topic(),
+                                tp.partition(),
+                                i,
+                                Deferred.resolved(key),
+                                Deferred.resolved(node)));
             }
             return records;
         }
     }
 
-    public static class ProtoRecords {
+    public static class RawRecord {
 
-        public static List<KafkaRecord<String, DynamicMessage>> kafkaRecords(
-                String[] topics, int partitions, int numOfRecords, int keySize) {
-            ConsumerRecords<String, DynamicMessage> records =
-                    consumerRecords(topics, partitions, numOfRecords, keySize);
-            List<KafkaRecord<String, DynamicMessage>> kafkaRecords =
-                    new ArrayList<>(records.count());
-            records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
-            return kafkaRecords;
+        private final String topic;
+        private final String key;
+        private final byte[] rawBytes;
+        private final int partition;
+        private final int offset;
+
+        public RawRecord(String topic, int partition, int offset, String key, byte[] rawBytes) {
+            this.topic = topic;
+            this.partition = partition;
+            this.offset = offset;
+            this.key = key;
+            this.rawBytes = rawBytes;
         }
 
-        public static ConsumerRecords<String, DynamicMessage> consumerRecords(
-                String[] topics, int partitions, int numOfRecords, int keys) {
-            var recordsToPartition =
-                    new HashMap<TopicPartition, List<ConsumerRecord<String, DynamicMessage>>>();
+        public String getTopic() {
+            return topic;
+        }
+
+        public int getPartition() {
+            return partition;
+        }
+
+        public int getOffset() {
+            return offset;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public byte[] getRawBytes() {
+            return rawBytes;
+        }
+    }
+
+    public static class ProtoRecords {
+
+        public static List<RawRecord> rawRecords(
+                String[] topics, int partitions, int numOfRecords, int keySize) {
+            List<RawRecord> allRecords = new ArrayList<>(numOfRecords);
             for (String topic : topics) {
                 for (int partition = 0; partition < partitions; partition++) {
                     TopicPartition tp = new TopicPartition(topic, partition);
-                    recordsToPartition.put(
-                            tp, makeRecords(tp, numOfRecords / partitions, keys / partitions));
+                    List<DynamicMessage> messages =
+                            generateMessages(tp, numOfRecords / partitions, keySize / partitions);
+                    for (int i = 0; i < messages.size(); i++) {
+                        String key = generateKey(tp, keySize / partitions, i);
+                        allRecords.add(
+                                new RawRecord(
+                                        tp.topic(),
+                                        tp.partition(),
+                                        i,
+                                        key,
+                                        messages.get(i).toByteArray()));
+                    }
+                }
+            }
+            return allRecords;
+        }
+
+        public static List<KafkaRecord<String, DynamicMessage>> kafkaRecords(
+                String[] topics, int partitions, int numOfRecords, int keySize) {
+            List<KafkaRecord<String, DynamicMessage>> allRecords = new ArrayList<>(numOfRecords);
+            for (String topic : topics) {
+                for (int partition = 0; partition < partitions; partition++) {
+                    TopicPartition tp = new TopicPartition(topic, partition);
+                    List<DynamicMessage> messages =
+                            generateMessages(tp, numOfRecords / partitions, keySize / partitions);
+                    for (int i = 0; i < messages.size(); i++) {
+                        String key = generateKey(tp, keySize / partitions, i);
+                        allRecords.add(
+                                KafkaRecord.from(
+                                        new ConsumerRecord<>(
+                                                tp.topic(),
+                                                tp.partition(),
+                                                i,
+                                                Deferred.resolved(key),
+                                                Deferred.resolved(messages.get(i)))));
+                    }
+                }
+            }
+            return allRecords;
+        }
+
+        public static ConsumerRecords<Deferred<String>, Deferred<DynamicMessage>> consumerRecords(
+                String[] topics, int partitions, int numOfRecords, int keySize) {
+            var recordsToPartition =
+                    new HashMap<
+                            TopicPartition,
+                            List<ConsumerRecord<Deferred<String>, Deferred<DynamicMessage>>>>();
+            for (String topic : topics) {
+                for (int partition = 0; partition < partitions; partition++) {
+                    TopicPartition tp = new TopicPartition(topic, partition);
+                    List<DynamicMessage> messages =
+                            generateMessages(tp, numOfRecords / partitions, keySize / partitions);
+                    List<ConsumerRecord<Deferred<String>, Deferred<DynamicMessage>>> records =
+                            new ArrayList<>();
+
+                    for (int i = 0; i < messages.size(); i++) {
+                        String key = generateKey(tp, keySize / partitions, i);
+                        records.add(
+                                new ConsumerRecord<>(
+                                        tp.topic(),
+                                        tp.partition(),
+                                        i,
+                                        Deferred.resolved(key),
+                                        Deferred.resolved(messages.get(i))));
+                    }
+                    recordsToPartition.put(tp, records);
                 }
             }
 
             return new ConsumerRecords<>(recordsToPartition);
         }
 
-        private static List<ConsumerRecord<String, DynamicMessage>> makeRecords(
-                TopicPartition tp, int recordsPerPartition, int keySize) {
-            Function<Integer, String> keyGenerator =
-                    offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
+        public static ConsumerRecords<Deferred<String>, Deferred<DynamicMessage>>
+                resolvedConsumerRecords(
+                        List<RawRecord> rawRecords, Deserializer<DynamicMessage> deserializer) {
+            var recordsToPartition =
+                    new HashMap<
+                            TopicPartition,
+                            List<ConsumerRecord<Deferred<String>, Deferred<DynamicMessage>>>>();
+            for (RawRecord rawRecord : rawRecords) {
+                TopicPartition tp =
+                        new TopicPartition(rawRecord.getTopic(), rawRecord.getPartition());
+                recordsToPartition
+                        .computeIfAbsent(tp, k -> new ArrayList<>())
+                        .add(
+                                new ConsumerRecord<>(
+                                        rawRecord.getTopic(),
+                                        rawRecord.getPartition(),
+                                        rawRecord.getOffset(),
+                                        Deferred.resolved(rawRecord.getKey()),
+                                        Deferred.eager(
+                                                deserializer,
+                                                rawRecord.getTopic(),
+                                                rawRecord.getRawBytes())));
+            }
 
-            List<ConsumerRecord<String, DynamicMessage>> records =
-                    new ArrayList<>(recordsPerPartition);
+            return new ConsumerRecords<>(recordsToPartition);
+        }
+
+        public static ConsumerRecords<Deferred<String>, Deferred<DynamicMessage>>
+                deferredConsumerRecords(
+                        List<RawRecord> rawRecords, Deserializer<DynamicMessage> deserializer) {
+            var recordsToPartition =
+                    new HashMap<
+                            TopicPartition,
+                            List<ConsumerRecord<Deferred<String>, Deferred<DynamicMessage>>>>();
+            for (RawRecord rawRecord : rawRecords) {
+                TopicPartition tp =
+                        new TopicPartition(rawRecord.getTopic(), rawRecord.getPartition());
+                recordsToPartition
+                        .computeIfAbsent(tp, k -> new ArrayList<>())
+                        .add(
+                                new ConsumerRecord<>(
+                                        rawRecord.getTopic(),
+                                        rawRecord.getPartition(),
+                                        rawRecord.getOffset(),
+                                        Deferred.resolved(rawRecord.getKey()),
+                                        Deferred.lazy(
+                                                deserializer,
+                                                rawRecord.getTopic(),
+                                                rawRecord.getRawBytes())));
+            }
+
+            return new ConsumerRecords<>(recordsToPartition);
+        }
+
+        private static String generateKey(TopicPartition tp, int keySize, int index) {
+            return String.valueOf(tp.partition() * keySize + index % keySize);
+        }
+
+        private static List<DynamicMessage> generateMessages(
+                TopicPartition tp, int recordsPerPartition, int keySize) {
+
+            List<DynamicMessage> messages = new ArrayList<>(recordsPerPartition);
             for (int i = 0; i < recordsPerPartition; i++) {
                 // Setup the record attribute
                 String name =
@@ -344,7 +434,7 @@ public class BenchmarksUtils {
                 int age = new SecureRandom().nextInt(20, 40);
                 int sonAge = new SecureRandom().nextInt(0, 4);
 
-                String key = keyGenerator.apply(i);
+                String key = generateKey(tp, keySize, i);
 
                 // Prepare the Guy object: a parent with two kids
                 DynamicMessage parent =
@@ -372,66 +462,13 @@ public class BenchmarksUtils {
                                                                 .build())
                                                 .build())
                                 .build();
-
-                // Build the ConsumerRecord from the JSON and add it to the collection
-                records.add(new ConsumerRecord<>(tp.topic(), tp.partition(), i, key, parent));
+                messages.add(parent);
             }
-            return records;
+            return messages;
         }
     }
 
-    private static List<KafkaRecord<String, JsonNode>> initializeRecords(int size)
-            throws JsonProcessingException, JsonMappingException {
-        ObjectMapper om = new ObjectMapper();
-
-        List<KafkaRecord<String, JsonNode>> records = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            String name =
-                    new SecureRandom()
-                            .ints(20, 48, 122)
-                            .filter(Character::isLetterOrDigit)
-                            .mapToObj(Character::toString)
-                            .collect(Collectors.joining());
-            String surname =
-                    new SecureRandom()
-                            .ints(20, 48, 122)
-                            .filter(Character::isLetterOrDigit)
-                            .mapToObj(Character::toString)
-                            .collect(Collectors.joining());
-            int age = new SecureRandom().nextInt(10, 40);
-            String obj =
-                    """
-            {
-                "name": "%s",
-                "surname": "%s",
-                "age": %d
-            }
-            """
-                            .formatted(name, surname, age);
-            JsonNode node = om.readTree(obj);
-            records.add(record("MyTopic", "key", node));
-        }
-        return records;
-    }
-
-    private static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
-        return KafkaRecord.from(
-                new ConsumerRecord<>(
-                        topic,
-                        150,
-                        120,
-                        ConsumerRecord.NO_TIMESTAMP,
-                        TimestampType.NO_TIMESTAMP_TYPE,
-                        ConsumerRecord.NULL_SIZE,
-                        ConsumerRecord.NULL_SIZE,
-                        key,
-                        value,
-                        new RecordHeaders(),
-                        Optional.empty()));
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Config<String, T> newConfigurator(
+    public static ConnectorConfigurator newConfigurator(
             String[] topic, String valueType, int templateParams) {
         File adapterDir;
         try {
@@ -442,10 +479,8 @@ public class BenchmarksUtils {
                 var target = new File(adapterDir, "descriptor_set.desc");
                 Files.copy(source.toPath(), target.toPath());
             }
-            return (Config<String, T>)
-                    new ConnectorConfigurator(
-                                    basicParameters(topic, valueType, templateParams), adapterDir)
-                            .configure();
+            return new ConnectorConfigurator(
+                    basicParameters(topic, valueType, templateParams), adapterDir);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
