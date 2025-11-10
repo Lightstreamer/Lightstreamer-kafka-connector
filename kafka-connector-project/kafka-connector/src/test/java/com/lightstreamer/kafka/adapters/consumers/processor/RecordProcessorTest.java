@@ -37,7 +37,7 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 import com.lightstreamer.kafka.test_utils.Records;
 
@@ -98,11 +98,11 @@ public class RecordProcessorTest {
         return RecordMapper.<String, String>builder();
     }
 
-    private TestEventListener eventListener;
+    private MockItemEventListener eventListener;
 
     @BeforeEach
     public void setUp() throws ExtractionException {
-        this.eventListener = new TestEventListener();
+        this.eventListener = new MockItemEventListener();
     }
 
     private RecordMapper<String, String> mapperForAutoCommandMode() {
