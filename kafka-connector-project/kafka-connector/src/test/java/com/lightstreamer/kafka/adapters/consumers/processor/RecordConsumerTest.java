@@ -27,7 +27,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
@@ -41,18 +40,20 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SmartEventUpdater;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.test_utils.Mocks.MockRecordProcessor;
+import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -129,16 +130,20 @@ public class RecordConsumerTest {
 
         this.config = (Config<String, String>) connectorConfigurator.consumerConfig();
 
-        String item = "item";
         this.subscriptions = SubscribedItems.create();
-        this.subscriptions.addItem(Items.subscribedFrom(item, new Object()));
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);
     }
 
+    void subscribe(EventListener listener) {
+        SubscribedItem item = Items.subscribedFrom("item", new Object());
+        this.subscriptions.addItem(item);
+        item.enableRealtimeEvents(listener);
+    }
+
     private RecordConsumer<String, String> mkRecordConsumer(
-            ItemEventListener listener,
+            EventListener listener,
             int threads,
             CommandModeStrategy commandStrategy,
             OrderStrategy orderStrategy) {
@@ -207,7 +212,7 @@ public class RecordConsumerTest {
     @Test
     public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new TestEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -245,9 +250,8 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.recordRoutingStrategy)
                 .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
-        assertThat(recordProcessor.updater).isInstanceOf(SmartEventUpdater.class);
-        assertThat(recordProcessor.updater.listener()).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
 
         DefaultRoutingStrategy routingStrategy =
                 (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
@@ -328,7 +332,7 @@ public class RecordConsumerTest {
             CommandModeStrategy command,
             RecordErrorHandlingStrategy error) {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new TestEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -369,9 +373,8 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.recordRoutingStrategy)
                 .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
-        assertThat(recordProcessor.updater).isInstanceOf(SmartEventUpdater.class);
-        assertThat(recordProcessor.updater.listener()).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
 
         DefaultRoutingStrategy routingStrategy =
                 (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
@@ -424,7 +427,7 @@ public class RecordConsumerTest {
     public void shouldBuildSingleThreadedRecordConsumerFromRecordMapper(
             CommandModeStrategy commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new TestEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -458,11 +461,10 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.recordRoutingStrategy)
                 .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
-        assertThat(recordProcessor.updater).isInstanceOf(SmartEventUpdater.class);
-        assertThat(recordProcessor.updater.listener()).isSameInstanceAs(listener);
+        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType())
                 .isEqualTo(getProcessUpdatesType(commandMode));
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
 
         DefaultRoutingStrategy routingStrategy =
                 (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
@@ -539,7 +541,7 @@ public class RecordConsumerTest {
                                     .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(null);
                         });
-        assertThat(ne).hasMessageThat().isEqualTo("ItemEventListener not set");
+        assertThat(ne).hasMessageThat().isEqualTo("EventListener not set");
 
         ne =
                 assertThrows(
@@ -548,7 +550,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OffsetService not set");
@@ -560,7 +564,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(null);
                         });
@@ -573,7 +579,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(null);
@@ -587,7 +595,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -613,7 +623,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -629,7 +641,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -647,7 +661,9 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(new MockItemEventListener())
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new TestEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -694,25 +710,26 @@ public class RecordConsumerTest {
         ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 generateRecords("topic", numOfRecords, keys, 2);
 
-        // Create a list to store all the delivered events
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
-
         // Make the RecordConsumer.
+        TestEventListener testListener = new TestEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        threads,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.ORDER_BY_KEY);
+                        listener, threads, CommandModeStrategy.NONE, OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(KafkaRecords.from(records));
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
+            assertThat(events.size()).isEqualTo(numOfRecords);
 
             for (String key : keys) {
                 // Get the list of positions stored in all received events relative to the same key
                 List<Integer> list =
-                        deliveredEvents.stream()
+                        events.stream()
                                 .filter(e -> e.key().equals(key))
                                 .map(Event::position)
                                 .toList();
@@ -720,8 +737,8 @@ public class RecordConsumerTest {
                 // in order
                 assertThat(list).isInOrder();
             }
-            // Reset the event list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener list for next iteration
+            testListener.reset();
         }
     }
 
@@ -762,27 +779,34 @@ public class RecordConsumerTest {
                 new ConsumerRecords<>(recordsByPartition);
 
         // Create a list to store all the delivered events
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        // List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
 
         // Make the RecordConsumer
+        TestEventListener testListener = new TestEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
+                        listener,
                         threads,
                         CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(KafkaRecords.from(allRecords));
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
+            assertThat(events.size()).isEqualTo(numOfRecords * 2);
             for (int partition = 0; partition < partitionsOnTopic1; partition++) {
-                assertDeliveredEventsOrder(partition, deliveredEvents, "topic1");
+                assertDeliveredEventsOrder(partition, events, "topic1");
             }
             for (int partition = 0; partition < partitionsOnTopic2; partition++) {
-                assertDeliveredEventsOrder(partition, deliveredEvents, "topic2");
+                assertDeliveredEventsOrder(partition, events, "topic2");
             }
-            // Reset the event list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -814,16 +838,22 @@ public class RecordConsumerTest {
                 generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> events = Collections.synchronizedList(new ArrayList<>());
+        TestEventListener testListener = new TestEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(events)),
+                        listener,
                         threads,
                         CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(KafkaRecords.from(records));
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
             Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
@@ -833,8 +863,8 @@ public class RecordConsumerTest {
             for (List<Number> orderedList : orderedLists) {
                 assertThat(orderedList).isInOrder();
             }
-            // Reset the event list for next iteration
-            events.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -846,19 +876,20 @@ public class RecordConsumerTest {
                 generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        TestEventListener testListener = new TestEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
-                mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        2,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.UNORDERED);
+                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
             recordConsumer.consumeRecords(KafkaRecords.from(records));
+            List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+            List<Event> deliveredEvents =
+                    realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
-            // Reset the delivered events list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -870,18 +901,16 @@ public class RecordConsumerTest {
                 generateRecords("topic", 99, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        TestEventListener testListener = new TestEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
-                mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        2,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.UNORDERED);
+                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         // Consume only the records published to partition 0
         recordConsumer.consumeFilteredRecords(KafkaRecords.from(records), c -> c.partition() == 0);
         // Verify that only 1/3 of total published record have been consumed
-        assertThat(deliveredEvents.size()).isEqualTo(records.count() / 3);
+        assertThat(testListener.getSmartRealtimeUpdates().size()).isEqualTo(records.count() / 3);
     }
 
     @SuppressWarnings("unused")
@@ -1031,5 +1060,25 @@ public class RecordConsumerTest {
                             Long.parseLong(offset),
                             Thread.currentThread().getName()));
         };
+    }
+
+    private static Event buildEvent(Map<String, String> map) {
+        String topic = map.get("topic");
+        // Get the key
+        String key = map.get("key");
+        // Extract the position from the value: "a-3" -> "3"
+        int position = extractNumberedSuffix(map.get("value"));
+        // Get the partition
+        String partition = map.get("partition");
+        // Get the offset
+        String offset = map.get("offset");
+        // Create and return the event
+        return new Event(
+                topic,
+                key,
+                position,
+                Integer.parseInt(partition),
+                Long.parseLong(offset),
+                Thread.currentThread().getName());
     }
 }

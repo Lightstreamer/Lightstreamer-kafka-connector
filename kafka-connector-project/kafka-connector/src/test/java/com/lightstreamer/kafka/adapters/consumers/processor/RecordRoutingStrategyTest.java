@@ -18,31 +18,53 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
+import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RouteAllStrategy;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
+import com.lightstreamer.kafka.test_utils.Records;
+import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
+import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
 import java.util.Set;
 
 public class RecordRoutingStrategyTest {
 
-    private static final SubscribedItem item1 = Items.subscribedFrom("item1");
-    private static final SubscribedItem item2 = Items.subscribedFrom("item2");
-    private static final SubscribedItem item3 = Items.subscribedFrom("item3");
+    private static final String TEST_TOPIC_1 = "topic";
 
-    private Set<SubscribedItem> routable = Set.of(item1);
-    private Set<SubscribedItem> allRoutable = Set.of(item2, item3);
+    private RecordMapper<String, String> mapper;
 
-    private Mocks.MockMappedRecord record = new Mocks.MockMappedRecord(routable, allRoutable);
+    @BeforeEach
+    public void setUp() throws ExtractionException {
+        this.mapper =
+                RecordMapper.<String, String>builder()
+                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item1"))
+                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item2"))
+                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item3"))
+                        .build();
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
@@ -59,42 +81,74 @@ public class RecordRoutingStrategyTest {
     }
 
     @Test
-    public void shouldDefaultStrategyRouteToSubscribedItems() {
-        assertThat(record.routeInvoked()).isFalse();
-        assertThat(record.routeAllInvoked()).isFalse();
+    public void shouldDefaultStrategyRoutesToSubscribedItems() {
+        MappedRecord mappedRecord = mapper.map(Records.KafkaRecord("TEST_TOPIC", "aKey", "aValue"));
+        Set<SubscribedItem> routed = defaultStrategy("item1").route(mappedRecord);
 
-        Set<SubscribedItem> routed = defaultStrategy().route(record);
-
-        assertThat(record.routeInvoked()).isTrue();
-        assertThat(record.routeAllInvoked()).isFalse();
-        assertThat(routed).containsExactly(item1);
+        List<String> routedNames =
+                routed.stream().map(SubscribedItem::asCanonicalItemName).toList();
+        assertThat(routedNames).containsExactly("item1");
     }
 
     @Test
     public void shouldDefaultStrategyNotRouteToImplicitItems() {
-        assertThat(defaultStrategy().canRouteImplicitItems()).isFalse();
+        assertThat(defaultStrategy("item1").canRouteImplicitItems()).isFalse();
     }
 
     @Test
     public void shouldRouteAllStrategyRouteToAllItems() {
-        assertThat(record.routeInvoked()).isFalse();
-        assertThat(record.routeAllInvoked()).isFalse();
+        MappedRecord mappedRecord = mapper.map(Records.KafkaRecord("TEST_TOPIC", "aKey", "aValue"));
+        Set<SubscribedItem> routed = routeAllStrategy().route(mappedRecord);
 
-        Set<SubscribedItem> routed = routeAllStrategy().route(record);
-
-        assertThat(record.routeInvoked()).isFalse();
-        assertThat(record.routeAllInvoked()).isTrue();
-        assertThat(routed).containsExactly(item2, item3);
+        List<String> routedNames =
+                routed.stream().map(SubscribedItem::asCanonicalItemName).toList();
+        assertThat(routedNames).containsExactly("item1", "item2", "item3");
     }
 
     @Test
-    public void shouldRouteAllStrategyRouteToImplicitItems() {
+    public void shouldRouteAllStrategyRouteToAllItemsComplex() throws ExtractionException {
+        String template1 =
+                "complex-item-#{keyName=KEY.name,name=VALUE.name,child=VALUE.children[0].name}";
+        String template2 =
+                "complex-item-#{pref=KEY.preferences['pref1'],childName1=VALUE.children[0].name,childName2=VALUE.children[1].name}";
+        ItemTemplates<GenericRecord, JsonNode> templates =
+                ItemTemplatesUtils.ItemTemplates(
+                        TestSelectorSuppliers.AvroKeyJsonValue(),
+                        List.of(TEST_TOPIC_1),
+                        List.of(template1, template2));
+        RecordMapper<GenericRecord, JsonNode> mapper =
+                RecordMapper.<GenericRecord, JsonNode>builder()
+                        .withTemplateExtractors(templates.groupExtractors())
+                        .build();
+
+        KafkaRecord<GenericRecord, JsonNode> incomingRecord =
+                KafkaRecordWithHeaders(
+                        TEST_TOPIC_1,
+                        SampleGenericRecordProvider().sampleMessage(),
+                        SampleJsonNodeProvider().sampleMessage(),
+                        new RecordHeaders()
+                                .add("header-key1", "header-value1".getBytes())
+                                .add("header-key2", "header-value2".getBytes()));
+        MappedRecord mapped = mapper.map(incomingRecord);
+        List<String> implicitItems =
+                routeAllStrategy().route(mapped).stream()
+                        .map(SubscribedItem::asCanonicalItemName)
+                        .toList();
+
+        assertThat(implicitItems)
+                .containsExactly(
+                        "complex-item-[child=alex,keyName=joe,name=joe]",
+                        "complex-item-[childName1=alex,childName2=anna,pref=pref_value1]");
+    }
+
+    @Test
+    public void shouldRouteAllStrategyRoutesToImplicitItems() {
         assertThat(routeAllStrategy().canRouteImplicitItems()).isTrue();
     }
 
-    private static RecordRoutingStrategy defaultStrategy() {
+    private static RecordRoutingStrategy defaultStrategy(String itemName) {
         SubscribedItems subscribed = SubscribedItems.create();
-        subscribed.addItem(Items.subscribedFrom("item", new Object()));
+        subscribed.addItem(Items.subscribedFrom(itemName, new Object()));
         return new DefaultRoutingStrategy(subscribed);
     }
 
