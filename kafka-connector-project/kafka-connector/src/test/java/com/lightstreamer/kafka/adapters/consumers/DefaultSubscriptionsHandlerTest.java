@@ -38,6 +38,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
+import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -87,11 +88,18 @@ public class DefaultSubscriptionsHandlerTest {
                     }
                     return consumer;
                 };
-        return new DefaultSubscriptionsHandler<>(config, metadataListener, supplier);
+
+        SubscriptionsHandler.Builder<String, String> builder =
+                SubscriptionsHandler.<String, String>builder()
+                        .withConsumerConfig(config)
+                        .withConsumerSupplier(supplier)
+                        .withMetadataListener(metadataListener);
+        return new DefaultSubscriptionsHandler<>(builder);
     }
 
     private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
     private SubscribedItems subscribedItems;
+    private TestEventListener listener = new TestEventListener();
 
     void init(String... topics) {
         init(false, topics);
@@ -99,7 +107,7 @@ public class DefaultSubscriptionsHandlerTest {
 
     void init(boolean exceptionOnConnection, String... topics) {
         this.subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
-        this.subscriptionHandler.setListener(new Mocks.MockItemEventListener());
+        this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
 
