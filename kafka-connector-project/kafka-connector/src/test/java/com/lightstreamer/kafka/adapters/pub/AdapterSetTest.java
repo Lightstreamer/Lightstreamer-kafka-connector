@@ -39,7 +39,7 @@ import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.TestEventListener;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -192,7 +192,7 @@ public class AdapterSetTest {
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
-        connectorDataAdapter1.setListener(new Mocks.MockItemEventListener());
+        connectorDataAdapter1.setListener(new TestEventListener());
         assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
@@ -206,7 +206,7 @@ public class AdapterSetTest {
                                 "field.command",
                                 "#{VALUE}")),
                 adapterDir.toFile());
-        connectorDataAdapter2.setListener(new Mocks.MockItemEventListener());
+        connectorDataAdapter2.setListener(new TestEventListener());
         assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
@@ -218,7 +218,7 @@ public class AdapterSetTest {
                                 "field.key",
                                 "#{KEY}")),
                 adapterDir.toFile());
-        connectorDataAdapter3.setListener(new Mocks.MockItemEventListener());
+        connectorDataAdapter3.setListener(new TestEventListener());
         assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isFalse();
     }
 
