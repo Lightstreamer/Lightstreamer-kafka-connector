@@ -147,7 +147,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      * unsubscription from items.
      *
      * @param opts the configuration options for the Kafka Connector Data Adapter
-     * @return a new MetadataListener instance
+     * @return a new {@code MetadataListener} instance
      * @hidden
      */
     public static final MetadataListener listener(KafkaConnectorDataAdapterOpts opts) {
