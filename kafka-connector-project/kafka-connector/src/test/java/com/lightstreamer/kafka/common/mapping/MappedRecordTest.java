@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 public class MappedRecordTest {
@@ -129,17 +128,5 @@ public class MappedRecordTest {
         subscribedItems.addItem(matchingItem2);
         subscribedItems.addItem(notMatchingItem);
         assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
-    }
-
-    @Test
-    public void shouldRouteAll() {
-        DefaultMappedRecord record =
-                new DefaultMappedRecord(
-                        List.of("simple-item-1", "simple-item-2").toArray(new String[0]));
-
-        Set<SubscribedItem> routeAll = record.routeAll();
-        SubscribedItem autoSubscription1 = Items.subscribedFrom("simple-item-1");
-        SubscribedItem autoSubscription2 = Items.subscribedFrom("simple-item-2");
-        assertThat(routeAll).containsExactly(autoSubscription1, autoSubscription2);
     }
 }
