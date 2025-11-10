@@ -27,8 +27,6 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
@@ -47,9 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public class Mocks {
@@ -237,53 +232,6 @@ public class Mocks {
         }
     }
 
-    public static class MockMappedRecord implements MappedRecord {
-
-        private AtomicBoolean routeInvoked = new AtomicBoolean(false);
-        private AtomicBoolean routeAllInvoked = new AtomicBoolean(false);
-        private final Set<SubscribedItem> allRoutable;
-        private final Set<SubscribedItem> routable;
-
-        public MockMappedRecord() {
-            this(Collections.emptySet(), Collections.emptySet());
-        }
-
-        public MockMappedRecord(Set<SubscribedItem> routable, Set<SubscribedItem> allRoutable) {
-            this.routable = routable;
-            this.allRoutable = allRoutable;
-        }
-
-        @Override
-        public String[] canonicalItemNames() {
-            return new String[0];
-        }
-
-        @Override
-        public Map<String, String> fieldsMap() {
-            return Collections.emptyMap();
-        }
-
-        @Override
-        public Set<SubscribedItem> route(SubscribedItems subscribed) {
-            routeInvoked.set(true);
-            return routable;
-        }
-
-        @Override
-        public Set<SubscribedItem> routeAll() {
-            routeAllInvoked.set(true);
-            return allRoutable;
-        }
-
-        public boolean routeInvoked() {
-            return routeInvoked.get();
-        }
-
-        public boolean routeAllInvoked() {
-            return routeAllInvoked.get();
-        }
-    }
-
     public static class MockRecordProcessor<K, V> implements RecordProcessor<K, V> {
 
         private List<ConsumedRecordInfo> offsetTriggeringExceptions;
@@ -324,6 +272,12 @@ public class Mocks {
         }
 
         @Override
+        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
+                throws ValueException {
+            throw new UnsupportedOperationException("Unimplemented method 'processAsSnapshot'");
+        }
+
+        @Override
         public void useLogger(Logger logger) {}
 
         @Override
@@ -332,54 +286,146 @@ public class Mocks {
         }
     }
 
+    public static record UpdateCall(Object handle, Map<String, String> event, boolean isSnapshot) {}
+
+    /** Test double for ItemEventListener that records all method calls for verification */
     public static class MockItemEventListener implements ItemEventListener {
 
-        public static BiConsumer<Map<String, String>, Boolean> NOPConsumer = (m, s) -> {};
+        private final List<UpdateCall> smartSnapshotUpdates =
+                Collections.synchronizedList(new ArrayList<>());
+        private final List<UpdateCall> snapshotUpdates =
+                Collections.synchronizedList(new ArrayList<>());
 
-        private final BiConsumer<Map<String, String>, Boolean> smartConsumer;
-        private final BiConsumer<Map<String, String>, Boolean> legacyConsumer;
+        private final List<UpdateCall> smartRealtimeUpdates =
+                Collections.synchronizedList(new ArrayList<>());
+        private final List<UpdateCall> realtimeUpdates =
+                Collections.synchronizedList(new ArrayList<>());
 
-        AtomicBoolean smartClearSnapshotCalled = new AtomicBoolean(false);
-        AtomicBoolean smartEndOfSnapshotCalled = new AtomicBoolean(false);
+        private final List<UpdateCall> allUpdatesChronological =
+                Collections.synchronizedList(new ArrayList<>());
 
-        AtomicBoolean legacyClearSnapshotCalled = new AtomicBoolean(false);
-        AtomicBoolean legacyEndOfSnapshotCalled = new AtomicBoolean(false);
+        private final List<Object> smartClearSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
+        private final List<String> clearSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
 
-        Throwable failure = null;
+        private final List<Object> smartEndOfSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
+        private final List<String> endOfSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
 
-        public MockItemEventListener(BiConsumer<Map<String, String>, Boolean> smartConsumer) {
-            this(smartConsumer, NOPConsumer);
+        private final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
+
+        @Override
+        public void smartUpdate(Object handle, Map event, boolean isSnapshot) {
+            UpdateCall call = new UpdateCall(handle, event, isSnapshot);
+
+            // Add to both category-specific and chronological lists
+            allUpdatesChronological.add(call);
+            if (isSnapshot) {
+                smartSnapshotUpdates.add(call);
+            } else {
+                smartRealtimeUpdates.add(call);
+            }
         }
 
-        public MockItemEventListener(
-                BiConsumer<Map<String, String>, Boolean> smartConsumer,
-                BiConsumer<Map<String, String>, Boolean> legacyConsumer) {
-            this.smartConsumer = smartConsumer;
-            this.legacyConsumer = legacyConsumer;
+        @Override
+        public void smartEndOfSnapshot(Object itemHandle) {
+            smartEndOfSnapshotCalls.add(itemHandle);
         }
 
-        public MockItemEventListener() {
-            this(NOPConsumer, NOPConsumer);
+        @Override
+        public void smartClearSnapshot(Object itemHandle) {
+            smartClearSnapshotCalls.add(itemHandle);
         }
 
-        public boolean smartClearSnapshotCalled() {
-            return smartClearSnapshotCalled.get();
+        @Override
+        public void update(String itemName, Map event, boolean isSnapshot) {
+            UpdateCall call = new UpdateCall(itemName, event, isSnapshot);
+
+            // Add to both category-specific and chronological lists
+            allUpdatesChronological.add(call);
+            if (isSnapshot) {
+                snapshotUpdates.add(call);
+            } else {
+                realtimeUpdates.add(call);
+            }
         }
 
-        public boolean legacyEndOfSnapshotCalled() {
-            return legacyEndOfSnapshotCalled.get();
+        @Override
+        public void clearSnapshot(String itemName) {
+            clearSnapshotCalls.add(itemName);
         }
 
-        public boolean smartEndOfSnapshotCalled() {
-            return smartEndOfSnapshotCalled.get();
+        @Override
+        public void endOfSnapshot(String itemName) {
+            endOfSnapshotCalls.add(itemName);
         }
 
-        public boolean legacyClearSnapshotCalled() {
-            return legacyClearSnapshotCalled.get();
+        @Override
+        public void failure(Throwable t) {
+            failures.add(t);
         }
 
-        public Throwable getFailure() {
-            return failure;
+        public List<UpdateCall> getAllUpdatesChronological() {
+            return new ArrayList<>(allUpdatesChronological);
+        }
+
+        public List<UpdateCall> getSmartSnapshotUpdates() {
+            return new ArrayList<>(smartSnapshotUpdates);
+        }
+
+        public List<UpdateCall> getSnapshotUpdates() {
+            return new ArrayList<>(snapshotUpdates);
+        }
+
+        public List<UpdateCall> getSmartRealtimeUpdates() {
+            return new ArrayList<>(smartRealtimeUpdates);
+        }
+
+        public List<UpdateCall> getRealtimeUpdates() {
+            return new ArrayList<>(realtimeUpdates);
+        }
+
+        public List<Object> getSmartClearSnapshotCalls() {
+            return new ArrayList<>(smartClearSnapshotCalls);
+        }
+
+        public List<String> getClearSnapshotCalls() {
+            return new ArrayList<>(clearSnapshotCalls);
+        }
+
+        public List<Object> getSmartEndOfSnapshotCalls() {
+            return new ArrayList<>(smartEndOfSnapshotCalls);
+        }
+
+        public List<String> getEndOfSnapshotCalls() {
+            return new ArrayList<>(endOfSnapshotCalls);
+        }
+
+        public List<Throwable> getFailures() {
+            return new ArrayList<>(failures);
+        }
+
+        public int getSmartRealtimeUpdateCount() {
+            return smartRealtimeUpdates.size();
+        }
+
+        public int getRealtimeUpdateCount() {
+            return realtimeUpdates.size();
+        }
+
+        public void reset() {
+            smartSnapshotUpdates.clear();
+            snapshotUpdates.clear();
+            smartRealtimeUpdates.clear();
+            realtimeUpdates.clear();
+            allUpdatesChronological.clear();
+            smartClearSnapshotCalls.clear();
+            clearSnapshotCalls.clear();
+            smartEndOfSnapshotCalls.clear();
+            endOfSnapshotCalls.clear();
+            failures.clear();
         }
 
         @Override
@@ -390,11 +436,6 @@ public class Mocks {
         @Override
         public void update(String itemName, OldItemEvent event, boolean isSnapshot) {
             throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(String itemName, Map event, boolean isSnapshot) {
-            legacyConsumer.accept(event, isSnapshot);
         }
 
         @Override
@@ -413,33 +454,8 @@ public class Mocks {
         }
 
         @Override
-        public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
-            smartConsumer.accept(event, isSnapshot);
-        }
-
-        @Override
         public void smartUpdate(Object itemHandle, IndexedItemEvent event, boolean isSnapshot) {
             throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
-        }
-
-        @Override
-        public void endOfSnapshot(String itemName) {
-            this.legacyEndOfSnapshotCalled.set(true);
-        }
-
-        @Override
-        public void smartEndOfSnapshot(Object itemHandle) {
-            this.smartEndOfSnapshotCalled.set(true);
-        }
-
-        @Override
-        public void clearSnapshot(String itemName) {
-            this.legacyClearSnapshotCalled.set(true);
-        }
-
-        @Override
-        public void smartClearSnapshot(Object itemHandle) {
-            this.smartClearSnapshotCalled.set(true);
         }
 
         @Override
@@ -454,10 +470,106 @@ public class Mocks {
             throw new UnsupportedOperationException(
                     "Unimplemented method 'smartDeclareFieldDiffOrder'");
         }
+    }
+
+    public static class RemoteTestEventListener
+            implements com.lightstreamer.adapters.remote.ItemEventListener {
+
+        private final List<UpdateCall> snapshotUpdates =
+                Collections.synchronizedList(new ArrayList<>());
+
+        private final List<UpdateCall> realtimeUpdates =
+                Collections.synchronizedList(new ArrayList<>());
+
+        private final List<UpdateCall> allUpdatesChronological =
+                Collections.synchronizedList(new ArrayList<>());
+
+        private final List<String> clearSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
+
+        private final List<String> endOfSnapshotCalls =
+                Collections.synchronizedList(new ArrayList<>());
+
+        private final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
 
         @Override
-        public void failure(Throwable e) {
-            this.failure = e;
+        public void update(
+                String itemName,
+                com.lightstreamer.adapters.remote.ItemEvent itemEvent,
+                boolean isSnapshot) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void update(String itemName, Map<String, ?> itemEvent, boolean isSnapshot) {
+            @SuppressWarnings("unchecked")
+            UpdateCall call = new UpdateCall(itemName, (Map<String, String>) itemEvent, isSnapshot);
+
+            // Add to both category-specific and chronological lists
+            allUpdatesChronological.add(call);
+            if (isSnapshot) {
+                snapshotUpdates.add(call);
+            } else {
+                realtimeUpdates.add(call);
+            }
+        }
+
+        @Override
+        public void update(
+                String itemName,
+                com.lightstreamer.adapters.remote.IndexedItemEvent itemEvent,
+                boolean isSnapshot) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void endOfSnapshot(String itemName) {
+            endOfSnapshotCalls.add(itemName);
+        }
+
+        @Override
+        public void clearSnapshot(String itemName) {
+            clearSnapshotCalls.add(itemName);
+        }
+
+        @Override
+        public void declareFieldDiffOrder(
+                String itemName,
+                Map<String, com.lightstreamer.adapters.remote.DiffAlgorithm[]> algorithmsMap) {
+            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
+        }
+
+        @Override
+        public void failure(Exception exception) {
+            failures.add(exception);
+        }
+
+        public List<UpdateCall> getAllUpdatesChronological() {
+            return new ArrayList<>(allUpdatesChronological);
+        }
+
+        public List<UpdateCall> getSnapshotUpdates() {
+            return new ArrayList<>(snapshotUpdates);
+        }
+
+        public List<UpdateCall> getRealtimeUpdates() {
+            return new ArrayList<>(realtimeUpdates);
+        }
+
+        public List<String> getClearSnapshotCalls() {
+            return new ArrayList<>(clearSnapshotCalls);
+        }
+
+        public List<String> getEndOfSnapshotCalls() {
+            return new ArrayList<>(endOfSnapshotCalls);
+        }
+
+        public List<Throwable> getFailures() {
+            return new ArrayList<>(failures);
+        }
+
+        public int getRealtimeUpdateCount() {
+            return realtimeUpdates.size();
         }
     }
 }
