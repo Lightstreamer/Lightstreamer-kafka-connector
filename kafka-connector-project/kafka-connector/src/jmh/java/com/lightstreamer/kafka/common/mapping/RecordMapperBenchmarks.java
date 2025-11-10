@@ -25,7 +25,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -88,7 +88,9 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             Config<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+                    (Config<String, DynamicMessage>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
+                                    .consumerConfig();
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
@@ -130,7 +132,9 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             Config<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
+                                    .consumerConfig();
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
