@@ -181,7 +181,6 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         @Override
         public Data extractValue(KafkaRecord<?, String> record, boolean checkScalar)
                 throws ValueException {
-
             return super.eval(() -> (String) record.value(), kvpMapFactory, checkScalar);
         }
     }
