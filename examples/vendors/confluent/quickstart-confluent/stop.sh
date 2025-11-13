@@ -1,1 +1,0 @@
-../../../compose-templates/stop.sh
