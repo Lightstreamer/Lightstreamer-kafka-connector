@@ -302,6 +302,9 @@ public class Mocks {
         public void commitAsync() {}
 
         @Override
+        public void maybeCommit(int recordsCount) {}
+
+        @Override
         public void updateOffsets(ConsumerRecord<?, ?> record) {
             records.add(
                     new ConsumedRecordInfo(record.topic(), record.partition(), record.offset()));
@@ -368,7 +371,7 @@ public class Mocks {
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> current() {
+        public Map<TopicPartition, OffsetAndMetadata> snapshot() {
             return topicMap;
         }
 
