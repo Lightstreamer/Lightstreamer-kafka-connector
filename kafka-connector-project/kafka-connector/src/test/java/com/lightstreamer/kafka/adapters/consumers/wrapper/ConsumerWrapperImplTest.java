@@ -209,6 +209,10 @@ public class ConsumerWrapperImplTest {
         OffsetService offsetService = consumerWrapper.getOffsetService();
         assertThat(offsetService.canManageHoles()).isEqualTo(expectedParallelism);
         assertThat(consumerWrapper.getOffsetService().offsetStore()).isPresent();
+
+        // Check the poll timeout
+        assertThat(consumerWrapper.getPollTimeout())
+                .isEqualTo(ConsumerWrapperImpl.MAX_POLL_DURATION);
     }
 
     @Test
@@ -581,7 +585,7 @@ public class ConsumerWrapperImplTest {
         assertThat(mockConsumer.closed());
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
         OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
-        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
+        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.snapshot();
         assertThat(map.keySet()).containsExactly(partition0, partition1);
         // Verify that offsets have been moved reasonably
         assertThat(map.get(partition0).offset()).isGreaterThan(records.count() / 3);
@@ -627,7 +631,7 @@ public class ConsumerWrapperImplTest {
         assertThat(mockConsumer.closed());
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
-        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
+        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.snapshot();
         assertThat(map.keySet()).containsExactly(partition0, partition1);
         // Verify that offsets have been moved reasonably
         assertThat(map.get(partition0).offset()).isGreaterThan(records.count() / 3);
@@ -678,7 +682,7 @@ public class ConsumerWrapperImplTest {
         assertThat(mockConsumer.closed());
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
         OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
-        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
+        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.snapshot();
         assertThat(map.keySet()).containsExactly(partition0, partition1);
         // Verify that offsets have been moved reasonably
         assertThat(map.get(partition0).offset()).isGreaterThan(records.count() / 3);
