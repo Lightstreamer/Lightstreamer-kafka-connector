@@ -38,7 +38,7 @@ import javax.annotation.Nonnull;
 
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
-    private Logger log;
+    private Logger logger;
     private ConsumerTrigger consumerTrigger;
     private ConsumerTriggerConfig<?, ?> consumerTriggerConfig;
     private ConnectorConfig connectorConfig;
@@ -51,14 +51,14 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
         this.connectorConfig = configurator.getConfig();
-        this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
+        this.logger = LogFactory.getLogger(connectorConfig.getAdapterName());
         this.metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
                         connectorConfig.getAdapterName(), connectorConfig.isEnabled());
 
-        log.info("Configuring Kafka Connector");
+        logger.info("Configuring Kafka Connector");
         consumerTriggerConfig = configurator.configure();
-        log.info("Configuration complete");
+        logger.info("Configuration complete");
     }
 
     @Override
@@ -80,14 +80,14 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        log.info("Trying subscription to item [{}]", itemName);
+        logger.info("Trying subscription to item [{}]", itemName);
         consumerTrigger.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        log.info("Unsubscribing from item [{}]", itemName);
+        logger.info("Unsubscribing from item [{}]", itemName);
         consumerTrigger.unsubscribe(itemName);
     }
 }
