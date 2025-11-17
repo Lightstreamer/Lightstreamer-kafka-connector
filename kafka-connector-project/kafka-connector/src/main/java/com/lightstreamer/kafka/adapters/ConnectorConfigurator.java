@@ -92,7 +92,7 @@ public class ConnectorConfigurator {
 
     private static <K, V> ConsumerTriggerConfigImpl<K, V> doConfigure(
             ConnectorConfig config, WrapperKeyValueSelectorSuppliers<K, V> sSuppliers)
-            throws ExtractionException {
+            throws ExtractionException, ConfigException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
 
         TopicConfigurations topicsConfig =
