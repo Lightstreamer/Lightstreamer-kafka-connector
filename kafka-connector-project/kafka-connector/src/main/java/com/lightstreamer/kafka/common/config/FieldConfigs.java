@@ -31,13 +31,13 @@ public class FieldConfigs {
 
     private static String SCHEMA_NAME = "fields";
 
-    public static FieldConfigs from(Map<String, String> configs) {
+    public static FieldConfigs from(Map<String, String> configs) throws ConfigException {
         return new FieldConfigs(configs);
     }
 
     private final Map<String, ExtractionExpression> expressions = new HashMap<>();
 
-    private FieldConfigs(Map<String, String> fieldsMapping) {
+    private FieldConfigs(Map<String, String> fieldsMapping) throws ConfigException {
         for (Map.Entry<String, String> entry : fieldsMapping.entrySet()) {
             String fieldName = entry.getKey();
             String wrappedExpression = entry.getValue();
