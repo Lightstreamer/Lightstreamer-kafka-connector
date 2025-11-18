@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -68,11 +67,9 @@ public class BenchmarksUtils {
         // Stores all item events sent through the update method.
         public List<Map<String, ?>> events = new ArrayList<>();
         private Blackhole blackHole;
-        private AtomicInteger counter;
 
         public FakeItemEventListener(Blackhole bh) {
             this.blackHole = bh;
-            counter = new AtomicInteger();
         }
 
         @Override
@@ -182,6 +179,9 @@ public class BenchmarksUtils {
 
         @Override
         public void commitAsync() {}
+
+        @Override
+        public void maybeCommit(int recordsCount) {}
 
         @Override
         public void updateOffsets(ConsumerRecord<?, ?> record) {}
