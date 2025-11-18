@@ -52,17 +52,18 @@ import java.util.stream.Collectors;
 
 class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
-    private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
+    static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     private final ConsumerTriggerConfig<K, V> config;
     private final MetadataListener metadataListener;
-    private final Logger log;
+    private final Logger logger;
     private final RecordMapper<K, V> recordMapper;
     private final Consumer<K, V> consumer;
     private final OffsetService offsetService;
     private final CountDownLatch latch = new CountDownLatch(1);
     private final Function<Properties, AdminInterface> adminFactory;
     private final RecordConsumer<K, V> recordConsumer;
+    private final Duration pollDuration;
     private Thread hook;
 
     ConsumerWrapperImpl(
@@ -75,7 +76,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             throws KafkaException {
         this.config = config;
         this.metadataListener = metadataListener;
-        this.log = LogFactory.getLogger(config.connectionName());
+        this.logger = LogFactory.getLogger(config.connectionName());
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
@@ -83,19 +84,19 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                         .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
+        this.pollDuration = MAX_POLL_DURATION;
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
-
-        log.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
+        logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
         // Instantiate the Kafka Consumer
         this.consumer = consumerSupplier.get();
-        log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
+        logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
         Concurrency concurrency = config.concurrency();
 
         // Take care of holes in offset sequence only if parallel processing.
         boolean manageHoles = concurrency.isParallel();
-        this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
+        this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
@@ -106,7 +107,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .errorStrategy(config.errorHandlingStrategy())
-                        .logger(log)
+                        .logger(logger)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
@@ -121,23 +122,23 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     public void run() {
         // Install the shutdown hook
         this.hook = setShutdownHook();
-        log.atDebug().log("Set shutdown hook");
+        logger.atDebug().log("Set shutdown hook");
         try {
             if (subscribed()) {
                 pollOnce(this::initStoreAndConsume);
                 pollForEver(this::consumeRecords);
             } else {
-                log.atWarn().log("No subscriptions happened");
+                logger.atWarn().log("No subscriptions happened");
             }
         } catch (WakeupException e) {
-            log.atDebug().log("Kafka Consumer woken up");
+            logger.atDebug().log("Kafka Consumer woken up");
         } finally {
-            log.atDebug().log("Start closing Kafka Consumer");
+            logger.atDebug().log("Start closing Kafka Consumer");
             recordConsumer.close();
             try {
                 consumer.close();
             } catch (Exception e) {
-                log.atError().setCause(e).log("Error while closing the Kafka Consumer");
+                logger.atError().setCause(e).log("Error while closing the Kafka Consumer");
             } finally {
                 latch.countDown();
             }
@@ -183,6 +184,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         return recordMapper;
     }
 
+    // Only for testing purposes
+    Duration getPollTimeout() {
+        return pollDuration;
+    }
+
     @Override
     public void consumeRecords(ConsumerRecords<K, V> records) {
         recordConsumer.consumeRecords(records);
@@ -191,7 +197,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     private Thread setShutdownHook() {
         Runnable shutdownTask =
                 () -> {
-                    log.atInfo().log("Invoked shutdown hook");
+                    logger.atInfo().log("Invoked shutdown hook");
                     shutdown();
                 };
 
@@ -204,14 +210,14 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         ItemTemplates<K, V> templates = config.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
-            log.debug("Subscribing to the requested pattern {}", pattern.pattern());
+            logger.debug("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
             return true;
         }
         // Original requested topics.
         Set<String> topics = new HashSet<>(templates.topics());
-        log.atInfo().log("Subscribing to requested topics [{}]", topics);
-        log.atDebug().log("Checking existing topics on Kafka");
+        logger.atInfo().log("Subscribing to requested topics [{}]", topics);
+        logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
         try (AdminInterface admin = adminFactory.apply(config.consumerProperties())) {
@@ -224,7 +230,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
             // Can't subscribe at all. Force unsubscription and exit the loop.
             if (topics.isEmpty()) {
-                log.atWarn().log("Not found requested topics");
+                logger.atWarn().log("Not found requested topics");
                 metadataListener.forceUnsubscriptionAll();
                 return false;
             }
@@ -235,7 +241,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                         topics.stream()
                                 .map(s -> "\"%s\"".formatted(s))
                                 .collect(Collectors.joining(","));
-                log.atWarn()
+                logger.atWarn()
                         .log(
                                 "Actually subscribing to the following existing topics [{}]",
                                 loggableTopics);
@@ -243,54 +249,57 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
             consumer.subscribe(topics, offsetService);
             return true;
         } catch (Exception e) {
-            log.atError().setCause(e).log();
+            logger.atError().setCause(e).log();
             metadataListener.forceUnsubscriptionAll();
             return false;
         }
     }
 
     void pollOnce(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
-        log.atInfo().log(
+        logger.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed");
-        doPoll(recordConsumer);
-        log.atInfo().log("First poll completed");
+        doPoll(recordConsumer, MAX_POLL_DURATION);
+        logger.atInfo().log("First poll completed");
     }
 
     void pollForEver(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
-        log.atInfo().log("Starting polling forever");
+        logger.atInfo().log(
+                "Starting polling forever with poll timeout of {} ms", pollDuration.toMillis());
         for (; ; ) {
-            doPoll(recordConsumer);
+            doPoll(recordConsumer, pollDuration);
         }
     }
 
-    private void doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
+    private void doPoll(
+            java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer,
+            Duration pollTimeout) {
         try {
-            ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
-            log.atDebug().log("Received records");
+            ConsumerRecords<K, V> records = consumer.poll(pollTimeout);
+            logger.atDebug().log("Received records");
             recordConsumer.accept(records);
-            log.atDebug().log("Consumed {} records", records.count());
+            logger.atDebug().log(() -> "Consumed " + records.count() + " records");
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
         } catch (KafkaException ke) {
-            log.atError().setCause(ke).log("Unrecoverable exception");
+            logger.atError().setCause(ke).log("Unrecoverable exception");
             metadataListener.forceUnsubscriptionAll();
             throw ke;
         }
     }
 
     private void shutdown() {
-        log.atInfo().log("Shutting down Kafka consumer");
-        log.atDebug().log("Waking up consumer");
+        logger.atInfo().log("Shutting down Kafka consumer");
+        logger.atDebug().log("Waking up consumer");
         consumer.wakeup();
-        log.atDebug().log("Consumer woken up");
+        logger.atDebug().log("Consumer woken up");
         try {
-            log.atTrace().log("Waiting for graceful thread completion");
+            logger.atTrace().log("Waiting for graceful thread completion");
             latch.await();
-            log.atTrace().log("Completed thread");
+            logger.atTrace().log("Completed thread");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        log.atInfo().log("Shut down Kafka consumer");
+        logger.atInfo().log("Shut down Kafka consumer");
     }
 }
