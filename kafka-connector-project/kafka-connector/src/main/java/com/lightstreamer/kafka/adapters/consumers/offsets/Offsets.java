@@ -309,7 +309,7 @@ public class Offsets {
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            logger.atDebug().log("Assigned partitions {}", partitions);
+            logger.atInfo().log("Assigned partitions {}", partitions);
         }
 
         @Override
@@ -318,6 +318,7 @@ public class Offsets {
             commitSyncAndIgnoreErrors();
         }
 
+        @Override
         public void onPartitionsLost(Collection<TopicPartition> partitions) {
             logger.atInfo().log("Lost partitions {}", partitions);
         }
@@ -371,7 +372,7 @@ public class Offsets {
 
         @Override
         public void commitAsync() {
-            logger.atWarn().log("Start committing offsets asynchronously");
+            logger.atDebug().log("Start committing offsets asynchronously");
             Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetStore.snapshot();
 
             consumer.commitAsync(
@@ -379,7 +380,7 @@ public class Offsets {
                     (offsets, exception) -> {
                         if (exception == null) {
                             consecutiveCommitFailures.set(0);
-                            logger.atWarn().log("Offsets committed asynchronously");
+                            logger.atDebug().log("Offsets committed asynchronously");
                             return;
                         }
                         int fails = consecutiveCommitFailures.incrementAndGet();
