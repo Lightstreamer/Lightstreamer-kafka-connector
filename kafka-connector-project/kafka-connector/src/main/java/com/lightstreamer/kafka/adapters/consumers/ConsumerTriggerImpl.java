@@ -43,7 +43,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     private final ConsumerTriggerConfig<K, V> config;
     private final MetadataListener metadataListener;
     private final Function<SubscribedItems, ConsumerWrapper<K, V>> consumerWrapper;
-    private final Logger log;
+    private final Logger logger;
     private final ExecutorService pool;
     // private final ConcurrentHashMap<String, SubscribedItem> subscribedItems;
     private final AtomicInteger itemsCounter;
@@ -69,7 +69,7 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         this.config = config;
         this.metadataListener = metadataListener;
         this.consumerWrapper = consumerWrapper;
-        this.log = LogFactory.getLogger(config.connectionName());
+        this.logger = LogFactory.getLogger(config.connectionName());
         this.pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "ConsumerTrigger"));
         // this.subscribedItems = new ConcurrentHashMap<>();
         this.itemsCounter = new AtomicInteger(0);
@@ -92,11 +92,11 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
         try {
             SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
             if (!config.itemTemplates().matches(newItem)) {
-                log.atWarn().log("Item [{}] does not match any defined item templates", item);
+                logger.atWarn().log("Item [{}] does not match any defined item templates", item);
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
-            log.atInfo().log("Subscribed to item [{}]", item);
+            logger.atInfo().log("Subscribed to item [{}]", item);
             // subscribedItems.put(item, newItem);
             ss.add(newItem);
             if (itemsCounter.incrementAndGet() == 1) {
@@ -104,27 +104,27 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
             }
             return consuming;
         } catch (ExpressionException e) {
-            log.atError().setCause(e).log();
+            logger.atError().setCause(e).log();
             throw new SubscriptionException(e.getMessage());
         }
     }
 
     CompletableFuture<Void> startConsuming() throws SubscriptionException {
-        log.atTrace().log("Acquiring consumer lock...");
+        logger.atTrace().log("Acquiring consumer lock...");
         consumerLock.lock();
-        log.atTrace().log("Lock acquired...");
+        logger.atTrace().log("Lock acquired...");
         try {
             consumer = consumerWrapper.apply(ss);
             return CompletableFuture.runAsync(consumer, pool);
         } catch (KafkaException ke) {
-            log.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
+            logger.atError().setCause(ke).log("Unable to start consuming from the Kafka brokers");
             metadataListener.forceUnsubscriptionAll();
             itemsCounter.set(0);
             return CompletableFuture.failedFuture(ke);
         } finally {
-            log.atTrace().log("Releasing consumer lock...");
+            logger.atTrace().log("Releasing consumer lock...");
             consumerLock.unlock();
-            log.atTrace().log("Released consumer lock");
+            logger.atTrace().log("Released consumer lock");
         }
     }
 
@@ -144,23 +144,23 @@ public class ConsumerTriggerImpl<K, V> implements ConsumerTrigger {
     }
 
     void stopConsuming() {
-        log.atDebug().log("No more subscribed items");
-        log.atTrace().log("Acquiring consumer lock to stop consuming...");
+        logger.atDebug().log("No more subscribed items");
+        logger.atTrace().log("Acquiring consumer lock to stop consuming...");
         consumerLock.lock();
-        log.atTrace().log("Lock acquired to stop consuming...");
+        logger.atTrace().log("Lock acquired to stop consuming...");
         try {
             if (consumer != null) {
-                log.atDebug().log("Stopping consumer...");
+                logger.atDebug().log("Stopping consumer...");
                 consumer.close();
                 consumer = null;
-                log.atDebug().log("Stopped consumer");
+                logger.atDebug().log("Stopped consumer");
             } else {
-                log.atDebug().log("Consumer not yet started");
+                logger.atDebug().log("Consumer not yet started");
             }
         } finally {
-            log.atTrace().log("Releasing consumer lock to stop consuming");
+            logger.atTrace().log("Releasing consumer lock to stop consuming");
             consumerLock.unlock();
-            log.atTrace().log("Releases consumer lock to stop consuming");
+            logger.atTrace().log("Releases consumer lock to stop consuming");
         }
     }
 
