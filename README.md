@@ -1460,7 +1460,7 @@ The item template is made of:
 To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
 ```js
-ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filerValue_2,...]
+ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filterValue_2,...]
 ```
 
 Upon consuming a message, the Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
