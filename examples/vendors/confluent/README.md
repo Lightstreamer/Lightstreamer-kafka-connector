@@ -14,7 +14,9 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
-  - [Run](#run)
+  - [QUICK START: Confluent Platform](#quick-start-confluent-platform)
+    - [Run](#run)
+  - [QUICK START: Confluent Cloud](#quick-start-confluent-cloud)
 - [Deployment](#deployment)
   - [Manual Deployment](#manual-deployment)
     - [Requirements](#requirements)
@@ -114,6 +116,10 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
+We provide two distinct quickstart examples to showcase the functionalities of the Lightstreamer Kafka Connector for both cases: _Confluent Platform_ and _Confluent Cloud_:
+
+## QUICK START: Confluent Platform
+
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-platform/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
 ![Quickstart Diagram](/pictures/quickstart-diagram.png)
@@ -126,7 +132,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 2. _kafka-connector_: Lightstreamer Broker with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
-## Run
+### Run
 
 1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
 2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
@@ -154,6 +160,46 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    ```sh
    $ ./stop.sh
    ```
+
+## QUICK START: Confluent Cloud
+
+In this section, we illustrate a variant of the previous quickstart that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
+
+The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ as follows:
+
+- Removal of the `broker` service, because replaced by the remote cluster
+
+- _kafka-connector_:
+
+  - Definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+
+    ```yaml
+    ...
+    environment:
+      - bootstrap_server=${bootstrap_server}
+      - username=${username}
+      - password=${password}
+        # adapters.xml uses env variable "topic_mapping", built from env variable "topic"
+      - topic_mapping=map.${topic}.to
+    ...
+    ```
+
+  - Adaption of [`adapters.xml`](./adapters.xml) to include thw following changes:
+
+    - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
+
+      ```xml
+      <param name="bootstrap.servers">$env.bootstrap_server</param>
+      ```
+
+    - Configuration of the encryption settings:
+
+      ```xml
+      <param name="encryption.enable">true</param>
+      <param name="encryption.protocol">TLSv1.2</param>
+      <param name="encryption.hostname.verification.enable">true</param>
+      ```
+_Coming soon._
 
 # Deployment
 
@@ -217,7 +263,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `adapters.xml` file. For convenience, we provide a predefined configuration (very similar to the one used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStartConfluentCloud` in the file as follows:
 
@@ -238,7 +284,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L589) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L15) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -1459,7 +1505,7 @@ The item template is made of:
 To activate the filtered routing, the Lightstreamer clients must subscribe to a parameterized item that specifies a filtering value for every bind parameter defined in the template:
 
 ```js
-ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filerValue_2,...]
+ITEM_PREFIX-[paramName1=filterValue_1,paramName2=filterValue_2,...]
 ```
 
 Upon consuming a message, the Kafka Connector _expands_ every item template addressed by the record topic by evaluating each extraction expression and binding the extracted value to the associated parameter. The expanded template will result as:
