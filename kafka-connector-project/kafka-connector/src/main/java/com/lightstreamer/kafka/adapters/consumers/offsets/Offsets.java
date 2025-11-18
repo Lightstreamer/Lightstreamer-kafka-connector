@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -81,8 +82,106 @@ public class Offsets {
 
         void save(ConsumerRecord<?, ?> record);
 
-        default Map<TopicPartition, OffsetAndMetadata> current() {
+        default Map<TopicPartition, OffsetAndMetadata> snapshot() {
             return Collections.emptyMap();
+        }
+    }
+
+    public interface CommitStrategy {
+
+        boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit);
+
+        static CommitStrategy fixedCommitStrategy(long commitIntervalMs, int commitEveryNRecords) {
+            return new FixedThresholdCommitStrategy(commitIntervalMs, commitEveryNRecords);
+        }
+
+        static CommitStrategy adaptiveCommitStrategy() {
+            return new AdaptiveThresholdCommitStrategy();
+        }
+    }
+
+    private static class FixedThresholdCommitStrategy implements CommitStrategy {
+
+        private final long commitIntervalMs;
+        private final int commitEveryNRecords;
+
+        FixedThresholdCommitStrategy(long commitIntervalMs, int commitEveryNRecords) {
+            // Allow custom thresholds if needed
+            this.commitIntervalMs = commitIntervalMs;
+            this.commitEveryNRecords = commitEveryNRecords;
+        }
+
+        @Override
+        public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
+            boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
+            boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
+
+            return byTime || byCount;
+        }
+    }
+
+    /**
+     * Adaptive commit strategy that dynamically adjusts commit frequency based on message
+     * processing rate. Designed to balance commit efficiency (avoiding RetriableCommitException)
+     * with crash safety by scaling batch sizes and intervals according to throughput while
+     * enforcing safety limits.
+     *
+     * <p>Scaling tiers: - Tier 1 (≤25K msg/sec): Gentle scaling up to 3x baseline - Tier 2
+     * (25K-125K msg/sec): Moderate scaling up to 6x baseline - Tier 3 (125K-250K msg/sec):
+     * Controlled scaling up to 10x baseline
+     *
+     * <p>Safety guarantees: - Maximum 10-second commit intervals (crash safety) - Maximum 100K
+     * record batches (memory protection) - Never commits more frequently than baseline (efficiency
+     * protection)
+     */
+    private static class AdaptiveThresholdCommitStrategy implements CommitStrategy {
+
+        private final long BASE_COMMIT_INTERVAL_MS = 4000; // Baseline: 4 seconds
+        private final int BASE_COMMIT_RECORDS = 10000; // Baseline: 10K records (2.5K msg/sec rate)
+        private final double MIN_SCALE = 1.0; // Never scale below baseline (efficiency protection)
+        private final double MAX_SCALE = 10.0; // Maximum scaling factor for peak throughput
+
+        @Override
+        public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
+            long elapsed = now - lastCommitTimeMs;
+
+            // Calculate current message processing rate (messages per second)
+            double messageRate = elapsed > 0 ? (messagesSinceLastCommit * 1000.0) / elapsed : 0;
+            double baselineRate =
+                    (BASE_COMMIT_RECORDS * 1000.0)
+                            / BASE_COMMIT_INTERVAL_MS; // 2500 msg/sec baseline rate
+
+            // Apply three-tier adaptive scaling based on load factor
+            double scale;
+            if (messageRate <= baselineRate) {
+                // Low/normal load: maintain baseline frequency for responsiveness
+                scale = MIN_SCALE;
+            } else {
+                double loadFactor = messageRate / baselineRate;
+                if (loadFactor <= 10) {
+                    // Tier 1: Up to 25K msg/sec - gentle logarithmic scaling (max 3x)
+                    scale = Math.min(3.0, 1.0 + Math.log(loadFactor) * 0.6);
+                } else if (loadFactor <= 50) {
+                    // Tier 2: 25K-125K msg/sec - moderate scaling (3x to 6x)
+                    scale = Math.min(6.0, 3.0 + Math.log(loadFactor / 10.0) * 1.0);
+                } else {
+                    // Tier 3: 125K-250K msg/sec - controlled scaling for peak throughput (6x to
+                    // 10x)
+                    scale = Math.min(MAX_SCALE, 6.0 + Math.log(loadFactor / 50.0) * 1.2);
+                }
+            }
+
+            // Calculate adaptive thresholds based on scaling factor
+            long adaptiveInterval = (long) (BASE_COMMIT_INTERVAL_MS * scale);
+            int adaptiveRecordsThreshold = (int) (BASE_COMMIT_RECORDS * scale);
+
+            // Apply safety limits to prevent excessive data loss and memory usage
+            long maxInterval = 10000; // 10-second cap: ensures crash safety
+            int maxRecords = 100000; // 100K record cap: prevents memory issues
+
+            // Commit when either time threshold OR record threshold is reached
+            return elapsed >= Math.min(adaptiveInterval, maxInterval)
+                    || messagesSinceLastCommit >= Math.min(adaptiveRecordsThreshold, maxRecords);
         }
     }
 
@@ -124,6 +223,8 @@ public class Offsets {
 
         void commitAsync();
 
+        void maybeCommit(int recordsCount);
+
         void updateOffsets(ConsumerRecord<?, ?> record);
 
         void onAsyncFailure(Throwable th);
@@ -138,17 +239,20 @@ public class Offsets {
         private volatile Throwable firstFailure;
         private final Consumer<?, ?> consumer;
         private final boolean manageHoles;
-        private final Logger log;
+        private final Logger logger;
+        private final CommitStrategy commitStrategy =
+                new FixedThresholdCommitStrategy(5000, 100000);
 
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
 
-        private Map<TopicPartition, Collection<Long>> pendingOffsetsMap = new ConcurrentHashMap<>();
+        private final Map<TopicPartition, Collection<Long>> pendingOffsetsMap =
+                new ConcurrentHashMap<>();
 
         OffsetServiceImpl(Consumer<?, ?> consumer, boolean manageHoles, Logger logger) {
             this.consumer = consumer;
             this.manageHoles = manageHoles;
-            this.log = logger;
+            this.logger = logger;
         }
 
         @Override
@@ -177,8 +281,8 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
-            log.atTrace().log("Start offsets: {}", startOffsets);
-            log.atTrace().log("Committed offsets map: {}", offsetRepo);
+            logger.atTrace().log("Start offsets: {}", startOffsets);
+            logger.atTrace().log("Committed offsets map: {}", offsetRepo);
             // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
@@ -190,8 +294,8 @@ public class Offsets {
                 // parallel).
                 pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
             }
-            log.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
-            offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, log);
+            logger.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
+            this.offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, logger);
         }
 
         @Override
@@ -205,13 +309,17 @@ public class Offsets {
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            log.atDebug().log("Assigned partitions {}", partitions);
+            logger.atDebug().log("Assigned partitions {}", partitions);
         }
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-            log.atWarn().log("Partitions revoked");
+            logger.atWarn().log("Revoked partitions {}", partitions);
             commitSyncAndIgnoreErrors();
+        }
+
+        public void onPartitionsLost(Collection<TopicPartition> partitions) {
+            logger.atInfo().log("Lost partitions {}", partitions);
         }
 
         @Override
@@ -225,25 +333,62 @@ public class Offsets {
         }
 
         private void commitSync(boolean ignoreErrors) {
+            logger.atDebug().log("Start committing offsets synchronously");
             try {
-                log.atDebug().log("Start committing offset synchronously");
-                Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.current();
-                log.atTrace().log("Offsets to commit: {}", offsets);
+                Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.snapshot();
+                logger.atDebug().log("Offsets to commit: {}", offsets);
                 consumer.commitSync(offsets);
-                log.atInfo().log("Offsets committed");
+                logger.atInfo().log("Offsets committed synchronously");
             } catch (RuntimeException e) {
-                log.atError().setCause(e).log("Unable to commit offsets");
                 if (!ignoreErrors) {
-                    log.atDebug().log("Rethrowing the error");
+                    logger.atError()
+                            .setCause(e)
+                            .log("Unable to commit offsets, rethrowing the error");
                     throw e;
                 }
-                log.atDebug().log("Ignoring the error");
+                logger.atWarn()
+                        .log("Unable to commit offsets but safe to ignore: {}", e.getMessage());
             }
+        }
+
+        private volatile long lastCommitTimeMs = System.currentTimeMillis();
+        private volatile int messagesSinceLastCommit = 0;
+        private final AtomicInteger consecutiveCommitFailures = new AtomicInteger(0);
+
+        @Override
+        public void maybeCommit(int recordCounts) {
+            messagesSinceLastCommit += recordCounts;
+
+            long now = System.currentTimeMillis();
+            if (!commitStrategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit)) {
+                return;
+            }
+
+            lastCommitTimeMs = now;
+            messagesSinceLastCommit = 0;
+            commitAsync();
         }
 
         @Override
         public void commitAsync() {
-            consumer.commitAsync(offsetStore.current(), null);
+            logger.atWarn().log("Start committing offsets asynchronously");
+            Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetStore.snapshot();
+
+            consumer.commitAsync(
+                    offsetsToCommit,
+                    (offsets, exception) -> {
+                        if (exception == null) {
+                            consecutiveCommitFailures.set(0);
+                            logger.atWarn().log("Offsets committed asynchronously");
+                            return;
+                        }
+                        int fails = consecutiveCommitFailures.incrementAndGet();
+                        logger.atWarn()
+                                .setCause(exception)
+                                .log(
+                                        "Failed to commit offset asynchronously (failurecount={}): {}",
+                                        fails);
+                    });
         }
 
         @Override
@@ -277,13 +422,13 @@ public class Offsets {
         }
 
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
-        private final Logger log;
+        private final Logger logger;
         private OffsetAndMetadataFactory factory;
 
         OffsetStoreImpl(
                 Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles, Logger log) {
             this.offsets = new ConcurrentHashMap<>(committed);
-            this.log = log;
+            this.logger = log;
             this.factory =
                     manageHoles
                             ? OffsetStoreImpl::mkNewOffsetAndMetadata
@@ -292,8 +437,8 @@ public class Offsets {
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> current() {
-            return Collections.unmodifiableMap(offsets);
+        public Map<TopicPartition, OffsetAndMetadata> snapshot() {
+            return new HashMap<>(offsets);
         }
 
         @Override
