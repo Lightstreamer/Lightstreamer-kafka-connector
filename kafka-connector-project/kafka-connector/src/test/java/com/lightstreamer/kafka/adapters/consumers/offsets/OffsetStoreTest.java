@@ -43,7 +43,7 @@ public class OffsetStoreTest {
     private OffsetStore repo;
 
     OffsetAndMetadata getOffsetAndMetadata(String topic, int partition) {
-        return repo.current().get(new TopicPartition(topic, 0));
+        return repo.snapshot().get(new TopicPartition(topic, 0));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class OffsetStoreTest {
         offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(0));
 
         repo = Offsets.OffsetStore(offsets, manageHoles);
-        Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.current();
+        Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.snapshot();
         assertThat(offsetsMap).isEqualTo(offsets);
     }
 
@@ -248,55 +248,54 @@ public class OffsetStoreTest {
     }
 
     @Test
-    void shouldReturnOffsetMap() {
+    void shouldReturnSnapshot() {
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
         offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(0));
 
         repo = Offsets.OffsetStore(offsets, true);
-        Map<TopicPartition, OffsetAndMetadata> offsetsMap = repo.current();
-        assertThat(offsetsMap).isEqualTo(offsets);
+        assertThat(repo.snapshot()).isEqualTo(offsets);
 
         repo.save(Record(0, "A-1"));
-        OffsetAndMetadata o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        OffsetAndMetadata o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(0);
         assertThat(o1.metadata()).isEqualTo("1");
 
         repo.save(Record(0, "A-0"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(2);
         assertThat(o1.metadata()).isEqualTo("");
 
         repo.save(Record(0, "A-2"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("");
 
         repo.save(Record(0, "A-4"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("4");
         repo.save(Record(0, "A-5"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(3);
         assertThat(o1.metadata()).isEqualTo("4,5");
 
         repo.save(Record(0, "A-3"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("");
 
         repo.save(Record(0, "A-8"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("8");
 
         repo.save(Record(0, "A-9"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(6);
         assertThat(o1.metadata()).isEqualTo("8,9");
 
         repo.save(Record(0, "A-6"));
-        o1 = offsetsMap.get(new TopicPartition(TEST_TOPIC, 0));
+        o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(7);
         assertThat(o1.metadata()).isEqualTo("8,9");
     }
