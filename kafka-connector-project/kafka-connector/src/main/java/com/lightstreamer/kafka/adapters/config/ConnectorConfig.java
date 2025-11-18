@@ -399,7 +399,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     private FieldConfigs fieldConfigs;
 
-    private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
+    private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
         this.consumerProps = initProps();
         itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
@@ -408,7 +408,7 @@ public final class ConnectorConfig extends AbstractConfig {
         postValidate();
     }
 
-    public ConnectorConfig(Map<String, String> configs) {
+    public ConnectorConfig(Map<String, String> configs) throws ConfigException {
         this(CONFIG_SPEC, configs);
     }
 
@@ -526,7 +526,8 @@ public final class ConnectorConfig extends AbstractConfig {
         return CONFIG_SPEC;
     }
 
-    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
+    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params)
+            throws ConfigException {
         return new ConnectorConfig(
                 AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
     }
