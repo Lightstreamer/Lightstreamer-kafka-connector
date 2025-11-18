@@ -65,7 +65,7 @@ public class ConnectorConfigurator {
             implements ConsumerTriggerConfig.Concurrency {}
 
     private final ConnectorConfig config;
-    private final Logger log;
+    private final Logger logger;
 
     public ConnectorConfigurator(Map<String, String> params, File configDir)
             throws ConfigException {
@@ -74,7 +74,7 @@ public class ConnectorConfigurator {
 
     private ConnectorConfigurator(ConnectorConfig config) {
         this.config = config;
-        this.log = LoggerFactory.getLogger(config.getAdapterName());
+        this.logger = LoggerFactory.getLogger(config.getAdapterName());
     }
 
     public ConnectorConfig getConfig() {
@@ -85,7 +85,7 @@ public class ConnectorConfigurator {
         try {
             return doConfigure(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
-            log.atError().setCause(e).log();
+            logger.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
