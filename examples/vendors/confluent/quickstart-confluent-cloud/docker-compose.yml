@@ -1,50 +1,36 @@
 ---
-name: quickstart-kafka-connector-confluent
+name: quickstart-kafka-connector-confluent-cloud
 services:
   kafka-connector:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector-${version}
     depends_on:
-      - broker
       - producer
     ports:
       - 8080:8080
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
       - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
 
   producer:
     container_name: producer
-    depends_on:
-      - broker
     build:
       context: quickstart-producer
       args:
         VERSION: ${version}
-    command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
+    configs:
+      - source: producer.properties
+        target: /usr/app/producer.properties
+    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
-  broker:
-    image: confluentinc/cp-kafka
-    hostname: broker
-    container_name: broker
-    ports:
-      - "9092:9092"
-      - "8082:8082"
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-      KAFKA_REST_HOST_NAME: rest-proxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
-      KAFKA_REST_LISTENERS: 'http://0.0.0.0:8082'
-      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+configs:
+  producer.properties:
+    content: |
+      # Configure SASL/PLAIN mechanism
+      sasl.mechanism=PLAIN
+      # Enable SSL encryption
+      security.protocol=SASL_SSL
+      # JAAS configuration
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
+
