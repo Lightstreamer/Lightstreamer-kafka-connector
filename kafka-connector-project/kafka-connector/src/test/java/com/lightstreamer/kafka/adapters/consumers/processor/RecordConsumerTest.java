@@ -228,7 +228,7 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
     }
 
     @ParameterizedTest
@@ -320,7 +320,7 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
     }
 
     @ParameterizedTest
@@ -399,7 +399,7 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
     }
 
     @Test
