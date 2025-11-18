@@ -225,7 +225,7 @@ class RecordConsumerSupport {
         protected final RecordMapper<K, V> recordMapper;
         protected final SubscribedItems subscribedItems;
         protected final ItemEventListener listener;
-        protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
+        protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
@@ -238,35 +238,35 @@ class RecordConsumerSupport {
 
         @Override
         public final void useLogger(Logger logger) {
-            this.log = Objects.requireNonNullElse(logger, this.log);
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
         }
 
         @Override
         public final void process(ConsumerRecord<K, V> record) throws ValueException {
-            log.atDebug().log(() -> "Mapping incoming Kafka record");
-            log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
+            logger.atDebug().log(() -> "Mapping incoming Kafka record");
+            logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
             // As logging the mapped record is expensive, log lazily it only at trace level.
-            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log(() -> "Mapped Kafka record");
+            logger.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
+            logger.atDebug().log(() -> "Mapped Kafka record");
 
             Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
             if (routable.size() > 0) {
-                log.atDebug().log(() -> "Filtering updates");
+                logger.atDebug().log(() -> "Filtering updates");
                 Map<String, String> updates = mappedRecord.fieldsMap();
 
-                log.atDebug().log("Routing record to {} items", routable.size());
+                logger.atDebug().log("Routing record to {} items", routable.size());
                 processUpdates(updates, routable);
             } else {
-                log.atDebug().log("No routable items found");
+                logger.atDebug().log("No routable items found");
             }
         }
 
         protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
             for (SubscribedItem sub : routable) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                logger.atDebug().log(() -> "Sending updates: %s".formatted(updates));
                 listener.smartUpdate(sub.itemHandle(), updates, false);
             }
         }
@@ -316,7 +316,7 @@ class RecordConsumerSupport {
         @Override
         protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
             if (!checkInput(updates)) {
-                log.atWarn()
+                logger.atWarn()
                         .log(
                                 "Discarding record due to command mode fields not properly valued: key {} - command {}",
                                 CommandKey.KEY.lookUp(updates),
@@ -326,8 +326,8 @@ class RecordConsumerSupport {
 
             String snapshotOrCommand = CommandKey.COMMAND.lookUp(updates);
             for (SubscribedItem sub : routable) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                log.atDebug().log("Enforce COMMAND mode semantic of records read");
+                logger.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                logger.atDebug().log("Enforce COMMAND mode semantic of records read");
 
                 if (SNAPSHOT.equals(CommandKey.KEY.lookUp(updates))) {
                     handleSnapshot(Snapshot.valueOf(snapshotOrCommand), sub);
@@ -376,12 +376,12 @@ class RecordConsumerSupport {
         private void handleSnapshot(Snapshot snapshotCommand, SubscribedItem sub) {
             switch (snapshotCommand) {
                 case CS -> {
-                    log.atDebug().log("Sending clearSnapshot");
+                    logger.atDebug().log("Sending clearSnapshot");
                     listener.smartClearSnapshot(sub.itemHandle());
                     sub.setSnapshot(true);
                 }
                 case EOS -> {
-                    log.atDebug().log("Sending endOfSnapshot");
+                    logger.atDebug().log("Sending endOfSnapshot");
                     listener.smartEndOfSnapshot(sub.itemHandle());
                     sub.setSnapshot(false);
                 }
@@ -389,7 +389,7 @@ class RecordConsumerSupport {
         }
 
         void handleCommand(Command command, Map<String, String> updates, SubscribedItem sub) {
-            log.atDebug().log("Sending {} command", command);
+            logger.atDebug().log("Sending {} command", command);
             listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
         }
     }
@@ -435,7 +435,7 @@ class RecordConsumerSupport {
         @Override
         public void consumeRecords(ConsumerRecords<K, V> records) {
             records.forEach(this::consumeRecord);
-            offsetService.commitAsync();
+            offsetService.maybeCommit(records.count());
         }
 
         void consumeRecord(ConsumerRecord<K, V> record) {
@@ -519,7 +519,7 @@ class RecordConsumerSupport {
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
-            offsetService.commitAsync();
+            offsetService.maybeCommit(records.count());
             Throwable failure = offsetService.getFirstFailure();
             if (failure != null) {
                 logger.atWarn().log("Forcing unsubscription");
