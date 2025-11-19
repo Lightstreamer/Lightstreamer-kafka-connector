@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -82,6 +83,10 @@ public class Offsets {
 
         void save(ConsumerRecord<?, ?> record);
 
+        default void clear() {}
+
+        default void clear(Collection<TopicPartition> partitions) {}
+
         default Map<TopicPartition, OffsetAndMetadata> snapshot() {
             return Collections.emptyMap();
         }
@@ -113,6 +118,9 @@ public class Offsets {
 
         @Override
         public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
+            if (messagesSinceLastCommit == 0) {
+                return false;
+            }
             boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
             boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
 
@@ -122,9 +130,9 @@ public class Offsets {
 
     /**
      * Adaptive commit strategy that dynamically adjusts commit frequency based on message
-     * processing rate. Designed to balance commit efficiency (avoiding RetriableCommitException)
-     * with crash safety by scaling batch sizes and intervals according to throughput while
-     * enforcing safety limits.
+     * processing rate. Designed to balance commit efficiency (avoiding {@code
+     * RetriableCommitException}) with crash safety by scaling batch sizes and intervals according
+     * to throughput while enforcing safety limits.
      *
      * <p>Scaling tiers: - Tier 1 (≤25K msg/sec): Gentle scaling up to 3x baseline - Tier 2
      * (25K-125K msg/sec): Moderate scaling up to 6x baseline - Tier 3 (125K-250K msg/sec):
@@ -217,31 +225,28 @@ public class Offsets {
 
         boolean canManageHoles();
 
-        void commitSync();
-
-        void commitSyncAndIgnoreErrors();
-
-        void commitAsync();
-
         void maybeCommit(int recordsCount);
 
         void updateOffsets(ConsumerRecord<?, ?> record);
 
         void onAsyncFailure(Throwable th);
 
+        void onConsumerShutdown();
+
         Throwable getFirstFailure();
 
         Optional<OffsetStore> offsetStore();
     }
 
-    private static class OffsetServiceImpl implements OffsetService {
+    static class OffsetServiceImpl implements OffsetService {
 
         private volatile Throwable firstFailure;
+        private final AtomicBoolean consumerShuttingDown = new AtomicBoolean(false);
         private final Consumer<?, ?> consumer;
         private final boolean manageHoles;
         private final Logger logger;
         private final CommitStrategy commitStrategy =
-                new FixedThresholdCommitStrategy(5000, 100000);
+                new FixedThresholdCommitStrategy(5000, 100_000);
 
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
@@ -314,26 +319,32 @@ public class Offsets {
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-            logger.atWarn().log("Revoked partitions {}", partitions);
-            commitSyncAndIgnoreErrors();
+            logger.atInfo().log("Revoked partitions {}", partitions);
+            if (consumerShuttingDown.get()) {
+                logger.atInfo().log(
+                        "Consumer is shutting down, skipping commit on revoked partitions");
+            } else {
+                commitSync();
+            }
+
+            offsetStore.clear(partitions);
+            logger.atInfo().log("Cleared offsets for revoked partitions");
         }
 
         @Override
         public void onPartitionsLost(Collection<TopicPartition> partitions) {
             logger.atInfo().log("Lost partitions {}", partitions);
+            offsetStore.clear(partitions);
+            logger.atDebug().log("Cleared offsets");
         }
 
         @Override
-        public void commitSync() {
-            commitSync(false);
+        public void onConsumerShutdown() {
+            consumerShuttingDown.set(true);
+            commitSync();
         }
 
-        @Override
-        public void commitSyncAndIgnoreErrors() {
-            commitSync(true);
-        }
-
-        private void commitSync(boolean ignoreErrors) {
+        void commitSync() {
             logger.atDebug().log("Start committing offsets synchronously");
             try {
                 Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.snapshot();
@@ -341,12 +352,6 @@ public class Offsets {
                 consumer.commitSync(offsets);
                 logger.atInfo().log("Offsets committed synchronously");
             } catch (RuntimeException e) {
-                if (!ignoreErrors) {
-                    logger.atError()
-                            .setCause(e)
-                            .log("Unable to commit offsets, rethrowing the error");
-                    throw e;
-                }
                 logger.atWarn()
                         .log("Unable to commit offsets but safe to ignore: {}", e.getMessage());
             }
@@ -359,22 +364,21 @@ public class Offsets {
         @Override
         public void maybeCommit(int recordCounts) {
             messagesSinceLastCommit += recordCounts;
-
             long now = System.currentTimeMillis();
             if (!commitStrategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit)) {
+                logger.atDebug().log("Skipping commit of {} messages", messagesSinceLastCommit);
                 return;
             }
 
+            logger.atDebug().log(
+                    "Start committing of {} messages asynchronously", messagesSinceLastCommit);
             lastCommitTimeMs = now;
             messagesSinceLastCommit = 0;
             commitAsync();
         }
 
-        @Override
-        public void commitAsync() {
-            logger.atDebug().log("Start committing offsets asynchronously");
+        void commitAsync() {
             Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetStore.snapshot();
-
             consumer.commitAsync(
                     offsetsToCommit,
                     (offsets, exception) -> {
@@ -449,6 +453,18 @@ public class Offsets {
                     topicPartition,
                     (partition, offsetAndMetadata) ->
                             factory.newOffsetAndMetadata(record, offsetAndMetadata));
+        }
+
+        @Override
+        public void clear(Collection<TopicPartition> partitions) {
+            for (TopicPartition partition : partitions) {
+                offsets.remove(partition);
+            }
+        }
+
+        @Override
+        public void clear() {
+            offsets.clear();
         }
 
         private static OffsetAndMetadata mkNewOffsetAndMetadata(
