@@ -165,41 +165,38 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 
 In this section, we illustrate a variant of the previous quickstart that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
 
-The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ as follows:
+The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ and specifically Removed the `broker` service, because replaced by the remote cluster.
 
-- Removal of the `broker` service, because replaced by the remote cluster
+To run this quickstart, you need an active Confluent Cloud account. Please refer to the Deployment section below for the requirements and how to properly configure your environment.
 
-- _kafka-connector_:
+### Run
 
-  - Definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
+2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
 
-    ```yaml
-    ...
-    environment:
-      - bootstrap_server=${bootstrap_server}
-      - username=${username}
-      - password=${password}
-        # adapters.xml uses env variable "topic_mapping", built from env variable "topic"
-      - topic_mapping=map.${topic}.to
-    ...
-    ```
+   ```sh
+   $ ./start.sh
+   ...
+    ⠏ Network quickstart_default  Created
+    ✔ Container producer          Started
+    ✔ Container kafka-connector   Started
+   ...
+   Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
+   ...
+   ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include thw following changes:
+3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
 
-    - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
+4. After a few moments, the user interface starts displaying the real-time stock data.
 
-      ```xml
-      <param name="bootstrap.servers">$env.bootstrap_server</param>
-      ```
+   ![Demo](/pictures/quickstart.gif)
 
-    - Configuration of the encryption settings:
+5. To shutdown Docker Compose and clean up all temporary resources:
 
-      ```xml
-      <param name="encryption.enable">true</param>
-      <param name="encryption.protocol">TLSv1.2</param>
-      <param name="encryption.hostname.verification.enable">true</param>
-      ```
-_Coming soon._
+   ```sh
+   $ ./stop.sh
+   ```
+
 
 # Deployment
 
