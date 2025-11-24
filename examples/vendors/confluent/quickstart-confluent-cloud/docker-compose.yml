@@ -8,7 +8,11 @@ services:
       - producer
     ports:
       - 8080:8080
-    volumes:
+  environment:
+      - bootstrap_server=${bootstrap_server}
+      - api_key=${api_key}
+      - api_secretg=${api_secret}
+  volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
       - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
@@ -32,5 +36,5 @@ configs:
       # Enable SSL encryption
       security.protocol=SASL_SSL
       # JAAS configuration
-      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
+      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${api_secret}";
 

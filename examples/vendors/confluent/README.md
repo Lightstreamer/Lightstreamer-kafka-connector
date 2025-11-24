@@ -17,6 +17,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [QUICK START: Confluent Platform](#quick-start-confluent-platform)
     - [Run](#run)
   - [QUICK START: Confluent Cloud](#quick-start-confluent-cloud)
+    - [Run](#run)
 - [Deployment](#deployment)
   - [Manual Deployment](#manual-deployment)
     - [Requirements](#requirements)
@@ -118,84 +119,8 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 We provide two distinct quickstart examples to showcase the functionalities of the Lightstreamer Kafka Connector for both cases: _Confluent Platform_ and _Confluent Cloud_:
 
-## QUICK START: Confluent Platform
-
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-platform/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
-
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
-
-The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
-
-To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/vendors/confluent/quickstart-confluent-platform/docker-compose.yml) comprises the following services:
-
-1. _broker_: the Kafka broker, based on the [Official Confluent Docker Image for Kafka (Community Version)](https://hub.docker.com/r/confluentinc/cp-kafka)
-2. _kafka-connector_: Lightstreamer Broker with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
-3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
-
-### Run
-
-1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
-2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
-
-   ```sh
-   $ ./start.sh
-   ...
-    ⠏ Network quickstart_default  Created
-    ✔ Container broker            Started
-    ✔ Container producer          Started
-    ✔ Container kafka-connector   Started
-   ...
-   Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
-   ...
-   ```
-
-3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
-
-4. After a few moments, the user interface starts displaying the real-time stock data.
-
-   ![Demo](/pictures/quickstart.gif)
-
-5. To shutdown Docker Compose and clean up all temporary resources:
-
-   ```sh
-   $ ./stop.sh
-   ```
-
-## QUICK START: Confluent Cloud
-
-In this section, we illustrate a variant of the previous quickstart that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
-
-The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ and specifically Removed the `broker` service, because replaced by the remote cluster.
-
-To run this quickstart, you need an active Confluent Cloud account. Please refer to the Deployment section below for the requirements and how to properly configure your environment.
-
-### Run
-
-1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
-2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
-
-   ```sh
-   $ ./start.sh
-   ...
-    ⠏ Network quickstart_default  Created
-    ✔ Container producer          Started
-    ✔ Container kafka-connector   Started
-   ...
-   Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
-   ...
-   ```
-
-3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
-
-4. After a few moments, the user interface starts displaying the real-time stock data.
-
-   ![Demo](/pictures/quickstart.gif)
-
-5. To shutdown Docker Compose and clean up all temporary resources:
-
-   ```sh
-   $ ./stop.sh
-   ```
+* [_Confluent Platform_ Quick Start example](./quickstart-confluent-platform/README.md)
+* [_Confluent Cloud_ Quick Start example](./quickstart-confluent-cloud/README.md)
 
 
 # Deployment
