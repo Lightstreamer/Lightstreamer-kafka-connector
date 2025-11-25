@@ -293,16 +293,7 @@ public class Mocks {
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
-        public void commitSync() {}
-
-        @Override
-        public void commitSyncAndIgnoreErrors() {}
-
-        @Override
-        public void commitAsync() {}
-
-        @Override
-        public void maybeCommit(int recordsCount) {}
+        public void maybeCommit() {}
 
         @Override
         public void updateOffsets(ConsumerRecord<?, ?> record) {
@@ -353,6 +344,9 @@ public class Mocks {
         public boolean canManageHoles() {
             return false;
         }
+
+        @Override
+        public void onConsumerShutdown() {}
     }
 
     public static class MockOffsetStore implements OffsetStore {
