@@ -25,10 +25,10 @@ To run this quickstart, you need an active Confluent Cloud account. Please refer
    Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
    ...
    ```
-      where:
-         - `<bootstrap_server>` - The bootstrap server endpoint of the Confluent Cloud cluster
-         - `<API.key>` and `<API.secret>` - The API key and API secret linked to your Confluent Cloud cluster, which you can generate using the Confluent CLI or from the Confluent Cloud Console.
-         - Make sure you have created a topic named 'stocks' within the cluster.
+   where:
+      - `<bootstrap_server>` - The bootstrap server endpoint of the Confluent Cloud cluster
+      - `<API.key>` and `<API.secret>` - The API key and API secret linked to your Confluent Cloud cluster, which you can generate using the Confluent CLI or from the Confluent Cloud Console.
+      - Make also sure you have created a topic named 'stocks' within the cluster.
 
 3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
 
