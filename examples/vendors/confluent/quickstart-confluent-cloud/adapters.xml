@@ -17,7 +17,7 @@
 
         <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
-        <param name="bootstrap.servers">broker:29092</param>
+        <param name="bootstrap.servers">$env.bootstrap_server</param>
         <param name="group.id">quick-start-group-confluent</param>
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
@@ -28,8 +28,8 @@
         <!-- ##### AUTHENTICATION SETTINGS ##### -->
         <param name="authentication.enable">true</param>
         <param name="authentication.mechanism">PLAIN</param>
-        <param name="authentication.username">API.key</param>
-        <param name="authentication.password">API.secret</param>
+        <param name="authentication.username">$env.api_key</param>
+        <param name="authentication.password">$env.api_secret</param>
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>

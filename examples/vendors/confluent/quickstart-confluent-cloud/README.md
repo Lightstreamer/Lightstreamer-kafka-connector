@@ -12,10 +12,10 @@ To run this quickstart, you need an active Confluent Cloud account. Please refer
 2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
 
    ```sh
-   $ $ bootstrap_server=<bootstrap_server> \
-  api_key=<API.key> \
-  api_secret=<API.secret> \
-  ./start.sh 
+   $ bootstrap_server=<bootstrap_server> \
+   api_key=<API.key> \
+   api_secret=<API.secret> \
+   ./start.sh 
    ...
     ⠏ Network quickstart_default  Created
     ✔ Container producer          Started
