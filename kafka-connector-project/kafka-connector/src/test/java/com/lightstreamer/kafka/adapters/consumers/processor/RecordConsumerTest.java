@@ -34,6 +34,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
@@ -589,7 +590,8 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads)
+            throws InterruptedException {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
         // the same topic
         List<String> keys = List.of("a", "b", "c", "d");
@@ -606,7 +608,8 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            RecordsBatch batch = recordConsumer.consumeRecords(records);
+            batch.join();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
 
             for (String key : keys) {
@@ -627,7 +630,8 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads)
+            throws InterruptedException {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
         List<String> keys = List.of("a", "b", "c", "d");
 
@@ -671,7 +675,8 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(allRecords);
+            RecordsBatch batch = recordConsumer.consumeRecords(allRecords);
+            batch.join();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
             for (int partition = 0; partition < partitionsOnTopic1; partition++) {
                 assertDeliveredEventsOrder(partition, deliveredEvents, "topic1");
@@ -719,7 +724,8 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            RecordsBatch batch = recordConsumer.consumeRecords(records);
+            batch.join();
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
             Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
@@ -736,7 +742,8 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads) {
+    public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads)
+            throws InterruptedException {
         List<String> keys = Collections.emptyList();
         ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
 
@@ -749,7 +756,8 @@ public class RecordConsumerTest {
                         OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            RecordsBatch batch = recordConsumer.consumeRecords(records);
+            batch.join();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
             // Reset the delivered events list for next iteration
             deliveredEvents.clear();
