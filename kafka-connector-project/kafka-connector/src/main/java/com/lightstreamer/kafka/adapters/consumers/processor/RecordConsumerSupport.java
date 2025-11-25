@@ -17,13 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import static java.util.concurrent.Executors.newFixedThreadPool;
-
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
@@ -45,12 +44,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 class RecordConsumerSupport {
 
@@ -243,30 +250,26 @@ class RecordConsumerSupport {
 
         @Override
         public final void process(ConsumerRecord<K, V> record) throws ValueException {
-            logger.atDebug().log(() -> "Mapping incoming Kafka record");
-            logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
+            logger.atTrace()
+                    .log(() -> "Mapping incoming Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
 
             // As logging the mapped record is expensive, log lazily it only at trace level.
-            logger.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            logger.atDebug().log(() -> "Mapped Kafka record");
+            logger.atTrace().log("Mapped Kafka record");
 
             Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
             if (routable.size() > 0) {
-                logger.atDebug().log(() -> "Filtering updates");
-                Map<String, String> updates = mappedRecord.fieldsMap();
-
-                logger.atDebug().log("Routing record to {} items", routable.size());
-                processUpdates(updates, routable);
+                logger.atTrace().log("Routing record to {} items", routable.size());
+                processUpdates(mappedRecord.fieldsMap(), routable);
             } else {
-                logger.atDebug().log("No routable items found");
+                logger.atTrace().log("No routable items found");
             }
         }
 
         protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
             for (SubscribedItem sub : routable) {
-                logger.atDebug().log(() -> "Sending updates: %s".formatted(updates));
+                logger.atTrace().log(() -> "Sending updates: %s".formatted(updates));
                 listener.smartUpdate(sub.itemHandle(), updates, false);
             }
         }
@@ -326,8 +329,8 @@ class RecordConsumerSupport {
 
             String snapshotOrCommand = CommandKey.COMMAND.lookUp(updates);
             for (SubscribedItem sub : routable) {
-                logger.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                logger.atDebug().log("Enforce COMMAND mode semantic of records read");
+                logger.atTrace().log(() -> "Sending updates: %s".formatted(updates));
+                logger.atTrace().log("Enforce COMMAND mode semantic of records read");
 
                 if (SNAPSHOT.equals(CommandKey.KEY.lookUp(updates))) {
                     handleSnapshot(Snapshot.valueOf(snapshotOrCommand), sub);
@@ -376,12 +379,12 @@ class RecordConsumerSupport {
         private void handleSnapshot(Snapshot snapshotCommand, SubscribedItem sub) {
             switch (snapshotCommand) {
                 case CS -> {
-                    logger.atDebug().log("Sending clearSnapshot");
+                    logger.atTrace().log("Sending clearSnapshot");
                     listener.smartClearSnapshot(sub.itemHandle());
                     sub.setSnapshot(true);
                 }
                 case EOS -> {
-                    logger.atDebug().log("Sending endOfSnapshot");
+                    logger.atTrace().log("Sending endOfSnapshot");
                     listener.smartEndOfSnapshot(sub.itemHandle());
                     sub.setSnapshot(false);
                 }
@@ -389,7 +392,7 @@ class RecordConsumerSupport {
         }
 
         void handleCommand(Command command, Map<String, String> updates, SubscribedItem sub) {
-            logger.atDebug().log("Sending {} command", command);
+            logger.atTrace().log("Sending {} command", command);
             listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
         }
     }
@@ -412,7 +415,7 @@ class RecordConsumerSupport {
 
         @Override
         public void close() {
-            offsetService.commitSyncAndIgnoreErrors();
+            offsetService.onConsumerShutdown();
         }
 
         @Override
@@ -426,16 +429,213 @@ class RecordConsumerSupport {
         }
     }
 
+    /**
+     * Centralized performance monitoring with sliding window measurement. Provides accurate
+     * throughput statistics without synchronization overhead.
+     */
+    private static class PerformanceMonitor {
+
+        private static final String LOGGER_SUFFIX = "Performance";
+
+        private final RecordsCounter recordsCounter;
+        private final String monitorName;
+        private final Logger logger;
+        private final AtomicLong lastCheck = new AtomicLong(System.currentTimeMillis());
+        private final AtomicLong lastReportedCount = new AtomicLong(0);
+
+        // Ring buffer utilization monitoring
+        private volatile long lastUtilizationCheck = System.currentTimeMillis();
+        private static final long UTILIZATION_CHECK_INTERVAL_MS = 2000; // Check every 2 seconds
+        private volatile int[] peakUtilizationSinceLastReport; // Track peak utilization per buffer
+
+        PerformanceMonitor(String monitorName, RecordsCounter recordsCounter, Logger logger) {
+            this.recordsCounter = recordsCounter;
+            this.monitorName = monitorName;
+            this.logger = LoggerFactory.getLogger(logger.getName() + LOGGER_SUFFIX);
+        }
+
+        /** Check and potentially log performance stats every 5 seconds using sliding window */
+        void checkStats() {
+            long currentTime = System.currentTimeMillis();
+            long lastCheckTime = lastCheck.get();
+
+            // Report stats every 5 seconds
+            if (currentTime - lastCheckTime > 5000
+                    && lastCheck.compareAndSet(lastCheckTime, currentTime)) {
+                long currentTotal = recordsCounter.getTotalRecords();
+                long lastTotal = lastReportedCount.getAndSet(currentTotal);
+
+                long recordsInWindow = currentTotal - lastTotal;
+                long timeWindowMs = currentTime - lastCheckTime;
+
+                if (recordsInWindow > 0 && timeWindowMs > 0) {
+                    long avgThroughput = (recordsInWindow * 1000L) / timeWindowMs;
+                    logger.atInfo().log(
+                            "{} processing stats: {} records processed in {}ms window, avg {}k records/sec",
+                            monitorName,
+                            recordsInWindow,
+                            timeWindowMs,
+                            avgThroughput / 1000.0);
+                }
+            }
+        }
+
+        /**
+         * Monitor and graphically display ring buffer utilization rates. Provides visual
+         * representation of buffer load across all threads.
+         */
+        void checkRingBufferUtilization(BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {
+            if (ringBuffers == null || ringBuffers.length == 0) {
+                return;
+            }
+
+            // Initialize peak tracking if not already done
+            if (peakUtilizationSinceLastReport == null) {
+                peakUtilizationSinceLastReport = new int[ringBuffers.length];
+            }
+
+            // Update peak utilization continuously
+            for (int i = 0; i < ringBuffers.length; i++) {
+                int currentUtilization = (ringBuffers[i].size() * 100) / ringBufferCapacity;
+                peakUtilizationSinceLastReport[i] =
+                        Math.max(peakUtilizationSinceLastReport[i], currentUtilization);
+            }
+
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastUtilizationCheck < UTILIZATION_CHECK_INTERVAL_MS) {
+                return;
+            }
+            lastUtilizationCheck = currentTime;
+
+            int actualThreads = ringBuffers.length;
+            StringBuilder utilizationReport = new StringBuilder();
+            utilizationReport.append("\n┌─ Ring Buffer Utilization Report (2s interval) ─┐\n");
+
+            int totalUsed = 0;
+            int totalCapacity = ringBufferCapacity * actualThreads;
+            int totalPeakUsed = 0;
+
+            for (int i = 0; i < actualThreads; i++) {
+                int currentSize = ringBuffers[i].size();
+                int utilization = (currentSize * 100) / ringBufferCapacity;
+                int peakUtilization = peakUtilizationSinceLastReport[i];
+                totalUsed += currentSize;
+                totalPeakUsed += (peakUtilization * ringBufferCapacity) / 100;
+
+                // Create visual bars (20 chars wide)
+                String currentBar = createUtilizationBar(utilization, 20);
+                String peakBar = createUtilizationBar(peakUtilization, 20);
+
+                utilizationReport.append(
+                        String.format(
+                                "│ Buf[%2d]: Now[%s] %3d%% Peak[%s] %3d%% (%d/%d)\n",
+                                i,
+                                currentBar,
+                                utilization,
+                                peakBar,
+                                peakUtilization,
+                                currentSize,
+                                ringBufferCapacity));
+            }
+
+            // Overall utilization
+            int overallUtilization = (totalUsed * 100) / totalCapacity;
+            int overallPeakUtilization = (totalPeakUsed * 100) / totalCapacity;
+            String overallBar = createUtilizationBar(overallUtilization, 25);
+            String overallPeakBar = createUtilizationBar(overallPeakUtilization, 25);
+
+            utilizationReport.append("├─────────────────────────────────────────────────┤\n");
+            utilizationReport.append(
+                    String.format(
+                            "│ Overall Now: [%s] %3d%% (%d/%d)\n",
+                            overallBar, overallUtilization, totalUsed, totalCapacity));
+            utilizationReport.append(
+                    String.format(
+                            "│ Overall Peak:[%s] %3d%% (%d/%d)\n",
+                            overallPeakBar, overallPeakUtilization, totalPeakUsed, totalCapacity));
+            utilizationReport.append("└─────────────────────────────────────────────────┘");
+
+            // Log based on peak utilization (more meaningful than current)
+            if (overallPeakUtilization > 80) {
+                logger.atInfo().log(
+                        "HIGH peak ring buffer utilization detected:{}", utilizationReport);
+            } else if (overallPeakUtilization > 40 || overallUtilization > 20) {
+                logger.atInfo().log("Ring buffer utilization status:{}", utilizationReport);
+            } else {
+                logger.atInfo().log(
+                        "Ring buffer utilization status (low activity):{}", utilizationReport);
+            }
+
+            // Reset peak tracking for next interval
+            Arrays.fill(peakUtilizationSinceLastReport, 0);
+        }
+
+        /**
+         * Create a visual utilization bar with color indicators.
+         *
+         * @param utilizationPercent The utilization percentage (0-100)
+         * @param width The width of the bar in characters
+         * @return A string representing the visual bar
+         */
+        private String createUtilizationBar(int utilizationPercent, int width) {
+            int filledChars = (utilizationPercent * width) / 100;
+            StringBuilder bar = new StringBuilder();
+
+            // Different characters for different utilization levels
+            char indicator;
+            if (utilizationPercent > 90) {
+                indicator = '█'; // High utilization - solid block
+            } else if (utilizationPercent > 70) {
+                indicator = '▓'; // Medium-high utilization - dark shade
+            } else if (utilizationPercent > 40) {
+                indicator = '▒'; // Medium utilization - medium shade
+            } else {
+                indicator = '░'; // Low utilization - light shade
+            }
+
+            for (int i = 0; i < width; i++) {
+                if (i < filledChars) {
+                    bar.append(indicator); // High utilization - solid block
+                } else {
+                    bar.append('·'); // Empty space
+                }
+            }
+
+            return bar.toString();
+        }
+    }
+
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
+
+        private static final RecordsBatch NO_OP = () -> {};
+
+        // Performance monitoring for single-threaded scenarios
+        private final PerformanceMonitor performanceMonitor;
+        private final RecordsCounter recordsCounter;
 
         SingleThreadedRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
+            this.recordsCounter = new RecordsCounter();
+            this.performanceMonitor =
+                    new PerformanceMonitor("Single-thread", this.recordsCounter, logger);
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            records.forEach(this::consumeRecord);
-            offsetService.maybeCommit(records.count());
+        public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
+            int recordCount = records.count();
+            if (recordCount > 0) {
+                for (ConsumerRecord<K, V> record : records) {
+                    consumeRecord(record);
+                }
+                recordsCounter.count(recordCount);
+            }
+
+            offsetService.maybeCommit();
+
+            // Check processing stats periodically
+            performanceMonitor.checkStats();
+
+            return NO_OP;
         }
 
         void consumeRecord(ConsumerRecord<K, V> record) {
@@ -467,23 +667,206 @@ class RecordConsumerSupport {
         }
     }
 
+    static class RecordsBatchImpl<K, V> implements RecordsBatch {
+
+        private final CountDownLatch latch;
+        private final ConsumerRecords<K, V> records;
+        private final int recordsCount;
+        private final AtomicInteger processedCount = new AtomicInteger(0);
+        private final Logger logger;
+        private final long batchId;
+        private final RecordsCounter recordsCounter;
+
+        RecordsBatchImpl(
+                ConsumerRecords<K, V> records,
+                Logger logger,
+                long batchId,
+                RecordsCounter recordsCounter) {
+            this.recordsCount = records.count();
+            this.records = records;
+            this.latch = new CountDownLatch(recordsCount);
+            this.logger = logger;
+            this.batchId = batchId;
+            this.recordsCounter = recordsCounter; // Use the passed parameter
+            this.logger.atDebug().log("Created batch {} with {} records", batchId, recordsCount);
+        }
+
+        ConsumerRecords<K, V> getRecords() {
+            return records;
+        }
+
+        int getRecordsCount() {
+            return recordsCount;
+        }
+
+        void recordProcessed() {
+            latch.countDown();
+            int done = processedCount.incrementAndGet();
+            if (done == recordsCount) {
+                recordsCounter.count(recordsCount);
+                logger.debug(
+                        "Batch {} processed all {} records - ready for commit",
+                        batchId,
+                        recordsCount);
+                return;
+            }
+
+            if (done > recordsCount) {
+                logger.warn(
+                        "More records processed ({}) than expected ({}) in batch {}",
+                        done,
+                        recordsCount,
+                        batchId);
+            }
+        }
+
+        @Override
+        public void join() {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(
+                        "Interrupted while waiting for records batch to complete", e);
+            }
+        }
+    }
+
+    static class RecordsCounter {
+
+        private final AtomicLong totalRecordsCounter = new AtomicLong(0);
+
+        void count(int count) {
+            totalRecordsCounter.addAndGet(count);
+        }
+
+        long getTotalRecords() {
+            return totalRecordsCounter.get();
+        }
+    }
+
+    static class RecordWithBatch<K, V> {
+        final ConsumerRecord<K, V> record;
+        final RecordsBatchImpl<K, V> batch;
+
+        RecordWithBatch(ConsumerRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
+            this.record = record;
+            this.batch = batch;
+        }
+
+        // Factory method to reduce allocation overhead
+        static <K, V> RecordWithBatch<K, V> of(
+                ConsumerRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
+            return new RecordWithBatch<>(record, batch);
+        }
+    }
+
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
-        protected final TaskExecutor<String> taskExecutor;
         protected final int actualThreads;
 
+        // Ring buffers settings for high-throughput processing
+        private final BlockingQueue<RecordWithBatch<K, V>>[] ringBuffers;
+        private final AtomicLong roundRobinCounter = new AtomicLong(0);
+        private final ExecutorService ringBufferPool;
+        private volatile boolean shutdownRequested = false;
+        private final int ringBufferCapacity;
+
+        // Performance monitoring without synchronization overhead
+        private final PerformanceMonitor performanceMonitor;
+        private final RecordsCounter recordsCounter = new RecordsCounter();
+
+        private final AtomicLong batchIdCounter = new AtomicLong(0);
+
+        @SuppressWarnings("unchecked")
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
-            this.actualThreads = getActualThreadsNumber(configuredThreads);
+            this.actualThreads = getActualThreadsNumber(builder.threads);
 
-            AtomicInteger threadCount = new AtomicInteger();
-            this.taskExecutor =
-                    TaskExecutor.create(
-                            newFixedThreadPool(actualThreads, r -> newThread(r, threadCount)));
+            // Calculate optimal ring buffer capacity based on workload
+            this.ringBufferCapacity = calculateOptimalRingBufferCapacity();
+
+            // Initialize performance monitor
+            this.performanceMonitor = new PerformanceMonitor("Parallel", recordsCounter, logger);
+
+            // Initialize high-throughput ring buffers for ultra-high performance
+            this.ringBuffers = new BlockingQueue[actualThreads];
+
+            logger.atInfo().log(
+                    "Initializing high-throughput mode with {} ring buffers", actualThreads);
+
+            // Create dedicated ExecutorService for ring buffer processing
+            AtomicInteger ringThreadCount = new AtomicInteger();
+            this.ringBufferPool =
+                    Executors.newFixedThreadPool(
+                            actualThreads,
+                            r -> {
+                                Thread t =
+                                        new Thread(
+                                                r,
+                                                "RingBufferProcessor-"
+                                                        + ringThreadCount.getAndIncrement());
+                                t.setDaemon(true);
+                                return t;
+                            });
+
+            // Initialize ring buffers and submit processing tasks
+            for (int i = 0; i < actualThreads; i++) {
+                // Use calculated optimal capacity for maximum throughput
+                ringBuffers[i] = new ArrayBlockingQueue<>(ringBufferCapacity);
+                final int threadIndex = i;
+
+                logger.atDebug().log(
+                        "Initialized ring buffer {} with capacity {}", i, ringBufferCapacity);
+
+                // Submit ring buffer processing task to executor
+                ringBufferPool.submit(() -> processRingBuffer(threadIndex));
+            }
+        }
+
+        /**
+         * Calculate optimal ring buffer capacity based on throughput requirements and thread
+         * configuration. Uses workload analysis rather than arbitrary values.
+         */
+        private int calculateOptimalRingBufferCapacity() {
+            // Target throughput analysis - aiming for 1M+ records/sec
+            int targetTotalThroughputPerSec = 1_000_000; // Target 1M records/sec
+            int targetThroughputPerThread = targetTotalThroughputPerSec / actualThreads;
+
+            // Processing time estimation (optimistic for high throughput)
+            int estimatedProcessingTimeMs = 1; // Assume 1ms avg processing per record
+            int batchDrainSize = 5000; // From processRingBuffer batch size
+
+            // Calculate buffer needs
+            int recordsPerMs = Math.max(1, targetThroughputPerThread / 1000);
+            int bufferForProcessingPipeline = recordsPerMs * estimatedProcessingTimeMs;
+            int bufferForBatchingEfficiency = batchDrainSize * 3; // Triple buffer for efficiency
+
+            // Safety margin for burst traffic (50% overhead for high throughput)
+            int burstCapacity = Math.max(2000, bufferForProcessingPipeline / 2);
+
+            // Total capacity calculation
+            int calculatedCapacity =
+                    bufferForProcessingPipeline + bufferForBatchingEfficiency + burstCapacity;
+
+            // Apply reasonable bounds - increase for high throughput
+            int minCapacity = 8000; // Higher minimum for high throughput
+            int maxCapacity = 131072; // Increased maximum capacity
+
+            int finalCapacity = Math.max(minCapacity, Math.min(calculatedCapacity, maxCapacity));
+
+            logger.atInfo().log(
+                    "Ring buffer capacity calculation: {} threads, {}k target throughput/thread, {}ms processing time, {} final capacity",
+                    actualThreads,
+                    targetThroughputPerThread / 1000,
+                    estimatedProcessingTimeMs,
+                    finalCapacity);
+
+            return finalCapacity;
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -491,10 +874,6 @@ class RecordConsumerSupport {
                 return Runtime.getRuntime().availableProcessors();
             }
             return configuredThreads;
-        }
-
-        private Thread newThread(Runnable r, AtomicInteger threadCount) {
-            return new Thread(r, "ParallelConsumer-" + threadCount.getAndIncrement());
         }
 
         @Override
@@ -513,35 +892,144 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            List<ConsumerRecord<K, V>> allRecords = flatRecords(records);
-            taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
-            // NOTE: this may be inefficient if, for instance, a single task
-            // should keep the executor engaged while all other threads are idle,
-            // but this is not expected when all tasks are short and cpu-bound
-            offsetService.maybeCommit(records.count());
+        public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
+            if (records.isEmpty()) {
+                offsetService.maybeCommit();
+                return RecordsBatch.nop();
+            }
+
+            long startTime = System.nanoTime();
+            int recordCount = records.count();
+            RecordsBatchImpl<K, V> batch =
+                    new RecordsBatchImpl<>(
+                            records, logger, batchIdCounter.getAndIncrement(), recordsCounter);
+
+            processWithRingBuffers(batch);
+            offsetService.maybeCommit();
+
+            long totalTime = (System.nanoTime() - startTime) / 1_000_000;
+            if (totalTime > 10) { // Only log if processing takes >10ms
+                long batchThroughput = (recordCount * 1000L) / Math.max(1, totalTime);
+                logger.atDebug().log(
+                        "Batch: {} records in {}ms ({}k records/sec)",
+                        recordCount,
+                        totalTime,
+                        batchThroughput / 1000.0);
+            }
+            // Check processing stats periodically
+            performanceMonitor.checkStats();
+
+            // Check and log ring buffer utilization periodically
+            performanceMonitor.checkRingBufferUtilization(ringBuffers, ringBufferCapacity);
+
             Throwable failure = offsetService.getFirstFailure();
             if (failure != null) {
                 logger.atWarn().log("Forcing unsubscription");
                 throw new KafkaException(failure);
             }
+            return batch;
         }
 
-        void consume(String sequence, ConsumerRecord<K, V> record) {
+        // Ring buffer processing for high-throughput scenarios
+        private void processWithRingBuffers(RecordsBatchImpl<K, V> batch) {
+            // Distribute records to ring buffers
+            for (ConsumerRecord<K, V> record : batch.getRecords()) {
+                int bufferIndex = selectRingBuffer(record);
+                try {
+                    // Use blocking put to apply backpressure instead of failing
+                    ringBuffers[bufferIndex].put(RecordWithBatch.of(record, batch));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.atWarn()
+                            .log(
+                                    "Interrupted while distributing records to ring buffers, stopping batch distribution early");
+                    return; // Exit gracefully, allow partial batch to complete
+                }
+            }
+        }
+
+        private int selectRingBuffer(ConsumerRecord<K, V> record) {
+            return switch (orderStrategy) {
+                case UNORDERED ->
+                        // Round-robin for maximum throughput
+                        (int) (roundRobinCounter.getAndIncrement() % actualThreads);
+
+                case ORDER_BY_PARTITION -> {
+                    int hash = record.topic().hashCode();
+                    hash = 31 * hash + record.partition();
+                    yield Math.abs(hash) % actualThreads;
+                }
+
+                case ORDER_BY_KEY ->
+                        // Hash key to maintain key ordering
+                        record.key() != null
+                                ? Math.abs(record.key().hashCode()) % actualThreads
+                                : 0;
+            };
+        }
+
+        private void processRingBuffer(int threadIndex) {
+            final BlockingQueue<RecordWithBatch<K, V>> ringBuffer = ringBuffers[threadIndex];
+            // Pre-allocate with optimal size and reuse to minimize GC pressure
+            final List<RecordWithBatch<K, V>> batchBuffer = new FixedList<>(5000);
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting processing thread {}", threadIndex);
+            }
+
+            while (!shutdownRequested) {
+                try {
+                    // Efficient batch drain - reuse ArrayList to minimize GC
+                    RecordWithBatch<K, V> firstRecord = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
+                    if (firstRecord == null) continue;
+
+                    batchBuffer.clear(); // Reset size but keep capacity
+                    batchBuffer.add(firstRecord);
+                    int additionalRecords =
+                            ringBuffer.drainTo(batchBuffer, 4999); // Drain up to 4999 more
+
+                    final int batchSize =
+                            1 + additionalRecords; // Calculate directly: firstRecord + drained
+                    for (int i = 0; i < batchSize; i++) {
+                        consume(batchBuffer.get(i)); // Direct index access is faster
+                    }
+
+                    // Update records processed counter
+                    recordsCounter.count(batchSize);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.atDebug().log(
+                            "Processing thread {} interrupted, shutting down", threadIndex);
+                    break;
+                } catch (Exception e) {
+                    logger.atError()
+                            .setCause(e)
+                            .log(
+                                    "Unexpected error in ring buffer processor {}, continuing",
+                                    threadIndex);
+                }
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Stopped processing thread {}", threadIndex);
+            }
+        }
+
+        void consume(RecordWithBatch<K, V> record) {
+            ConsumerRecord<K, V> rec = record.record;
+            RecordsBatchImpl<K, V> batch = record.batch;
             try {
-                logger.atDebug().log(
-                        () ->
-                                "Processing record with sequence %s [%s]"
-                                        .formatted(sequence, orderStrategy));
-                recordProcessor.process(record);
-                offsetService.updateOffsets(record);
+                recordProcessor.process(rec);
+                offsetService.updateOffsets(rec);
             } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
                 logger.atWarn().log("Applying the {} strategy", errorStrategy());
-                handleError(record, ve);
+                handleError(rec, ve);
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
                 offsetService.onAsyncFailure(t);
+            } finally {
+                batch.recordProcessed();
             }
         }
 
@@ -578,15 +1066,37 @@ class RecordConsumerSupport {
         @Override
         public void close() {
             super.close();
-            taskExecutor.shutdown();
-        }
-    }
 
-    public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
-        records.partitions()
-                .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
-        return allRecords;
+            logger.atInfo().log("Shutting down high-throughput ring buffer processors");
+            shutdownRequested = true;
+
+            // Graceful shutdown of ring buffer processor pool
+            ringBufferPool.shutdown();
+            try {
+                if (!ringBufferPool.awaitTermination(5, TimeUnit.SECONDS)) {
+                    logger.atWarn()
+                            .log(
+                                    "Ring buffer processors did not terminate gracefully, forcing shutdown");
+                    ringBufferPool.shutdownNow();
+                    if (!ringBufferPool.awaitTermination(2, TimeUnit.SECONDS)) {
+                        logger.atWarn()
+                                .log(
+                                        "Ring buffer processors did not terminate after forced shutdown");
+                    }
+                }
+            } catch (InterruptedException e) {
+                logger.atWarn()
+                        .log("Interrupted while waiting for ring buffer processors to terminate");
+                ringBufferPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
+            List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
+            records.forEach(allRecords::add);
+            return allRecords;
+        }
     }
 
     private RecordConsumerSupport() {}
