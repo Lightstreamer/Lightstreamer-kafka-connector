@@ -43,7 +43,7 @@ public class ItemTest {
 
     static Stream<Arguments> provideData() {
         return Stream.of(
-                arguments("item", Set.of(), "item"),
+                arguments("item", Collections.emptySet(), "item"),
                 arguments(
                         "item2",
                         Set.of(Data.from("b", "B"), Data.from("a", "A")),
