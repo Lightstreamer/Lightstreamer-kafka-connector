@@ -37,13 +37,13 @@ public interface Schema {
     }
 
     static Schema nop() {
-        return DefaultSchema.NOP;
+        return DefaultSchema.NO_OP;
     }
 }
 
 final class DefaultSchema implements Schema {
 
-    static Schema NOP = Schema.empty("NOSCHEMA");
+    static Schema NO_OP = Schema.empty("NOSCHEMA");
 
     private final String name;
     private final Set<String> keys;
