@@ -12,7 +12,7 @@
 
     </metadata_provider>
 
-    <data_provider name="QuickStartConfluentCloud">
+    <data_provider name="QuickStart">
         <!-- ##### GENERAL PARAMETERS ##### -->
 
         <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
