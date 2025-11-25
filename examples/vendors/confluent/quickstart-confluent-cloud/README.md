@@ -9,26 +9,26 @@ To run this quickstart, you need an active Confluent Cloud account. Please refer
 ### Run
 
 1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
-2. From the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
-
+2. From the [`examples/vendors/confluent/quickstart-confluent-cloud/`](../quickstart-confluent-cloud/) folder, run the following:
+  
    ```sh
    $ bootstrap_server=<bootstrap_server> \
    api_key=<API.key> \
    api_secret=<API.secret> \
    ./start.sh 
    ...
- ✔ Network quickstart-kafka-connector-confluent-cloud_default  Created 
- ✔ Container producer                                          Started 
- ✔ Container kafka-connector                                   Started      
+    ⠏ Network quickstart_default  Created
+    ✔ Container broker            Started
+    ✔ Container producer          Started
+    ✔ Container kafka-connector   Started
    ...
    Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
    ...
    ```
-
-where:
-- `<bootstrap_server>` - The bootstrap server endpoint of the Confluent Cloud cluster
-- `<API.key>` and `<API.secret>` - The API key and API secret linked to your Confluent Cloud cluster, which you can generate using the Confluent CLI or from the Confluent Cloud Console.
-- Make sure you have created a topic named 'stocks' within the cluster.
+      where:
+         - `<bootstrap_server>` - The bootstrap server endpoint of the Confluent Cloud cluster
+         - `<API.key>` and `<API.secret>` - The API key and API secret linked to your Confluent Cloud cluster, which you can generate using the Confluent CLI or from the Confluent Cloud Console.
+         - Make sure you have created a topic named 'stocks' within the cluster.
 
 3. Once all containers are ready, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
 
