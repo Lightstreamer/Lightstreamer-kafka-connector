@@ -40,8 +40,8 @@ public class FixedThresholdCommitStrategyTest {
         "10000, 4000, 10000, true",
         // 6 seconds ago (> 5s), 20k messages (< 100k) -> exceeds message threshold
         "10000, 4000, 20000, true",
-        // 6 seconds ago (> 5s), 0 messages (< 100k) -> exceeds time threshold
-        "10000, 4000, 0, true",
+        // 6 seconds ago (> 5s), 0 messages (< 100k) -> no messages to commit
+        "10000, 4000, 0, false",
         // 1 second ago (< 5s), 100k messages (> 100k) -> exactly at message threshold
         "5000, 4000, 100000, true",
         // 1 second ago (< 5s), 150k messages (> 100k) -> exceeds message threshold
