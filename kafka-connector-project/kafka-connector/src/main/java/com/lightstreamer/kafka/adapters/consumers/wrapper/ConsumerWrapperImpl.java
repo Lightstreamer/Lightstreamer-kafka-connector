@@ -94,8 +94,9 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
 
         Concurrency concurrency = config.concurrency();
 
-        // Take care of holes in offset sequence only if parallel processing.
-        boolean manageHoles = concurrency.isParallel();
+        // Disable hole management for high-throughput scenarios to prevent metadata overflow
+        // Ring buffer processing creates too many gaps that exceed Kafka's metadata size limits
+        boolean manageHoles = false;
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
@@ -128,7 +129,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
                 pollOnce(this::initStoreAndConsume);
                 pollForEver(this::consumeRecords);
             } else {
-                logger.atWarn().log("No subscriptions happened");
+                logger.atWarn().log("No subscriptions to Kafka topics happened");
             }
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
@@ -216,7 +217,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         }
         // Original requested topics.
         Set<String> topics = new HashSet<>(templates.topics());
-        logger.atInfo().log("Subscribing to requested topics [{}]", topics);
+        logger.atInfo().log("Subscribing to requested Kafka topics [{}]", topics);
         logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
