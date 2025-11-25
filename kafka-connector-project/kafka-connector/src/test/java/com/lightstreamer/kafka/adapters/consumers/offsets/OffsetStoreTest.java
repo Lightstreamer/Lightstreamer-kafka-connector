@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OffsetStoreTest {
@@ -43,7 +44,7 @@ public class OffsetStoreTest {
     private OffsetStore repo;
 
     OffsetAndMetadata getOffsetAndMetadata(String topic, int partition) {
-        return repo.snapshot().get(new TopicPartition(topic, 0));
+        return repo.snapshot().get(new TopicPartition(topic, partition));
     }
 
     @Test
@@ -298,5 +299,52 @@ public class OffsetStoreTest {
         o1 = repo.snapshot().get(new TopicPartition(TEST_TOPIC, 0));
         assertThat(o1.offset()).isEqualTo(7);
         assertThat(o1.metadata()).isEqualTo("8,9");
+    }
+
+    @Test
+    public void shouldClear() {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(0));
+
+        repo = Offsets.OffsetStore(offsets, true);
+
+        repo.save(Record(0, "A-1"));
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
+        assertThat(o1.offset()).isEqualTo(0);
+        assertThat(o1.metadata()).isEqualTo("1");
+
+        repo.clear();
+
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 0);
+        assertThat(o2).isNull();
+    }
+
+    @Test
+    public void shouldClearPartitions() {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(TEST_TOPIC, 0), new OffsetAndMetadata(0));
+        offsets.put(new TopicPartition(TEST_TOPIC, 1), new OffsetAndMetadata(0));
+
+        repo = Offsets.OffsetStore(offsets, true);
+
+        repo.save(Record(0, "A-1"));
+        repo.save(Record(1, "B-1"));
+
+        OffsetAndMetadata o1 = getOffsetAndMetadata(TEST_TOPIC, 0);
+        assertThat(o1.offset()).isEqualTo(0);
+        assertThat(o1.metadata()).isEqualTo("1");
+
+        OffsetAndMetadata o2 = getOffsetAndMetadata(TEST_TOPIC, 1);
+        assertThat(o2.offset()).isEqualTo(0);
+        assertThat(o2.metadata()).isEqualTo("1");
+
+        repo.clear(List.of(new TopicPartition(TEST_TOPIC, 0)));
+
+        OffsetAndMetadata o3 = getOffsetAndMetadata(TEST_TOPIC, 0);
+        assertThat(o3).isNull();
+
+        OffsetAndMetadata o4 = getOffsetAndMetadata(TEST_TOPIC, 1);
+        assertThat(o4.offset()).isEqualTo(0);
+        assertThat(o4.metadata()).isEqualTo("1");
     }
 }
