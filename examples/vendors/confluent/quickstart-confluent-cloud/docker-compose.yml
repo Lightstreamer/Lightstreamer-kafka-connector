@@ -11,7 +11,7 @@ services:
     environment:
       - bootstrap_server=${bootstrap_server}
       - api_key=${api_key}
-      - api_secretg=${api_secret}
+      - api_secret=${api_secret}
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
       - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
