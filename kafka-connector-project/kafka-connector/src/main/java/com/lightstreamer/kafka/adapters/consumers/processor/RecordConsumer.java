@@ -65,6 +65,20 @@ public interface RecordConsumer<K, V> {
         }
     }
 
+    interface RecordsBatch {
+
+        void join();
+
+        static final RecordsBatch NO_OP_RECORDS_BATCH =
+                () -> {
+                    // No-op
+                };
+
+        static RecordsBatch nop() {
+            return NO_OP_RECORDS_BATCH;
+        }
+    }
+
     interface RecordProcessor<K, V> {
 
         void process(ConsumerRecord<K, V> record) throws ValueException;
@@ -144,7 +158,7 @@ public interface RecordConsumer<K, V> {
         return filtered;
     }
 
-    void consumeRecords(ConsumerRecords<K, V> records);
+    RecordsBatch consumeRecords(ConsumerRecords<K, V> records);
 
     default int numOfThreads() {
         return 1;
