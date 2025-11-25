@@ -15,7 +15,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
 ### Run
 
 1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
-2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder, run the following:
+2. From the [`examples/vendors/confluent/quickstart-confluent-platform/`](/examples/vendors/confluent/quickstart-confluent-platform/) folder, run the following:
 
    ```sh
    $ ./start.sh
