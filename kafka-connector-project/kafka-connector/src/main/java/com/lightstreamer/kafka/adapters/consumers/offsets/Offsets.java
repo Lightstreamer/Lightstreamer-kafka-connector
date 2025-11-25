@@ -454,10 +454,12 @@ public class Offsets {
                 Logger logger) {
             this.offsets = new ConcurrentHashMap<>(committed);
             this.logger = logger;
-            this.factory =
-                    manageHoles
-                            ? OffsetStoreImpl::mkNewOffsetAndMetadata
-                            : (record, offsetAndMetadata) ->
+            // this.factory =
+            //         manageHoles
+            //                 ? OffsetStoreImpl::mkNewOffsetAndMetadata
+            //                 : (record, offsetAndMetadata) ->
+            //                         new OffsetAndMetadata(record.offset() + 1);
+            this.factory = (record, offsetAndMetadata) ->
                                     new OffsetAndMetadata(record.offset() + 1);
         }
 
