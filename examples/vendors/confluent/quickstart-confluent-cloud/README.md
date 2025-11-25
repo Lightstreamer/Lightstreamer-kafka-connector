@@ -1,7 +1,6 @@
 # Confluent Cloud Quick Start
 
-In this section, we illustrate a variant of the [Confluent Platform Quick Start](/examples/vendors/confluent
-/quickstart-confluent-platform) that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
+In this section, we illustrate a variant of the [Confluent Platform Quick Start](../quickstart-confluent-platform/) that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
 
 The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ and specifically removed the `broker` service, because replaced by the remote cluster.
 
@@ -25,6 +24,7 @@ To run this quickstart, you need an active Confluent Cloud account. Please refer
    Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data.
    ...
    ```
+
 where:
 - `<bootstrap_server>` - The bootstrap server endpoint of the Confluent Cloud cluster
 - `<API.key>` and `<API.secret>` - The API key and API secret linked to your Confluent Cloud cluster, which you can generate using the Confluent CLI or from the Confluent Cloud Console.
