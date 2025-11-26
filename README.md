@@ -19,8 +19,6 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Requirements](#requirements)
   - [Deploy](#deploy)
   - [Configure](#configure)
-    - [Connection with Confluent Cloud](#connection-with-confluent-cloud)
-    - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
     - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
     - [2. Attach a Lightstreamer consumer](#2-attach-a-lightstreamer-consumer)
@@ -118,7 +116,13 @@ The diagram above illustrates how, in this setup, a stream of simulated market e
 
 To provide a complete stack, the app is based on _Docker Compose_. The [Docker Compose file](/examples/quickstart/docker-compose.yml) comprises the following services:
 
-1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are available in the in the [`examples`](/examples/) directory, specifically targeted to other brokers, including [`Confluent Cloud`](/examples/vendors/confluent/README.md), [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless), [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted), [`Aiven`](/examples/quickstart-aiven), and more.
+1. _broker_: a Kafka broker, based on the [Docker Image for Apache Kafka](https://kafka.apache.org/documentation/#docker). Please notice that other versions of this quickstart are available in the in the examples directory, specifically targeted to other brokers:
+ - [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/README.md)
+ - [`Confluent Platform`](/examples/vendors/confluent/quickstart-confluent-platform/README.md)
+ - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
+ - [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted/README.md)
+ - [`Aiven`](/examples/quickstart-aiven/README.md)
+ - __Azure Events Hub__ _coming soon_
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -258,43 +262,6 @@ To quickly complete the installation and verify the successful integration with 
 - Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
-
-### Connection with Confluent Cloud
-
-If your target Kafka cluster is _Confluent Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/PLAIN authentication, as follows:
-
-```xml
-<param name="encryption.enable">true</param>
-<param name="encryption.protocol">TLSv1.2</param>
-<param name="encryption.hostname.verification.enable">true</param>
-
-<param name="authentication.enable">true</param>
-<param name="authentication.mechanism">PLAIN</param>
-<param name="authentication.username">API.key</param>
-<param name="authentication.password">secret</param>
-...
-```
-
-where you have to replace `API.key` and `secret` with the _API Key_ and _secret_ generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
-
-### Connection with Redpanda Cloud
-
-If your target Kafka cluster is _Redpanda Cloud_, you also need to properly configure TLS 1.2 encryption and SASL/SCRAM authentication, as follows:
-
-```xml
-<param name="encryption.enable">true</param>
-<param name="encryption.protocol">TLSv1.2</param>
-<param name="encryption.hostname.verification.enable">true</param>
-
-<param name="authentication.enable">true</param>
-<param name="authentication.mechanism">SCRAM-SHA-256</param>
-<!-- <param name="authentication.mechanism">SCRAM-SHA-512</param> -->
-<param name="authentication.username">username</param>
-<param name="authentication.password">password</param>
-...
-```
-
-where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_.
 
 ## Start
 
@@ -913,7 +880,7 @@ Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serv
 
 Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
-### Record Evaluation
+## Record Evaluation
 
 The Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -936,7 +903,7 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
-#### Support for Key Value Pairs (KVP)
+### Support for Key Value Pairs (KVP)
 
 In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
 
@@ -1153,7 +1120,7 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-### Topic Mapping
+## Topic Mapping
 
 The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
@@ -1161,7 +1128,7 @@ The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analys
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
-#### Data Extraction Language
+### Data Extraction Language
 
 To write an extraction expression, the _Data Extraction Language_ provides a pretty minimal syntax with the following basic rules:
 
@@ -1546,7 +1513,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 
 
-### Schema Registry
+## Schema Registry
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
