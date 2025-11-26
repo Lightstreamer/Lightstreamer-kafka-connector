@@ -870,7 +870,7 @@ When this mechanism is specified, you can configure the following authentication
 
 #### Quick Start Confluent Cloud Example
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Quick Start with Redpanda Serverless Example
 
@@ -879,6 +879,18 @@ Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serv
 #### Quick Start with MSK Example
 
 Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
+
+#### Quick Start with Aiven for Apache Kafka Example
+
+Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L25) file of the [_Quick Start with Aiven_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
+
+#### Quick Start with Axual Platform Example
+
+Check out the [adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.xml#L23) file of the [_Quick Start with Axual Platform_](/examples/vendors/aiven/quickstart-aiven/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
+
+#### Quick Start with Azure Events Hub Example
+
+_coming soon_
 
 ## Record Evaluation
 
