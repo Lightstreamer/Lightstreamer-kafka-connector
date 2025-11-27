@@ -14,10 +14,6 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
-  - [QUICK START: Confluent Platform](#quick-start-confluent-platform)
-    - [Run](#run)
-  - [QUICK START: Confluent Cloud](#quick-start-confluent-cloud)
-    - [Run](#run)
 - [Deployment](#deployment)
   - [Manual Deployment](#manual-deployment)
     - [Requirements](#requirements)
@@ -878,9 +874,9 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-### Record Evaluation
+## Record Evaluation
 
 The Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -903,7 +899,7 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
-#### Support for Key Value Pairs (KVP)
+### Support for Key Value Pairs (KVP)
 
 In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
 
@@ -1120,7 +1116,7 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-### Topic Mapping
+## Topic Mapping
 
 The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
@@ -1128,7 +1124,7 @@ The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analys
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
-#### Data Extraction Language
+### Data Extraction Language
 
 To write an extraction expression, the _Data Extraction Language_ provides a pretty minimal syntax with the following basic rules:
 
@@ -1513,7 +1509,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 
 
-### Schema Registry
+## Schema Registry
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
