@@ -40,8 +40,7 @@ class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
     }
 
     @Override
-    public KeySelector<T> newSelector(String name, ExtractionExpression expression)
-            throws ExtractionException {
+    public KeySelector<T> newSelector(ExtractionExpression expression) throws ExtractionException {
         throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
     }
 
@@ -60,7 +59,7 @@ class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
     }
 
     @Override
-    public ValueSelector<T> newSelector(String name, ExtractionExpression expression)
+    public ValueSelector<T> newSelector(ExtractionExpression expression)
             throws ExtractionException {
         throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
     }
