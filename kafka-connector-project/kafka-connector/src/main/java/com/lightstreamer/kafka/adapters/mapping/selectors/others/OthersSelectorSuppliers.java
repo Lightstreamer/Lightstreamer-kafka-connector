@@ -93,9 +93,9 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
         @SuppressWarnings("unchecked")
         @Override
-        public KeySelector<T> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<T> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return (KeySelector<T>) constantSelectorSupplier.newSelector(name, expression);
+            return (KeySelector<T>) constantSelectorSupplier.newSelector(expression);
         }
     }
 
@@ -111,9 +111,9 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
         @SuppressWarnings("unchecked")
         @Override
-        public ValueSelector<T> newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<T> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return (ValueSelector<T>) selectorSupplier.newSelector(name, expression);
+            return (ValueSelector<T>) selectorSupplier.newSelector(expression);
         }
     }
 
