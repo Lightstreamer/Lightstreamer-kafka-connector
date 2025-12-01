@@ -23,6 +23,11 @@ public interface Data extends Comparable<Data> {
 
     String text();
 
+    @Override
+    public default int compareTo(Data o) {
+        return this.name().compareTo(o.name());
+    }
+
     static Data from(String name, String text) {
         return new SimpleData(name, text);
     }
@@ -83,10 +88,4 @@ public interface Data extends Comparable<Data> {
     }
 }
 
-record SimpleData(String name, String text) implements Data {
-
-    @Override
-    public int compareTo(Data o) {
-        return this.name().compareTo(o.name());
-    }
-}
+record SimpleData(String name, String text) implements Data {}
