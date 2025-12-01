@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Arrays;
@@ -28,7 +29,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,8 +53,8 @@ public class Expressions {
     }
 
     public enum Constant implements ExtractionExpression {
-        KEY,
-        VALUE,
+        KEY(true),
+        VALUE(true),
         TIMESTAMP,
         PARTITION,
         OFFSET,
@@ -64,8 +64,7 @@ public class Expressions {
         private static final Map<String, Constant> NAME_CACHE;
 
         static {
-            NAME_CACHE =
-                    Stream.of(values()).collect(toMap(Constant::toString, Function.identity()));
+            NAME_CACHE = Stream.of(values()).collect(toMap(Constant::toString, identity()));
         }
 
         public static final String VALUES_STR =
@@ -81,10 +80,8 @@ public class Expressions {
                 name = name.substring(0, name.indexOf('['));
             }
             Constant constant = NAME_CACHE.get(name);
-            if (constant != null) {
-                if (!constant.allowIndex() && indexed) {
-                    constant = null;
-                }
+            if (constant != null && !constant.allowIndex() && indexed) {
+                return null;
             }
             return constant;
         }
@@ -93,7 +90,7 @@ public class Expressions {
             return Arrays.stream(values()).collect(Collectors.toCollection(LinkedHashSet::new));
         }
 
-        private final String tokens[] = new String[1];
+        private final String[] tokens = new String[1];
         private final boolean allowIndex;
 
         Constant(boolean allowIndex) {
