@@ -157,7 +157,7 @@ public class OthersSelectorsTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     valueSupplier
-                            .newSelector("name", Expressions.Expression("VALUE"))
+                            .newSelector(Expressions.Expression("VALUE"))
                             .extractValue(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isEqualTo(String.valueOf(data));
@@ -178,7 +178,7 @@ public class OthersSelectorsTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     valueSupplier
-                            .newSelector("name", Expressions.Expression("VALUE"))
+                            .newSelector(Expressions.Expression("VALUE"))
                             .extractValue(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isNull();
@@ -204,7 +204,7 @@ public class OthersSelectorsTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     keySupplier
-                            .newSelector("name", Expressions.Expression("KEY"))
+                            .newSelector(Expressions.Expression("KEY"))
                             .extractKey(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isEqualTo(String.valueOf(data));
@@ -225,7 +225,7 @@ public class OthersSelectorsTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     keySupplier
-                            .newSelector("name", Expressions.Expression("KEY"))
+                            .newSelector(Expressions.Expression("KEY"))
                             .extractKey(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isNull();
@@ -245,7 +245,7 @@ public class OthersSelectorsTest {
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            valueSupplier.newSelector("name", expression);
+                            valueSupplier.newSelector(expression);
                         });
         assertThat(ee.getMessage())
                 .isEqualTo(
