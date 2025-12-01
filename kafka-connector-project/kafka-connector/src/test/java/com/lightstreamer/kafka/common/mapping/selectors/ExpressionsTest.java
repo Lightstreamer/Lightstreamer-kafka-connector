@@ -76,8 +76,14 @@ public class ExpressionsTest {
                 arguments("PARTITION", Constant.PARTITION, Arrays.asList("PARTITION")),
                 arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
                 arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("VALUE.*", Constant.VALUE, Arrays.asList("VALUE", ".", "*")),
                 arguments(
                         "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments("VALUE['name']", Constant.VALUE, Arrays.asList("VALUE['name']")),
+                arguments(
+                        "VALUE['name'].aaa",
+                        Constant.VALUE,
+                        Arrays.asList("VALUE['name']", ".", "aaa")),
                 arguments(
                         "HEADERS['attrib']", Constant.HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
@@ -182,7 +188,7 @@ public class ExpressionsTest {
                 template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
                 template-#{name=VALUE,par}          $ Invalid template expression
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
-                template-#{name=VALUE[1]}           $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
+                template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                     """)
     void shouldNotParseTemplateExpression(String expressionStr, String expectedErrorMessage) {
         ExpressionException ee =
