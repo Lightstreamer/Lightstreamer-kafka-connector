@@ -101,20 +101,69 @@ public class DynamicMessageSelectorSuppliers
      */
     interface ProtobufNode extends Node<ProtobufNode> {
 
+        @Override
+        default ProtobufNode get(String nodeName, String propertyName) {
+            return NullNode.INSTANCE;
+        }
+
+        @Override
+        default boolean has(String propertyname) {
+            return false;
+        }
+
+        @Override
+        default ProtobufNode get(String nodeName, int index) {
+            return NullNode.INSTANCE;
+        }
+
+        default boolean isArray() {
+            return false;
+        }
+
+        default boolean isScalar() {
+            return false;
+        }
+
+        default int size() {
+            return 0;
+        }
+
+        static class NullNode implements ProtobufNode {
+
+            private static final NullNode INSTANCE = new NullNode();
+
+            @Override
+            public String name() {
+                return "null";
+            }
+
+            @Override
+            public String text() {
+                return "null";
+            }
+
+            @Override
+            public boolean isNull() {
+                return true;
+            }
+        }
+
         /**
          * Creates a new {@link ProtobufNode} instance based on the provided value and field
          * descriptor.
          *
+         * @param nodeName the name to assign to the created node
          * @param value the value to be wrapped in a {@link ProtobufNode}
          * @param fieldDescriptor the descriptor of the field which provides type information
          * @return a new {@link ProtobufNode} instance, either a {@link MessageWrapperNode} if the
          *     field type is {@code MESSAGE}, or a {@link ScalarFieldNode} for all other field types
          */
-        static ProtobufNode newNode(Object value, FieldDescriptor fieldDescriptor) {
+        static ProtobufNode newNode(
+                String nodeName, Object value, FieldDescriptor fieldDescriptor) {
             Type type = fieldDescriptor.getType();
             return switch (type) {
-                case MESSAGE -> new MessageWrapperNode((Message) value);
-                default -> new ScalarFieldNode(value, fieldDescriptor);
+                case MESSAGE -> new MessageWrapperNode(nodeName, (Message) value);
+                default -> new ScalarFieldNode(nodeName, value, fieldDescriptor);
             };
         }
     }
@@ -130,10 +179,17 @@ public class DynamicMessageSelectorSuppliers
 
         private final Message message;
         private final Descriptor descriptor;
+        private final String name;
 
-        MessageWrapperNode(Message message) {
+        MessageWrapperNode(String name, Message message) {
             this.message = message;
+            this.name = name;
             this.descriptor = message.getDescriptorForType();
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -142,21 +198,31 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtobufNode get(String name) {
-            FieldDescriptor fieldDescriptor = descriptor.findFieldByName(name);
+        public ProtobufNode get(String nodeName, String propertyName) {
+            FieldDescriptor fieldDescriptor = descriptor.findFieldByName(propertyName);
             if (fieldDescriptor.isMapField()) {
-                return new MapFieldNode(message, fieldDescriptor);
+                return new MapFieldNode(nodeName, message, fieldDescriptor);
             }
             if (fieldDescriptor.isRepeated()) {
-                return new RepeatedFieldNode(message, fieldDescriptor);
+                return new RepeatedFieldNode(nodeName, message, fieldDescriptor);
             }
 
             Object value = message.getField(fieldDescriptor);
-            return ProtobufNode.newNode(value, fieldDescriptor);
+            return ProtobufNode.newNode(nodeName, value, fieldDescriptor);
         }
 
         @Override
-        public String asText() {
+        public void flatIntoMap(Map<String, String> target) {
+            for (FieldDescriptor fieldDescriptor : descriptor.getFields()) {
+                Object value = message.getField(fieldDescriptor);
+                target.put(
+                        fieldDescriptor.getName(),
+                        TextFormat.printer().printFieldToString(fieldDescriptor, value));
+            }
+        }
+
+        @Override
+        public String text() {
             return message.toString();
         }
     }
@@ -174,12 +240,19 @@ public class DynamicMessageSelectorSuppliers
      */
     static class RepeatedFieldNode implements ProtobufNode {
 
+        private final String name;
         private final Message containing;
         private final FieldDescriptor fieldDescriptor;
 
-        RepeatedFieldNode(Message containing, FieldDescriptor fieldDescriptor) {
+        RepeatedFieldNode(String name, Message containing, FieldDescriptor fieldDescriptor) {
+            this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -193,13 +266,13 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtobufNode get(int index) {
+        public ProtobufNode get(String nodeName, int index) {
             Object value = containing.getRepeatedField(fieldDescriptor, index);
-            return ProtobufNode.newNode(value, fieldDescriptor);
+            return ProtobufNode.newNode(nodeName, value, fieldDescriptor);
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
@@ -216,12 +289,14 @@ public class DynamicMessageSelectorSuppliers
      */
     static class MapFieldNode implements ProtobufNode {
 
+        private final String name;
         private final Message containing;
         private final Map<String, Object> map = new HashMap<>();
         private final FieldDescriptor fieldValueDescriptor;
         private final FieldDescriptor fieldDescriptor;
 
-        MapFieldNode(Message containing, FieldDescriptor fieldDescriptor) {
+        MapFieldNode(String name, Message containing, FieldDescriptor fieldDescriptor) {
+            this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
 
@@ -236,18 +311,23 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
         public boolean has(String propertyname) {
             return map.containsKey(propertyname);
         }
 
         @Override
-        public ProtobufNode get(String propertyname) {
-            Object value = map.get(propertyname);
-            return ProtobufNode.newNode(value, fieldValueDescriptor);
+        public ProtobufNode get(String nodeName, String propertyName) {
+            Object value = map.get(propertyName);
+            return ProtobufNode.newNode(nodeName, value, fieldValueDescriptor);
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
@@ -268,12 +348,19 @@ public class DynamicMessageSelectorSuppliers
      */
     static class ScalarFieldNode implements ProtobufNode {
 
+        private final String name;
         private final Object value;
         private final FieldDescriptor fieldDescriptor;
 
-        ScalarFieldNode(Object value, FieldDescriptor fieldDescriptor) {
+        ScalarFieldNode(String name, Object value, FieldDescriptor fieldDescriptor) {
+            this.name = name;
             this.value = value;
             this.fieldDescriptor = fieldDescriptor;
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -282,7 +369,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public String asText() {
+        public String text() {
             if (fieldDescriptor.getType().equals(Type.BYTES)) {
                 return ((ByteString) value).toStringUtf8();
             }
@@ -308,9 +395,9 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public KeySelector<DynamicMessage> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<DynamicMessage> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new DynamicMessageKeySelector(name, expression);
+            return new DynamicMessageKeySelector(expression);
         }
 
         @Override
@@ -333,15 +420,38 @@ public class DynamicMessageSelectorSuppliers
     private static final class DynamicMessageKeySelector
             extends StructuredBaseSelector<ProtobufNode> implements KeySelector<DynamicMessage> {
 
-        DynamicMessageKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.KEY);
+        DynamicMessageKeySelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.KEY);
+        }
+
+        @Override
+        public Data extractKey(
+                String name, KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(
+                    name,
+                    record::key,
+                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
+                    checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.key(), MessageWrapperNode::new, checkScalar);
+            return eval(
+                    record::key,
+                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
+                    checkScalar);
+        }
+
+        @Override
+        public void extractKeyInto(
+                KafkaRecord<DynamicMessage, ?> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(
+                    record::key,
+                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
+                    target);
         }
     }
 
@@ -363,9 +473,9 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ValueSelector<DynamicMessage> newSelector(
-                String name, ExtractionExpression expression) throws ExtractionException {
-            return new DynamicMessageValueSelector(name, expression);
+        public ValueSelector<DynamicMessage> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            return new DynamicMessageValueSelector(expression);
         }
 
         @Override
@@ -390,15 +500,38 @@ public class DynamicMessageSelectorSuppliers
     private static final class DynamicMessageValueSelector
             extends StructuredBaseSelector<ProtobufNode> implements ValueSelector<DynamicMessage> {
 
-        DynamicMessageValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.VALUE);
+        DynamicMessageValueSelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.VALUE);
+        }
+
+        @Override
+        public Data extractValue(
+                String name, KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
+                throws ValueException {
+            return eval(
+                    name,
+                    record::value,
+                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
+                    checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.value(), MessageWrapperNode::new, checkScalar);
+            return eval(
+                    record::value,
+                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
+                    checkScalar);
+        }
+
+        @Override
+        public void extractValueInto(
+                KafkaRecord<?, DynamicMessage> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(
+                    record::value,
+                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
+                    target);
         }
     }
 
