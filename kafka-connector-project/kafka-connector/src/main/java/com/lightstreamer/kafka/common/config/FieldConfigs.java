@@ -67,9 +67,4 @@ public class FieldConfigs {
         return DataExtractor.extractor(
                 selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure, mapNonScalars);
     }
-
-    public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
-            throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, false, false);
-    }
 }
