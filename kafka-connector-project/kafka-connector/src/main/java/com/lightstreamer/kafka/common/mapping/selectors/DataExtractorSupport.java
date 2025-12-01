@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 class DataExtractorSupport {
@@ -51,7 +52,8 @@ class DataExtractorSupport {
 
         private final Schema schema;
         private final boolean skipOnFailure;
-        private final Function<KafkaRecord<K, V>, Data>[] extractors;
+        private final Function<KafkaRecord<K, V>, Data>[] singleValueExtractors;
+        private final BiConsumer<KafkaRecord<K, V>, Map<String, String>>[] multiValueExtractors;
         private final boolean mapNonScalars;
         private Function<KafkaRecord<K, V>, String> extractAsCanonical;
 
@@ -82,27 +84,35 @@ class DataExtractorSupport {
                             headersSelectorSupplier);
 
             Set<String> schemaKeys = new HashSet<>();
-            this.extractors =
+            this.singleValueExtractors =
                     (Function<KafkaRecord<K, V>, Data>[]) new Function[expressions.size()];
+            this.multiValueExtractors =
+                    (BiConsumer<KafkaRecord<K, V>, Map<String, String>>[])
+                            new BiConsumer[expressions.size()];
             Map<String, ExtractionExpression> sortedExpressions = new TreeMap<>(expressions);
             int index = 0;
             for (Map.Entry<String, ExtractionExpression> boundExpression :
                     sortedExpressions.entrySet()) {
                 String key = boundExpression.getKey();
                 schemaKeys.add(key);
-                Function<KafkaRecord<K, V>, Data> dataExtractor =
-                        createDataExtractor(wrapperSelectors, key, boundExpression.getValue());
-                this.extractors[index++] = dataExtractor;
+                this.singleValueExtractors[index] =
+                        createSingleValueDataExtractor(
+                                wrapperSelectors, key, boundExpression.getValue());
+                this.multiValueExtractors[index] =
+                        createMultiValueDataExtractor(
+                                wrapperSelectors, key, boundExpression.getValue());
+                index++;
             }
 
             this.schema = Schema.from(schemaName, schemaKeys);
-            switch (this.extractors.length) {
+            switch (this.singleValueExtractors.length) {
                 case 0 -> this.extractAsCanonical = record -> schemaName;
                 case 1 ->
                         this.extractAsCanonical =
                                 record ->
                                         Data.buildItemNameSingle(
-                                                this.extractors[0].apply(record), schemaName);
+                                                this.singleValueExtractors[0].apply(record),
+                                                schemaName);
                 default ->
                         this.extractAsCanonical =
                                 record ->
@@ -111,51 +121,7 @@ class DataExtractorSupport {
             }
         }
 
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public boolean skipOnFailure() {
-            return skipOnFailure;
-        }
-
-        @Override
-        public boolean mapNonScalars() {
-            return mapNonScalars;
-        }
-
-        @Override
-        public Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException {
-            Map<String, String> values = new HashMap<>();
-            for (int i = 0; i < this.extractors.length; i++) {
-                try {
-                    Data data = this.extractors[i].apply(record);
-                    values.put(data.name(), data.text());
-                } catch (ValueException ve) {
-                    if (!skipOnFailure) {
-                        throw ve;
-                    }
-                }
-            }
-            return values;
-        }
-
-        @Override
-        public String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
-            return extractAsCanonical.apply(record);
-        }
-
-        private Data[] extractDataArray(KafkaRecord<K, V> record) {
-            Data[] data = new Data[this.extractors.length];
-            for (int i = 0; i < this.extractors.length; i++) {
-                data[i] = this.extractors[i].apply(record);
-            }
-            return data;
-        }
-
-        private Function<KafkaRecord<K, V>, Data> createDataExtractor(
+        private Function<KafkaRecord<K, V>, Data> createSingleValueDataExtractor(
                 WrapperSelectors<K, V> wrapperSelectors,
                 String key,
                 ExtractionExpression expression)
@@ -198,10 +164,97 @@ class DataExtractorSupport {
             return dataExtractor;
         }
 
+        private BiConsumer<KafkaRecord<K, V>, Map<String, String>> createMultiValueDataExtractor(
+                WrapperSelectors<K, V> wrapperSelectors,
+                String key,
+                ExtractionExpression expression)
+                throws ExtractionException {
+            BiConsumer<KafkaRecord<K, V>, Map<String, String>> dataExtractor =
+                    switch (expression.constant()) {
+                        case KEY -> {
+                            KeySelector<K> keySelector =
+                                    mkSelector(
+                                            wrapperSelectors.keySelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield (record, target) -> keySelector.extractKeyInto(record, target);
+                        }
+                        case VALUE -> {
+                            ValueSelector<V> valueSelector =
+                                    mkSelector(
+                                            wrapperSelectors.valueSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield (record, target) ->
+                                    valueSelector.extractValueInto(record, target);
+                        }
+                        case HEADERS -> {
+                            GenericSelector headerSelector =
+                                    mkSelector(
+                                            wrapperSelectors.headersSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield (record, target) -> headerSelector.extractInto(record, target);
+                        }
+                        default -> {
+                            ConstantSelector constantSelector =
+                                    mkSelector(
+                                            wrapperSelectors.constantSelectorSupplier(),
+                                            key,
+                                            expression);
+                            yield (record, target) -> constantSelector.extractInto(record, target);
+                        }
+                    };
+            return dataExtractor;
+        }
+
         static <T extends Selector> T mkSelector(
                 SelectorSupplier<T> selectorSupplier, String param, ExtractionExpression expression)
                 throws ExtractionException {
-            return selectorSupplier.newSelector(param, expression);
+            return selectorSupplier.newSelector(expression);
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        @Override
+        public boolean skipOnFailure() {
+            return skipOnFailure;
+        }
+
+        @Override
+        public boolean mapNonScalars() {
+            return mapNonScalars;
+        }
+
+        @Override
+        public Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException {
+            Map<String, String> values = new HashMap<>();
+            for (int i = 0; i < this.multiValueExtractors.length; i++) {
+                try {
+                    multiValueExtractors[i].accept(record, values);
+                } catch (ValueException ve) {
+                    if (!skipOnFailure) {
+                        throw ve;
+                    }
+                }
+            }
+            return values;
+        }
+
+        @Override
+        public String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
+            return extractAsCanonical.apply(record);
+        }
+
+        private Data[] extractDataArray(KafkaRecord<K, V> record) {
+            Data[] data = new Data[this.singleValueExtractors.length];
+            for (int i = 0; i < this.singleValueExtractors.length; i++) {
+                data[i] = this.singleValueExtractors[i].apply(record);
+            }
+            return data;
         }
 
         @Override
