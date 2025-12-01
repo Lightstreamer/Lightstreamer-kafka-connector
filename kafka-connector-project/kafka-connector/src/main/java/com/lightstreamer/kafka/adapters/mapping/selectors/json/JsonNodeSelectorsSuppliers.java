@@ -35,16 +35,30 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
-    private static class JsonNodeNode implements Node<JsonNodeNode> {
+    static class JsonNodeNode implements Node<JsonNodeNode> {
 
+        private final String name;
         private final JsonNode node;
 
-        JsonNodeNode(JsonNode node) {
+        static BiFunction<String, JsonNode, JsonNodeNode> rootFactory(String boundParameter) {
+            return (name, node) -> new JsonNodeNode(name, node);
+        }
+
+        JsonNodeNode(String name, JsonNode node) {
+            this.name = name;
             this.node = node;
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -53,8 +67,8 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
-        public JsonNodeNode get(String propertyName) {
-            return new JsonNodeNode(node.get(propertyName));
+        public JsonNodeNode get(String nodeName, String propertyName) {
+            return new JsonNodeNode(nodeName, node.get(propertyName));
         }
 
         @Override
@@ -68,8 +82,8 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
-        public JsonNodeNode get(int index) {
-            return new JsonNodeNode(node.get(index));
+        public JsonNodeNode get(String nodeName, int index) {
+            return new JsonNodeNode(nodeName, node.get(index));
         }
 
         @Override
@@ -83,8 +97,46 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
-        public String asText() {
+        public String text() {
             return node.isValueNode() ? node.asText(null) : node.toString();
+        }
+
+        @Override
+        public void flatIntoMap(Map<String, String> target) {
+            if (node.isValueNode()) {
+                target.put(name, node.asText(null));
+                return;
+            }
+
+            if (node.isObject()) {
+                // Use fieldNames() iterator for better performance than fields()
+                Iterator<String> fieldNames = node.fieldNames();
+                while (fieldNames.hasNext()) {
+                    String key = fieldNames.next();
+                    JsonNode valueNode = node.get(key);
+                    String value =
+                            valueNode.isValueNode() ? valueNode.asText(null) : valueNode.toString();
+                    target.put(key, value);
+                }
+                return;
+            }
+
+            if (node.isArray()) {
+                int size = size();
+                // Pre-allocate StringBuilder for array index keys to avoid string concatenation
+                StringBuilder keyBuilder =
+                        new StringBuilder(name.length() + 4); // reasonable initial capacity
+                for (int i = 0; i < size; i++) {
+                    JsonNode element = node.get(i);
+                    String value =
+                            element.isValueNode() ? element.asText(null) : element.toString();
+
+                    keyBuilder.append(name);
+                    keyBuilder.append('[').append(i).append(']');
+                    target.put(keyBuilder.toString(), value);
+                    keyBuilder.delete(0, keyBuilder.length()); // reset for next use
+                }
+            }
         }
     }
 
@@ -101,9 +153,9 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
-        public KeySelector<JsonNode> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<JsonNode> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new JsonNodeKeySelector(name, expression);
+            return new JsonNodeKeySelector(expression);
         }
 
         @Override
@@ -112,18 +164,29 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
     }
 
-    private static final class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
+    private static class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
             implements KeySelector<JsonNode> {
 
-        JsonNodeKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.KEY);
+        JsonNodeKeySelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.KEY);
+        }
+
+        @Override
+        public Data extractKey(String name, KafkaRecord<JsonNode, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, record::key, JsonNodeNode::new, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<JsonNode, ?> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.key(), JsonNodeNode::new, checkScalar);
+            return eval(record::key, JsonNodeNode::new, checkScalar);
+        }
+
+        @Override
+        public void extractKeyInto(KafkaRecord<JsonNode, ?> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(record::key, JsonNodeNode::new, target);
         }
     }
 
@@ -140,9 +203,9 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
 
         @Override
-        public ValueSelector<JsonNode> newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<JsonNode> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new JsonNodeValueSelector(name, expression);
+            return new JsonNodeValueSelector(expression);
         }
 
         @Override
@@ -154,15 +217,26 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
     private static final class JsonNodeValueSelector extends StructuredBaseSelector<JsonNodeNode>
             implements ValueSelector<JsonNode> {
 
-        JsonNodeValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.VALUE);
+        JsonNodeValueSelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.VALUE);
+        }
+
+        @Override
+        public Data extractValue(String name, KafkaRecord<?, JsonNode> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, record::value, JsonNodeNode::new, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, JsonNode> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.value(), JsonNodeNode::new, checkScalar);
+            return eval(record::value, JsonNodeNode::new, checkScalar);
+        }
+
+        @Override
+        public void extractValueInto(KafkaRecord<?, JsonNode> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(record::value, JsonNodeNode::new, target);
         }
     }
 
