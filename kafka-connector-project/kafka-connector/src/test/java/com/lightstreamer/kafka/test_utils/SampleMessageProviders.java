@@ -399,6 +399,8 @@ public class SampleMessageProviders {
             joeChildren.add(null);
 
             Value root = new Value("joe", joeChildren);
+            root.notes.add("note1");
+            root.notes.add("note2");
             root.signature = new byte[] {97, 98, 99, 100};
             root.family =
                     new Value[][] {
@@ -423,6 +425,8 @@ public class SampleMessageProviders {
             @JsonProperty byte[] signature;
 
             @JsonProperty Value[][] family;
+
+            @JsonProperty final List<String> notes = new ArrayList<>();
 
             Value(String name) {
                 this.name = name;
