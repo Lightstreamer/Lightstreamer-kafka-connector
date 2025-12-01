@@ -62,12 +62,19 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         private final SchemaAndValue data;
+        private final String name;
 
-        SchemaAndValueNode(SchemaAndValue data) {
+        SchemaAndValueNode(String name, SchemaAndValue data) {
+            this.name = name;
             this.data = data;
             if (data.schema() == null) {
                 throw ValueException.nonSchemaAssociated();
             }
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -87,7 +94,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public SchemaAndValueNode get(String name) {
+        public SchemaAndValueNode get(String nodeName, String propertyName) {
             Schema schema = data.schema();
 
             SchemaAndValue schemaAndValue =
@@ -96,16 +103,16 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
                             Schema valueSchema = schema.valueSchema();
                             @SuppressWarnings("unchecked")
                             Map<String, ?> map = (Map<String, ?>) data.value();
-                            yield new SchemaAndValue(valueSchema, map.get(name));
+                            yield new SchemaAndValue(valueSchema, map.get(propertyName));
                         }
 
                         default -> {
                             Struct struct = (Struct) data.value();
-                            Field field = schema.field(name);
+                            Field field = schema.field(propertyName);
                             yield new SchemaAndValue(field.schema(), struct.get(field));
                         }
                     };
-            return new SchemaAndValueNode(schemaAndValue);
+            return new SchemaAndValueNode(nodeName, schemaAndValue);
         }
 
         @Override
@@ -124,11 +131,12 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public SchemaAndValueNode get(int index) {
+        public SchemaAndValueNode get(String nodeName, int index) {
             @SuppressWarnings("unchecked")
             List<Object> array = (List<Object>) data.value();
             Schema elementsSchema = data.schema().valueSchema();
-            return new SchemaAndValueNode(new SchemaAndValue(elementsSchema, array.get(index)));
+            return new SchemaAndValueNode(
+                    name + "[" + index + "]", new SchemaAndValue(elementsSchema, array.get(index)));
         }
 
         @Override
@@ -146,7 +154,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
 
         @Override
-        public String asText() {
+        public String text() {
             Object value = data.value();
             if (value != null) {
                 if (value instanceof Struct struct) {
@@ -170,9 +178,9 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         ConnectKeySelectorSupplier() {}
 
         @Override
-        public KeySelector<Object> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<Object> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new ConnectKeySelector(name, expression);
+            return new ConnectKeySelector(expression);
         }
 
         @Override
@@ -184,30 +192,38 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
     private static class ConnectKeySelector extends StructuredBaseSelector<SchemaAndValueNode>
             implements KeySelector<Object> {
 
-        ConnectKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.KEY);
+        ConnectKeySelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.KEY);
+        }
+
+        @Override
+        public Data extractKey(String name, KafkaRecord<Object, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, () -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-
             return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
-        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
-                    new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
+                    name, new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
         }
+
+        @Override
+        public void extractKeyInto(KafkaRecord<Object, ?> record, Map<String, String> target)
+                throws ValueException {}
     }
 
     private static class ConnectValueSelectorSupplier implements ValueSelectorSupplier<Object> {
 
         @Override
-        public ValueSelector<Object> newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<Object> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new ConnectValueSelector(name, expression);
+            return new ConnectValueSelector(expression);
         }
 
         @Override
@@ -219,9 +235,14 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
     private static class ConnectValueSelector extends StructuredBaseSelector<SchemaAndValueNode>
             implements ValueSelector<Object> {
 
-        ConnectValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.VALUE);
+        ConnectValueSelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.VALUE);
+        }
+
+        @Override
+        public Data extractValue(String name, KafkaRecord<?, Object> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, () -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
         @Override
@@ -230,9 +251,15 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
             return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
         }
 
-        private Node<SchemaAndValueNode> asNode(KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
-                    new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
+                    name, new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
+        }
+
+        @Override
+        public void extractValueInto(KafkaRecord<?, Object> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(() -> ((KafkaSinkRecord) record), this::asNode, target);
         }
     }
 
