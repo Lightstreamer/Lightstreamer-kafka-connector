@@ -42,45 +42,44 @@ import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class GenericRecordSelectorsSuppliers
         implements KeyValueSelectorSuppliersMaker<GenericRecord> {
 
-    private static class AvroNode implements Node<AvroNode> {
+    static class AvroNode implements Node<AvroNode> {
 
         private static final Object NULL_DATA = new Object();
 
-        static AvroNode fromContainer(GenericContainer container) {
-            return new AvroNode(container);
-        }
-
-        static AvroNode fromObject(Object object) {
-            if (object == null) {
-                object = NULL_DATA;
-            }
-            return new AvroNode(object);
-        }
-
-        private static AvroNode of(Object avroNode) {
+        static AvroNode from(String name, Object avroNode) {
             if (avroNode instanceof GenericContainer container) {
                 Schema schema = container.getSchema();
                 Type valueType = schema.getType();
                 return switch (valueType) {
-                    case RECORD, FIXED, ARRAY, ENUM -> fromContainer(container);
-                    default -> fromObject(avroNode);
+                    case RECORD, FIXED, ARRAY, ENUM -> new AvroNode(name, container);
+                    // default -> new AvroNode(name, avroNode);
+                    default -> throw new RuntimeException("Unsupported Avro type: " + valueType);
                 };
             }
-            return fromObject(avroNode);
+            return new AvroNode(name, avroNode);
         }
 
         private final Either<GenericContainer, Object> data;
+        private final String name;
 
-        private AvroNode(GenericContainer container) {
+        private AvroNode(String name, GenericContainer container) {
+            this.name = name;
             data = Either.left(container);
         }
 
-        private AvroNode(Object object) {
-            data = Either.right(object);
+        private AvroNode(String name, Object object) {
+            this.name = name;
+            data = Either.right(Objects.requireNonNullElse(object, NULL_DATA));
+        }
+
+        @Override
+        public String name() {
+            return name;
         }
 
         @Override
@@ -89,14 +88,13 @@ public class GenericRecordSelectorsSuppliers
                 GenericContainer genericContainer = container();
                 Schema schema = genericContainer.getSchema();
                 Type type = schema.getType();
-                return switch (type) {
-                    case RECORD -> {
-                        GenericData.Record record = (GenericData.Record) genericContainer;
-                        yield record.hasField(name);
-                    }
-                    default -> false;
-                };
+                if (type.equals(Type.RECORD)) {
+                    GenericData.Record record = (GenericData.Record) genericContainer;
+                    return record.hasField(name);
+                }
+                return false;
             }
+
             if (object() instanceof Map map) {
                 return map.containsKey(new Utf8(name));
             }
@@ -104,13 +102,19 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public AvroNode get(String name) {
+        public AvroNode get(String nodeName, String propertyName) {
             if (isContainer()) {
                 GenericData.Record record = (GenericData.Record) container();
-                return AvroNode.of(record.get(name));
+                return AvroNode.from(nodeName, record.get(propertyName));
             }
+
             Map<?, ?> map = (Map<?, ?>) object();
-            return AvroNode.of(map.get(new Utf8(name)));
+            return AvroNode.from(nodeName, map.get(new Utf8(propertyName)));
+        }
+
+        static Data getAsData(GenericData.Record record, String name) {
+            Object obj = record.get(name);
+            return Data.from(name, obj != null ? obj.toString() : (String) null);
         }
 
         @Override
@@ -132,9 +136,13 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public AvroNode get(int index) {
+        public AvroNode get(String nodeName, int index) {
             GenericData.Array<?> array = (GenericData.Array<?>) container();
-            return AvroNode.of(array.get(index));
+            return AvroNode.from(nodeName + "[" + index + "]", array.get(index));
+        }
+
+        static Data getAsData(GenericData.Array<?> array, String name, int index) {
+            return Data.from(name + "[" + index + "]", Objects.toString(array.get(index), null));
         }
 
         @Override
@@ -159,7 +167,42 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public String asText() {
+        public void flatIntoMap(Map<String, String> target) {
+            if (isContainer()) {
+                Schema schema = container().getSchema();
+                Type type = schema.getType();
+                switch (type) {
+                    case RECORD -> {
+                        GenericData.Record record = (GenericData.Record) container();
+                        for (Schema.Field field : record.getSchema().getFields()) {
+                            Object object = record.get(field.name());
+                            target.put(field.name(), Objects.toString(object, null));
+                        }
+                    }
+                    case ARRAY -> {
+                        GenericData.Array<?> array = (GenericData.Array<?>) container();
+                        for (int i = 0; i < size(); i++) {
+                            target.put(name + "[" + i + "]", Objects.toString(array.get(i), null));
+                        }
+                    }
+
+                    case FIXED, ENUM -> {
+                        target.put(name, text());
+                    }
+                    default -> {}
+                }
+                return;
+            }
+
+            if (object() instanceof Map map) {
+                for (Object key : map.keySet()) {
+                    target.put(key.toString(), Objects.toString(map.get(key), null));
+                }
+            }
+        }
+
+        @Override
+        public String text() {
             if (isNull()) {
                 return null;
             }
@@ -193,9 +236,9 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public KeySelector<GenericRecord> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<GenericRecord> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new GenericRecordKeySelector(name, expression);
+            return new GenericRecordKeySelector(expression);
         }
 
         @Override
@@ -207,15 +250,27 @@ public class GenericRecordSelectorsSuppliers
     private static final class GenericRecordKeySelector extends StructuredBaseSelector<AvroNode>
             implements KeySelector<GenericRecord> {
 
-        GenericRecordKeySelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.KEY);
+        GenericRecordKeySelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.KEY);
         }
 
         @Override
         public Data extractKey(KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.key(), AvroNode::fromContainer, checkScalar);
+            return eval(record::key, AvroNode::new, checkScalar);
+        }
+
+        @Override
+        public Data extractKey(
+                String name, KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, record::key, AvroNode::new, checkScalar);
+        }
+
+        @Override
+        public void extractKeyInto(KafkaRecord<GenericRecord, ?> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(record::key, AvroNode::new, target);
         }
     }
 
@@ -229,9 +284,9 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public ValueSelector<GenericRecord> newSelector(
-                String name, ExtractionExpression expression) throws ExtractionException {
-            return new GenericRecordValueSelector(name, expression);
+        public ValueSelector<GenericRecord> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            return new GenericRecordValueSelector(expression);
         }
 
         @Override
@@ -243,15 +298,28 @@ public class GenericRecordSelectorsSuppliers
     private static final class GenericRecordValueSelector extends StructuredBaseSelector<AvroNode>
             implements ValueSelector<GenericRecord> {
 
-        GenericRecordValueSelector(String name, ExtractionExpression expression)
-                throws ExtractionException {
-            super(name, expression, Constant.VALUE);
+        GenericRecordValueSelector(ExtractionExpression expression) throws ExtractionException {
+            super(expression, Constant.VALUE);
+        }
+
+        @Override
+        public Data extractValue(
+                String name, KafkaRecord<?, GenericRecord> record, boolean checkScalar)
+                throws ValueException {
+            return eval(name, record::value, AvroNode::new, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, GenericRecord> record, boolean checkScalar)
                 throws ValueException {
-            return super.eval(() -> record.value(), AvroNode::fromContainer, checkScalar);
+            return eval(record::value, AvroNode::new, checkScalar);
+        }
+
+        @Override
+        public void extractValueInto(
+                KafkaRecord<?, GenericRecord> record, Map<String, String> target)
+                throws ValueException {
+            evalInto(record::value, AvroNode::new, target);
         }
     }
 
