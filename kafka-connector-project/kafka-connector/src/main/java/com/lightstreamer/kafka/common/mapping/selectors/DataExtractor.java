@@ -123,7 +123,7 @@ public interface DataExtractor<K, V> {
      * records processed by this extractor.
      *
      * @return the {@link Schema} object representing the structure and field definitions for this
-     *     extractor; never null
+     *     extractor; never {@code null}
      */
     Schema schema();
 
