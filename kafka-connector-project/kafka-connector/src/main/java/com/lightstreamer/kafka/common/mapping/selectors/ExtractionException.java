@@ -25,10 +25,11 @@ public class ExtractionException extends Exception {
         super(message);
     }
 
-    public static ExtractionException expectedRootToken(String name, String expectedRoot)
+    public static ExtractionException expectedRootToken(String expression, String expectedRoot)
             throws ExtractionException {
         return new ExtractionException(
-                "Expected the root token [%s] while evaluating [%s]".formatted(expectedRoot, name));
+                "Expected the root token [%s] while evaluating [%s]"
+                        .formatted(expectedRoot, expression));
     }
 
     public static ExtractionException invalidExpression(String name, String expression)
@@ -38,11 +39,9 @@ public class ExtractionException extends Exception {
                         .formatted(expression, name));
     }
 
-    public static ExtractionException missingToken(String name, String expression)
-            throws ExtractionException {
+    public static ExtractionException missingToken(String expression) throws ExtractionException {
         return new ExtractionException(
-                "Found the invalid expression [%s] with missing tokens while evaluating [%s]"
-                        .formatted(expression, name));
+                "Found the invalid expression [%s] with missing tokens".formatted(expression));
     }
 
     public static ExtractionException missingAttribute(String name, String expression)
@@ -59,10 +58,9 @@ public class ExtractionException extends Exception {
                         .formatted(expression, name));
     }
 
-    public static ExtractionException invalidIndexedExpression(String name, String expression)
+    public static ExtractionException invalidIndexedExpression(String expression)
             throws ExtractionException {
         return new ExtractionException(
-                "Found the invalid indexed expression [%s] while evaluating [%s]"
-                        .formatted(expression, name));
+                "Found the invalid indexed expression [%s]".formatted(expression));
     }
 }
