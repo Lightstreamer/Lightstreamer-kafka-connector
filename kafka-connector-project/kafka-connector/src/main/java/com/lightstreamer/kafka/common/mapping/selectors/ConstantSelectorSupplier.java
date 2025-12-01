@@ -22,6 +22,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionEx
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,7 +39,17 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
         }
 
         @Override
-        public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
+        public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) {
+            return extract(constant.name(), record, checkScalar);
+        }
+
+        @Override
+        public Data extract(String name, KafkaRecord<?, ?> record, boolean checkScalar)
+                throws ValueException {
+            return new SimpleData(name, getText(record));
+        }
+
+        private String getText(KafkaRecord<?, ?> record) {
             Object data =
                     switch (constant) {
                         case TIMESTAMP -> String.valueOf(record.timestamp());
@@ -50,19 +61,49 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                         default ->
                                 throw new IllegalStateException("Unexpected constant: " + constant);
                     };
-            return new SimpleData(name(), Objects.toString(data, null));
+            return Objects.toString(data, null);
+        }
+
+        @Override
+        public Data extractKey(String name, KafkaRecord<Object, ?> record, boolean checkScalar)
+                throws ValueException {
+            return new SimpleData(name, Objects.toString(record.key(), null));
         }
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return new SimpleData(name(), Objects.toString(record.key(), null));
+            return extractKey(constant.name(), record, checkScalar);
+        }
+
+        @Override
+        public Data extractValue(String name, KafkaRecord<?, Object> record, boolean checkScalar)
+                throws ValueException {
+            return new SimpleData(name, Objects.toString(record.value(), null));
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return new SimpleData(name(), Objects.toString(record.value(), null));
+            return extractValue(constant.name(), record, checkScalar);
+        }
+
+        @Override
+        public void extractKeyInto(KafkaRecord<Object, ?> record, Map<String, String> target)
+                throws ValueException {
+            target.put(constant.name(), Objects.toString(record.key(), null));
+        }
+
+        @Override
+        public void extractValueInto(KafkaRecord<?, Object> record, Map<String, String> target)
+                throws ValueException {
+            target.put(constant.name(), Objects.toString(record.value(), null));
+        }
+
+        @Override
+        public void extractInto(KafkaRecord<?, ?> record, Map<String, String> target)
+                throws ValueException {
+            target.put(constant.name(), extract(record, true).text());
         }
     }
 
@@ -77,24 +118,25 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
     }
 
     @Override
-    public ConstantSelector newSelector(String name, ExtractionExpression expression)
+    public ConstantSelector newSelector(ExtractionExpression expression)
             throws ExtractionException {
-        return mkSelector(name, expression);
+        return mkSelector(expression);
     }
 
     String expectedConstantStr() {
         return allowedConstants.stream().map(Constant::toString).collect(Collectors.joining("|"));
     }
 
-    private ConstantSelectorImpl mkSelector(String name, ExtractionExpression expression)
+    private ConstantSelectorImpl mkSelector(ExtractionExpression expression)
             throws ExtractionException {
         if (!allowedConstants.contains(expression.constant())) {
-            throw ExtractionException.expectedRootToken(name, expectedConstantStr());
+            throw ExtractionException.expectedRootToken(
+                    expression.expression(), expectedConstantStr());
         }
         if (expression.tokens().length > 1) {
-            throw ExtractionException.notAllowedAttributes(name, expression.expression());
+            throw ExtractionException.notAllowedAttributes("", expression.expression());
         }
-        return new ConstantSelectorImpl(name, expression.constant());
+        return new ConstantSelectorImpl("", expression.constant());
     }
 
     public static ConstantSelectorSupplier KeySelector() {
