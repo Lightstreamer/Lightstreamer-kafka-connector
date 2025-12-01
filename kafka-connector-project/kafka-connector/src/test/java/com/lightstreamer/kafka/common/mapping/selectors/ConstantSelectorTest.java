@@ -39,7 +39,7 @@ import java.util.stream.Stream;
 public class ConstantSelectorTest {
 
     static ConstantSelector selector(ExtractionExpression expression) throws ExtractionException {
-        return new ConstantSelectorSupplier().newSelector("field_name", expression);
+        return new ConstantSelectorSupplier().newSelector(expression);
     }
 
     @ParameterizedTest
@@ -100,7 +100,7 @@ public class ConstantSelectorTest {
                         ExtractionException.class,
                         () -> {
                             new ConstantSelectorSupplier(Constant.KEY, Constant.VALUE)
-                                    .newSelector("field_name", expression);
+                                    .newSelector(expression);
                         });
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [KEY|VALUE] while evaluating [field_name]");
@@ -111,7 +111,7 @@ public class ConstantSelectorTest {
         ExtractionExpression expression = Expression("KEY");
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
-        ConstantSelector selector = cs.newSelector("field_name", expression);
+        ConstantSelector selector = cs.newSelector(expression);
         Data data = selector.extractKey(record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-key");
@@ -122,7 +122,7 @@ public class ConstantSelectorTest {
         ExtractionExpression expression = Expression("VALUE");
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
-        ConstantSelector selector = cs.newSelector("field_name", expression);
+        ConstantSelector selector = cs.newSelector(expression);
         Data data = selector.extractValue(record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-value");
@@ -138,7 +138,7 @@ public class ConstantSelectorTest {
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            cs.newSelector("field_name", expression);
+                            cs.newSelector(expression);
                         });
         assertThat(ee1.getMessage())
                 .isEqualTo("Expected the root token [KEY] while evaluating [field_name]");
@@ -154,7 +154,7 @@ public class ConstantSelectorTest {
                 assertThrows(
                         ExtractionException.class,
                         () -> {
-                            cs.newSelector("field_name", expression);
+                            cs.newSelector(expression);
                         });
         assertThat(ee.getMessage())
                 .isEqualTo("Expected the root token [VALUE] while evaluating [field_name]");
@@ -174,11 +174,11 @@ public class ConstantSelectorTest {
     @Test
     public void shouldCreateEqualKeySelectors() throws ExtractionException {
         KeySelector<Object> keySelector1 =
-                ConstantSelectorSupplier.KeySelector().newSelector("field_name", Expression("KEY"));
+                ConstantSelectorSupplier.KeySelector().newSelector(Expression("KEY"));
         assertThat(keySelector1.equals(keySelector1)).isTrue();
 
         KeySelector<Object> keySelector2 =
-                ConstantSelectorSupplier.KeySelector().newSelector("field_name", Expression("KEY"));
+                ConstantSelectorSupplier.KeySelector().newSelector(Expression("KEY"));
         assertThat(keySelector1.hashCode()).isEqualTo(keySelector2.hashCode());
         assertThat(keySelector1.equals(keySelector2)).isTrue();
     }
@@ -186,13 +186,11 @@ public class ConstantSelectorTest {
     @Test
     public void shouldCreateEqualValueSelectors() throws ExtractionException {
         KeySelector<Object> valueSelector1 =
-                ConstantSelectorSupplier.ValueSelector()
-                        .newSelector("field_name", Expression("VALUE"));
+                ConstantSelectorSupplier.ValueSelector().newSelector(Expression("VALUE"));
         assertThat(valueSelector1.equals(valueSelector1)).isTrue();
 
         KeySelector<Object> valueSelector2 =
-                ConstantSelectorSupplier.ValueSelector()
-                        .newSelector("field_name", Expression("VALUE"));
+                ConstantSelectorSupplier.ValueSelector().newSelector(Expression("VALUE"));
         assertThat(valueSelector1.hashCode()).isEqualTo(valueSelector2.hashCode());
         assertThat(valueSelector1.equals(valueSelector2)).isTrue();
     }
