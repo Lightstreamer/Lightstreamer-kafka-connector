@@ -91,13 +91,13 @@ public class ConnectSelectorsSuppliersTest {
     ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
         return connectSelectorsSuppliers
                 .valueSelectorSupplier()
-                .newSelector("name", Expressions.Expression(expression));
+                .newSelector(Expressions.Expression(expression));
     }
 
     KeySelector<Object> keySelector(String expression) throws ExtractionException {
         return connectSelectorsSuppliers
                 .keySelectorSupplier()
-                .newSelector("name", Expressions.Expression(expression));
+                .newSelector(Expressions.Expression(expression));
     }
 
     @BeforeEach
@@ -156,7 +156,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.children[3].name,       Cannot retrieve field [name] from a null object
                 VALUE.children[4],            Field not found at index [4]
                 VALUE.children[4].name,       Field not found at index [4]
-                VALUE.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
+                VALUE.nullArray[0],           Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -276,7 +276,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.children[3].name,       Cannot retrieve field [name] from a null object
                 KEY.children[4],            Field not found at index [4]
                 KEY.children[4].name,       Field not found at index [4]
-                KEY.nullArray[0],           Cannot retrieve index [0] from null object [nullArray]
+                KEY.nullArray[0],           Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
@@ -339,11 +339,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens
+                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
@@ -357,11 +357,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens
+                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]]
                     """)
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
