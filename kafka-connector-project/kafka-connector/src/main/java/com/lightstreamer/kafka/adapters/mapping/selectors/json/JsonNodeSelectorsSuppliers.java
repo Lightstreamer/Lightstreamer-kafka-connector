@@ -103,25 +103,11 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
 
         @Override
         public void flatIntoMap(Map<String, String> target) {
-            if (node.isValueNode()) {
-                target.put(name, node.asText(null));
+            if (isScalar()) {
                 return;
             }
 
-            if (node.isObject()) {
-                // Use fieldNames() iterator for better performance than fields()
-                Iterator<String> fieldNames = node.fieldNames();
-                while (fieldNames.hasNext()) {
-                    String key = fieldNames.next();
-                    JsonNode valueNode = node.get(key);
-                    String value =
-                            valueNode.isValueNode() ? valueNode.asText(null) : valueNode.toString();
-                    target.put(key, value);
-                }
-                return;
-            }
-
-            if (node.isArray()) {
+            if (isArray()) {
                 int size = size();
                 // Pre-allocate StringBuilder for array index keys to avoid string concatenation
                 StringBuilder keyBuilder =
@@ -136,6 +122,17 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
                     target.put(keyBuilder.toString(), value);
                     keyBuilder.delete(0, keyBuilder.length()); // reset for next use
                 }
+                return;
+            }
+
+            // Here we have an object node
+            Iterator<String> fieldNames = node.fieldNames();
+            while (fieldNames.hasNext()) {
+                String key = fieldNames.next();
+                JsonNode valueNode = node.get(key);
+                String value =
+                        valueNode.isValueNode() ? valueNode.asText(null) : valueNode.toString();
+                target.put(key, value);
             }
         }
     }
