@@ -37,19 +37,22 @@ public class ParsersTest {
 
     static Stream<Arguments> args() {
         return Stream.of(
-                arguments("name", Expressions.Expression("VALUE"), Constant.VALUE),
-                arguments("name", Expressions.Expression("KEY.attrib"), Constant.KEY),
-                arguments("name", Expressions.Expression("HEADERS"), Constant.HEADERS),
-                arguments("name", Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
-                arguments("name", Expressions.Expression("HEADERS['key']"), Constant.HEADERS));
+                arguments(Expressions.Expression("VALUE"), Constant.VALUE),
+                arguments(Expressions.Expression("KEY.attrib"), Constant.KEY),
+                arguments(Expressions.Expression("HEADERS"), Constant.HEADERS),
+                arguments(Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
+                arguments(Expressions.Expression("HEADERS['key']"), Constant.HEADERS),
+                arguments(Expressions.Expression("VALUE"), Constant.VALUE),
+                arguments(Expressions.Expression("KEY.attrib"), Constant.KEY),
+                arguments(Expressions.Expression("HEADERS"), Constant.HEADERS),
+                arguments(Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
+                arguments(Expressions.Expression("HEADERS['key']"), Constant.HEADERS));
     }
 
     @ParameterizedTest
     @MethodSource("args")
-    void shouldCreateParsingContext(
-            String name, ExtractionExpression expression, Constant expectedRoot) {
-        Parsers.ParsingContext p = new Parsers.ParsingContext(name, expression, expectedRoot);
-        assertThat(p.name()).isEqualTo(name);
+    void shouldCreateParsingContext(ExtractionExpression expression, Constant expectedRoot) {
+        Parsers.ParsingContext p = new Parsers.ParsingContext(expression, expectedRoot);
         assertThat(p.expression()).isEqualTo(expression.toString());
         assertThat(p.expectedRoot()).isEqualTo(expectedRoot);
     }
@@ -57,37 +60,50 @@ public class ParsersTest {
     @Test
     void shouldMatchRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext("name", Expressions.Expression("VALUE"), Constant.VALUE);
+                new Parsers.ParsingContext(Expressions.Expression("VALUE"), Constant.VALUE);
         assertDoesNotThrow(() -> p.matchRoot());
     }
 
     @Test
     void shouldNotMatchRoot() {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(
-                        "name", Expressions.Expression("KEY.attrib"), Constant.VALUE);
+                new Parsers.ParsingContext(Expressions.Expression("KEY.attrib"), Constant.VALUE);
         ExtractionException ee = assertThrows(ExtractionException.class, () -> p.matchRoot());
         assertThat(ee.getMessage())
-                .isEqualTo("Expected the root token [VALUE] while evaluating [name]");
+                .isEqualTo("Expected the root token [VALUE] while evaluating [KEY.attrib]");
     }
 
     @Test
     void shouldHaveOneTokenFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(
-                        "name", Expressions.Expression("VALUE.a"), Constant.VALUE);
+                new Parsers.ParsingContext(Expressions.Expression("VALUE.a"), Constant.VALUE);
         p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isFalse();
     }
 
     @Test
+    void shouldOneStarTokenFollowingTheRoot() throws ExtractionException {
+        Parsers.ParsingContext p =
+                new Parsers.ParsingContext(Expressions.Expression("VALUE.*"), Constant.VALUE);
+        p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("*");
+        assertThat(p.hasNext()).isFalse();
+    }
+
+    @Test
     void shouldHaveMoreTokensFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(
-                        "name", Expressions.Expression("VALUE.a.b"), Constant.VALUE);
+                new Parsers.ParsingContext(Expressions.Expression("VALUE.a.b"), Constant.VALUE);
         p.matchRoot();
+        assertThat(p.hasNext()).isTrue();
+        assertThat(p.next()).isEqualTo("VALUE");
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("a");
         assertThat(p.hasNext()).isTrue();
@@ -98,8 +114,7 @@ public class ParsersTest {
     @Test
     void shouldHaveMoreTokensFollowingHeaders() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(
-                        "name", Expressions.Expression("HEADERS.a"), Constant.HEADERS);
+                new Parsers.ParsingContext(Expressions.Expression("HEADERS.a"), Constant.HEADERS);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("HEADERS");
