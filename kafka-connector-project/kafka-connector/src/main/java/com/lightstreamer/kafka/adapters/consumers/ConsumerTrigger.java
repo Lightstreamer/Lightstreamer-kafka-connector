@@ -25,7 +25,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +40,7 @@ public interface ConsumerTrigger {
 
         ItemTemplates<K, V> itemTemplates();
 
-        DataExtractor<K, V> fieldsExtractor();
+        FieldsExtractor<K, V> fieldsExtractor();
 
         KeyValueDeserializers<K, V> deserializers();
 
