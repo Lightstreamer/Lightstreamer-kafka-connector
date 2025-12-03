@@ -51,11 +51,10 @@ public class ExtractionException extends Exception {
                         .formatted(expression, name));
     }
 
-    public static ExtractionException notAllowedAttributes(String name, String expression)
+    public static ExtractionException notAllowedAttributes(String expression)
             throws ExtractionException {
         return new ExtractionException(
-                "Found the invalid expression [%s] for scalar values while evaluating [%s]"
-                        .formatted(expression, name));
+                "Found the invalid expression [%s] for scalar values".formatted(expression));
     }
 
     public static ExtractionException invalidIndexedExpression(String expression)
