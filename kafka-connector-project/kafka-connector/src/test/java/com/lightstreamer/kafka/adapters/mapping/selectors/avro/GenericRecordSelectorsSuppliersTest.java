@@ -30,11 +30,12 @@ import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -47,10 +48,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class GenericRecordSelectorsSuppliersTest {
 
+    // A configuration with proper evaluator type settings for key and value
     static ConnectorConfig CONFIG =
             ConnectorConfigProvider.minimalWith(
                     "src/test/resources",
@@ -69,18 +72,18 @@ public class GenericRecordSelectorsSuppliersTest {
     static GenericRecord SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleGenericRecordProvider().sampleMessageV2();
 
-    static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
-            throws ExtractionException {
-        return new GenericRecordSelectorsSuppliers(CONFIG)
-                .makeValueSelectorSupplier()
-                .newSelector("name", expression);
-    }
-
     static KeySelector<GenericRecord> keySelector(ExtractionExpression expression)
             throws ExtractionException {
         return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector("name", expression);
+                .newSelector(expression);
+    }
+
+    static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
+            throws ExtractionException {
+        return new GenericRecordSelectorsSuppliers(CONFIG)
+                .makeValueSelectorSupplier()
+                .newSelector(expression);
     }
 
     @Test
@@ -107,6 +110,32 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
+    public void shouldMakeKeySelector() throws ExtractionException {
+        KeySelector<GenericRecord> selector = keySelector(Expression("KEY"));
+        assertThat(selector.expression().expression()).isEqualTo("KEY");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED_ERROR_MESSAGE
+                KEY.a. .b        | Found the invalid expression [KEY.a. .b] with missing tokens
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
+                    """)
+    public void shouldNotNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
     public void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -127,6 +156,32 @@ public class GenericRecordSelectorsSuppliersTest {
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
         assertThat(ie.getMessage()).isEqualTo("Evaluator type is not AVRO");
+    }
+
+    @Test
+    public void shouldMakeValueSelector() throws ExtractionException {
+        ValueSelector<GenericRecord> selector = valueSelector(Expression("VALUE"));
+        assertThat(selector.expression().expression()).isEqualTo("VALUE");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION         | EXPECTED_ERROR_MESSAGE
+                VALUE.a. .b        | Found the invalid expression [VALUE.a. .b] with missing tokens
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
+                    """)
+    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
+        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -152,66 +207,131 @@ public class GenericRecordSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                            |  EXPECTED
-                VALUE.name                            |  joe
-                VALUE.preferences['pref1']            |  pref_value1
-                VALUE.preferences['pref2']            |  pref_value2
-                VALUE.documents['id'].doc_id          |  ID123
-                VALUE.documents['id'].doc_type        |  ID
-                VALUE.type                            |  TYPE1
-                VALUE.signature                       |  [97, 98, 99, 100]
-                VALUE.children[0].name                |  alex
-                VALUE.children[0]['name']             |  alex
-                VALUE.children[0].signature           |  NULL
-                VALUE.children[1].name                |  anna
-                VALUE.children[2].name                |  serena
-                VALUE.children[3]                     |  NULL
-                VALUE.children[1].children[0].name    |  gloria
-                VALUE.children[1].children[1].name    |  terence
-                VALUE.children[1].children[1]['name'] |  terence
-                VALUE.nullArray                       |  NULL
+                EXPRESSION                            | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE.name                            | name          | joe
+                VALUE.preferences['pref1']            | pref1         | pref_value1
+                VALUE.preferences['pref2']            | pref2         | pref_value2
+                VALUE.documents['id'].doc_id          | doc_id        | ID123
+                VALUE.documents['id'].doc_type        | doc_type      | ID
+                VALUE.type                            | type          | TYPE1
+                VALUE.signature                       | signature     | [97, 98, 99, 100]
+                VALUE.children[0].name                | name          | alex
+                VALUE.children[0]['name']             | name          | alex
+                VALUE.children[0].signature           | signature     |
+                VALUE.children[1].name                | name          | anna
+                VALUE.children[2].name                | name          | serena
+                VALUE.children[3]                     | children[3]   |
+                VALUE.children[1].children[0].name    | name          | gloria
+                VALUE.children[1].children[1].name    | name          | terence
+                VALUE.children[1].children[1]['name'] | name          | terence
+                VALUE.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractValue(String expressionStr, String expected)
+    public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        valueSelector(Expression(expressionStr))
-                                .extractValue(fromValue(SAMPLE_MESSAGE))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+        ValueSelector<GenericRecord> valueSelector = valueSelector(Expression(expressionStr));
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundValue = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE));
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<?, GenericRecord> record = fromValue(SAMPLE_MESSAGE);
+
+        valueSelector(Expression("VALUE")).extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "name",
+                        "joe",
+                        "preferences",
+                        "{pref1=pref_value1, pref2=pref_value2}",
+                        "documents",
+                        "{id={\"doc_id\": \"ID123\", \"doc_type\": \"ID\"}}",
+                        "type",
+                        "TYPE1",
+                        "signature",
+                        "[97, 98, 99, 100]",
+                        "children",
+                        "null",
+                        "emptyArray",
+                        "[]",
+                        "nullArray",
+                        "array",
+                        "[abc, xyz, null]",
+                        "null",
+                        "main_document",
+                        "null");
+        valueSelector(Expression("VALUE.preferences")).extractValueInto(record, target);
+        assertThat(target).containsExactly("pref1", "pref_value1", "pref2", "pref_value2");
+        target.clear();
+
+        valueSelector(Expression("VALUE.documents.id")).extractValueInto(record, target);
+        assertThat(target).containsExactly("doc_id", "ID123", "doc_type", "ID");
+        target.clear();
+
+        valueSelector(Expression("VALUE.children")).extractValueInto(record, target);
+        assertThat(target).containsKey("children[0]");
+        assertThat(target).containsKey("children[1]");
+        assertThat(target).containsKey("children[2]");
+        target.clear();
+
+        valueSelector(Expression("VALUE.array")).extractValueInto(record, target);
+        assertThat(target).containsExactly("array[0]", "abc", "array[1]", "xyz", "array[2]", null);
+        target.clear();
+
+        valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        valueSelector(Expression("VALUE.emptyArray")).extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE,                       The expression [VALUE] must evaluate to a non-complex object
-                VALUE.no_attrib,             Field [no_attrib] not found
-                VALUE.children[0].no_attrib, Field [no_attrib] not found
-                VALUE.no_children[0],        Field [no_children] not found
-                VALUE.name[0],               Field [name] is not indexed
-                VALUE.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                VALUE.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                VALUE.preferences,           The expression [VALUE.preferences] must evaluate to a non-complex object
-                VALUE.documents,             The expression [VALUE.documents] must evaluate to a non-complex object
-                VALUE.children,              The expression [VALUE.children] must evaluate to a non-complex object
-                VALUE.children[0]['no_key'], Field [no_key] not found
-                VALUE.children[0],           The expression [VALUE.children[0]] must evaluate to a non-complex object
-                VALUE.children[3].name,      Cannot retrieve field [name] from a null object
-                VALUE.children[4],           Field not found at index [4]
-                VALUE.children[4].name,      Field not found at index [4]
-                VALUE.type.attrib,           Cannot retrieve field [attrib] from a scalar object
-                VALUE.emptyArray[0],         Field not found at index [0]
-                VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE                       | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.preferences           | The expression [VALUE.preferences] must evaluate to a non-complex object
+                VALUE.documents             | The expression [VALUE.documents] must evaluate to a non-complex object
+                VALUE.children              | The expression [VALUE.children] must evaluate to a non-complex object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children[0]           | The expression [VALUE.children[0]] must evaluate to a non-complex object
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.type.attrib           | Cannot retrieve field [attrib] from a scalar object
+                VALUE.emptyArray[0]         | Field not found at index [0]
+                VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractValue(String expressionStr, String errorMessage) {
         ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue("param", fromValue(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+
+        ve =
                 assertThrows(
                         ValueException.class,
                         () ->
@@ -224,39 +344,82 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                      | EXPECTED
-                VALUE                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                VALUE.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
-                VALUE.documents.id.doc_id       | ID123
-                VALUE.documents['id'].doc_id    | ID123
-                VALUE.documents['id']['doc_id'] | ID123
-                VALUE.preferences               | {pref1=pref_value1, pref2=pref_value2}
-                VALUE.preferences['pref1']      | pref_value1
-                VALUE.preferences['pref2']      | pref_value2
-                VALUE.type                      | TYPE1
-                VALUE.emptyArray                | []
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.type.attrib           | Cannot retrieve field [attrib] from a scalar object
+                VALUE.emptyArray[0]         | Field not found at index [0]
+                VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException {
-        String extractedData =
-                valueSelector(Expression(expressionStr))
-                        .extractValue(fromValue(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(expected);
+    public void shouldNotExtractValueIntoMap(String expressionStr, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValueInto(
+                                                fromValue(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION                      | EXPECTED_NAME | EXPECTED
+                VALUE                           | VALUE         | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "array": ["abc", "xyz", null], "nullValue": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                VALUE.documents                 | documents     | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                VALUE.documents.id.doc_id       | doc_id        | ID123
+                VALUE.documents['id'].doc_id    | doc_id        | ID123
+                VALUE.documents['id']['doc_id'] | doc_id        | ID123
+                VALUE.preferences               | preferences   | {pref1=pref_value1, pref2=pref_value2}
+                VALUE.preferences['pref1']      | pref1         | pref_value1
+                VALUE.preferences['pref2']      | pref2         | pref_value2
+                VALUE.type                      | type          | TYPE1
+                VALUE.emptyArray                | emptyArray    | []
+                VALUE.nullValue                 | nullValue     |
+                    """)
+    public void shouldExtractValueWithNonScalars(
+            String expressionStr, String expectedName, String expectedValue)
+            throws ExtractionException {
+        ValueSelector<GenericRecord> valueSelector = valueSelector(Expression(expressionStr));
+
+        Data autoBoundValue = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
+        assertThat(autoBoundValue.name()).isEqualTo(expectedName);
+        assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
+
+        Data boundValue =
+                valueSelector(Expression(expressionStr))
+                        .extractValue("param", fromValue(SAMPLE_MESSAGE_V2), false);
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isEqualTo(expectedValue);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE                       | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib             | Cannot retrieve field [VALUE] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -268,71 +431,157 @@ public class GenericRecordSelectorsSuppliersTest {
                                         .extractValue(fromValue((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValue("param", fromValue((GenericRecord) null))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(Expression(expressionStr))
+                                        .extractValueInto(
+                                                fromValue((GenericRecord) null), new HashMap<>()));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input KEY.signature
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                          | EXPECTED
-                KEY.name                            | joe
-                KEY.preferences['pref1']            | pref_value1
-                KEY.preferences['pref2']            | pref_value2
-                KEY.documents['id'].doc_id          | ID123
-                KEY.documents['id'].doc_type        | ID
-                KEY.type                            | TYPE1
-                KEY.signature                       | [97, 98, 99, 100]
-                KEY.children[0].name                | alex
-                KEY.children[0]['name']             | alex
-                KEY.children[0].signature           | NULL
-                KEY.children[1].name                | anna
-                KEY.children[2].name                | serena
-                KEY.children[3]                     | NULL
-                KEY.children[1].children[0].name    | gloria
-                KEY.children[1].children[1].name    | terence
-                KEY.children[1].children[1]['name'] | terence
-                KEY.nullArray                       | NULL
+                EXPRESSION                          | EXPECTED_NAME | EXPECTED_VALUE
+                KEY.name                            | name          | joe
+                KEY['name']                         | name          | joe
+                KEY.preferences['pref1']            | pref1         | pref_value1
+                KEY.preferences['pref2']            | pref2         | pref_value2
+                KEY.documents['id'].doc_id          | doc_id        | ID123
+                KEY.documents['id'].doc_type        | doc_type      | ID
+                KEY.type                            | type          | TYPE1
+                KEY.signature                       | signature     | [97, 98, 99, 100]
+                KEY.children[0].name                | name          | alex
+                KEY.children[0]['name']             | name          | alex
+                KEY.children[0].signature           | signature     |
+                KEY.children[1].name                | name          | anna
+                KEY.children[2].name                | name          | serena
+                KEY.children[3]                     | children[3]   |
+                KEY.children[1].children[0].name    | name          | gloria
+                KEY.children[1].children[1].name    | name          | terence
+                KEY.children[1].children[1]['name'] | name          | terence
+                KEY.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        keySelector(Expression(expressionStr))
-                                .extractKey(fromKey(SAMPLE_MESSAGE))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+    public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KeySelector<GenericRecord> keySelector = keySelector(Expression(expressionStr));
+
+        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = keySelector.extractKey("param", fromKey(SAMPLE_MESSAGE));
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<GenericRecord, ?> record = fromKey(SAMPLE_MESSAGE);
+
+        keySelector(Expression("KEY")).extractKeyInto(record, target);
+        // assertThat(target)
+        //         .containsExactly(
+        //                 "name",
+        //                 "joe",
+        //                 "preferences",
+        //                 "{pref1=pref_value1, pref2=pref_value2}",
+        //                 "documents",
+        //                 "{id={\"doc_id\": \"ID123\", \"doc_type\": \"ID\"}}",
+        //                 "type",
+        //                 "TYPE1",
+        //                 "signature",
+        //                 "[97, 98, 99, 100]",
+        //                 "children",
+        //                 "null",
+        //                 "emptyArray",
+        //                 "[]",
+        //                 "nullArray",
+        //                 "array",
+        //                 "[abc, xyz, null]",
+        //                 "null",
+        //                 "main_document",
+        //                 "null");
+        target.clear();
+
+        keySelector(Expression("KEY.preferences")).extractKeyInto(record, target);
+        assertThat(target).containsExactly("pref1", "pref_value1", "pref2", "pref_value2");
+        target.clear();
+
+        keySelector(Expression("KEY.documents.id")).extractKeyInto(record, target);
+        assertThat(target).containsExactly("doc_id", "ID123", "doc_type", "ID");
+        target.clear();
+
+        keySelector(Expression("KEY.children")).extractKeyInto(record, target);
+        assertThat(target).containsKey("children[0]");
+        assertThat(target).containsKey("children[1]");
+        assertThat(target).containsKey("children[2]");
+        target.clear();
+
+        keySelector(Expression("KEY.array")).extractKeyInto(record, target);
+        assertThat(target).containsExactly("array[0]", "abc", "array[1]", "xyz", "array[2]", null);
+        target.clear();
+
+        keySelector(Expression("KEY.nullValue")).extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        keySelector(Expression("KEY.emptyArray")).extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                KEY,                       The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib,             Field [no_attrib] not found
-                KEY.children[0].no_attrib, Field [no_attrib] not found
-                KEY.no_children[0],        Field [no_children] not found
-                KEY.name[0],               Field [name] is not indexed
-                KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                KEY.preferences,           The expression [KEY.preferences] must evaluate to a non-complex object
-                KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
-                KEY.children[0]['no_key'], Field [no_key] not found
-                KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
-                KEY.children[3].name,      Cannot retrieve field [name] from a null object
-                KEY.children[4],           Field not found at index [4]
-                KEY.children[4].name,      Field not found at index [4]
-                KEY.type.attrib,           Cannot retrieve field [attrib] from a scalar object
-                KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY                       | The expression [KEY] must evaluate to a non-complex object
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.preferences           | The expression [KEY.preferences] must evaluate to a non-complex object
+                KEY.children              | The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.children[0]           | The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name      | Cannot retrieve field [name] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.type.attrib           | Cannot retrieve field [attrib] from a scalar object
+                KEY.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractKey(String expressionStr, String errorMessage) {
         ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey("param", fromKey(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+
+        ve =
                 assertThrows(
                         ValueException.class,
                         () ->
@@ -345,39 +594,79 @@ public class GenericRecordSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                    | EXPECTED
-                KEY                           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "nullArray": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
-                KEY.documents                 | {id={"doc_id": "ID123", "doc_type": "ID"}}
-                KEY.documents.id.doc_id       | ID123
-                KEY.documents['id'].doc_id    | ID123
-                KEY.documents['id']['doc_id'] | ID123
-                KEY.preferences               | {pref1=pref_value1, pref2=pref_value2}
-                KEY.preferences['pref1']      | pref_value1
-                KEY.preferences['pref2']      | pref_value2
-                KEY.type                      | TYPE1
-                KEY.emptyArray                | []
+                EXPRESSION                 | EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib              | Field [no_attrib] not found
+                KEY.children[0].no_attrib  | Field [no_attrib] not found
+                KEY.no_children[0]         | Field [no_children] not found
+                KEY.name[0]                | Field [name] is not indexed
+                KEY.name['no_key']         | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key            | Cannot retrieve field [no_key] from a scalar object
+                KEY.children[0]['no_key']  | Field [no_key] not found
+                KEY.children[3].name       | Cannot retrieve field [name] from a null object
+                KEY.children[4]            | Field not found at index [4]
+                KEY.children[4].name       | Field not found at index [4]
+                KEY.type.attrib            | Cannot retrieve field [attrib] from a scalar object
+                KEY.nullValue[0]           | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException {
-        String extractedData =
-                keySelector(Expression(expressionStr))
-                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(expected);
+    public void shouldNotExtractKeyIntoMap(String expressionStr, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION                    | EXPECTED_NAME | EXPECTED_VALUE
+                KEY                           | KEY           | {"name": "joe", "type": "TYPE1", "signature": [97, 98, 99, 100], "main_document": null, "children": null, "emptyArray": [], "array": ["abc", "xyz", null], "nullValue": null, "preferences": {"pref1": "pref_value1", "pref2": "pref_value2"}, "documents": {"id": {"doc_id": "ID123", "doc_type": "ID"}}}
+                KEY.documents                 | documents     | {id={"doc_id": "ID123", "doc_type": "ID"}}
+                KEY.documents.id.doc_id       | doc_id        | ID123
+                KEY.documents['id'].doc_id    | doc_id        | ID123
+                KEY.documents['id']['doc_id'] | doc_id        | ID123
+                KEY.preferences               | preferences   | {pref1=pref_value1, pref2=pref_value2}
+                KEY.preferences['pref1']      | pref1         | pref_value1
+                KEY.preferences['pref2']      | pref2         | pref_value2
+                KEY.type                      | type          | TYPE1
+                KEY.emptyArray                | emptyArray    | []
+                KEY.nullValue                 | nullValue     |
+                    """)
+    public void shouldExtractKeyWithNonScalars(
+            String expressionStr, String expectedName, String expectedValue)
+            throws ExtractionException {
+        Data autoBoundValue =
+                keySelector(Expression(expressionStr))
+                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
+        assertThat(autoBoundValue.name()).isEqualTo(expectedName);
+        assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
+
+        Data boundValue =
+                keySelector(Expression(expressionStr))
+                        .extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isEqualTo(expectedValue);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY                       | Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib             | Cannot retrieve field [KEY] from a null object
+                KEY.children[0].no_attrib | Cannot retrieve field [KEY] from a null object
+                KEY.no_children[0]        | Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -389,43 +678,23 @@ public class GenericRecordSelectorsSuppliersTest {
                                         .extractKey(fromKey((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                    """)
-    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
+        ve =
                 assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKey("param", fromKey((GenericRecord) null))
+                                        .text());
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                    """)
-    public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
+        ve =
                 assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        ValueException.class,
+                        () ->
+                                keySelector(Expression(expressionStr))
+                                        .extractKeyInto(
+                                                fromKey((GenericRecord) null), new HashMap<>()));
+        assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 }
