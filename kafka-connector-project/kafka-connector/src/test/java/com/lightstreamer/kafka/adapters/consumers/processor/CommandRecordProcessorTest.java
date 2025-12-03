@@ -28,7 +28,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -71,9 +71,8 @@ public class CommandRecordProcessorTest {
                                 TEST_TOPIC,
                                 extractor(String(), "item1", Collections.emptyMap(), false, false))
                         .withFieldExtractor(
-                                DataExtractor.extractor(
+                                DataExtractors.staticFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of(
                                                 "key",
                                                 Wrapped("#{KEY}"),
