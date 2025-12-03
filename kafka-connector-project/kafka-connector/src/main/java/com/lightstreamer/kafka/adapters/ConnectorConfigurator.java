@@ -35,8 +35,8 @@ import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +53,7 @@ public class ConnectorConfigurator {
             String connectionName,
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
-            DataExtractor<K, V> fieldsExtractor,
+            FieldsExtractor<K, V> fieldsExtractor,
             KeyValueDeserializers<K, V> deserializers,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean isCommandEnforceEnabled,
@@ -102,8 +102,8 @@ public class ConnectorConfigurator {
                         config.isMapRegExEnabled());
 
         ItemTemplates<K, V> itemTemplates = Items.templatesFrom(topicsConfig, sSuppliers);
-        DataExtractor<K, V> fieldsExtractor =
-                fieldConfigs.extractor(
+        FieldsExtractor<K, V> fieldsExtractor =
+                fieldConfigs.fieldsExtractor(
                         sSuppliers,
                         config.isFieldsSkipFailedMappingEnabled(),
                         config.isFieldsMapNonScalarValuesEnabled());
