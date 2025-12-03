@@ -294,6 +294,7 @@ public class SampleMessageProviders {
 
         private final Schema valueSchema;
         private final Schema childrenSchema;
+        private final Schema arraySchema;
         private final Schema emptyArraySchema;
 
         private GenericRecordProvider() {
@@ -304,6 +305,7 @@ public class SampleMessageProviders {
                 valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
                 childrenSchema = valueSchema.getField("children").schema();
                 emptyArraySchema = valueSchema.getField("emptyArray").schema();
+                arraySchema = valueSchema.getField("array").schema();
             } catch (IOException io) {
                 throw new RuntimeException(io);
             }
@@ -332,7 +334,12 @@ public class SampleMessageProviders {
             documentRecord.put("doc_type", "ID");
             joe.put("documents", Map.of(new Utf8("id"), documentRecord));
             joe.put("emptyArray", new GenericData.Array<>(emptyArraySchema, null));
-            joe.put("nullArray", null);
+            List<String> arrayValues = new ArrayList<>();
+            arrayValues.add("abc");
+            arrayValues.add("xyz");
+            arrayValues.add(null);
+            joe.put("array", new GenericData.Array<>(arraySchema, arrayValues));
+            joe.put("nullValue", null);
             return joe;
         }
 
