@@ -196,12 +196,8 @@ public class JsonNodeSelectorsSuppliersTest {
 
     @Test
     public void shouldGetDeserializer() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
-
         Deserializer<JsonNode> keyDeserializer =
-                new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
+                new JsonNodeSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
 
         Deserializer<JsonNode> valueDeserializer =
