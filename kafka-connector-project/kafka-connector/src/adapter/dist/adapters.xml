@@ -467,6 +467,7 @@
         <!--
         <param name="field.FIELD_NAME">extraction_expression</param>
         -->
+        <!--
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
         <param name="field.stock_name">#{VALUE.name}</param>
@@ -484,7 +485,9 @@
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
-        <param name="field.partition">#{PARTITION}</param>
+        <param name="field.partition">#{PARTITION}</param>  
+        -->
+        <param name="field.*">#{VALUE}</param>
 
         <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
              Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. Can be one of the following:
