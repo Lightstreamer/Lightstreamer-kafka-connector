@@ -36,9 +36,10 @@
         <param name="map.stocks.to">item-template.stock</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
+        <!--
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
-        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.name">#{VALUE.name}</param>
         <param name="field.last_price">#{VALUE.last_price}</param>
         <param name="field.ask">#{VALUE.ask}</param>
         <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -54,6 +55,8 @@
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
+        -->
+        <param name="field.*">#{VALUE}</param>
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
         <param name="schema.registry.url">https://schema-registry:8084</param>
