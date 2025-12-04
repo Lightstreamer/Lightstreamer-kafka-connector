@@ -330,10 +330,9 @@ public class DataExtractorTest {
     @Test
     public void shouldFailMappingNonScalarValues()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
-        DataExtractor<String, JsonNode> extractor =
-                extractor(
+        FieldsExtractor<String, JsonNode> extractor =
+                DataExtractors.staticFieldsExtractor(
                         TestSelectorSuppliers.JsonValue(),
-                        "fields",
                         Map.of(
                                 "complexObject",
                                 Expressions.Wrapped("#{VALUE}"),
@@ -350,7 +349,7 @@ public class DataExtractorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> extractor.extractAsMap(Records.record("aValue", message)));
+                        () -> extractor.extractMap(Records.record("aValue", message)));
         assertThat(ve.getMessage())
                 .contains("The expression [VALUE] must evaluate to a non-complex object");
     }
