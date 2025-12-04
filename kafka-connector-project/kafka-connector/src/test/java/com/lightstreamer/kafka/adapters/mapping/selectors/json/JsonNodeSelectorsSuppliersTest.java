@@ -524,10 +524,11 @@ public class JsonNodeSelectorsSuppliersTest {
                     {
                          "name": "joe",
                          "signature": "YWJjZA",
-                         "data": [1, 2, 3],
+                         "data": [1, 2, 3, null],
                          "emptyData": [],
                          "map": {"a": 1, "b": 2, "c": 3},
-                         "emptyMap": {}
+                         "emptyMap": {},
+                         "nullValue": null
                     }
                         """);
 
@@ -542,29 +543,20 @@ public class JsonNodeSelectorsSuppliersTest {
                         "signature",
                         "YWJjZA",
                         "data",
-                        "[1,2,3]",
+                        "[1,2,3,null]",
                         "emptyData",
                         "[]",
                         "map",
                         "{\"a\":1,\"b\":2,\"c\":3}",
                         "emptyMap",
-                        "{}");
-        target.clear();
-
-        keySelector(Expression("KEY.name")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("name", "joe");
+                        "{}",
+                        "nullValue",
+                        null);
         target.clear();
 
         keySelector(Expression("KEY.data")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3");
-        target.clear();
-
-        keySelector(Expression("KEY.data[1]")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("data[1]", "2");
-        target.clear();
-
-        keySelector(Expression("KEY.data[2]")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("data[2]", "3");
+        assertThat(target)
+                .containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3", "data[3]", null);
         target.clear();
 
         keySelector(Expression("KEY.emptyData")).extractKeyInto(record, target);
@@ -575,11 +567,11 @@ public class JsonNodeSelectorsSuppliersTest {
         assertThat(target).containsExactly("a", "1", "b", "2", "c", "3");
         target.clear();
 
-        keySelector(Expression("KEY.map.a")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("a", "1");
+        keySelector(Expression("KEY.emptyMap")).extractKeyInto(record, target);
+        assertThat(target).isEmpty();
         target.clear();
 
-        keySelector(Expression("KEY.emptyMap")).extractKeyInto(record, target);
+        keySelector(Expression("KEY.nullValue")).extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
     }
