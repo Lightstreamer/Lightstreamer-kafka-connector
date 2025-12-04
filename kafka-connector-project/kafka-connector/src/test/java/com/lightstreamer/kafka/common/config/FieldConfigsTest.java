@@ -77,7 +77,7 @@ public class FieldConfigsTest {
                         () -> configs.extractor(OthersSelectorSuppliers.String(), false, false));
         assertThat(ee.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values while evaluating [field1]");
+                        "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values");
     }
 
     @ParameterizedTest
