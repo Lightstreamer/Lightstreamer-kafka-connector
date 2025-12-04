@@ -413,7 +413,7 @@ public class ProtobufNodeTest {
 
         Map<String, String> targetMap = new HashMap<>();
         dataNapNode.flatIntoMap(targetMap);
-        assertThat(targetMap).containsExactly("mapNode[aDataKey]", "-13.3");
+        assertThat(targetMap).containsExactly("aDataKey", "-13.3");
         targetMap.clear();
 
         ProtobufNode elemNode = dataNapNode.getProperty("fieldNode", "aDataKey");
