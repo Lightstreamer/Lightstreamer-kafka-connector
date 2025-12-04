@@ -32,6 +32,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HeaderSelectorSupplierTest {
 
@@ -51,7 +53,7 @@ public class HeaderSelectorSupplierTest {
 
     static GenericSelector headersSelector(ExtractionExpression expression)
             throws ExtractionException {
-        return new HeadersSelectorSupplier().newSelector("name", expression);
+        return new HeadersSelectorSupplier().newSelector(expression);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -59,21 +61,46 @@ public class HeaderSelectorSupplierTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,           EXPECTED
-                HEADERS.name,         joe
-                HEADERS[0],           joe
-                HEADERS['name'],      joe
-                HEADERS.signature,    YWJjZA==
-                HEADERS['signature'], YWJjZA==
-                HEADERS.accountId[0], 12345
-                HEADERS.accountId[1], 67890
+                EXPRESSION,           BOUND,       EXPECTED
+                HEADERS.name,         name,        joe
+                HEADERS[0],           name,        joe
+                HEADERS['name'],      signature,   joe
+                HEADERS.signature,    signature,   YWJjZA==
+                HEADERS['signature'], signature,   YWJjZA==
+                HEADERS.accountId[0], accountId_0, 12345
+                HEADERS.accountId[1], accountId_1, 67890
                         """)
-    public void shouldExtractRecordHeaders(String expressionStr, String expected)
+    public void shouldExtractRecordHeaders(String expressionStr, String bound, String expected)
             throws ExtractionException {
         KafkaRecord<String, String> record =
                 Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
-        assertThat(headersSelector(Expression(expressionStr)).extract(record).text())
+        assertThat(headersSelector(Expression(expressionStr)).extract(bound, record).text())
                 .isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,           EXPECTED_NAME, EXPECTED_VALUE
+                HEADERS.name,         name,          joe
+                HEADERS[0],           HEADERS[0],    joe
+                HEADERS['name'],      name,          joe
+                HEADERS.signature,    signature,     YWJjZA==
+                HEADERS['signature'], signature,     YWJjZA==
+                HEADERS.accountId[0], accountId[0],  12345
+                HEADERS.accountId[1], accountId[1],  67890
+                        """)
+    public void shouldExtractRecordHeadersIntoMap(
+            String expressionStr, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KafkaRecord<String, String> record =
+                Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
+        GenericSelector headersSelector = headersSelector(Expression(expressionStr));
+        Map<String, String> map = new HashMap<>();
+        headersSelector.extractInto(record, map);
+        assertThat(map).containsExactly(expectedName, expectedValue);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -94,7 +121,7 @@ public class HeaderSelectorSupplierTest {
             throws ExtractionException {
         KafkaRecord<Object, Object> record =
                 Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
-        assertThat(headersSelector(Expression(expressionStr)).extract(record).text())
+        assertThat(headersSelector(Expression(expressionStr)).extract("name", record).text())
                 .isEqualTo(expected);
     }
 
@@ -119,7 +146,10 @@ public class HeaderSelectorSupplierTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> headersSelector(Expression(expressionStr)).extract(record).text());
+                        () ->
+                                headersSelector(Expression(expressionStr))
+                                        .extract("name", record)
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -144,7 +174,10 @@ public class HeaderSelectorSupplierTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> headersSelector(Expression(expressionStr)).extract(record).text());
+                        () ->
+                                headersSelector(Expression(expressionStr))
+                                        .extract("name", record)
+                                        .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
 
@@ -163,7 +196,7 @@ public class HeaderSelectorSupplierTest {
         KafkaRecord<String, String> record =
                 Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS);
 
-        assertThat(headersSelector(Expression(expressionStr)).extract(record, false).text())
+        assertThat(headersSelector(Expression(expressionStr)).extract("name", record, false).text())
                 .isEqualTo(expected);
     }
 
@@ -182,7 +215,7 @@ public class HeaderSelectorSupplierTest {
         KafkaRecord<Object, Object> record =
                 Records.sinkFromHeaders("topic", SAMPLE_CONNECT_HEADERS);
 
-        assertThat(headersSelector(Expression(expressionStr)).extract(record, false).text())
+        assertThat(headersSelector(Expression(expressionStr)).extract("name", record, false).text())
                 .isEqualTo(expected);
     }
 
@@ -192,11 +225,11 @@ public class HeaderSelectorSupplierTest {
             textBlock =
                     """
                 EXPRESSION,           EXPECTED_ERROR_MESSAGE
-                HEADERS.a. .b,        Found the invalid expression [HEADERS.a. .b] with missing tokens while evaluating [name]
-                HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]] while evaluating [name]
-                HEADERS.attrib[0]xsd, Found the invalid indexed expression [HEADERS.attrib[0]xsd] while evaluating [name]
-                HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]] while evaluating [name]
-                HEADERS.attrib[a],    Found the invalid indexed expression [HEADERS.attrib[a]] while evaluating [name]
+                HEADERS.a. .b,        Found the invalid expression [HEADERS.a. .b] with missing tokens
+                HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
+                HEADERS.attrib[0]xsd, Found the invalid indexed expression [HEADERS.attrib[0]xsd]
+                HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
+                HEADERS.attrib[a],    Found the invalid indexed expression [HEADERS.attrib[a]]
                 """)
     public void shouldNotCreateHeaderSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
