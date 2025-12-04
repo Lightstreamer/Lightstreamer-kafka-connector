@@ -23,8 +23,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.slf4j.Logger;
@@ -284,21 +284,25 @@ public interface RecordMapper<K, V> {
      * configuration is provided, ensuring that {@link MappedRecord#fieldsMap()} operations complete
      * successfully without actual data extraction.
      */
-    static class NOPDataExtractor<K, V> implements DataExtractor<K, V> {
+    static class NOPDataExtractor<K, V> implements FieldsExtractor<K, V> {
 
         @Override
-        public Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException {
-            return Collections.emptyMap();
+        public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
+                throws ValueException {}
+
+        @Override
+        public boolean skipOnFailure() {
+            return false;
         }
 
         @Override
-        public Schema schema() {
-            return Schema.nop();
+        public boolean mapNonScalars() {
+            return false;
         }
 
         @Override
-        public String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
-            return "";
+        public Set<String> mappedFields() {
+            return Collections.emptySet();
         }
     }
 
@@ -308,12 +312,12 @@ public interface RecordMapper<K, V> {
      */
     static class Builder<K, V> {
 
-        static final DataExtractor<?, ?> NOP = new NOPDataExtractor<>();
+        static final FieldsExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
         final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicSubscription = new HashMap<>();
 
         @SuppressWarnings("unchecked")
-        DataExtractor<K, V> fieldExtractor = (DataExtractor<K, V>) NOP;
+        FieldsExtractor<K, V> fieldExtractor = (FieldsExtractor<K, V>) NOP;
 
         boolean regexEnabled = false;
 
@@ -380,7 +384,7 @@ public interface RecordMapper<K, V> {
          *     extractor will be used
          * @return this builder for method chaining
          */
-        public final Builder<K, V> withFieldExtractor(DataExtractor<K, V> extractor) {
+        public final Builder<K, V> withFieldExtractor(FieldsExtractor<K, V> extractor) {
             this.fieldExtractor = extractor;
             return this;
         }
@@ -409,7 +413,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     static record PatternAndExtractors<K, V>(
             Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
 
-    private final DataExtractor<K, V> fieldExtractor;
+    private final FieldsExtractor<K, V> fieldExtractor;
     private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
@@ -489,7 +493,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractAsCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractAsMap(record));
+        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractMap(record));
     }
 }
 
