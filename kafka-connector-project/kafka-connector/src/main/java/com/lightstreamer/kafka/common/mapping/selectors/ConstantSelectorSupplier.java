@@ -33,8 +33,8 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
 
         private final Constant constant;
 
-        ConstantSelectorImpl(String name, Constant expression) {
-            super(name, expression);
+        ConstantSelectorImpl(Constant expression) {
+            super(expression);
             this.constant = expression;
         }
 
@@ -134,9 +134,9 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                     expression.expression(), expectedConstantStr());
         }
         if (expression.tokens().length > 1) {
-            throw ExtractionException.notAllowedAttributes("", expression.expression());
+            throw ExtractionException.notAllowedAttributes(expression.expression());
         }
-        return new ConstantSelectorImpl("", expression.constant());
+        return new ConstantSelectorImpl(expression.constant());
     }
 
     public static ConstantSelectorSupplier KeySelector() {
