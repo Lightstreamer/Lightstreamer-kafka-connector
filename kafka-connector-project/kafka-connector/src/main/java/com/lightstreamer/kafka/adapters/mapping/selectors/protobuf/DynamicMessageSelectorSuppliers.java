@@ -360,7 +360,7 @@ public class DynamicMessageSelectorSuppliers
         public void flatIntoMap(Map<String, String> target) {
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 target.put(
-                        name + "[" + entry.getKey() + "]",
+                        entry.getKey(),
                         ProtobufNode.textValue(fieldValueDescriptor, entry.getValue()));
             }
         }
