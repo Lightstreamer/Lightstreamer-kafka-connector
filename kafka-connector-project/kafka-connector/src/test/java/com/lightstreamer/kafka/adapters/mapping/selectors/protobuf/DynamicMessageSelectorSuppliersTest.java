@@ -353,7 +353,7 @@ public class DynamicMessageSelectorSuppliersTest {
         target.clear();
 
         valueSelector(Expression("VALUE.data")).extractValueInto(record, target);
-        assertThat(target).containsExactly("data[aDataKey]", "-13.3");
+        assertThat(target).containsExactly("aDataKey", "-13.3");
         target.clear();
 
         valueSelector(Expression("VALUE.friends[0]")).extractValueInto(record, target);
@@ -572,7 +572,7 @@ public class DynamicMessageSelectorSuppliersTest {
         target.clear();
 
         keySelector(Expression("KEY.data")).extractKeyInto(record, target);
-        assertThat(target).containsExactly("data[aDataKey]", "-13.3");
+        assertThat(target).containsExactly("aDataKey", "-13.3");
         target.clear();
 
         keySelector(Expression("KEY.friends[0]")).extractKeyInto(record, target);
