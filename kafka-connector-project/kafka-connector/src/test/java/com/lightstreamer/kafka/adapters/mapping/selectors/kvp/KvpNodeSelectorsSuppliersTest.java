@@ -71,7 +71,7 @@ public class KvpNodeSelectorsSuppliersTest {
             ExtractionExpression expression, ConnectorConfig config) throws ExtractionException {
         return new KvpSelectorsSuppliers(config)
                 .makeValueSelectorSupplier()
-                .newSelector("name", expression);
+                .newSelector(expression);
     }
 
     static KeySelector<String> keySelector(ExtractionExpression expression)
@@ -81,9 +81,7 @@ public class KvpNodeSelectorsSuppliersTest {
 
     static KeySelector<String> keySelector(ExtractionExpression expression, ConnectorConfig config)
             throws ExtractionException {
-        return new KvpSelectorsSuppliers(config)
-                .makeKeySelectorSupplier()
-                .newSelector("name", expression);
+        return new KvpSelectorsSuppliers(config).makeKeySelectorSupplier().newSelector(expression);
     }
 
     @Test
@@ -203,8 +201,8 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                VALUE.A    | Cannot retrieve field [A] from a null object
-                VALUE.B    | Cannot retrieve field [B] from a null object
+                VALUE.A    | Cannot retrieve field [VALUE] from a null object
+                VALUE.B    | Cannot retrieve field [VALUE] from a null object
                     """)
     public void shouldHandleNullValue(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -310,8 +308,8 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                KEY.A      | Cannot retrieve field [A] from a null object
-                KEY.B      | Cannot retrieve field [B] from a null object
+                KEY.A      | Cannot retrieve field [KEY] from a null object
+                KEY.B      | Cannot retrieve field [KEY] from a null object
                     """)
     public void shouldHandleNullKey(String expressionStr, String errorMessage)
             throws ExtractionException {
@@ -331,11 +329,11 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expression(expressionStr);
@@ -350,11 +348,11 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]]
                     """)
     public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionExpression expression = Expression(expressionStr);
