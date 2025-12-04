@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.EnumValueDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor.Type;
 import com.google.protobuf.DynamicMessage;
@@ -96,8 +97,8 @@ public class DynamicMessageSelectorSuppliers
      *   <li>Value extraction
      * </ul>
      *
-     * <p>Use the {@link #newNode(Object, FieldDescriptor)} factory method to create appropriate
-     * node implementations based on the Protobuf field type.
+     * <p>Use the {@link #newNode(String, Object, FieldDescriptor)} factory method to create
+     * appropriate node implementations based on the Protobuf field type.
      */
     interface ProtobufNode extends Node<ProtobufNode> {
 
@@ -126,6 +127,23 @@ public class DynamicMessageSelectorSuppliers
 
         default int size() {
             return 0;
+        }
+
+        static String textValue(FieldDescriptor fieldDescriptor, Object value) {
+            Type type = fieldDescriptor.getType();
+            return switch (type) {
+                case UINT32, FIXED32 -> Long.toString(((Integer) value).longValue() & 0xFFFFFFFFL);
+                case UINT64, FIXED64 -> Long.toUnsignedString((Long) value);
+                case BYTES -> {
+                    if (value instanceof ByteString bs) {
+                        yield bs.toStringUtf8();
+                    } else {
+                        yield ByteString.copyFrom((byte[]) value).toStringUtf8();
+                    }
+                }
+                case ENUM -> ((EnumValueDescriptor) value).getName();
+                default -> value.toString();
+            };
         }
 
         static class NullNode implements ProtobufNode {
@@ -216,8 +234,7 @@ public class DynamicMessageSelectorSuppliers
             for (FieldDescriptor fieldDescriptor : descriptor.getFields()) {
                 Object value = message.getField(fieldDescriptor);
                 target.put(
-                        fieldDescriptor.getName(),
-                        TextFormat.printer().printFieldToString(fieldDescriptor, value));
+                        fieldDescriptor.getName(), ProtobufNode.textValue(fieldDescriptor, value));
             }
         }
 
@@ -276,6 +293,14 @@ public class DynamicMessageSelectorSuppliers
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
+
+        @Override
+        public void flatIntoMap(Map<String, String> target) {
+            for (int i = 0; i < size(); i++) {
+                Object value = containing.getRepeatedField(fieldDescriptor, i);
+                target.put(name + "[" + i + "]", ProtobufNode.textValue(fieldDescriptor, value));
+            }
+        }
     }
 
     /**
@@ -299,6 +324,7 @@ public class DynamicMessageSelectorSuppliers
             this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
+            this.fieldValueDescriptor = fieldDescriptor.getMessageType().findFieldByName("value");
 
             @SuppressWarnings("unchecked")
             List<MapEntry<?, ?>> entries =
@@ -306,8 +332,6 @@ public class DynamicMessageSelectorSuppliers
             for (MapEntry<?, ?> entry : entries) {
                 map.put(entry.getKey().toString(), entry.getValue());
             }
-
-            this.fieldValueDescriptor = fieldDescriptor.getMessageType().findFieldByName("value");
         }
 
         @Override
@@ -331,6 +355,15 @@ public class DynamicMessageSelectorSuppliers
             return TextFormat.printer()
                     .printFieldToString(fieldDescriptor, containing.getField(fieldDescriptor));
         }
+
+        @Override
+        public void flatIntoMap(Map<String, String> target) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                target.put(
+                        name + "[" + entry.getKey() + "]",
+                        ProtobufNode.textValue(fieldValueDescriptor, entry.getValue()));
+            }
+        }
     }
 
     /**
@@ -352,10 +385,10 @@ public class DynamicMessageSelectorSuppliers
         private final Object value;
         private final FieldDescriptor fieldDescriptor;
 
-        ScalarFieldNode(String name, Object value, FieldDescriptor fieldDescriptor) {
+        ScalarFieldNode(String name, Object value, FieldDescriptor descriptor) {
             this.name = name;
             this.value = value;
-            this.fieldDescriptor = fieldDescriptor;
+            this.fieldDescriptor = descriptor;
         }
 
         @Override
@@ -370,10 +403,7 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         public String text() {
-            if (fieldDescriptor.getType().equals(Type.BYTES)) {
-                return ((ByteString) value).toStringUtf8();
-            }
-            return value.toString();
+            return ProtobufNode.textValue(fieldDescriptor, value);
         }
     }
 
