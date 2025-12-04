@@ -27,6 +27,7 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -64,7 +65,7 @@ public class DataExtractorBenchmarks {
         int numOfTemplateParams = 3;
 
         DataExtractor<String, DynamicMessage> templateExtractor;
-        DataExtractor<String, DynamicMessage> fieldsExtractor;
+        FieldsExtractor<String, DynamicMessage> fieldsExtractor;
         List<KafkaRecord<String, DynamicMessage>> records;
 
         @Setup(Level.Iteration)
@@ -86,7 +87,7 @@ public class DataExtractorBenchmarks {
         int numOfTemplateParams = 3;
 
         DataExtractor<String, JsonNode> templateExtractor;
-        DataExtractor<String, JsonNode> fieldsExtractor;
+        FieldsExtractor<String, JsonNode> fieldsExtractor;
         private List<KafkaRecord<String, JsonNode>> records;
 
         @Setup(Level.Iteration)
@@ -117,13 +118,13 @@ public class DataExtractorBenchmarks {
     // Measure extraction from fields (all fields, no template)
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
-        Map<String, String> data = proto.fieldsExtractor.extractAsMap(proto.records.get(0));
+        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.records.get(0));
         bh.consume(data);
     }
 
     @Benchmark
     public void extractAsMapJson(Json json, Blackhole bh) {
-        Map<String, String> data = json.fieldsExtractor.extractAsMap(json.records.get(0));
+        Map<String, String> data = json.fieldsExtractor.extractMap(json.records.get(0));
         bh.consume(data);
     }
 }
