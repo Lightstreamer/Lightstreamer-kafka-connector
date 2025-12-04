@@ -249,6 +249,6 @@ public class OthersSelectorsTest {
                         });
         assertThat(ee.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression [VALUE.a] for scalar values while evaluating [name]");
+                        "Found the invalid expression [VALUE.a] for scalar values");
     }
 }
