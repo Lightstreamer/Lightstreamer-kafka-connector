@@ -77,9 +77,6 @@ public class GenericRecordSelectorsSuppliers
             return 0;
         }
 
-        @Override
-        default void flatIntoMap(Map<String, String> target) {}
-
         static class InvalidNode implements AvroNode {
 
             static final InvalidNode INSTANCE = new InvalidNode();
@@ -229,12 +226,24 @@ public class GenericRecordSelectorsSuppliers
 
         @Override
         public String text() {
-            return map.toString();
+            StringBuilder sb = new StringBuilder();
+            sb.append("{");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (!first) {
+                    sb.append(", ");
+                } else {
+                    first = false;
+                }
+                sb.append(entry.getKey()).append(": ").append(Objects.toString(entry.getValue(), null));
+            }
+            sb.append("}");
+            return sb.toString();
         }
 
         public void flatIntoMap(Map<String, String> target) {
-            for (Object key : map.keySet()) {
-                target.put(key.toString(), Objects.toString(map.get(key), null));
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                target.put(entry.getKey().toString(), Objects.toString(entry.getValue(), null));
             }
         }
     }
