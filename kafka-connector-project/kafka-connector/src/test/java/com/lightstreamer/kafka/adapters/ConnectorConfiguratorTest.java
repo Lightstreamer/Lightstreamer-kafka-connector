@@ -38,7 +38,7 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelecto
 import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -177,13 +177,12 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        DataExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
         assertThat(fieldExtractor.skipOnFailure()).isFalse();
         assertThat(fieldExtractor.mapNonScalars()).isFalse();
 
-        Schema schema = fieldExtractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).containsExactly("fieldName1");
+        Set<String> fieldNames = fieldExtractor.mappedFields();
+        assertThat(fieldNames).containsExactly("fieldName1");
 
         ItemTemplates<?, ?> itemTemplates = consumerTriggerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
@@ -228,13 +227,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
-        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         assertThat(fieldsExtractor.mapNonScalars()).isTrue();
 
-        Schema schema = fieldsExtractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+        Set<String> fieldNames = fieldsExtractor.mappedFields();
+        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
@@ -278,10 +276,9 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
-        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
-        Schema schema = fieldsExtractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        Set<String> fieldNames = fieldsExtractor.mappedFields();
+        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
@@ -321,10 +318,9 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConsumerTriggerConfig<?, ?> config = configurator.configure();
 
-        DataExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
-        Schema schema = fieldsExtractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).containsExactly("fieldName1", "fieldName2");
+        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        Set<String> fieldNames = fieldsExtractor.mappedFields();
+        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
