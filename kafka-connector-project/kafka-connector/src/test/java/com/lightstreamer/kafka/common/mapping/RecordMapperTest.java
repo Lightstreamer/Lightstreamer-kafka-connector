@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleDynamicMessageProvider;
@@ -124,9 +125,8 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of("aKey", Wrapped("#{PARTITION}")),
                                         false,
                                         false))
@@ -155,9 +155,8 @@ public class RecordMapperTest {
                                 TEST_TOPIC_2,
                                 extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of(
                                                 "keyField",
                                                 Wrapped("#{KEY}"),
@@ -238,9 +237,8 @@ public class RecordMapperTest {
                                 extractor(String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of(
                                                 "keyField",
                                                 Wrapped("#{KEY}"),
@@ -323,9 +321,8 @@ public class RecordMapperTest {
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -381,9 +378,8 @@ public class RecordMapperTest {
                                 TEST_TOPIC_1,
                                 extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -414,9 +410,8 @@ public class RecordMapperTest {
                                 TEST_TOPIC_1,
                                 extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -450,9 +445,8 @@ public class RecordMapperTest {
                                         JsonValue(),
                                         Template("test-#{name=VALUE.not_valid_attrib}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -504,9 +498,8 @@ public class RecordMapperTest {
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         AvroValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -577,9 +570,8 @@ public class RecordMapperTest {
                                         Template(
                                                 "test-#{phoneNumber=VALUE.phoneNumbers[0],country=VALUE.otherAddresses['work'].country.name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         ProtoValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -653,9 +645,8 @@ public class RecordMapperTest {
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
-                                extractor(
+                                staticFieldsExtractor(
                                         Object(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
