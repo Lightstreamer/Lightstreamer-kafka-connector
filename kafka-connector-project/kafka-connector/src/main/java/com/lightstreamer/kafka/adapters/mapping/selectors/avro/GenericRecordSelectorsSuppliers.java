@@ -235,7 +235,9 @@ public class GenericRecordSelectorsSuppliers
                 } else {
                     first = false;
                 }
-                sb.append(entry.getKey()).append(": ").append(Objects.toString(entry.getValue(), null));
+                sb.append(entry.getKey())
+                        .append(": ")
+                        .append(Objects.toString(entry.getValue(), null));
             }
             sb.append("}");
             return sb.toString();
