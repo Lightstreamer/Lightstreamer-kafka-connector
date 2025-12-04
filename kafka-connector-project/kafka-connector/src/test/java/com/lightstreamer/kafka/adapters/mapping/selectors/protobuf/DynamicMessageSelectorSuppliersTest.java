@@ -42,6 +42,7 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -324,7 +325,49 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() {}
+    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<?, DynamicMessage> record = fromValue(SAMPLE_MESSAGE);
+
+        valueSelector(Expression("VALUE")).extractValueInto(record, target);
+        assertThat(target)
+                .containsAtLeast(
+                        "name", "joe",
+                        "job", "EMPLOYEE",
+                        "simpleRoleName", "Software Architect",
+                        "signature", "abcd");
+        target.clear();
+
+        valueSelector(Expression("VALUE.car")).extractValueInto(record, target);
+        assertThat(target).containsExactly("brand", "BMW");
+        target.clear();
+
+        valueSelector(Expression("VALUE.phoneNumbers")).extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
+        target.clear();
+
+        valueSelector(Expression("VALUE.otherAddresses['club']")).extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
+        target.clear();
+
+        valueSelector(Expression("VALUE.data")).extractValueInto(record, target);
+        assertThat(target).containsExactly("data[aDataKey]", "-13.3");
+        target.clear();
+
+        valueSelector(Expression("VALUE.friends[0]")).extractValueInto(record, target);
+        assertThat(target).containsEntry("name", "mike");
+        target.clear();
+
+        valueSelector(Expression("VALUE.friends[1]")).extractValueInto(record, target);
+        assertThat(target).containsEntry("name", "john");
+        target.clear();
+
+        valueSelector(Expression("VALUE.friends[1].friends[0]")).extractValueInto(record, target);
+        assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
+        target.clear();
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
@@ -501,7 +544,49 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() {}
+    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<DynamicMessage, ?> record = fromKey(SAMPLE_MESSAGE);
+
+        keySelector(Expression("KEY")).extractKeyInto(record, target);
+        assertThat(target)
+                .containsAtLeast(
+                        "name", "joe",
+                        "job", "EMPLOYEE",
+                        "simpleRoleName", "Software Architect",
+                        "signature", "abcd");
+        target.clear();
+
+        keySelector(Expression("KEY.car")).extractKeyInto(record, target);
+        assertThat(target).containsExactly("brand", "BMW");
+        target.clear();
+
+        keySelector(Expression("KEY.phoneNumbers")).extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
+        target.clear();
+
+        keySelector(Expression("KEY.otherAddresses['club']")).extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
+        target.clear();
+
+        keySelector(Expression("KEY.data")).extractKeyInto(record, target);
+        assertThat(target).containsExactly("data[aDataKey]", "-13.3");
+        target.clear();
+
+        keySelector(Expression("KEY.friends[0]")).extractKeyInto(record, target);
+        assertThat(target).containsEntry("name", "mike");
+        target.clear();
+
+        keySelector(Expression("KEY.friends[1]")).extractKeyInto(record, target);
+        assertThat(target).containsEntry("name", "john");
+        target.clear();
+
+        keySelector(Expression("KEY.friends[1].friends[0]")).extractKeyInto(record, target);
+        assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
+        target.clear();
+    }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
