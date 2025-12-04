@@ -50,9 +50,7 @@ public class ConstantSelectorTest {
                 assertThrows(ExtractionException.class, () -> selector(expression));
         assertThat(ee.getMessage())
                 .isEqualTo(
-                        "Found the invalid expression ["
-                                + expressionStr
-                                + "] for scalar values while evaluating [field_name]");
+                        "Found the invalid expression [" + expressionStr + "] for scalar values");
     }
 
     @ParameterizedTest
@@ -71,7 +69,7 @@ public class ConstantSelectorTest {
     public void shouldExtractValue(String expression, String expectedValue)
             throws ExtractionException {
         ExtractionExpression ee = Expression(expression);
-        Data data = selector(ee).extract(record("record-key", "record-value"));
+        Data data = selector(ee).extract("field_name", record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo(expectedValue);
     }
@@ -103,7 +101,10 @@ public class ConstantSelectorTest {
                                     .newSelector(expression);
                         });
         assertThat(ee.getMessage())
-                .isEqualTo("Expected the root token [KEY|VALUE] while evaluating [field_name]");
+                .isEqualTo(
+                        "Expected the root token [KEY|VALUE] while evaluating ["
+                                + expressionStr
+                                + "]");
     }
 
     @Test
@@ -112,7 +113,7 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
 
         ConstantSelector selector = cs.newSelector(expression);
-        Data data = selector.extractKey(record("record-key", "record-value"));
+        Data data = selector.extractKey("field_name", record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-key");
     }
@@ -123,7 +124,7 @@ public class ConstantSelectorTest {
         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
 
         ConstantSelector selector = cs.newSelector(expression);
-        Data data = selector.extractValue(record("record-key", "record-value"));
+        Data data = selector.extractValue("field_name", record("record-key", "record-value"));
         assertThat(data.name()).isEqualTo("field_name");
         assertThat(data.text()).isEqualTo("record-value");
     }
@@ -141,7 +142,8 @@ public class ConstantSelectorTest {
                             cs.newSelector(expression);
                         });
         assertThat(ee1.getMessage())
-                .isEqualTo("Expected the root token [KEY] while evaluating [field_name]");
+                .isEqualTo(
+                        "Expected the root token [KEY] while evaluating [" + expressionStr + "]");
     }
 
     @ParameterizedTest
@@ -157,7 +159,8 @@ public class ConstantSelectorTest {
                             cs.newSelector(expression);
                         });
         assertThat(ee.getMessage())
-                .isEqualTo("Expected the root token [VALUE] while evaluating [field_name]");
+                .isEqualTo(
+                        "Expected the root token [VALUE] while evaluating [" + expressionStr + "]");
     }
 
     @ParameterizedTest
