@@ -130,35 +130,29 @@ class DataExtractorSupport {
                     switch (expression.constant()) {
                         case KEY -> {
                             KeySelector<K> keySelector =
-                                    mkSelector(
-                                            wrapperSelectors.keySelectorSupplier(),
-                                            key,
-                                            expression);
-                            yield record -> keySelector.extractKey(record, !mapNonScalars);
+                                    wrapperSelectors.keySelectorSupplier().newSelector(expression);
+                            yield record -> keySelector.extractKey(key, record, !mapNonScalars);
                         }
                         case VALUE -> {
                             ValueSelector<V> valueSelector =
-                                    mkSelector(
-                                            wrapperSelectors.valueSelectorSupplier(),
-                                            key,
-                                            expression);
-                            yield record -> valueSelector.extractValue(record, !mapNonScalars);
+                                    wrapperSelectors
+                                            .valueSelectorSupplier()
+                                            .newSelector(expression);
+                            yield record -> valueSelector.extractValue(key, record, !mapNonScalars);
                         }
                         case HEADERS -> {
                             GenericSelector headerSelector =
-                                    mkSelector(
-                                            wrapperSelectors.headersSelectorSupplier(),
-                                            key,
-                                            expression);
-                            yield record -> headerSelector.extract(record);
+                                    wrapperSelectors
+                                            .headersSelectorSupplier()
+                                            .newSelector(expression);
+                            yield record -> headerSelector.extract(key, record);
                         }
                         default -> {
                             ConstantSelector constantSelector =
-                                    mkSelector(
-                                            wrapperSelectors.constantSelectorSupplier(),
-                                            key,
-                                            expression);
-                            yield record -> constantSelector.extract(record);
+                                    wrapperSelectors
+                                            .constantSelectorSupplier()
+                                            .newSelector(expression);
+                            yield record -> constantSelector.extract(key, record);
                         }
                     };
             return dataExtractor;
@@ -173,34 +167,26 @@ class DataExtractorSupport {
                     switch (expression.constant()) {
                         case KEY -> {
                             KeySelector<K> keySelector =
-                                    mkSelector(
-                                            wrapperSelectors.keySelectorSupplier(),
-                                            key,
-                                            expression);
+                                    mkSelector(wrapperSelectors.keySelectorSupplier(), expression);
                             yield (record, target) -> keySelector.extractKeyInto(record, target);
                         }
                         case VALUE -> {
                             ValueSelector<V> valueSelector =
                                     mkSelector(
-                                            wrapperSelectors.valueSelectorSupplier(),
-                                            key,
-                                            expression);
+                                            wrapperSelectors.valueSelectorSupplier(), expression);
                             yield (record, target) ->
                                     valueSelector.extractValueInto(record, target);
                         }
                         case HEADERS -> {
                             GenericSelector headerSelector =
                                     mkSelector(
-                                            wrapperSelectors.headersSelectorSupplier(),
-                                            key,
-                                            expression);
+                                            wrapperSelectors.headersSelectorSupplier(), expression);
                             yield (record, target) -> headerSelector.extractInto(record, target);
                         }
                         default -> {
                             ConstantSelector constantSelector =
                                     mkSelector(
                                             wrapperSelectors.constantSelectorSupplier(),
-                                            key,
                                             expression);
                             yield (record, target) -> constantSelector.extractInto(record, target);
                         }
@@ -209,7 +195,7 @@ class DataExtractorSupport {
         }
 
         static <T extends Selector> T mkSelector(
-                SelectorSupplier<T> selectorSupplier, String param, ExtractionExpression expression)
+                SelectorSupplier<T> selectorSupplier, ExtractionExpression expression)
                 throws ExtractionException {
             return selectorSupplier.newSelector(expression);
         }
