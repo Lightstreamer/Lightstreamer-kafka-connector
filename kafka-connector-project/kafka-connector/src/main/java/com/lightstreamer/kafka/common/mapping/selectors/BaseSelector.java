@@ -25,16 +25,8 @@ public abstract class BaseSelector implements Selector {
 
     private final ExtractionExpression expression;
 
-    protected BaseSelector(String name, ExtractionExpression expression) {
-        this.expression = checkExpression(expression);
-    }
-
     protected BaseSelector(ExtractionExpression expression) {
         this.expression = checkExpression(expression);
-    }
-
-    protected String checkName(String name) {
-        return Objects.requireNonNull(name).strip();
     }
 
     protected ExtractionExpression checkExpression(ExtractionExpression expression) {
