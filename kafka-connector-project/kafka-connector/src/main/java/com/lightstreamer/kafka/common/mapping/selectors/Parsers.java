@@ -61,7 +61,7 @@ public class Parsers {
 
         boolean has(String propertyname);
 
-        default T getIndexed(int index, String nodeName, String indexedPropertyName) {
+        default T getIndexed(String nodeName, int index, String indexedPropertyName) {
             if (isNull()) {
                 throw ValueException.nullObject(index);
             }
@@ -403,12 +403,12 @@ public class Parsers {
 
         @Override
         public <T extends Node<T>> T eval(Node<T> node, String nodeName) {
-            return node.getIndexed(index, nodeName, container);
+            return node.getIndexed(nodeName, index, container);
         }
 
         @Override
         public <T extends Node<T>> T eval(Node<T> node) {
-            return node.getIndexed(index, unboundNodeName, container);
+            return node.getIndexed(unboundNodeName, index, container);
         }
     }
 
