@@ -25,7 +25,7 @@ services:
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
-    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "${topic}", "--config-file", "/usr/app/producer.properties"]
+    command: ["--bootstrap-servers", "${bootstrap_server}", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
 configs:
   producer.properties:

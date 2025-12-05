@@ -20,7 +20,6 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
     environment:
       - bootstrap_server=${bootstrap_server}
       - connection_string=${connection_string}
-      - topic_mapping=map.${topic}.to
     ...
     ```
 
