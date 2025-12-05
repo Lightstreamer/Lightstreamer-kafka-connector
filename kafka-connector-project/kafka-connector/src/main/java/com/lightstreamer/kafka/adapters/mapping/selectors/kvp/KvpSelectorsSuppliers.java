@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.kvp;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
@@ -93,13 +94,14 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public KvpNode get(String nodeName, String propertyName) {
-            return null;
+        public boolean isScalar() {
+            return true;
         }
 
         @Override
-        public boolean isScalar() {
-            return true;
+        public KvpNode get(String nodeName, String propertyName) {
+            // Should not be called on a scalar
+            return null;
         }
     }
 
@@ -108,9 +110,9 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         static final KvpMap NULL_MAP = new KvpMap("NULL_MAP", Collections.emptyMap());
 
         private final String name;
-        private final Map<String, KvpValue> values;
+        private final Map<String, String> values;
 
-        KvpMap(String name, Map<String, KvpValue> values) {
+        KvpMap(String name, Map<String, String> values) {
             this.name = name;
             this.values = values;
         }
@@ -137,7 +139,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public KvpNode get(String nodeName, String propertyName) {
-            return values.get(propertyName);
+            return new KvpValue(nodeName, values.get(propertyName));
         }
 
         @Override
@@ -148,6 +150,11 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         @Override
         public String toString() {
             return values.toString();
+        }
+
+        @Override
+        public void flatIntoMap(Map<String, String> target) {
+            target.putAll(values);
         }
 
         /**
@@ -183,15 +190,10 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             }
 
             List<String> tokens = pairs.splitToList(text);
-            Map<String, KvpValue> values = new LinkedHashMap<>();
+            Map<String, String> values = new LinkedHashMap<>();
             for (int i = 0; i < tokens.size(); i++) {
-                String pairToBeSplitted = tokens.get(i);
-                keyValue.splitToPair(pairToBeSplitted, true)
-                        .ifPresent(
-                                pair ->
-                                        values.put(
-                                                pair.key(),
-                                                new KvpValue(pair.key(), pair.value())));
+                keyValue.splitToPair(tokens.get(i), true)
+                        .ifPresent(pair -> values.put(pair.key(), pair.value()));
             }
 
             return new KvpMap(name, values);
@@ -303,6 +305,10 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
     @Override
     public KeySelectorSupplier<String> makeKeySelectorSupplier() {
+        if (!config.getKeyEvaluator().is(EvaluatorType.KVP)) {
+            throw new IllegalArgumentException("Evaluator type is not KVP");
+        }
+
         Splitter pair = Split.on(config.getKeyKvpPairsSeparator());
         Splitter keyValue = Split.on(config.getKeyKvpKeyValueSeparator());
         return new KvpNodeKeySelectorSupplier(pair, keyValue);
@@ -310,6 +316,10 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
     @Override
     public ValueSelectorSupplier<String> makeValueSelectorSupplier() {
+        if (!config.getValueEvaluator().is(EvaluatorType.KVP)) {
+            throw new IllegalArgumentException("Evaluator type is not KVP");
+        }
+
         Splitter pair = Split.on(config.getValueKvpPairsSeparator());
         Splitter keyValue = Split.on(config.getValueKvpKeyValueSeparator());
         return new KvpNodeValueSelectorSupplier(pair, keyValue);
