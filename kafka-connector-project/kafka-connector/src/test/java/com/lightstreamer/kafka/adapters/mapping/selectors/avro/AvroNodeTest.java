@@ -165,10 +165,10 @@ public class AvroNodeTest {
                 assertThrows(ValueException.class, () -> arrayNode.getProperty("node", "aField"));
         assertThat(ve).hasMessageThat().contains("Field [aField] not found");
 
-        ValueException ive =
+        ve =
                 assertThrows(
                         ValueException.class, () -> arrayNode.getIndexed("node5", 5, "arrayNode"));
-        assertThat(ive).hasMessageThat().contains("Field not found at index [5]");
+        assertThat(ve).hasMessageThat().contains("Field not found at index [5]");
 
         Map<String, String> target = new HashMap<>();
         arrayNode.flatIntoMap(target);
