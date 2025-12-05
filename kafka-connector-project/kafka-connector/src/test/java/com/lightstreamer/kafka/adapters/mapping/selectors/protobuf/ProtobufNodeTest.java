@@ -224,25 +224,28 @@ public class ProtobufNodeTest {
             """);
 
         ProtobufNode elemNode1 =
-                phoneNumbersRepeatedNode.getIndexed("fieldNode", 0, "phoneNumbers");
+                phoneNumbersRepeatedNode.getIndexed("fieldNode1", 0, "phoneNumbers");
         assertThat(elemNode1).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode elemScalarNode1 = (ScalarFieldNode) elemNode1;
+        assertThat(elemScalarNode1.name()).isEqualTo("fieldNode1");
         assertThat(elemScalarNode1.text()).isEqualTo("012345");
 
         ProtobufNode elemNode2 =
-                phoneNumbersRepeatedNode.getIndexed("fieldNode", 1, "phoneNumbers");
+                phoneNumbersRepeatedNode.getIndexed("fieldNode2", 1, "phoneNumbers");
         assertThat(elemNode2).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode elemScalarNode2 = (ScalarFieldNode) elemNode2;
+        assertThat(elemScalarNode2.name()).isEqualTo("fieldNode2");
         assertThat(elemScalarNode2.text()).isEqualTo("123456");
     }
 
     @Test
     public void shouldGetRepeatedMessageField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
-        ProtobufNode friends = personMessageWrapperNode.getProperty("fieldNode", "friends");
+        ProtobufNode friends = personMessageWrapperNode.getProperty("friendsNode", "friends");
         assertThat(friends).isInstanceOf(RepeatedFieldNode.class);
 
         RepeatedFieldNode friendsRepeatedNode = (RepeatedFieldNode) friends;
+        assertThat(friendsRepeatedNode.name()).isEqualTo("friendsNode");
         assertThat(friendsRepeatedNode.isArray()).isTrue();
         assertThat(friendsRepeatedNode.size()).isEqualTo(2);
         assertThat(friendsRepeatedNode.isNull()).isFalse();
@@ -262,15 +265,25 @@ public class ProtobufNodeTest {
             }
             """);
 
-        ProtobufNode elemNode1 = friendsRepeatedNode.getIndexed("fieldNode", 0, "friends");
-        assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
-        MessageWrapperNode elemMessageNode1 = (MessageWrapperNode) elemNode1;
-        assertThat(elemMessageNode1.getProperty("fieldNode", "name").text()).isEqualTo("mike");
+        ProtobufNode friend1 = friendsRepeatedNode.getIndexed("friend1", 0, "friends");
+        assertThat(friend1).isInstanceOf(MessageWrapperNode.class);
 
-        ProtobufNode elemNode2 = friendsRepeatedNode.getIndexed("fieldNode", 1, "friends");
-        assertThat(elemNode2).isInstanceOf(MessageWrapperNode.class);
-        MessageWrapperNode elemMessageNode2 = (MessageWrapperNode) elemNode2;
-        assertThat(elemMessageNode2.getProperty("fieldNode", "name").text()).isEqualTo("john");
+        MessageWrapperNode mike = (MessageWrapperNode) friend1;
+        assertThat(mike.name()).isEqualTo("friend1");
+
+        ProtobufNode nameNode = mike.getProperty("nameNode", "name");
+        assertThat(nameNode.name()).isEqualTo("nameNode");
+        assertThat(nameNode.text()).isEqualTo("mike");
+
+        ProtobufNode friend2 = friendsRepeatedNode.getIndexed("friend2", 1, "friends");
+        assertThat(friend2).isInstanceOf(MessageWrapperNode.class);
+
+        MessageWrapperNode john = (MessageWrapperNode) friend2;
+        assertThat(john.name()).isEqualTo("friend2");
+
+        nameNode = john.getProperty("nameNode", "name");
+        assertThat(nameNode.name()).isEqualTo("nameNode");
+        assertThat(nameNode.text()).isEqualTo("john");
     }
 
     @Test
