@@ -39,6 +39,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -408,6 +409,8 @@ public class SampleMessageProviders {
             Value root = new Value("joe", joeChildren);
             root.notes.add("note1");
             root.notes.add("note2");
+            root.stringsStrings.add(List.of("ss00", "ss01"));
+            root.mapsMaps.put("map1", Map.of("m11", "mv11", "m12", "mv12"));
             root.signature = new byte[] {97, 98, 99, 100};
             root.family =
                     new Value[][] {
@@ -434,6 +437,10 @@ public class SampleMessageProviders {
             @JsonProperty Value[][] family;
 
             @JsonProperty final List<String> notes = new ArrayList<>();
+
+            @JsonProperty List<List<String>> stringsStrings = new ArrayList<>();
+
+            @JsonProperty Map<String, Map<String, String>> mapsMaps = new HashMap<>();
 
             Value(String name) {
                 this.name = name;
