@@ -361,20 +361,22 @@ public class Parsers {
             return new Index(container, index);
         }
 
-        static GeneralizedKey key(String key) {
-            return new Key(key);
+        static GeneralizedKey key(String container, String key) {
+            return new Key(container, key);
         }
 
         <T extends Node<T>> T eval(Node<T> node);
 
         <T extends Node<T>> T eval(Node<T> node, String nodeName);
+
+        String unboundNodeName();
     }
 
     static class Key implements GeneralizedKey {
 
         private final String key;
 
-        Key(String key) {
+        Key(String container, String key) {
             this.key = key;
         }
 
@@ -386,6 +388,11 @@ public class Parsers {
         @Override
         public <T extends Node<T>> T eval(Node<T> node) {
             return eval(node, key);
+        }
+
+        @Override
+        public String unboundNodeName() {
+            return key;
         }
     }
 
@@ -410,6 +417,11 @@ public class Parsers {
         public <T extends Node<T>> T eval(Node<T> node) {
             return node.getIndexed(unboundNodeName, index, container);
         }
+
+        @Override
+        public String unboundNodeName() {
+            return unboundNodeName;
+        }
     }
 
     public static class SelectorExpressionParser<T extends Node<T>> {
@@ -421,6 +433,7 @@ public class Parsers {
                 throws ExtractionException {
             List<GeneralizedKey> indexes = new ArrayList<>();
             Matcher matcher = INDEXES.matcher(indexedExpression);
+            String container = field;
             int previousEnd = 0;
             while (matcher.find()) {
                 int currentStart = matcher.start();
@@ -432,9 +445,10 @@ public class Parsers {
                 String index = matcher.group(2);
                 GeneralizedKey gk =
                         key != null
-                                ? GeneralizedKey.key(key)
-                                : GeneralizedKey.index(field, Integer.valueOf(index));
+                                ? GeneralizedKey.key(container, key)
+                                : GeneralizedKey.index(container, Integer.valueOf(index));
                 indexes.add(gk);
+                container = gk.unboundNodeName();
             }
             if (previousEnd < indexedExpression.length()) {
                 throw ExtractionException.invalidIndexedExpression(ctx.expression());
