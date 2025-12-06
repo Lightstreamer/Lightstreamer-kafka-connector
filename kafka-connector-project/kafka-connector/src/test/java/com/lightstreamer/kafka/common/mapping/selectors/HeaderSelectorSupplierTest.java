@@ -45,14 +45,18 @@ public class HeaderSelectorSupplierTest {
                     .add("name", "joe".getBytes(StandardCharsets.UTF_8))
                     .add("signature", "YWJjZA==".getBytes(StandardCharsets.UTF_8))
                     .add("accountId", "12345".getBytes(StandardCharsets.UTF_8))
-                    .add("accountId", "67890".getBytes(StandardCharsets.UTF_8));
+                    .add("accountId", "67890".getBytes(StandardCharsets.UTF_8))
+                    .add("docType", "type1".getBytes(StandardCharsets.UTF_8))
+                    .add("docType", "type2".getBytes(StandardCharsets.UTF_8));
 
     private static final org.apache.kafka.connect.header.Headers SAMPLE_CONNECT_HEADERS =
             new ConnectHeaders()
                     .addBytes("name", "joe".getBytes(StandardCharsets.UTF_8))
                     .addBytes("signature", "YWJjZA==".getBytes(StandardCharsets.UTF_8))
                     .addBytes("accountId", "12345".getBytes(StandardCharsets.UTF_8))
-                    .addBytes("accountId", "67890".getBytes(StandardCharsets.UTF_8));
+                    .addBytes("accountId", "67890".getBytes(StandardCharsets.UTF_8))
+                    .addBytes("docType", "type1".getBytes(StandardCharsets.UTF_8))
+                    .addBytes("docType", "type2".getBytes(StandardCharsets.UTF_8));
 
     private static final List<KafkaRecord<?, ?>> RECORDS =
             new ArrayList<>() {
@@ -99,14 +103,25 @@ public class HeaderSelectorSupplierTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION            | EXPECTED_NAME | EXPECTED_VALUE
-                HEADERS.name          | name          | joe
-                HEADERS['name']       | name          | joe
-                HEADERS[0]            | HEADERS[0]    | joe
-                HEADERS.signature     | signature     | YWJjZA==
-                HEADERS['signature']  | signature     | YWJjZA==
-                HEADERS.accountId[0]  | accountId[0]  | 12345
-                HEADERS.accountId[1]  | accountId[1]  | 67890
+                EXPRESSION              | EXPECTED_NAME | EXPECTED_VALUE
+                HEADERS.name            | name          | joe
+                HEADERS['name']         | name          | joe
+                HEADERS[0]              | HEADERS[0]    | joe
+                HEADERS.signature       | signature     | YWJjZA==
+                HEADERS['signature']    | signature     | YWJjZA==
+                HEADERS[1]              | HEADERS[1]    | YWJjZA==
+                HEADERS.accountId[0]    | accountId[0]  | 12345
+                HEADERS.accountId[1]    | accountId[1]  | 67890
+                HEADERS['accountId'][0] | accountId[0]  | 12345
+                HEADERS['accountId'][1] | accountId[1]  | 67890
+                HEADERS[2]              | HEADERS[2]    | 12345
+                HEADERS[3]              | HEADERS[3]    | 67890
+                HEADERS.docType[0]      | docType[0]    | type1
+                HEADERS.docType[1]      | docType[1]    | type2
+                HEADERS['docType'][0]   | docType[0]    | type1
+                HEADERS['docType'][1]   | docType[1]    | type2
+                HEADERS[4]              | HEADERS[4]    | type1
+                HEADERS[5]              | HEADERS[5]    | type2
                     """)
     public void shouldExtractHeaders(
             String expressionStr, String expectedName, String expectedValue)
@@ -136,7 +151,9 @@ public class HeaderSelectorSupplierTest {
                             "name", "joe",
                             "signature", "YWJjZA==",
                             "accountId[0]", "12345",
-                            "accountId[1]", "67890");
+                            "accountId[1]", "67890",
+                            "docType[0]", "type1",
+                            "docType[1]", "type2");
             target.clear();
 
             headersSelector(Expression("HEADERS.accountId")).extractInto(record, target);
@@ -151,6 +168,20 @@ public class HeaderSelectorSupplierTest {
                     .containsExactly(
                             "accountId[0]", "12345",
                             "accountId[1]", "67890");
+            target.clear();
+
+            headersSelector(Expression("HEADERS.docType")).extractInto(record, target);
+            assertThat(target)
+                    .containsExactly(
+                            "docType[0]", "type1",
+                            "docType[1]", "type2");
+            target.clear();
+
+            headersSelector(Expression("HEADERS['docType']")).extractInto(record, target);
+            assertThat(target)
+                    .containsExactly(
+                            "docType[0]", "type1",
+                            "docType[1]", "type2");
             target.clear();
 
             headersSelector(Expression("HEADERS.accountId[0]")).extractInto(record, target);
@@ -235,8 +266,9 @@ public class HeaderSelectorSupplierTest {
             textBlock =
                     """
                 EXPRESSION        | EXPECTED_NAME | EXPECTED_VALUE
-                HEADERS           | HEADERS       | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890}
+                HEADERS           | HEADERS       | {name=joe, signature=YWJjZA==, accountId=12345, accountId=67890, docType=type1, docType=type2}
                 HEADERS.accountId | accountId     | [12345, 67890]
+                HEADERS.docType   | docType       | [type1, type2]
                         """)
     public void shouldExtractRecordHeaderWithNonScalars(
             String expressionStr, String expectedName, String expectedValue)
