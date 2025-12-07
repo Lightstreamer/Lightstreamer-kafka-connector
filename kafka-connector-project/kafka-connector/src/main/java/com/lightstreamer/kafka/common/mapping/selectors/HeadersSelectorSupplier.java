@@ -28,20 +28,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector> {
 
     interface HeaderNode extends Node<HeaderNode> {
-
-        static BiFunction<String, KafkaHeaders, HeaderNode> rootFactory(String boundParameter) {
-            if ("".equals(boundParameter)) {
-                return (name, node) -> new HeadersNode(name, node);
-            } else {
-                return (name, node) -> new HeadersNode(boundParameter, node);
-            }
-        }
 
         @Override
         default HeaderNode get(String nodeName, String propertyName) {
@@ -122,7 +113,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
 
         @Override
         public void flatIntoMap(Map<String, String> target) {
-            target.put(name, text());
+            // Left empty on purpose
         }
     }
 
@@ -205,11 +196,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
         @Override
         public HeaderNode get(String nodeName, int index) {
             KafkaHeader header = headers.get(index);
-            String headerName =
-                    header.localIndex() == -1
-                            ? header.key()
-                            : header.key() + "[" + header.localIndex() + "]";
-            return new SingleHeaderNode(headerName, header);
+            return new SingleHeaderNode(nodeName, header);
         }
 
         @Override
