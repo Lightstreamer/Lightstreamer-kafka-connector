@@ -42,7 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -51,19 +50,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public class FieldsExtractorTest {
-
-    @ParameterizedTest
-    @ValueSource(strings = {"VALUE.a. .b"})
-    public void shouldNotCreateExtractorDueToExtractionException(String expression) {
-        assertThrows(
-                ExtractionException.class,
-                () ->
-                        DataExtractors.staticFieldsExtractor(
-                                TestSelectorSuppliers.JsonValue(),
-                                Map.of("value", Expression(expression)),
-                                false,
-                                false));
-    }
 
     static Stream<Arguments> boundExtractionExpressions() {
         return Stream.of(
@@ -332,5 +318,31 @@ public class FieldsExtractorTest {
         // Ensure that both the complex object and the simple attribute are extracted correctly
         assertThat(tryExtractData)
                 .containsExactly("complexObject", message.toString(), "simpleAttribute", "joe");
+    }
+
+    @Test
+    public void shouldNotCreateExtractorDueToExtractionException() {
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () ->
+                                DataExtractors.staticFieldsExtractor(
+                                        TestSelectorSuppliers.JsonValue(),
+                                        Map.of("value", Expression("VALUE.a. .b")),
+                                        false,
+                                        false));
+        assertThat(ee.getMessage())
+                .contains("Found the invalid expression [VALUE.a. .b] with missing tokens");
+
+        ExtractionException ee2 =
+                assertThrows(
+                        ExtractionException.class,
+                        () ->
+                                DataExtractors.dynamicFieldsExtractor(
+                                        TestSelectorSuppliers.JsonValue(),
+                                        List.of(Expression("VALUE.map[invalid-index]")),
+                                        false));
+        assertThat(ee2.getMessage())
+                .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
     }
 }
