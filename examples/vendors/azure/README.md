@@ -4,7 +4,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/R
 
  - Create an Event Hubs _namespace_ .
  - Create an Event Hub (one Event Hub per Kafka topic) with name `stocks`.
- - Ensure the Kafka protocol is enabled on the namespace (it is enabled by default).
+ - Ensure the Kafka protocol is enabled on the namespace (it should enabled by default depending on pricing tier choosen but you can check in _Settings->Properties _).
  - Retrieve a Shared Access Policy connection string with the required permissions (`Listen` for consumers, `Send` for producers).
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Azure Event Hubs_ as follows:
@@ -78,10 +78,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 From this directory, run follow the command:
 
 ```sh
-$ bootstrap_server=<bootstrap_server> \
-  connection_string=<connection_string> \
-  topic=<topic> \
-  ./start.sh 
+$ bootstrap_server=<bootstrap_server> connection_string="<connection_string>" topic=<topic> ./start.sh 
 ```
 
 where:
@@ -89,4 +86,12 @@ where:
 - `<connection_string>` - The primary connection string created in the shared access policies from the _Event Hubs console_
 - `<topic>` - The name of the topic (ie. Event Hub) created on  _Event Hubs Console_
 
-Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart).
+Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart); after a few moments, the user interface starts displaying the real-time stock data.
+
+   ![Demo](/pictures/quickstart.gif)
+
+To shutdown Docker Compose and clean up all temporary resources:
+
+```sh
+$ ./stop.sh
+```
