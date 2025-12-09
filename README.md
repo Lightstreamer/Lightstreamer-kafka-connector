@@ -122,7 +122,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
  - [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted/README.md)
  - [`Aiven`](/examples/quickstart-aiven/README.md)
- - __Azure Events Hub__ _coming soon_
+ - [`Azure Events Hub`](/examples/vendors/azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -890,7 +890,7 @@ Check out the [adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.x
 
 #### Quick Start with Azure Events Hub Example
 
-_coming soon_
+Check out the [adapters.xml](/examples/vendors/azure/adapters.xml#L29) file of the [_Quick Start with Azure Event Hubs_](/examples/vendors/azure/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ## Record Evaluation
 
