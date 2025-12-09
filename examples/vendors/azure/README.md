@@ -4,7 +4,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/R
 
  - Create an Event Hubs _namespace_ .
  - Create an Event Hub (one Event Hub per Kafka topic) with name `stocks`.
- - Ensure the Kafka protocol is enabled on the namespace (it should enabled by default depending on pricing tier choosen but you can check in _Settings->Properties _).
+ - Ensure the Kafka protocol is enabled on the namespace (it should enabled by default depending on pricing tier choosen but you can check in _Settings->Properties_).
  - Retrieve a Shared Access Policy connection string with the required permissions (`Listen` for consumers, `Send` for producers).
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Azure Event Hubs_ as follows:
@@ -70,7 +70,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      # Enable SSL encryption
      security.protocol=SASL_SSL
      # JAAS configuration
-     sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="${connection_string}";
+     sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$$ConnectionString" password="${connection_string}";
      ```  
 
 ## Run
