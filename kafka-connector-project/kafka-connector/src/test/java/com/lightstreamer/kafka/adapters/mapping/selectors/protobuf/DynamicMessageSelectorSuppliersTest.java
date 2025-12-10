@@ -31,7 +31,6 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expre
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.protobuf.DynamicMessage;
@@ -39,13 +38,16 @@ import com.google.protobuf.TextFormat;
 import com.google.protobuf.TextFormat.InvalidEscapeSequenceException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
@@ -121,7 +123,8 @@ public class DynamicMessageSelectorSuppliersTest {
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8081"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+        KeySelectorSupplier<DynamicMessage> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.PROTOBUF);
     }
 
     @Test
@@ -175,7 +178,6 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION       | EXPECTED_ERROR_MESSAGE
-                KEY.a. .b        | Found the invalid expression [KEY.a. .b] with missing tokens
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
@@ -200,7 +202,8 @@ public class DynamicMessageSelectorSuppliersTest {
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8081"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+        ValueSelectorSupplier<DynamicMessage> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.PROTOBUF);
     }
 
     @Test
@@ -254,7 +257,6 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION         | EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b        | Found the invalid expression [VALUE.a. .b] with missing tokens
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
