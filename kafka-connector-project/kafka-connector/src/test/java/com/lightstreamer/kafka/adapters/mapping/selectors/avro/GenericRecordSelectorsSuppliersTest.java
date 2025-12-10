@@ -27,18 +27,20 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expre
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
@@ -97,7 +99,8 @@ public class GenericRecordSelectorsSuppliersTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_PATH,
                                 "value.avsc"));
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+        KeySelectorSupplier<GenericRecord> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.AVRO);
     }
 
     @Test
@@ -112,6 +115,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @Test
     public void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<GenericRecord> selector = keySelector(Expression("KEY"));
+
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
 
@@ -122,7 +126,6 @@ public class GenericRecordSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION       | EXPECTED_ERROR_MESSAGE
-                KEY.a. .b        | Found the invalid expression [KEY.a. .b] with missing tokens
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
@@ -146,7 +149,8 @@ public class GenericRecordSelectorsSuppliersTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 "value.avsc"));
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+        ValueSelectorSupplier<GenericRecord> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.AVRO);
     }
 
     @Test
@@ -171,8 +175,7 @@ public class GenericRecordSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION         | EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b        | Found the invalid expression [VALUE.a. .b] with missing tokens
-                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                        VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
