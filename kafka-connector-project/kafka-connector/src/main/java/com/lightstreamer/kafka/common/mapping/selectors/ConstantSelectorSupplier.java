@@ -17,15 +17,14 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
 public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelector> {
 
@@ -63,12 +62,6 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
                     };
             return Objects.toString(data, null);
         }
-
-        @Override
-        public void extractInto(KafkaRecord<?, ?> record, Map<String, String> target)
-                throws ValueException {
-            target.put(constant.name(), extract(record, true).text());
-        }
     }
 
     private final Set<Constant> allowedConstants;
@@ -82,8 +75,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
     }
 
     @Override
-    public GenericSelector newSelector(ExtractionExpression expression)
-            throws ExtractionException {
+    public GenericSelector newSelector(ExtractionExpression expression) throws ExtractionException {
         return mkSelector(expression);
     }
 
