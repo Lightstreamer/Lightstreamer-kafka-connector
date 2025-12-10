@@ -32,25 +32,6 @@ public class ExtractionException extends Exception {
                         .formatted(expectedRoot, expression));
     }
 
-    public static ExtractionException invalidExpression(String name, String expression)
-            throws ExtractionException {
-        return new ExtractionException(
-                "Got the following error while evaluating [%s] while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
-    public static ExtractionException missingToken(String expression) throws ExtractionException {
-        return new ExtractionException(
-                "Found the invalid expression [%s] with missing tokens".formatted(expression));
-    }
-
-    public static ExtractionException missingAttribute(String name, String expression)
-            throws ExtractionException {
-        return new ExtractionException(
-                "Found the invalid expression [%s] with missing attribute while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
     public static ExtractionException notAllowedAttributes(String expression)
             throws ExtractionException {
         return new ExtractionException(
