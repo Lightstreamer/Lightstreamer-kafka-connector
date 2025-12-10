@@ -28,40 +28,34 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSelector {
+public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseSelector {
 
     private final Parsers.SelectorExpressionParser<T> parser =
             new Parsers.SelectorExpressionParser<>();
 
+    private final BiFunction<String, P, T> rootNode;
     private final NodeEvaluator<T> evaluator;
 
-    protected StructuredBaseSelector(ExtractionExpression expression, Constant expectedRoot)
+    protected StructuredBaseSelector(
+            ExtractionExpression expression,
+            Constant expectedRoot,
+            BiFunction<String, P, T> rootNode)
             throws ExtractionException {
         super(expression);
+        this.rootNode = rootNode;
         this.evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
     }
 
-    protected final <P> Node<T> eval(
-            Supplier<P> payloadSupplier, BiFunction<String, P, T> rootNode, boolean checkScalar) {
-
-        return doEval(payloadSupplier, rootNode, n -> evaluator.evalAndAdvance(n), checkScalar);
+    protected final Node<T> eval(Supplier<P> payloadSupplier, boolean checkScalar) {
+        return doEval(payloadSupplier, n -> evaluator.evalAndAdvance(n), checkScalar);
     }
 
-    protected final <P> Node<T> eval(
-            String name,
-            Supplier<P> payload,
-            BiFunction<String, P, T> rootNode,
-            boolean checkScalar) {
-
-        return doEval(payload, rootNode, node -> evaluator.evalAndAdvance(node, name), checkScalar);
+    protected final Node<T> eval(String name, Supplier<P> payloadSupplier, boolean checkScalar) {
+        return doEval(payloadSupplier, node -> evaluator.evalAndAdvance(node, name), checkScalar);
     }
 
-    private <P> Node<T> doEval(
-            Supplier<P> payload,
-            BiFunction<String, P, T> rootNode,
-            Function<T, T> eval,
-            boolean checkScalar) {
-        T node = Node.createRoot(payload, rootNode);
+    private Node<T> doEval(Supplier<P> payloadSupplier, Function<T, T> eval, boolean checkScalar) {
+        T node = Node.createRoot(payloadSupplier, this.rootNode);
         node = eval.apply(node);
 
         if (checkScalar && !node.isScalar()) {
@@ -71,10 +65,7 @@ public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSele
         return node;
     }
 
-    protected final <P> void evalInto(
-            Supplier<P> payloadSupplier,
-            BiFunction<String, P, T> nodeFactory,
-            Map<String, String> target) {
-        eval(payloadSupplier, nodeFactory, false).flatIntoMap(target);
+    protected final void evalInto(Supplier<P> payloadSupplier, Map<String, String> target) {
+        eval(payloadSupplier, false).flatIntoMap(target);
     }
 }
