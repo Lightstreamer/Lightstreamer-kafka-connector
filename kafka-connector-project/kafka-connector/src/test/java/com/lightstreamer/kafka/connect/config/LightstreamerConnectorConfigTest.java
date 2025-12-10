@@ -279,15 +279,16 @@ public class LightstreamerConnectorConfigTest {
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         ItemTemplateConfigs itemTemplate = config.getItemTemplateConfigs();
 
-        Map<String, TemplateExpression> expressions = itemTemplate.expressions();
+        Map<String, TemplateExpression> expressions = itemTemplate.templates();
         assertThat(expressions).hasSize(2);
 
-        TemplateExpression stockExpression = itemTemplate.getExpression("stock-template");
+        TemplateExpression stockExpression = itemTemplate.getTemplateExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
         assertThat(stockExpression.params())
                 .containsExactly("index", Expressions.Expression("KEY"));
 
-        TemplateExpression productExpression = itemTemplate.getExpression("product-template");
+        TemplateExpression productExpression =
+                itemTemplate.getTemplateExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
                 .containsExactly(
