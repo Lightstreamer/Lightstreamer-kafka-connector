@@ -27,6 +27,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -187,6 +188,11 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         public Deserializer<Object> deserializer() {
             throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
         }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return () -> "Struct";
+        }
     }
 
     private static class ConnectKeySelector extends StructuredBaseSelector<SchemaAndValueNode>
@@ -229,6 +235,11 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         @Override
         public Deserializer<Object> deserializer() {
             throw new UnsupportedOperationException("Unimplemented method 'deserializer'");
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return () -> "Struct";
         }
     }
 
