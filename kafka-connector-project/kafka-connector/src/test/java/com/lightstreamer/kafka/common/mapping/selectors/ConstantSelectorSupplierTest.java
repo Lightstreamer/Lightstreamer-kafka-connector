@@ -44,7 +44,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class ConstantSelectorTest {
+public class ConstantSelectorSupplierTest {
 
     static GenericSelector selector(ExtractionExpression expression) throws ExtractionException {
         return ConstantSelectorSupplier.makeSelectorSupplier(
