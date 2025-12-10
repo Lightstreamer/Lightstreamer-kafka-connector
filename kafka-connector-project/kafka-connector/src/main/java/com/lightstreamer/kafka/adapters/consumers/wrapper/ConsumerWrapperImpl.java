@@ -79,7 +79,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                        .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                         .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
