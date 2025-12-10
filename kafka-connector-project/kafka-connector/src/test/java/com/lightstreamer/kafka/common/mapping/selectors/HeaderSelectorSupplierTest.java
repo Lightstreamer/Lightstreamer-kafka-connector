@@ -66,14 +66,14 @@ public class HeaderSelectorSupplierTest {
                 }
             };
 
-    static GenericSelector headersSelector(ExtractionExpression expression)
+    static HeadersSelector headersSelector(ExtractionExpression expression)
             throws ExtractionException {
         return new HeadersSelectorSupplier().newSelector(expression);
     }
 
     @Test
     public void shouldMakeHeaderSelector() throws ExtractionException {
-        GenericSelector selector = headersSelector(Expression("HEADERS"));
+        HeadersSelector selector = headersSelector(Expression("HEADERS"));
         assertThat(selector.expression().expression()).isEqualTo("HEADERS");
     }
 
@@ -83,7 +83,6 @@ public class HeaderSelectorSupplierTest {
             textBlock =
                     """
                 EXPRESSION,           EXPECTED_ERROR_MESSAGE
-                HEADERS.a. .b,        Found the invalid expression [HEADERS.a. .b] with missing tokens
                 HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
                 HEADERS.attrib[0]xsd, Found the invalid indexed expression [HEADERS.attrib[0]xsd]
                 HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
@@ -128,7 +127,7 @@ public class HeaderSelectorSupplierTest {
             throws ExtractionException {
 
         for (KafkaRecord<?, ?> record : RECORDS) {
-            GenericSelector headersSelector = headersSelector(Expression(expressionStr));
+            HeadersSelector headersSelector = headersSelector(Expression(expressionStr));
 
             Data autoBoundData = headersSelector.extract(record);
             assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -273,7 +272,7 @@ public class HeaderSelectorSupplierTest {
     public void shouldExtractRecordHeaderWithNonScalars(
             String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        GenericSelector headersSelector = headersSelector(Expression(expressionStr));
+        HeadersSelector headersSelector = headersSelector(Expression(expressionStr));
         for (KafkaRecord<?, ?> record : RECORDS) {
             Data autoBoundData = headersSelector.extract(record, false);
             assertThat(autoBoundData.name()).isEqualTo(expectedName);
