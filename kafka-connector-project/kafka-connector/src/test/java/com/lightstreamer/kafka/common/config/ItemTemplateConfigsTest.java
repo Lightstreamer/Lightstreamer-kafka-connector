@@ -38,13 +38,13 @@ public class ItemTemplateConfigsTest {
     @Test
     void shouldCreateFromEmptyMap() {
         ItemTemplateConfigs templateConfigs = ItemTemplateConfigs.from(Collections.emptyMap());
-        assertThat(templateConfigs.expressions()).isEmpty();
+        assertThat(templateConfigs.templates()).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyConfigs() {
         ItemTemplateConfigs templateConfigs = ItemTemplateConfigs.empty();
-        assertThat(templateConfigs.expressions()).isEmpty();
+        assertThat(templateConfigs.templates()).isEmpty();
     }
 
     @Test
@@ -52,9 +52,9 @@ public class ItemTemplateConfigsTest {
         ItemTemplateConfigs it =
                 ItemTemplateConfigs.from(
                         Map.of("template-name", "template-prefix-#{param=OFFSET}"));
-        assertThat(it.expressions()).hasSize((1));
+        assertThat(it.templates()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
-        TemplateExpression expression = it.getExpression("template-name");
+        TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
         assertThat(expression.params()).containsExactly("param", Expressions.Expression("OFFSET"));
     }
@@ -66,9 +66,9 @@ public class ItemTemplateConfigsTest {
                         Map.of(
                                 "template-name",
                                 "template-prefix-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}"));
-        assertThat(it.expressions()).hasSize((1));
+        assertThat(it.templates()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
-        TemplateExpression expression = it.getExpression("template-name");
+        TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
         assertThat(expression.params())
                 .containsExactly(
@@ -89,10 +89,10 @@ public class ItemTemplateConfigsTest {
                                 "template-prefix-a-#{param1a=VALUE,param2a=KEY,param3a=PARTITION}",
                                 "template-name-b",
                                 "template-prefix-b-#{param1b=VALUE.b,param2b=KEY.b,param3b=KEY.c}"));
-        assertThat(it.expressions()).hasSize((2));
+        assertThat(it.templates()).hasSize((2));
         assertThat(it.contains("template-name-a")).isTrue();
 
-        TemplateExpression expression_a = it.getExpression("template-name-a");
+        TemplateExpression expression_a = it.getTemplateExpression("template-name-a");
         assertThat(expression_a.prefix()).isEqualTo("template-prefix-a");
         assertThat(expression_a.params())
                 .containsExactly(
@@ -103,7 +103,7 @@ public class ItemTemplateConfigsTest {
                         "param3a",
                         Expressions.Expression("PARTITION"));
 
-        TemplateExpression expression_b = it.getExpression("template-name-b");
+        TemplateExpression expression_b = it.getTemplateExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
@@ -148,7 +148,7 @@ public class ItemTemplateConfigsTest {
     }
 
     @Test
-    public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
+    public void shouldNotAllowDuplicatedKeysInTheSameTemplate() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
