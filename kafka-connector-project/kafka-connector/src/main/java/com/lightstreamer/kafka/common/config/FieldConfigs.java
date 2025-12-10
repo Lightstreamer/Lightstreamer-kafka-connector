@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.common.config;
 
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
@@ -69,19 +68,6 @@ public class FieldConfigs {
         return boundFieldExpressions.get(fieldName);
     }
 
-    public <K, V> DataExtractor<K, V> extractor(
-            KeyValueSelectorSuppliers<K, V> selectorSuppliers,
-            boolean skipOnFailure,
-            boolean mapNonScalars)
-            throws ExtractionException {
-        return DataExtractor.extractor(
-                selectorSuppliers,
-                SCHEMA_NAME,
-                boundFieldExpressions,
-                skipOnFailure,
-                mapNonScalars);
-    }
-
     public <K, V> FieldsExtractor<K, V> fieldsExtractor(
             KeyValueSelectorSuppliers<K, V> selectorSuppliers,
             boolean skipOnFailure,
@@ -92,7 +78,7 @@ public class FieldConfigs {
         if (!autoBoundFieldExpressions.isEmpty()) {
             fieldExtractors.add(
                     DataExtractors.dynamicFieldsExtractor(
-                            selectorSuppliers, autoBoundFieldExpressions, skipOnFailure));
+                            selectorSuppliers, autoBoundFieldExpressions.values(), skipOnFailure));
         }
         if (!boundFieldExpressions.isEmpty()) {
             fieldExtractors.add(
