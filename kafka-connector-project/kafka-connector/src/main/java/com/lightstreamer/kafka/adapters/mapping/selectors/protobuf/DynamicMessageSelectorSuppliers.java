@@ -455,40 +455,34 @@ public class DynamicMessageSelectorSuppliers
      * @see DynamicMessage
      */
     private static final class DynamicMessageKeySelector
-            extends StructuredBaseSelector<ProtobufNode> implements KeySelector<DynamicMessage> {
+            extends StructuredBaseSelector<DynamicMessage, ProtobufNode>
+            implements KeySelector<DynamicMessage> {
 
         DynamicMessageKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY);
+            super(
+                    expression,
+                    Constant.KEY,
+                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key));
         }
 
         @Override
         public Data extractKey(
                 String name, KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(
-                    name,
-                    record::key,
-                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
-                    checkScalar);
+            return eval(name, record::key, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<DynamicMessage, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(
-                    record::key,
-                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
-                    checkScalar);
+            return eval(record::key, checkScalar);
         }
 
         @Override
         public void extractKeyInto(
                 KafkaRecord<DynamicMessage, ?> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(
-                    record::key,
-                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key),
-                    target);
+            evalInto(record::key, target);
         }
     }
 
@@ -540,40 +534,34 @@ public class DynamicMessageSelectorSuppliers
      * @see DynamicMessage
      */
     private static final class DynamicMessageValueSelector
-            extends StructuredBaseSelector<ProtobufNode> implements ValueSelector<DynamicMessage> {
+            extends StructuredBaseSelector<DynamicMessage, ProtobufNode>
+            implements ValueSelector<DynamicMessage> {
 
         DynamicMessageValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE);
+            super(
+                    expression,
+                    Constant.VALUE,
+                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value));
         }
 
         @Override
         public Data extractValue(
                 String name, KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            return eval(
-                    name,
-                    record::value,
-                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
-                    checkScalar);
+            return eval(name, record::value, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, DynamicMessage> record, boolean checkScalar)
                 throws ValueException {
-            return eval(
-                    record::value,
-                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
-                    checkScalar);
+            return eval(record::value, checkScalar);
         }
 
         @Override
         public void extractValueInto(
                 KafkaRecord<?, DynamicMessage> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(
-                    record::value,
-                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value),
-                    target);
+            evalInto(record::value, target);
         }
     }
 
