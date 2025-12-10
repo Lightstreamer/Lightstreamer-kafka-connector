@@ -201,54 +201,51 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
     }
 
-    private static final class KvpNodeSelector extends StructuredBaseSelector<KvpNode>
+    private static final class KvpNodeSelector extends StructuredBaseSelector<String, KvpNode>
             implements KeySelector<String>, ValueSelector<String> {
-
-        private final BiFunction<String, String, KvpNode> kvpMapFactory;
 
         KvpNodeSelector(
                 ExtractionExpression expression,
                 BiFunction<String, String, KvpNode> kvpMapFactory,
                 Constant constant)
                 throws ExtractionException {
-            super(expression, constant);
-            this.kvpMapFactory = kvpMapFactory;
+            super(expression, constant, kvpMapFactory);
         }
 
         @Override
         public Data extractKey(String name, KafkaRecord<String, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::key, kvpMapFactory, checkScalar);
+            return eval(name, record::key, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<String, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::key, kvpMapFactory, checkScalar);
+            return eval(record::key, checkScalar);
         }
 
         @Override
         public void extractKeyInto(KafkaRecord<String, ?> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::key, kvpMapFactory, target);
+            evalInto(record::key, target);
         }
 
         @Override
         public Data extractValue(String name, KafkaRecord<?, String> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::value, kvpMapFactory, checkScalar);
+            return eval(name, record::value, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, String> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::value, kvpMapFactory, checkScalar);
+            return eval(record::value, checkScalar);
         }
 
         @Override
         public void extractValueInto(KafkaRecord<?, String> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::value, kvpMapFactory, target);
+            evalInto(record::value, target);
         }
     }
 
