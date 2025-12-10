@@ -25,7 +25,7 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -64,7 +64,7 @@ public class DataExtractorBenchmarks {
         @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
-        DataExtractor<String, DynamicMessage> templateExtractor;
+        CanonicalItemExtractor<String, DynamicMessage> canonicalItemExtractor;
         FieldsExtractor<String, DynamicMessage> fieldsExtractor;
         List<KafkaRecord<String, DynamicMessage>> records;
 
@@ -73,7 +73,7 @@ public class DataExtractorBenchmarks {
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             ConsumerTriggerConfig<String, DynamicMessage> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
-            templateExtractor =
+            canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
             records = ProtoRecords.kafkaRecords(TOPICS, 1, 1, 10);
@@ -86,7 +86,7 @@ public class DataExtractorBenchmarks {
         @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
-        DataExtractor<String, JsonNode> templateExtractor;
+        CanonicalItemExtractor<String, JsonNode> canonicalItemExtractor;
         FieldsExtractor<String, JsonNode> fieldsExtractor;
         private List<KafkaRecord<String, JsonNode>> records;
 
@@ -95,7 +95,7 @@ public class DataExtractorBenchmarks {
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             ConsumerTriggerConfig<String, JsonNode> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
-            templateExtractor =
+            canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
             records = JsonRecords.kafkaRecords(TOPICS, 1, 1, 1);
@@ -105,13 +105,13 @@ public class DataExtractorBenchmarks {
     // Measure extraction from templates
     @Benchmark
     public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
-        String data = proto.templateExtractor.extractAsCanonicalItem(proto.records.get(0));
+        String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.records.get(0));
         bh.consume(data);
     }
 
     @Benchmark
     public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
-        String data = json.templateExtractor.extractAsCanonicalItem(json.records.get(0));
+        String data = json.canonicalItemExtractor.extractCanonicalItem(json.records.get(0));
         bh.consume(data);
     }
 
