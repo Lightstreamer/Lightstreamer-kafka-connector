@@ -19,7 +19,8 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.EmptyTemplate;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
@@ -32,7 +33,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateCon
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -105,7 +107,8 @@ public class ItemTemplatesTest {
                 .that(templates.isRegexEnabled())
                 .isFalse();
 
-        Map<String, Set<DataExtractor<Object, Object>>> extractors = templates.groupExtractors();
+        Map<String, Set<CanonicalItemExtractor<Object, Object>>> extractors =
+                templates.groupExtractors();
         assertThat(extractors).hasSize(2);
         assertWithMessage("Only one extractor associated with TEST_TOPIC_1")
                 .that(extractors.get(TEST_TOPIC_1))
@@ -113,12 +116,10 @@ public class ItemTemplatesTest {
         assertWithMessage("The extractor associated with TEST_TOPIC_1 is as expected")
                 .that(extractors.get(TEST_TOPIC_1))
                 .containsExactly(
-                        extractor(
+                        canonicalItemExtractor(
                                 Object(),
-                                "stock",
-                                Map.of("index", Expression("KEY.attrib")),
-                                false,
-                                false));
+                                new TemplateExpression(
+                                        "stock", Map.of("index", Expression("KEY.attrib")))));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
                 .that(extractors.get(TEST_TOPIC_2))
@@ -126,12 +127,10 @@ public class ItemTemplatesTest {
         assertWithMessage("The extractor associated with TEST_TOPIC_2 is as expected")
                 .that(extractors.get(TEST_TOPIC_2))
                 .containsExactly(
-                        extractor(
+                        canonicalItemExtractor(
                                 Object(),
-                                "stock",
-                                Map.of("index", Expression("KEY.attrib")),
-                                false,
-                                false));
+                                new TemplateExpression(
+                                        "stock", Map.of("index", Expression("KEY.attrib")))));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
@@ -185,7 +184,7 @@ public class ItemTemplatesTest {
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1))
-                .containsExactly(extractor(Object(), "simple-item-1"));
+                .containsExactly(canonicalItemExtractor(Object(), EmptyTemplate("simple-item-1")));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
     }
