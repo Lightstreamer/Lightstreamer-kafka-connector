@@ -195,26 +195,27 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
     }
 
-    private static class ConnectKeySelector extends StructuredBaseSelector<SchemaAndValueNode>
+    private static class ConnectKeySelector
+            extends StructuredBaseSelector<KafkaSinkRecord, SchemaAndValueNode>
             implements KeySelector<Object> {
 
         ConnectKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY);
+            super(expression, Constant.KEY, ConnectKeySelector::asNode);
         }
 
         @Override
         public Data extractKey(String name, KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, () -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
+            return eval(name, () -> ((KafkaSinkRecord) record), checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
+            return eval(() -> ((KafkaSinkRecord) record), checkScalar);
         }
 
-        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private static SchemaAndValueNode asNode(String name, KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
                     name, new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
         }
@@ -243,26 +244,27 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
     }
 
-    private static class ConnectValueSelector extends StructuredBaseSelector<SchemaAndValueNode>
+    private static class ConnectValueSelector
+            extends StructuredBaseSelector<KafkaSinkRecord, SchemaAndValueNode>
             implements ValueSelector<Object> {
 
         ConnectValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE);
+            super(expression, Constant.VALUE, ConnectValueSelector::asNode);
         }
 
         @Override
         public Data extractValue(String name, KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, () -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
+            return eval(name, () -> ((KafkaSinkRecord) record), checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return eval(() -> ((KafkaSinkRecord) record), this::asNode, checkScalar);
+            return eval(() -> ((KafkaSinkRecord) record), checkScalar);
         }
 
-        private SchemaAndValueNode asNode(String name, KafkaRecord.KafkaSinkRecord sinkRecord) {
+        private static SchemaAndValueNode asNode(String name, KafkaSinkRecord sinkRecord) {
             return new SchemaAndValueNode(
                     name, new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
         }
@@ -270,7 +272,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         @Override
         public void extractValueInto(KafkaRecord<?, Object> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(() -> ((KafkaSinkRecord) record), this::asNode, target);
+            evalInto(() -> ((KafkaSinkRecord) record), target);
         }
     }
 
