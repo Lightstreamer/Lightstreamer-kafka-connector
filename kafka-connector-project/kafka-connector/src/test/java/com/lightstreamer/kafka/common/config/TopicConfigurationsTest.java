@@ -19,7 +19,8 @@ package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
+import static org.junit.Assert.assertThrows;
+
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
@@ -71,15 +72,13 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration = configurations.iterator().next();
         assertThat(topicConfiguration.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration.itemReferences();
         assertThat(itemReferences).hasSize(1);
 
-        ItemReference itemReference = itemReferences.get(0);
-        assertThat(itemReference.isTemplate()).isTrue();
-
-        TemplateExpression te = itemReference.template();
-        assertThat(te.prefix()).isEqualTo("template1");
-        assertThat(te.params()).containsExactly("a", Expressions.Expression("PARTITION"));
+        TemplateExpression itemReference = itemReferences.get(0);
+        assertThat(itemReference.prefix()).isEqualTo("template1");
+        assertThat(itemReference.params())
+                .containsExactly("a", Expressions.Expression("PARTITION"));
     }
 
     @Test
@@ -95,12 +94,12 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration = configurations.iterator().next();
         assertThat(topicConfiguration.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration.itemReferences();
         assertThat(itemReferences).hasSize(1);
 
-        ItemReference itemReference = itemReferences.get(0);
-        assertThat(itemReference.isTemplate()).isFalse();
-        assertThat(itemReference.itemName()).isEqualTo("simple-item");
+        TemplateExpression itemReference = itemReferences.get(0);
+        assertThat(itemReference.prefix()).isEqualTo("simple-item");
+        assertThat(itemReference.params()).isEmpty();
     }
 
     @Test
@@ -127,20 +126,16 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration1 = iterator.next();
         assertThat(topicConfiguration1.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration1.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration1.itemReferences();
         assertThat(itemReferences).hasSize(2);
 
-        ItemReference itemReference1 = itemReferences.get(0);
-        assertThat(itemReference1.isTemplate()).isTrue();
+        TemplateExpression itemReference1 = itemReferences.get(0);
+        assertThat(itemReference1.prefix()).isEqualTo("template1");
+        assertThat(itemReference1.params()).containsExactly("a", Expressions.Expression("VALUE"));
 
-        TemplateExpression te1 = itemReference1.template();
-        assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.Expression("VALUE"));
-
-        ItemReference itemReference2 = itemReferences.get(1);
-        TemplateExpression te2 = itemReference2.template();
-        assertThat(te2.prefix()).isEqualTo("template2");
-        assertThat(te2.params()).containsExactly("c", Expressions.Expression("OFFSET"));
+        TemplateExpression itemReference2 = itemReferences.get(1);
+        assertThat(itemReference2.prefix()).isEqualTo("template2");
+        assertThat(itemReference2.params()).containsExactly("c", Expressions.Expression("OFFSET"));
     }
 
     @Test
@@ -158,16 +153,16 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration1 = iterator.next();
         assertThat(topicConfiguration1.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration1.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration1.itemReferences();
         assertThat(itemReferences).hasSize(2);
 
-        ItemReference itemReference1 = itemReferences.get(0);
-        assertThat(itemReference1.isTemplate()).isFalse();
-        assertThat(itemReference1.itemName()).isEqualTo("item1");
+        TemplateExpression itemReference1 = itemReferences.get(0);
+        assertThat(itemReference1.prefix()).isEqualTo("item1");
+        assertThat(itemReference1.params()).isEmpty();
 
-        ItemReference itemReference2 = itemReferences.get(1);
-        assertThat(itemReference2.isTemplate()).isFalse();
-        assertThat(itemReference2.itemName()).isEqualTo("item2");
+        TemplateExpression itemReference2 = itemReferences.get(1);
+        assertThat(itemReference2.prefix()).isEqualTo("item2");
+        assertThat(itemReference2.params()).isEmpty();
     }
 
     @Test
@@ -186,15 +181,12 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration1 = configurations.iterator().next();
         assertThat(topicConfiguration1.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration1.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration1.itemReferences();
         assertThat(itemReferences).hasSize(1);
 
-        ItemReference itemReference = itemReferences.get(0);
-        assertThat(itemReference.isTemplate()).isTrue();
-
-        TemplateExpression te1 = itemReference.template();
-        assertThat(te1.prefix()).isEqualTo("template1");
-        assertThat(te1.params()).containsExactly("a", Expressions.Expression("KEY"));
+        TemplateExpression itemReference = itemReferences.get(0);
+        assertThat(itemReference.prefix()).isEqualTo("template1");
+        assertThat(itemReference.params()).containsExactly("a", Expressions.Expression("KEY"));
     }
 
     @Test
@@ -210,16 +202,16 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration1 = configurations.iterator().next();
         assertThat(topicConfiguration1.topic()).isEqualTo("topic");
 
-        List<ItemReference> itemReferences = topicConfiguration1.itemReferences();
+        List<TemplateExpression> itemReferences = topicConfiguration1.itemReferences();
         assertThat(itemReferences).hasSize(2);
 
-        ItemReference itemReference1 = itemReferences.get(0);
-        assertThat(itemReference1.isTemplate()).isFalse();
-        assertThat(itemReference1.itemName()).isEqualTo("item1");
+        TemplateExpression itemReference1 = itemReferences.get(0);
+        assertThat(itemReference1.prefix()).isEqualTo("item1");
+        assertThat(itemReference1.params()).isEmpty();
 
-        ItemReference itemReference2 = itemReferences.get(1);
-        assertThat(itemReference2.isTemplate()).isFalse();
-        assertThat(itemReference2.itemName()).isEqualTo("item2");
+        TemplateExpression itemReference2 = itemReferences.get(1);
+        assertThat(itemReference2.prefix()).isEqualTo("item2");
+        assertThat(itemReference2.params()).isEmpty();
     }
 
     @Test
@@ -272,7 +264,35 @@ public class TopicConfigurationsTest {
         TopicConfiguration topicConfiguration2 = iterator.next();
         assertThat(topicConfiguration2.topic()).isEqualTo("topic2");
 
-        List<ItemReference> itemReference = topicConfiguration1.itemReferences();
+        List<TemplateExpression> itemReference = topicConfiguration1.itemReferences();
         assertThat(itemReference).isEqualTo(topicConfiguration2.itemReferences());
+    }
+
+    @Test
+    void shouldNotConfigDueToMissingTemplate() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                TopicConfigurations.of(
+                                        ItemTemplateConfigs.empty(),
+                                        TopicMappingConfig.from(
+                                                Map.of(
+                                                        "topic",
+                                                        "item-template.missing-template"))));
+        assertThat(ce.getMessage()).isEqualTo("No item template [missing-template] found");
+    }
+
+    @Test
+    void shouldNotConfigDueToInvalidTemplate() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                TopicConfigurations.of(
+                                        ItemTemplateConfigs.empty(),
+                                        TopicMappingConfig.from(
+                                                Map.of("topic", "item-template."))));
+        assertThat(ce.getMessage()).isEqualTo("Item template reference must be a non-empty string");
     }
 }
