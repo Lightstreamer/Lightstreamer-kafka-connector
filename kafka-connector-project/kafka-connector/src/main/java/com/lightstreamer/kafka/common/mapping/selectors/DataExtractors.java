@@ -52,8 +52,7 @@ public class DataExtractors {
         private final ValueSelectorSupplier<V> valueSelectorSupplier;
         private final HeadersSelectorSupplier headersSelectorSupplier =
                 new HeadersSelectorSupplier();
-        private final ConstantSelectorSupplier constantSelectorSupplier =
-                new ConstantSelectorSupplier(OFFSET, PARTITION, TIMESTAMP, TOPIC);
+        private final ConstantSelectorSupplier constantSelectorSupplier = ConstantSelectorSupplier.makeSelectorSupplier(OFFSET, PARTITION, TIMESTAMP, TOPIC);
 
         ExtractorsProvider(
                 KeySelectorSupplier<K> keySelectorSupplier,
