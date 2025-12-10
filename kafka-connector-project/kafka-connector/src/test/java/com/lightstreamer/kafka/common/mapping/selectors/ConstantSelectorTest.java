@@ -18,9 +18,12 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.OFFSET;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.PARTITION;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.record;
@@ -44,12 +47,69 @@ import java.util.stream.Stream;
 public class ConstantSelectorTest {
 
     static GenericSelector selector(ExtractionExpression expression) throws ExtractionException {
-        return new ConstantSelectorSupplier().newSelector(expression);
+        return ConstantSelectorSupplier.makeSelectorSupplier(
+                        VALUE, KEY, OFFSET, TIMESTAMP, PARTITION, TOPIC)
+                .newSelector(expression);
+    }
+
+    static Stream<Arguments> constants() {
+        return Stream.of(
+                arguments(List.of(KEY), "KEY"),
+                arguments(List.of(KEY, VALUE), "KEY|VALUE"),
+                arguments(List.of(OFFSET, TIMESTAMP, VALUE), "OFFSET|TIMESTAMP|VALUE"),
+                arguments(List.of(TOPIC, TIMESTAMP, VALUE), "TOPIC|TIMESTAMP|VALUE"),
+                arguments(List.of(PARTITION, OFFSET), "PARTITION|OFFSET"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("constants")
+    public void shouldMakeConstantSelectorSupplier(
+            List<Constant> constants, String expectedString) {
+        ConstantSelectorSupplier constantSelectorSupplier =
+                ConstantSelectorSupplier.makeSelectorSupplier(constants.toArray(new Constant[0]));
+        assertThat(constantSelectorSupplier.expectedConstantStr()).isEqualTo(expectedString);
+    }
+
+    @Test
+    public void shouldNotMakeConstantSelectorSupplier() {
+        IllegalArgumentException iae =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> ConstantSelectorSupplier.makeSelectorSupplier(HEADERS, VALUE));
+        assertThat(iae.getMessage()).isEqualTo("Cannot handle HEADERS constant");
+    }
+
+    @ParameterizedTest
+    @MethodSource("constants")
+    public void shouldMakeConstantSelector(List<Constant> constants, String expectedString)
+            throws ExtractionException {
+        ConstantSelectorSupplier constantSelectorSupplier =
+                ConstantSelectorSupplier.makeSelectorSupplier(constants.toArray(new Constant[0]));
+        for (Constant constant : constants) {
+            ExtractionExpression expression = Expression(constant.name());
+            GenericSelector selector = constantSelectorSupplier.newSelector(expression);
+            assertThat(selector.expression().expression()).isEqualTo(expression.expression());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
+    public void shouldNotMakeConstantSelectorSupplierDueToUnexpectedRootToken(
+            String expressionStr) {
+        ExtractionExpression expression = Expression(expressionStr);
+        ConstantSelectorSupplier s = ConstantSelectorSupplier.makeSelectorSupplier(KEY, VALUE);
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> s.newSelector(expression));
+        assertThat(ee.getMessage())
+                .isEqualTo(
+                        "Expected the root token [KEY|VALUE] while evaluating ["
+                                + expressionStr
+                                + "]");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE.a", "KEY.b", "OFFSET.a"})
-    void shouldNotCreateSelectorDueToNotAllowedAttributes(String expressionStr) {
+    public void shouldNotMakeConstantSelectorDueToNotAllowedAttributes(String expressionStr) {
         ExtractionExpression expression = Expression(expressionStr);
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> selector(expression));
@@ -61,112 +121,43 @@ public class ConstantSelectorTest {
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,     VALUE
-                KEY,            record-key
-                VALUE,          record-value
-                TIMESTAMP,      -1
-                PARTITION,      150
-                OFFSET,         120
-                TOPIC,          record-topic
+                EXPRESSION | EXPECTED_VALUE
+                KEY        | record-key
+                VALUE      | record-value
+                TIMESTAMP  | -1
+                PARTITION  | 150
+                OFFSET     | 120
+                TOPIC      | record-topic
                     """)
     public void shouldExtractData(String expression, String expectedValue)
             throws ExtractionException {
         ExtractionExpression ee = Expression(expression);
-        Data data = selector(ee).extract("field_name", record("record-key", "record-value"));
-        assertThat(data.name()).isEqualTo("field_name");
-        assertThat(data.text()).isEqualTo(expectedValue);
+        GenericSelector selector = selector(ee);
+
+        Data autoBoundData = selector.extract("field_name", record("record-key", "record-value"));
+        assertThat(autoBoundData.name()).isEqualTo("field_name");
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = selector.extract(record("record-key", "record-value"));
+        assertThat(boundData.name()).isEqualTo(expression);
+        assertThat(boundData.text()).isEqualTo(expectedValue);
     }
 
-    static Stream<Arguments> args() {
-        return Stream.of(
-                arguments("KEY", List.of(KEY)),
-                arguments("KEY|VALUE", List.of(KEY, VALUE)),
-                arguments("PARTITION|OFFSET", List.of(PARTITION, OFFSET)));
-    }
+    @Test
+    public void shouldExtractNullData() throws ExtractionException {
+        GenericSelector keySelector = selector(Expression("KEY"));
 
-    @ParameterizedTest
-    @MethodSource("args")
-    public void shouldDumpExpectedConstantString(String expectedString, List<Constant> constant) {
-        assertThat(
-                        new ConstantSelectorSupplier(constant.toArray(new Constant[0]))
-                                .expectedConstantStr())
-                .isEqualTo(expectedString);
-    }
+        Data nullKey = keySelector.extract(record(null, "record-value"));
+        assertThat(nullKey.name()).isEqualTo("KEY");
+        assertThat(nullKey.text()).isNull();
 
-    @ParameterizedTest
-    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldNotCreateDueToNotAllowedConstant(String expressionStr) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> {
-                            new ConstantSelectorSupplier(KEY, VALUE).newSelector(expression);
-                        });
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Expected the root token [KEY|VALUE] while evaluating ["
-                                + expressionStr
-                                + "]");
-    }
-
-    //     @Test
-    //     public void shouldCreateKeySelectorAndExtractData() throws ExtractionException {
-    //         ExtractionExpression expression = Expression("KEY");
-    //         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.KEY);
-
-    //         ConstantSelector selector = cs.newSelector(expression);
-    //         Data data = selector.extractKey("field_name", record("record-key", "record-value"));
-    //         assertThat(data.name()).isEqualTo("field_name");
-    //         assertThat(data.text()).isEqualTo("record-key");
-    //     }
-
-    //     @Test
-    //     public void shouldCreateValueSelectorAndExtractData() throws ExtractionException {
-    //         ExtractionExpression expression = Expression("VALUE");
-    //         ConstantSelectorSupplier cs = new ConstantSelectorSupplier(Constant.VALUE);
-
-    //         ConstantSelector selector = cs.newSelector(expression);
-    //         Data data = selector.extractValue("field_name", record("record-key",
-    // "record-value"));
-    //         assertThat(data.name()).isEqualTo("field_name");
-    //         assertThat(data.text()).isEqualTo("record-value");
-    //     }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldNotCreateKeySelector(String expressionStr) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(KEY);
-
-        ExtractionException ee1 =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> {
-                            cs.newSelector(expression);
-                        });
-        assertThat(ee1.getMessage())
-                .isEqualTo(
-                        "Expected the root token [KEY] while evaluating [" + expressionStr + "]");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldNotCreateValueSelector(String expressionStr) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ConstantSelectorSupplier cs = new ConstantSelectorSupplier(VALUE);
-
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> {
-                            cs.newSelector(expression);
-                        });
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Expected the root token [VALUE] while evaluating [" + expressionStr + "]");
+        GenericSelector valueSelector = selector(Expression("VALUE"));
+        Data nullValue = valueSelector.extract(record("record-key", null));
+        assertThat(nullValue.name()).isEqualTo("VALUE");
+        assertThat(nullValue.text()).isNull();
     }
 
     @ParameterizedTest
@@ -178,31 +169,5 @@ public class ConstantSelectorTest {
         GenericSelector selector2 = selector(Expression(expressionStr));
         assertThat(selector1.hashCode()).isEqualTo(selector2.hashCode());
         assertThat(selector1.equals(selector2)).isTrue();
-    }
-
-    @Test
-    public void shouldCreateEqualKeySelectors() throws ExtractionException {
-        GenericSelector keySelector1 =
-                ConstantSelectorSupplier.makeSelectorSupplier(KEY).newSelector(Expression("KEY"));
-        assertThat(keySelector1.equals(keySelector1)).isTrue();
-
-        GenericSelector keySelector2 =
-                ConstantSelectorSupplier.makeSelectorSupplier(KEY).newSelector(Expression("KEY"));
-        assertThat(keySelector1.hashCode()).isEqualTo(keySelector2.hashCode());
-        assertThat(keySelector1.equals(keySelector2)).isTrue();
-    }
-
-    @Test
-    public void shouldCreateEqualValueSelectors() throws ExtractionException {
-        GenericSelector valueSelector1 =
-                ConstantSelectorSupplier.makeSelectorSupplier(VALUE)
-                        .newSelector(Expression("VALUE"));
-        assertThat(valueSelector1.equals(valueSelector1)).isTrue();
-
-        GenericSelector valueSelector2 =
-                ConstantSelectorSupplier.makeSelectorSupplier(VALUE)
-                        .newSelector(Expression("VALUE"));
-        assertThat(valueSelector1.hashCode()).isEqualTo(valueSelector2.hashCode());
-        assertThat(valueSelector1.equals(valueSelector2)).isTrue();
     }
 }
