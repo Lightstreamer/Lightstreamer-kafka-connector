@@ -178,17 +178,16 @@ class DataExtractorSupport {
                                     valueSelector.extractValueInto(record, target);
                         }
                         case HEADERS -> {
-                            GenericSelector headerSelector =
+                            HeadersSelector headerSelector =
                                     mkSelector(
                                             wrapperSelectors.headersSelectorSupplier(), expression);
                             yield (record, target) -> headerSelector.extractInto(record, target);
                         }
                         default -> {
-                            GenericSelector constantSelector =
-                                    mkSelector(
-                                            wrapperSelectors.constantSelectorSupplier(),
-                                            expression);
-                            yield (record, target) -> constantSelector.extractInto(record, target);
+                            throw new IllegalArgumentException(
+                                    "Cannot handle dynamic extraction from the constant expression ["
+                                            + expression.constant()
+                                            + "]");
                         }
                     };
             return dataExtractor;
