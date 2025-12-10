@@ -467,10 +467,6 @@ public class Parsers {
             NodeEvaluator<T> previous = null, head = null;
             while (ctx.hasNext()) {
                 String token = ctx.next();
-                if (token.isBlank()) {
-                    throw ExtractionException.missingToken(ctx.expression());
-                }
-
                 NodeEvaluator<T> current = createEvaluator(ctx, token);
                 if (previous != null) {
                     previous.setNext(current);
