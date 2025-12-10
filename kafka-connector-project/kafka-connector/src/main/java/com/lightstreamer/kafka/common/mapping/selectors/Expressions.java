@@ -21,13 +21,15 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -122,7 +124,12 @@ public class Expressions {
         }
     }
 
-    public record TemplateExpression(String prefix, Map<String, ExtractionExpression> params) {}
+    public record TemplateExpression(String prefix, Map<String, ExtractionExpression> params) {
+
+        public Schema schema() {
+            return Schema.from(prefix, params.keySet());
+        }
+    }
 
     public record SubscriptionExpression(String prefix, SortedSet<Data> dataSet) {
 
@@ -156,6 +163,12 @@ public class Expressions {
                     "Found unexpected trailing dot(s) in the expression [%s]"
                             .formatted(expression));
         }
+
+        public static ExpressionException unexpectedWhiteChar(String expression)
+                throws ExpressionException {
+            return new ExpressionException(
+                    "Found unexpected white char in the expression [%s]".formatted(expression));
+        }
     }
 
     // ================================
@@ -185,7 +198,7 @@ public class Expressions {
             this.errorMsg = builder.errorMsg;
         }
 
-        R parse(String expression) {
+        R parse(String expression) throws ExpressionException {
             Matcher globalMatcher = globalPattern.matcher(nonNullString(expression));
             if (!globalMatcher.matches()) {
                 throw new ExpressionException(errorMsg);
@@ -246,7 +259,7 @@ public class Expressions {
     private static final class TemplateBuilder
             implements Parser.ParseResultBuilder<TemplateExpression> {
 
-        private final Map<String, ExtractionExpression> params = new HashMap<>();
+        private final SortedMap<String, ExtractionExpression> params = new TreeMap<>();
         private final ExtractionExpressionParser extractionExpressionParser;
         private String prefix;
 
@@ -355,7 +368,7 @@ public class Expressions {
         }
     }
 
-    static class ExtractionExpressionParser {
+    private static class ExtractionExpressionParser {
 
         private static final Pattern FIELD = Pattern.compile(SELECTION_REGEX);
 
@@ -430,23 +443,33 @@ public class Expressions {
     // PUBLIC STATIC FACTORY METHODS
     // ================================
 
-    public static TemplateExpression Template(String templateExpression) {
+    public static TemplateExpression EmptyTemplate(String item) {
+        if (item == null || item.isBlank()) {
+            throw new ExpressionException("Invalid Item");
+        }
+        return new TemplateExpression(item, Collections.emptyMap());
+    }
+
+    public static TemplateExpression Template(String templateExpression)
+            throws ExpressionException {
         return EXPRESSIONS.parseTemplate(templateExpression);
     }
 
-    public static ExtractionExpression Wrapped(String wrappedExpression) {
+    public static ExtractionExpression Wrapped(String wrappedExpression)
+            throws ExpressionException {
         return EXPRESSIONS.parseWrapped(wrappedExpression);
     }
 
-    public static SubscriptionExpression Subscription(String subscriptionExpression) {
+    public static SubscriptionExpression Subscription(String subscriptionExpression)
+            throws ExpressionException {
         return EXPRESSIONS.parseSubscription(subscriptionExpression);
     }
 
-    public static String CanonicalItemName(String expression) {
+    public static String CanonicalItemName(String expression) throws ExpressionException {
         return EXPRESSIONS.canonicalItemName(expression);
     }
 
-    public static ExtractionExpression Expression(String expression) {
+    public static ExtractionExpression Expression(String expression) throws ExpressionException {
         return EXPRESSIONS.parseExtractionExpression(expression);
     }
 
@@ -454,23 +477,24 @@ public class Expressions {
     // PACKAGE-PRIVATE INSTANCE METHODS
     // ================================
 
-    TemplateExpression parseTemplate(String templateExpression) {
+    TemplateExpression parseTemplate(String templateExpression) throws ExpressionException {
         return templateParser.parse(templateExpression);
     }
 
-    SubscriptionExpression parseSubscription(String subscriptionExpression) {
+    SubscriptionExpression parseSubscription(String subscriptionExpression)
+            throws ExpressionException {
         return subscriptionParser.parse(subscriptionExpression);
     }
 
-    String canonicalItemName(String expression) {
+    String canonicalItemName(String expression) throws ExpressionException {
         return canonicalItemNameParser.parse(expression);
     }
 
-    ExtractionExpression parseWrapped(String wrappedExpression) {
+    ExtractionExpression parseWrapped(String wrappedExpression) throws ExpressionException {
         return extractionExpressionParser.parseWrapped(wrappedExpression);
     }
 
-    ExtractionExpression parseExtractionExpression(String expression) {
+    ExtractionExpression parseExtractionExpression(String expression) throws ExpressionException {
         return extractionExpressionParser.parse(expression);
     }
 
@@ -480,10 +504,16 @@ public class Expressions {
 
     private static String[] getTokens(String expression) {
         // expression.splitWithDelimiters("\\.", 0); // Valid for Java 21
-        StringTokenizer st = new StringTokenizer(expression, ".", true);
-        String[] tokens = new String[st.countTokens()];
-        for (int i = 0; i < tokens.length; i++) {
-            tokens[i] = st.nextToken();
+        StringTokenizer tokenizer = new StringTokenizer(expression, ".", true);
+        int tokenCount = tokenizer.countTokens();
+        String[] tokens = new String[tokenCount];
+
+        for (int i = 0; i < tokenCount; i++) {
+            String token = tokenizer.nextToken();
+            if (!token.equals(token.strip())) {
+                throw ExpressionException.unexpectedWhiteChar(expression);
+            }
+            tokens[i] = token;
         }
         return tokens;
 
