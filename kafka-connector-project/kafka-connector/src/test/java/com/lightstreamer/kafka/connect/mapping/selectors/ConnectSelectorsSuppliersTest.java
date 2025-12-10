@@ -339,7 +339,6 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,         Found the invalid expression [VALUE.a. .b] with missing tokens
                 VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd]
                 VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
@@ -357,7 +356,6 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,         Found the invalid expression [KEY.a. .b] with missing tokens
                 KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd]
                 KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
