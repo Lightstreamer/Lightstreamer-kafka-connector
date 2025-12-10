@@ -70,7 +70,7 @@ class DataExtractorSupport {
             this.mapNonScalars = mapNonScalars;
             HeadersSelectorSupplier headersSelectorSupplier = new HeadersSelectorSupplier();
             ConstantSelectorSupplier constantSelectorSupplier =
-                    new ConstantSelectorSupplier(
+                    ConstantSelectorSupplier.makeSelectorSupplier(
                             Constant.OFFSET,
                             Constant.PARTITION,
                             Constant.TIMESTAMP,
