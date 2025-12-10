@@ -92,7 +92,7 @@ public class DataExtractors {
             return valueSelectorSupplier.newSelector(expression);
         }
 
-        GenericSelector newHeadersSelector(ExtractionExpression expression)
+        HeadersSelector newHeadersSelector(ExtractionExpression expression)
                 throws ExtractionException {
             return headersSelectorSupplier.newSelector(expression);
         }
@@ -115,7 +115,7 @@ public class DataExtractors {
                     yield record -> valueSelector.extractValue(param, record, !mapNonScalars);
                 }
                 case HEADERS -> {
-                    GenericSelector headerSelector = newHeadersSelector(expression);
+                    HeadersSelector headerSelector = newHeadersSelector(expression);
                     yield record -> headerSelector.extract(param, record, !mapNonScalars);
                 }
                 default -> {
@@ -137,13 +137,16 @@ public class DataExtractors {
                     yield (record, target) -> valueSelector.extractValueInto(record, target);
                 }
                 case HEADERS -> {
-                    GenericSelector headerSelector = newHeadersSelector(expression);
+                    HeadersSelector headerSelector = newHeadersSelector(expression);
                     yield (record, target) -> headerSelector.extractInto(record, target);
                 }
-                default -> {
-                    GenericSelector constantSelector = newConstantSelector(expression);
-                    yield (record, target) -> constantSelector.extractInto(record, target);
-                }
+                default ->
+                        // GenericSelector constantSelector = newConstantSelector(expression);
+                        // yield (record, target) -> constantSelector.extractInto(record, target);
+                        throw new IllegalArgumentException(
+                                "Cannot handle dynamic extraction from the constant expression ["
+                                        + expression.constant()
+                                        + "]");
             };
         }
 
