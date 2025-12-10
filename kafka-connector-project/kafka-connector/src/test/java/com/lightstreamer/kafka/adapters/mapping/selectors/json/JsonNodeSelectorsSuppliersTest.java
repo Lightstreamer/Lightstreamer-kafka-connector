@@ -26,7 +26,6 @@ import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -88,7 +88,8 @@ public class JsonNodeSelectorsSuppliersTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+        KeySelectorSupplier<JsonNode> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.JSON);
     }
 
     @Test
@@ -125,7 +126,6 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION       | EXPECTED_ERROR_MESSAGE
-                KEY.a. .b        | Found the invalid expression [KEY.a. .b] with missing tokens
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
@@ -144,7 +144,8 @@ public class JsonNodeSelectorsSuppliersTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+        ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.JSON);
     }
 
     @Test
@@ -181,7 +182,6 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION         | EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b        | Found the invalid expression [VALUE.a. .b] with missing tokens
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
@@ -211,24 +211,32 @@ public class JsonNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                            | EXPECTED_NAME | EXPECTED_VALUE
-                VALUE.name                            | name          | joe
-                VALUE['name']                         | name          | joe
-                VALUE.signature                       | signature     | YWJjZA==
-                VALUE.notes[0]                        | notes[0]      | note1
-                VALUE.children[0].name                | name          | alex
-                VALUE.children[0]['name']             | name          | alex
-                VALUE.children[0].signature           | signature     |
-                VALUE.children[1].name                | name          | anna
-                VALUE.children[2].name                | name          | serena
-                VALUE.children[3]                     | children[3]   |
-                VALUE.children[1].children[0].name    | name          | gloria
-                VALUE.children[1].children[1].name    | name          | terence
-                VALUE.children[1].children[1]['name'] | name          | terence
-                VALUE.family[0][0].name               | name          | bro00
-                VALUE.family[0][1].name               | name          | bro01
-                VALUE.family[1][0].name               | name          | bro10
-                VALUE.family[1][1].name               | name          | bro11
+                EXPRESSION                            | EXPECTED_NAME        | EXPECTED_VALUE
+                VALUE.name                            | name                 | joe
+                VALUE['name']                         | name                 | joe
+                VALUE.signature                       | signature            | YWJjZA==
+                VALUE['notes'][0]                     | notes[0]             | note1
+                VALUE.notes[0]                        | notes[0]             | note1
+                VALUE.stringsStrings[0][1]            | stringsStrings[0][1] | ss01
+                VALUE['stringsStrings'][0][1]         | stringsStrings[0][1] | ss01
+                VALUE.mapsMaps.map1.m11               | m11                  | mv11
+                VALUE.mapsMaps['map1']['m11']         | m11                  | mv11
+                VALUE.mapsMaps['map1'].m11            | m11                  | mv11
+                VALUE['mapsMaps']['map1']['m11']      | m11                  | mv11
+                VALUE['mapsMaps'].map1['m11']         | m11                  | mv11
+                VALUE.children[0].name                | name                 | alex
+                VALUE.children[0]['name']             | name                 | alex
+                VALUE.children[0].signature           | signature            |
+                VALUE.children[1].name                | name                 | anna
+                VALUE.children[2].name                | name                 | serena
+                VALUE.children[3]                     | children[3]          |
+                VALUE.children[1].children[0].name    | name                 | gloria
+                VALUE.children[1].children[1].name    | name                 | terence
+                VALUE.children[1].children[1]['name'] | name                 | terence
+                VALUE.family[0][0].name               | name                 | bro00
+                VALUE.family[0][1].name               | name                 | bro01
+                VALUE.family[1][0].name               | name                 | bro10
+                VALUE.family[1][1].name               | name                 | bro11
                     """)
     public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
@@ -238,7 +246,7 @@ public class JsonNodeSelectorsSuppliersTest {
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE));
+        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -257,7 +265,13 @@ public class JsonNodeSelectorsSuppliersTest {
                          "emptyData": [],
                          "map": {"a": 1, "b": 2, "c": 3},
                          "emptyMap": {},
-                         "nullValue": null
+                         "nullValue": null,
+                         "matrix": [
+                             [1,2,3],
+                             [4,5,6],
+                             [7,8,9]
+                         ]
+                         }
                     }
                         """);
 
@@ -279,6 +293,8 @@ public class JsonNodeSelectorsSuppliersTest {
                         "{\"a\":1,\"b\":2,\"c\":3}",
                         "emptyMap",
                         "{}",
+                        "matrix",
+                        "[[1,2,3],[4,5,6],[7,8,9]]",
                         "nullValue",
                         null);
         target.clear();
@@ -297,6 +313,29 @@ public class JsonNodeSelectorsSuppliersTest {
         target.clear();
 
         valueSelector(Expression("VALUE.emptyMap")).extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        valueSelector(Expression("VALUE.matrix")).extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "matrix[0]", "[1,2,3]", "matrix[1]", "[4,5,6]", "matrix[2]", "[7,8,9]");
+        target.clear();
+
+        valueSelector(Expression("VALUE.matrix[1]")).extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("matrix[1][0]", "4", "matrix[1][1]", "5", "matrix[1][2]", "6");
+        target.clear();
+
+        Data data = valueSelector(Expression("VALUE.matrix[1]")).extractValue(record, false);
+        assertThat(data.name()).isEqualTo("matrix[1]");
+        assertThat(data.text()).isEqualTo("[4,5,6]");
+
+        data = valueSelector(Expression("VALUE.matrix[1][2]")).extractValue(record, false);
+        assertThat(data.name()).isEqualTo("matrix[1][2]");
+        assertThat(data.text()).isEqualTo("6");
+
+        valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
