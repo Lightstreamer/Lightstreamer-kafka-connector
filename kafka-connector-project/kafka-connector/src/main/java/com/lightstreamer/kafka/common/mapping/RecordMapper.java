@@ -22,7 +22,7 @@ import static java.util.Collections.emptySet;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -209,7 +209,7 @@ public interface RecordMapper<K, V> {
      * @return a set of data extractors configured for the specified topic; never null but may be
      *     empty if no extractors are configured for the topic
      */
-    Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
+    Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
 
     /**
      * Transforms a Kafka record into a {@code MappedRecord} containing canonical item names and
@@ -245,14 +245,13 @@ public interface RecordMapper<K, V> {
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
     /**
-     * Indicates whether this mapper has any template extractors configured for generating canonical
-     * item names. Template extractors are used by {@link #map(KafkaRecord)} to determine routing
-     * targets through template expansion.
+     * Checks whether this mapper has canonical item extractors configured. Canonical item
+     * extractors are used by {@link #map(KafkaRecord)} to determine routing targets through
+     * template expansion.
      *
-     * @return {@code true} if at least one template extractor is configured, {@code false}
-     *     otherwise
+     * @return {@code true} if canonical item extractors are available; {@code false} otherwise
      */
-    boolean hasExtractors();
+    boolean hasCanonicalItemExtractors();
 
     /**
      * Indicates whether this mapper has a field extractor configured for generating data updates.
@@ -314,7 +313,8 @@ public interface RecordMapper<K, V> {
 
         static final FieldsExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
-        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicSubscription = new HashMap<>();
+        final Map<String, Set<CanonicalItemExtractor<K, V>>> extractorsByTopicSubscription =
+                new HashMap<>();
 
         @SuppressWarnings("unchecked")
         FieldsExtractor<K, V> fieldExtractor = (FieldsExtractor<K, V>) NOP;
@@ -328,35 +328,36 @@ public interface RecordMapper<K, V> {
          * are used by {@link RecordMapper#map(KafkaRecord)} to produce routing targets through
          * template expansion.
          *
-         * @param templateExtractors a map of topic names (or patterns) to sets of template
+         * @param canonicalItemExtractors a map of topic names (or patterns) to sets of template
          *     extractors
          * @return this builder for method chaining
          */
-        public Builder<K, V> withTemplateExtractors(
-                Map<String, Set<DataExtractor<K, V>>> templateExtractors) {
-            this.extractorsByTopicSubscription.putAll(templateExtractors);
+        public Builder<K, V> withCanonicalItemExtractors(
+                Map<String, Set<CanonicalItemExtractor<K, V>>> canonicalItemExtractors) {
+            this.extractorsByTopicSubscription.putAll(canonicalItemExtractors);
             return this;
         }
 
         /**
-         * Adds a single template extractor for the specified topic subscription. Multiple
+         * Adds a single canonical item extractor for the specified topic subscription. Multiple
          * extractors can be associated with the same topic to generate multiple canonical item
          * names from a single record.
          *
          * @param subscription the topic name or pattern (if regex is enabled) to associate the
          *     extractor with
-         * @param templateExtractor the template extractor for generating canonical item names
+         * @param canonicalItemExtractor the canonical item extractor for generating canonical item
+         *     names
          * @return this builder for method chaining
          */
-        public final Builder<K, V> withTemplateExtractor(
-                String subscription, DataExtractor<K, V> templateExtractor) {
+        public final Builder<K, V> addCanonicalItemExtractor(
+                String subscription, CanonicalItemExtractor<K, V> canonicalItemExtractor) {
             this.extractorsByTopicSubscription.compute(
                     subscription,
                     (t, extractors) -> {
                         if (extractors == null) {
                             extractors = new HashSet<>();
                         }
-                        extractors.add(templateExtractor);
+                        extractors.add(canonicalItemExtractor);
                         return extractors;
                     });
             return this;
@@ -407,14 +408,14 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     interface ExtractorsSupplier<K, V> {
 
-        Collection<DataExtractor<K, V>> getExtractors(String topic);
+        Collection<CanonicalItemExtractor<K, V>> getExtractors(String topic);
     }
 
     static record PatternAndExtractors<K, V>(
-            Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
+            Pattern pattern, Set<CanonicalItemExtractor<K, V>> extractors) {}
 
     private final FieldsExtractor<K, V> fieldExtractor;
-    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
+    private final Map<String, Set<CanonicalItemExtractor<K, V>>> templateExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
     private final boolean regexEnabled;
@@ -444,12 +445,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         return pe;
     }
 
-    private Collection<DataExtractor<K, V>> getAssociatedExtractors(String topic) {
+    private Collection<CanonicalItemExtractor<K, V>> getAssociatedExtractors(String topic) {
         return templateExtractors.getOrDefault(topic, emptySet());
     }
 
-    private Collection<DataExtractor<K, V>> getMatchingExtractors(String topic) {
-        Collection<DataExtractor<K, V>> extractors = new ArrayList<>();
+    private Collection<CanonicalItemExtractor<K, V>> getMatchingExtractors(String topic) {
+        Collection<CanonicalItemExtractor<K, V>> extractors = new ArrayList<>();
         for (PatternAndExtractors<K, V> p : patterns) {
             Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
@@ -460,12 +461,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
+    public Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
         return templateExtractors.get(topicName);
     }
 
     @Override
-    public boolean hasExtractors() {
+    public boolean hasCanonicalItemExtractors() {
         return !templateExtractors.isEmpty();
     }
 
@@ -489,8 +490,8 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
         String[] canonicalItems = new String[extractors.size()];
         int i = 0;
-        for (DataExtractor<K, V> dataExtractor : extractors) {
-            canonicalItems[i++] = dataExtractor.extractAsCanonicalItem(record);
+        for (CanonicalItemExtractor<K, V> dataExtractor : extractors) {
+            canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
         return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractMap(record));
