@@ -32,9 +32,9 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
 
         private final Constant constant;
 
-        ConstantSelectorImpl(Constant expression) {
-            super(expression);
-            this.constant = expression;
+        ConstantSelectorImpl(Constant constant) {
+            super(constant);
+            this.constant = constant;
         }
 
         @Override
@@ -58,6 +58,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
                         case KEY -> record.key();
                         case VALUE -> record.value();
                         default ->
+                                // This should never happen as HEADERS is not supported
                                 throw new IllegalStateException("Unexpected constant: " + constant);
                     };
             return Objects.toString(data, null);
@@ -66,12 +67,8 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
 
     private final Set<Constant> allowedConstants;
 
-    ConstantSelectorSupplier(Constant... constant) {
+    private ConstantSelectorSupplier(Constant... constant) {
         this.allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
-    }
-
-    ConstantSelectorSupplier() {
-        this(Constant.values());
     }
 
     @Override
@@ -96,6 +93,11 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
     }
 
     public static ConstantSelectorSupplier makeSelectorSupplier(Constant... constants) {
+        for (Constant constant : constants) {
+            if (constant == Constant.HEADERS) {
+                throw new IllegalArgumentException("Cannot handle HEADERS constant");
+            }
+        }
         return new ConstantSelectorSupplier(constants);
     }
 }
