@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -267,19 +268,9 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         public Deserializer<String> deserializer() {
             return deserializer;
         }
-    }
 
-    private static class KvpNodeValueSelectorSupplier extends KvpNodeSelectorSupplier
-            implements ValueSelectorSupplier<String> {
-
-        KvpNodeValueSelectorSupplier(Splitter pair, Splitter keyValue) {
-            super(pair, keyValue);
-        }
-
-        @Override
-        public ValueSelector<String> newSelector(ExtractionExpression expression)
-                throws ExtractionException {
-            return new KvpNodeSelector(expression, kvpMapFactory, Constant.VALUE);
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.KVP;
         }
     }
 
@@ -294,6 +285,20 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         public KeySelector<String> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
             return new KvpNodeSelector(expression, kvpMapFactory, Constant.KEY);
+        }
+    }
+
+    private static class KvpNodeValueSelectorSupplier extends KvpNodeSelectorSupplier
+            implements ValueSelectorSupplier<String> {
+
+        KvpNodeValueSelectorSupplier(Splitter pair, Splitter keyValue) {
+            super(pair, keyValue);
+        }
+
+        @Override
+        public ValueSelector<String> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            return new KvpNodeSelector(expression, kvpMapFactory, Constant.VALUE);
         }
     }
 
