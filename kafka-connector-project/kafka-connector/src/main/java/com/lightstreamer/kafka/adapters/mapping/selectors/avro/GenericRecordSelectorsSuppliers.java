@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
@@ -27,11 +28,11 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
-import com.lightstreamer.kafka.common.utils.Either;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -43,7 +44,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class GenericRecordSelectorsSuppliers
         implements KeyValueSelectorSuppliersMaker<GenericRecord> {
@@ -305,206 +305,6 @@ public class GenericRecordSelectorsSuppliers
         }
     }
 
-    static class AvroNode1 implements Node<AvroNode1> {
-
-        private static final Either<GenericContainer, Object> NULL_DATA =
-                Either.right(new Object());
-
-        static AvroNode1 from(String name, Object avroNode) {
-            if (avroNode == null) {
-                return new AvroNode1(name);
-            }
-
-            if (avroNode instanceof GenericContainer container) {
-                Schema schema = container.getSchema();
-                Type valueType = schema.getType();
-                return switch (valueType) {
-                    case RECORD, FIXED, ARRAY, ENUM -> new AvroNode1(name, container);
-                    default -> throw new RuntimeException("Unsupported Avro type: " + valueType);
-                };
-            }
-            return new AvroNode1(name, avroNode);
-        }
-
-        private final Either<GenericContainer, Object> data;
-        private final String name;
-        private final Optional<Type> type;
-
-        private AvroNode1(String name, GenericContainer container) {
-            this.name = name;
-            this.data = Either.left(container);
-            this.type = Optional.of(container.getSchema().getType());
-        }
-
-        private AvroNode1(String name, Object object) {
-            this.name = name;
-            this.data = Either.right(object);
-            this.type = Optional.empty();
-        }
-
-        private AvroNode1(String name) {
-            this.name = name;
-            this.data = NULL_DATA;
-            this.type = Optional.empty();
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public boolean has(String name) {
-            if (isContainer()) {
-                GenericContainer genericContainer = container();
-                Schema schema = genericContainer.getSchema();
-                Type type = schema.getType();
-                if (type.equals(Type.RECORD)) {
-                    GenericData.Record record = (GenericData.Record) genericContainer;
-                    return record.hasField(name);
-                }
-                return false;
-            }
-
-            if (object() instanceof Map map) {
-                return map.containsKey(new Utf8(name));
-            }
-            return false;
-        }
-
-        @Override
-        public AvroNode1 get(String nodeName, String propertyName) {
-            if (isContainer()) {
-                GenericData.Record record = (GenericData.Record) container();
-                return AvroNode1.from(nodeName, record.get(propertyName));
-            }
-
-            Map<?, ?> map = (Map<?, ?>) object();
-            return AvroNode1.from(nodeName, map.get(new Utf8(propertyName)));
-        }
-
-        static Data getAsData(GenericData.Record record, String name) {
-            Object obj = record.get(name);
-            return Data.from(name, obj != null ? obj.toString() : (String) null);
-        }
-
-        @Override
-        public boolean isArray() {
-            if (isContainer()) {
-                Schema schema = container().getSchema();
-                return schema.getType().equals(Type.ARRAY);
-            }
-            return false;
-        }
-
-        @Override
-        public int size() {
-            if (isArray()) {
-                GenericData.Array<?> array = (GenericData.Array<?>) container();
-                return array.size();
-            }
-            return 0;
-        }
-
-        @Override
-        public AvroNode1 get(String nodeName, int index) {
-            GenericData.Array<?> array = (GenericData.Array<?>) container();
-            return AvroNode1.from(nodeName + "[" + index + "]", array.get(index));
-        }
-
-        static Data getAsData(GenericData.Array<?> array, String name, int index) {
-            return Data.from(name + "[" + index + "]", Objects.toString(array.get(index), null));
-        }
-
-        @Override
-        public boolean isNull() {
-            return data == NULL_DATA;
-        }
-
-        @Override
-        public boolean isScalar() {
-            if (isContainer()) {
-                Schema schema = container().getSchema();
-                Type type = schema.getType();
-                return switch (type) {
-                    case RECORD, ARRAY -> false;
-                    default -> true;
-                };
-            }
-
-            if (isNull()) {
-                return true;
-            }
-
-            return !(object() instanceof Map);
-        }
-
-        @Override
-        public void flatIntoMap(Map<String, String> target) {
-            if (isNull()) {
-                return;
-            }
-
-            if (isScalar()) {
-                target.put(name, text());
-                return;
-            }
-
-            if (isContainer()) {
-                Schema schema = container().getSchema();
-                Type type = schema.getType();
-                switch (type) {
-                    case RECORD -> {
-                        GenericData.Record record = (GenericData.Record) container();
-                        for (Schema.Field field : record.getSchema().getFields()) {
-                            Object object = record.get(field.name());
-                            target.put(field.name(), Objects.toString(object, null));
-                        }
-                    }
-                    case ARRAY -> {
-                        GenericData.Array<?> array = (GenericData.Array<?>) container();
-                        for (int i = 0; i < size(); i++) {
-                            target.put(name + "[" + i + "]", Objects.toString(array.get(i), null));
-                        }
-                    }
-
-                    default -> {}
-                }
-                return;
-            }
-
-            if (object() instanceof Map map) {
-                for (Object key : map.keySet()) {
-                    target.put(key.toString(), Objects.toString(map.get(key), null));
-                }
-            }
-        }
-
-        @Override
-        public String text() {
-            if (isNull()) {
-                return null;
-            }
-            if (isContainer()) {
-                return container().toString();
-            }
-
-            return object().toString();
-        }
-
-        GenericContainer container() {
-            return data.getLeft();
-        }
-
-        boolean isContainer() {
-            return data.isLeft();
-        }
-
-        Object object() {
-            return data.getRight();
-        }
-    }
-
     private static class GenericRecordKeySelectorSupplier
             implements KeySelectorSupplier<GenericRecord> {
 
@@ -523,6 +323,11 @@ public class GenericRecordSelectorsSuppliers
         @Override
         public Deserializer<GenericRecord> deserializer() {
             return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.AVRO;
         }
     }
 
@@ -571,6 +376,11 @@ public class GenericRecordSelectorsSuppliers
         @Override
         public Deserializer<GenericRecord> deserializer() {
             return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.AVRO;
         }
     }
 
