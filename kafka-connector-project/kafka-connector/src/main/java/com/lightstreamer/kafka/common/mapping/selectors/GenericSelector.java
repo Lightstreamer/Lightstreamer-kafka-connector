@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import java.util.Map;
-
 public interface GenericSelector extends Selector {
 
     default Data extract(String name, KafkaRecord<?, ?> record) throws ValueException {
@@ -32,6 +30,4 @@ public interface GenericSelector extends Selector {
     }
 
     Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException;
-
-    void extractInto(KafkaRecord<?, ?> record, Map<String, String> target) throws ValueException;
 }
