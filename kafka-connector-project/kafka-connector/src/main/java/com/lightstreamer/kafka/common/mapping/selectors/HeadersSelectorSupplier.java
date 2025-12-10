@@ -221,28 +221,28 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         }
     }
 
-    private static class HeadersSelectorImpl extends StructuredBaseSelector<HeaderNode>
-            implements HeadersSelector {
+    private static class HeadersSelectorImpl
+            extends StructuredBaseSelector<KafkaHeaders, HeaderNode> implements HeadersSelector {
 
         HeadersSelectorImpl(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.HEADERS);
+            super(expression, Constant.HEADERS, HeadersNode::new);
         }
 
         @Override
         public Data extract(String name, KafkaRecord<?, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::headers, HeadersNode::new, checkScalar);
+            return eval(name, record::headers, checkScalar);
         }
 
         @Override
         public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
-            return eval(record::headers, HeadersNode::new, checkScalar);
+            return eval(record::headers, checkScalar);
         }
 
         @Override
         public void extractInto(KafkaRecord<?, ?> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::headers, HeadersNode::new, target);
+            evalInto(record::headers, target);
         }
     }
 
