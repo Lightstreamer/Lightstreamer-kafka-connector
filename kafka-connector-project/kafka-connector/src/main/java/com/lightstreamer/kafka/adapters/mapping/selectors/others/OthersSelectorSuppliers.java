@@ -32,24 +32,8 @@ import static com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorS
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 
-import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelector;
-import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import java.util.EnumMap;
+import java.util.Map;
 
 import org.apache.kafka.common.serialization.BooleanDeserializer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -64,8 +48,24 @@ import org.apache.kafka.common.serialization.ShortDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.UUIDDeserializer;
 
-import java.util.EnumMap;
-import java.util.Map;
+import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
+import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.GenericSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
@@ -108,9 +108,9 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
     private static class KeySelectorWrapper<K> implements KeySelector<K> {
 
-        private final ConstantSelector selector;
+        private final GenericSelector selector;
 
-        KeySelectorWrapper(ConstantSelector selector) throws ExtractionException {
+        KeySelectorWrapper(GenericSelector selector) throws ExtractionException {
             this.selector = selector;
         }
 
@@ -157,9 +157,9 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
     private static class ValueSelectorWrapper<V> implements ValueSelector<V> {
 
-        private final ConstantSelector selector;
+        private final GenericSelector selector;
 
-        ValueSelectorWrapper(ConstantSelector selector) throws ExtractionException {
+        ValueSelectorWrapper(GenericSelector selector) throws ExtractionException {
             this.selector = selector;
         }
 
