@@ -17,8 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
@@ -28,6 +31,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -159,13 +163,18 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         public Deserializer<JsonNode> deserializer() {
             return deserializer;
         }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.JSON;
+        }
     }
 
     private static class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
             implements KeySelector<JsonNode> {
 
         JsonNodeKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY);
+            super(expression, KEY);
         }
 
         @Override
@@ -208,6 +217,11 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public Deserializer<JsonNode> deserializer() {
             return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.JSON;
         }
     }
 
