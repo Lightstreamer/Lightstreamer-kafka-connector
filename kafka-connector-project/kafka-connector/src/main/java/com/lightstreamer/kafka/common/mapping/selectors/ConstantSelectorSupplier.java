@@ -65,42 +65,6 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
         }
 
         @Override
-        public Data extractKey(String name, KafkaRecord<Object, ?> record, boolean checkScalar)
-                throws ValueException {
-            return new SimpleData(name, Objects.toString(record.key(), null));
-        }
-
-        @Override
-        public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
-                throws ValueException {
-            return extractKey(constant.name(), record, checkScalar);
-        }
-
-        @Override
-        public Data extractValue(String name, KafkaRecord<?, Object> record, boolean checkScalar)
-                throws ValueException {
-            return new SimpleData(name, Objects.toString(record.value(), null));
-        }
-
-        @Override
-        public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
-                throws ValueException {
-            return extractValue(constant.name(), record, checkScalar);
-        }
-
-        @Override
-        public void extractKeyInto(KafkaRecord<Object, ?> record, Map<String, String> target)
-                throws ValueException {
-            target.put(constant.name(), Objects.toString(record.key(), null));
-        }
-
-        @Override
-        public void extractValueInto(KafkaRecord<?, Object> record, Map<String, String> target)
-                throws ValueException {
-            target.put(constant.name(), Objects.toString(record.value(), null));
-        }
-
-        @Override
         public void extractInto(KafkaRecord<?, ?> record, Map<String, String> target)
                 throws ValueException {
             target.put(constant.name(), extract(record, true).text());
@@ -139,11 +103,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
         return new ConstantSelectorImpl(expression.constant());
     }
 
-    public static ConstantSelectorSupplier KeySelector() {
-        return new ConstantSelectorSupplier(Constant.KEY);
-    }
-
-    public static ConstantSelectorSupplier ValueSelector() {
-        return new ConstantSelectorSupplier(Constant.VALUE);
+    public static ConstantSelectorSupplier makeSelectorSupplier(Constant... constants) {
+        return new ConstantSelectorSupplier(constants);
     }
 }
