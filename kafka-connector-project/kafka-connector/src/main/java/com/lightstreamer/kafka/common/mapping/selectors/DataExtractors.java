@@ -97,7 +97,7 @@ public class DataExtractors {
             return headersSelectorSupplier.newSelector(expression);
         }
 
-        ConstantSelector newConstantSelector(ExtractionExpression expression)
+        GenericSelector newConstantSelector(ExtractionExpression expression)
                 throws ExtractionException {
             return constantSelectorSupplier.newSelector(expression);
         }
@@ -119,7 +119,7 @@ public class DataExtractors {
                     yield record -> headerSelector.extract(param, record, !mapNonScalars);
                 }
                 default -> {
-                    ConstantSelector constantSelector = newConstantSelector(expression);
+                    GenericSelector constantSelector = newConstantSelector(expression);
                     yield record -> constantSelector.extract(param, record, !mapNonScalars);
                 }
             };
@@ -141,7 +141,7 @@ public class DataExtractors {
                     yield (record, target) -> headerSelector.extractInto(record, target);
                 }
                 default -> {
-                    ConstantSelector constantSelector = newConstantSelector(expression);
+                    GenericSelector constantSelector = newConstantSelector(expression);
                     yield (record, target) -> constantSelector.extractInto(record, target);
                 }
             };
