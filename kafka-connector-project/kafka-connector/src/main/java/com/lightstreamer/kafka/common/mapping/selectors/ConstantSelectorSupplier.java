@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -27,9 +24,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelector> {
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
-    private static class ConstantSelectorImpl extends BaseSelector implements ConstantSelector {
+public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelector> {
+
+    private static class ConstantSelectorImpl extends BaseSelector implements GenericSelector {
 
         private final Constant constant;
 
@@ -82,7 +82,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
     }
 
     @Override
-    public ConstantSelector newSelector(ExtractionExpression expression)
+    public GenericSelector newSelector(ExtractionExpression expression)
             throws ExtractionException {
         return mkSelector(expression);
     }
