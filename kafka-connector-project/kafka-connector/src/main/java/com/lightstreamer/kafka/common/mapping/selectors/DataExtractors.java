@@ -23,13 +23,15 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Const
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 
 public class DataExtractors {
@@ -58,6 +60,27 @@ public class DataExtractors {
                 ValueSelectorSupplier<V> valueSelectorSupplier) {
             this.keySelectorSupplier = keySelectorSupplier;
             this.valueSelectorSupplier = valueSelectorSupplier;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    keySelectorSupplier.evaluatorType(), valueSelectorSupplier.evaluatorType());
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            if (obj instanceof ExtractorsProvider<?, ?> other) {
+                return Objects.equals(
+                                this.keySelectorSupplier.evaluatorType(),
+                                other.keySelectorSupplier.evaluatorType())
+                        && Objects.equals(
+                                this.valueSelectorSupplier.evaluatorType(),
+                                other.valueSelectorSupplier.evaluatorType());
+            }
+            return false;
         }
 
         KeySelector<K> newKeySelector(ExtractionExpression expression) throws ExtractionException {
@@ -132,44 +155,41 @@ public class DataExtractors {
 
     static class CanonicalItemExtractorImpl<K, V> implements CanonicalItemExtractor<K, V> {
 
+        private final ExtractorsProvider<K, V> provider;
+        private final TemplateExpression template;
         private final DataExtractor<K, V>[] extractors;
-        private final Schema schema;
-        private Function<KafkaRecord<K, V>, String> canonicalItemGenerator;
+        private final Function<KafkaRecord<K, V>, String> canonicalItemGenerator;
 
         @SuppressWarnings("unchecked")
         CanonicalItemExtractorImpl(
-                KeyValueSelectorSuppliers<K, V> sSuppliers,
-                String schemaName,
-                Map<String, ExtractionExpression> expressions)
+                KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression template)
                 throws ExtractionException {
 
-            ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
+            this.provider = ExtractorsProvider.create(sSuppliers);
+            this.template = template;
+            this.extractors = (DataExtractor<K, V>[]) new DataExtractor[template.params().size()];
 
-            Set<String> schemaKeys = new HashSet<>();
-            this.extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
-            Map<String, ExtractionExpression> sortedExpressions = new TreeMap<>(expressions);
             int index = 0;
-            for (Map.Entry<String, ExtractionExpression> boundExpression :
-                    sortedExpressions.entrySet()) {
-                String param = boundExpression.getKey();
-                schemaKeys.add(param);
+            for (Map.Entry<String, ExtractionExpression> expression :
+                    template.params().entrySet()) {
                 this.extractors[index++] =
-                        provider.createDataExtractor(param, boundExpression.getValue(), false);
+                        provider.createDataExtractor(
+                                expression.getKey(), expression.getValue(), false);
             }
 
-            this.schema = Schema.from(schemaName, schemaKeys);
+            Schema schema = template.schema();
             switch (this.extractors.length) {
-                case 0 -> this.canonicalItemGenerator = record -> schemaName;
+                case 0 -> this.canonicalItemGenerator = record -> schema.name();
                 case 1 ->
                         this.canonicalItemGenerator =
                                 record ->
                                         Data.buildItemNameSingle(
-                                                this.extractors[0].extract(record), schemaName);
+                                                this.extractors[0].extract(record), schema.name());
                 default ->
                         this.canonicalItemGenerator =
                                 record ->
                                         Data.buildItemName(
-                                                this.extractDataArray(record), schemaName);
+                                                this.extractDataArray(record), schema.name());
             }
         }
 
@@ -182,13 +202,28 @@ public class DataExtractors {
         }
 
         @Override
-        public String extractCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
-            return canonicalItemGenerator.apply(record);
+        public int hashCode() {
+            return Objects.hash(provider, template);
+        }
+
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+
+            if (obj instanceof CanonicalItemExtractorImpl<?, ?> other) {
+                return Objects.equals(this.template, other.template)
+                        && Objects.equals(this.provider, other.provider);
+            }
+            return false;
         }
 
         @Override
         public Schema schema() {
-            return schema;
+            return template.schema();
+        }
+
+        @Override
+        public String extractCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
+            return canonicalItemGenerator.apply(record);
         }
     }
 
@@ -263,7 +298,7 @@ public class DataExtractors {
         @SuppressWarnings("unchecked")
         DynamicFieldsExtractorImpl(
                 KeyValueSelectorSuppliers<K, V> sSuppliers,
-                Map<String, ExtractionExpression> expressions,
+                Collection<ExtractionExpression> expressions,
                 boolean skipOnFailure)
                 throws ExtractionException {
 
@@ -272,7 +307,7 @@ public class DataExtractors {
             ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
 
             int index = 0;
-            for (ExtractionExpression boundExpression : expressions.values()) {
+            for (ExtractionExpression boundExpression : expressions) {
                 this.mapExtractors[index++] = provider.createMapExtractor(boundExpression);
             }
         }
@@ -350,6 +385,12 @@ public class DataExtractors {
         }
     }
 
+    public static <K, V> CanonicalItemExtractor<K, V> canonicalItemExtractor(
+            KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression template)
+            throws ExtractionException {
+        return new CanonicalItemExtractorImpl<>(sSuppliers, template);
+    }
+
     public static <K, V> FieldsExtractor<K, V> staticFieldsExtractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
             Map<String, ExtractionExpression> expressions,
@@ -362,7 +403,7 @@ public class DataExtractors {
 
     public static <K, V> FieldsExtractor<K, V> dynamicFieldsExtractor(
             KeyValueSelectorSuppliers<K, V> sSuppliers,
-            Map<String, ExtractionExpression> expressions,
+            Collection<ExtractionExpression> expressions,
             boolean skipOnFailure)
             throws ExtractionException {
         return new DynamicFieldsExtractorImpl<>(sSuppliers, expressions, skipOnFailure);
