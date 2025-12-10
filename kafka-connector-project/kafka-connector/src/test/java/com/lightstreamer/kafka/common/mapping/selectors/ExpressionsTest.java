@@ -40,6 +40,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -101,8 +102,8 @@ public class ExpressionsTest {
     @ParameterizedTest
     @EmptySource
     @NullSource
-    @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\"})
-    void shouldNotParseExpression(String expressionStr) {
+    @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\", "VALUE OFFSET}"})
+    void shouldNotParseExpressionDueToMissingRootTokens(String expressionStr) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Expression(expressionStr));
         assertThat(ee.getMessage())
@@ -120,6 +121,15 @@ public class ExpressionsTest {
                         "Found unexpected trailing dot(s) in the expression ["
                                 + expressionStr
                                 + "]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"VALUE. ", "VALUE.a .b", "VALUE. a"})
+    void shouldNotParseExpressionDueTokensWithWhiteChars(String expressionStr) {
+        ExpressionException ee =
+                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
+        assertThat(ee.getMessage())
+                .isEqualTo("Found unexpected white char in the expression [" + expressionStr + "]");
     }
 
     static Stream<Arguments> templateArgs() {
@@ -162,6 +172,22 @@ public class ExpressionsTest {
         }
     }
 
+    @Test
+    void shouldParseEqualsTemplateExpression() {
+        TemplateExpression t1 = Template("template-#{param1=VALUE,param2=OFFSET}");
+        TemplateExpression t2 = Template("template-#{param2=OFFSET,param1=VALUE}");
+
+        assertThat(t1.equals(t1)).isTrue(); // Enforces code coverage
+        assertThat(t1).isEqualTo(t2);
+        assertThat(t1).isNotSameInstanceAs(t2);
+        assertThat(t1).isNotEqualTo(new Object());
+        assertThat(t1.hashCode()).isEqualTo(t2.hashCode());
+
+        TemplateExpression t3 = Template("template-#{param=KEY}");
+        assertThat(t1).isNotEqualTo(t3);
+        assertThat(t1.hashCode()).isNotEqualTo(t3.hashCode());
+    }
+
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -187,6 +213,8 @@ public class ExpressionsTest {
                 template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                 template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
                 template-#{name=VALUE,par}          $ Invalid template expression
+                template-#{name=VALUE.a }           $ Found unexpected white char in the expression [VALUE.a ]
+                template-#{name=VALUE. a}           $ Found unexpected white char in the expression [VALUE. a]
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
                 template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                     """)
@@ -194,6 +222,23 @@ public class ExpressionsTest {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Template(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    void shouldCreateEmptyTemplate() {
+        TemplateExpression template = Expressions.EmptyTemplate("item");
+        assertThat(template.prefix()).isEqualTo("item");
+        assertThat(template.params()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "   ", "\t", "\n"})
+    void shouldNotCreateEmptyTemplate(String invalidItem) {
+        ExpressionException ee =
+                assertThrows(
+                        ExpressionException.class, () -> Expressions.EmptyTemplate(invalidItem));
+        assertThat(ee.getMessage()).isEqualTo("Invalid Item");
     }
 
     static Stream<Arguments> subscriptionArgs() {
