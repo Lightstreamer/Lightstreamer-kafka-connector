@@ -1379,7 +1379,7 @@ public class ConnectorConfigTest {
         ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
 
         var templateConfig = cgg1.getItemTemplateConfigs();
-        assertThat(templateConfig.expressions()).isEmpty();
+        assertThat(templateConfig.templates()).isEmpty();
 
         ConnectorConfig cgg2 =
                 ConnectorConfigProvider.minimalWith(
@@ -1390,13 +1390,13 @@ public class ConnectorConfigTest {
                                 "item2-#{param2=VALUE.value2}"));
 
         var templateConfigs = cgg2.getItemTemplateConfigs();
-        assertThat(templateConfigs.expressions()).hasSize(2);
+        assertThat(templateConfigs.templates()).hasSize(2);
 
-        TemplateExpression te1 = templateConfigs.getExpression("template1");
+        TemplateExpression te1 = templateConfigs.getTemplateExpression("template1");
         assertThat(te1.prefix()).isEqualTo("item1");
         assertThat(te1.params()).containsExactly("param1", Expressions.Expression("VALUE.value1"));
 
-        TemplateExpression te2 = templateConfigs.getExpression("template2");
+        TemplateExpression te2 = templateConfigs.getTemplateExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
         assertThat(te2.params()).containsExactly("param2", Expressions.Expression("VALUE.value2"));
     }
