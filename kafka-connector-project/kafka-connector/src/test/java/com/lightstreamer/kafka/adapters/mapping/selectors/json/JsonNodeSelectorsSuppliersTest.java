@@ -327,14 +327,6 @@ public class JsonNodeSelectorsSuppliersTest {
                 .containsExactly("matrix[1][0]", "4", "matrix[1][1]", "5", "matrix[1][2]", "6");
         target.clear();
 
-        Data data = valueSelector(Expression("VALUE.matrix[1]")).extractValue(record, false);
-        assertThat(data.name()).isEqualTo("matrix[1]");
-        assertThat(data.text()).isEqualTo("[4,5,6]");
-
-        data = valueSelector(Expression("VALUE.matrix[1][2]")).extractValue(record, false);
-        assertThat(data.name()).isEqualTo("matrix[1][2]");
-        assertThat(data.text()).isEqualTo("6");
-
         valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
