@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector> {
+public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector> {
 
     interface HeaderNode extends Node<HeaderNode> {
 
@@ -222,7 +222,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
     }
 
     private static class HeadersSelectorImpl extends StructuredBaseSelector<HeaderNode>
-            implements GenericSelector {
+            implements HeadersSelector {
 
         HeadersSelectorImpl(ExtractionExpression expression) throws ExtractionException {
             super(expression, Constant.HEADERS);
@@ -247,7 +247,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<GenericSelector
     }
 
     @Override
-    public GenericSelector newSelector(ExtractionExpression expression) throws ExtractionException {
+    public HeadersSelector newSelector(ExtractionExpression expression) throws ExtractionException {
         return new HeadersSelectorImpl(expression);
     }
 }
