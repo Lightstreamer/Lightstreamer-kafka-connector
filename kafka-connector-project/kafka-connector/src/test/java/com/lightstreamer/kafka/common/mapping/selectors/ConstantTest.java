@@ -18,6 +18,14 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.OFFSET;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.PARTITION;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.from;
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 
@@ -32,18 +40,18 @@ public class ConstantTest {
 
     @Test
     public void shouldCreateFromValidConstantNames() {
-        assertThat(Constant.from("KEY")).isEqualTo(Constant.KEY);
-        assertThat(Constant.from("VALUE")).isEqualTo(Constant.VALUE);
-        assertThat(Constant.from("TIMESTAMP")).isEqualTo(Constant.TIMESTAMP);
-        assertThat(Constant.from("PARTITION")).isEqualTo(Constant.PARTITION);
-        assertThat(Constant.from("OFFSET")).isEqualTo(Constant.OFFSET);
-        assertThat(Constant.from("TOPIC")).isEqualTo(Constant.TOPIC);
-        assertThat(Constant.from("HEADERS")).isEqualTo(Constant.HEADERS);
+        assertThat(from("KEY")).isEqualTo(KEY);
+        assertThat(from("VALUE")).isEqualTo(VALUE);
+        assertThat(from("TIMESTAMP")).isEqualTo(TIMESTAMP);
+        assertThat(from("PARTITION")).isEqualTo(PARTITION);
+        assertThat(from("OFFSET")).isEqualTo(OFFSET);
+        assertThat(from("TOPIC")).isEqualTo(TOPIC);
+        assertThat(from("HEADERS")).isEqualTo(HEADERS);
     }
 
     @Test
     public void shouldNotCreateFromInvalidConstant() {
-        assertThat(Constant.from("INVALID")).isNull();
+        assertThat(from("INVALID")).isNull();
     }
 
     @Test
@@ -88,17 +96,17 @@ public class ConstantTest {
     @Test
     public void shouldNotCreateFromNonIndexableConstants() {
         // By default constants don't allow indexing, so these should return null
-        assertThat(Constant.from("OFFSET[2]")).isNull();
-        assertThat(Constant.from("PARTITION[3]")).isNull();
-        assertThat(Constant.from("TIMESTAMP[4]")).isNull();
-        assertThat(Constant.from("TOPIC[5]")).isNull();
+        assertThat(from("OFFSET[2]")).isNull();
+        assertThat(from("PARTITION[3]")).isNull();
+        assertThat(from("TIMESTAMP[4]")).isNull();
+        assertThat(from("TOPIC[5]")).isNull();
     }
 
     @Test
     public void shouldNotCreateFromInvalidIndexedConstants() {
         // Invalid indexed constants should return null
-        assertThat(Constant.from("INVALID[0]")).isNull();
-        assertThat(Constant.from("A['index']")).isNull();
+        assertThat(from("INVALID[0]")).isNull();
+        assertThat(from("A['index']")).isNull();
     }
 
     @ParameterizedTest
@@ -110,18 +118,18 @@ public class ConstantTest {
     @Test
     public void shouldCreateFromIndexableConstants() {
         // HEADERS allows indexing, so these should return the constant
-        assertThat(Constant.from("HEADERS[0]")).isEqualTo(Constant.HEADERS);
-        assertThat(Constant.from("HEADERS[1]")).isEqualTo(Constant.HEADERS);
-        assertThat(Constant.from("HEADERS[a]")).isEqualTo(Constant.HEADERS);
+        assertThat(from("HEADERS[0]")).isEqualTo(HEADERS);
+        assertThat(from("HEADERS[1]")).isEqualTo(HEADERS);
+        assertThat(from("HEADERS[a]")).isEqualTo(HEADERS);
 
         // Even with different indices, it should still return the same constant
-        assertThat(Constant.from("HEADERS[1][200]")).isEqualTo(Constant.HEADERS);
+        assertThat(from("HEADERS[1][200]")).isEqualTo(HEADERS);
 
-        assertThat(Constant.from("KEY[0]")).isEqualTo(Constant.KEY);
-        assertThat(Constant.from("KEY[1][100]")).isEqualTo(Constant.KEY);
-        assertThat(Constant.from("VALUE[1]")).isEqualTo(Constant.VALUE);
-        assertThat(Constant.from("VALUE[1]['attrib']")).isEqualTo(Constant.VALUE);
-        assertThat(Constant.from("VALUE['name']--aaa]")).isEqualTo(Constant.VALUE);
+        assertThat(from("KEY[0]")).isEqualTo(KEY);
+        assertThat(from("KEY[1][100]")).isEqualTo(KEY);
+        assertThat(from("VALUE[1]")).isEqualTo(VALUE);
+        assertThat(from("VALUE[1]['attrib']")).isEqualTo(VALUE);
+        assertThat(from("VALUE['name']--aaa]")).isEqualTo(VALUE);
     }
 
     @Test
