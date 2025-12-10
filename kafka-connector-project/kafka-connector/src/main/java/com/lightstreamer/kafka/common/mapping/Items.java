@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.common.mapping;
 
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.groupingBy;
@@ -26,12 +26,12 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
-import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -117,7 +117,7 @@ public class Items {
 
         boolean matches(Item item);
 
-        Map<String, Set<DataExtractor<K, V>>> groupExtractors();
+        Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
         // Only for testing purposes
         Set<Schema> getExtractorSchemasByTopicName(String topic);
@@ -188,9 +188,9 @@ public class Items {
 
         private final Schema schema;
         private final String topic;
-        private final DataExtractor<K, V> extractor;
+        private final CanonicalItemExtractor<K, V> extractor;
 
-        ItemTemplate(String topic, DataExtractor<K, V> extractor) {
+        ItemTemplate(String topic, CanonicalItemExtractor<K, V> extractor) {
             this.topic = Objects.requireNonNull(topic);
             this.extractor = Objects.requireNonNull(extractor);
             this.schema = extractor.schema();
@@ -200,7 +200,7 @@ public class Items {
             return schema.equals(item.schema());
         }
 
-        DataExtractor<K, V> selectors() {
+        CanonicalItemExtractor<K, V> extractor() {
             return extractor;
         }
 
@@ -240,12 +240,12 @@ public class Items {
         }
 
         @Override
-        public Map<String, Set<DataExtractor<K, V>>> groupExtractors() {
+        public Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors() {
             return templates.stream()
                     .collect(
                             groupingBy(
                                     ItemTemplate::topic,
-                                    mapping(ItemTemplate::selectors, toSet())));
+                                    mapping(ItemTemplate::extractor, toSet())));
         }
 
         @Override
@@ -256,7 +256,7 @@ public class Items {
         @Override
         public Set<Schema> getExtractorSchemasByTopicName(String topic) {
             return groupExtractors().getOrDefault(topic, emptySet()).stream()
-                    .map(DataExtractor::schema)
+                    .map(CanonicalItemExtractor::schema)
                     .collect(toSet());
         }
 
@@ -294,12 +294,10 @@ public class Items {
             throws ExtractionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
-            for (ItemReference reference : topicConfig.itemReferences()) {
-                DataExtractor<K, V> dataExtractor =
-                        reference.isTemplate()
-                                ? extractor(sSuppliers, reference.template())
-                                : extractor(sSuppliers, reference.itemName());
-                templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
+            for (TemplateExpression template : topicConfig.itemReferences()) {
+                templates.add(
+                        new ItemTemplate<>(
+                                topicConfig.topic(), canonicalItemExtractor(sSuppliers, template)));
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
