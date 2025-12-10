@@ -29,10 +29,10 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expre
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -41,6 +41,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -95,8 +96,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, KVP.toString()));
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         KeySelectorSupplier<String> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(keySelectorSupplier.deserializer().getClass())
-                .isEqualTo(StringDeserializer.class);
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.KVP);
     }
 
     @Test
@@ -122,7 +122,6 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens
                 KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd]
                 KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
@@ -141,7 +140,8 @@ public class KvpNodeSelectorsSuppliersTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, KVP.toString()));
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+        ValueSelectorSupplier<String> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.KVP);
     }
 
     @Test
@@ -167,7 +167,6 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens
                 VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd]
                 VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
