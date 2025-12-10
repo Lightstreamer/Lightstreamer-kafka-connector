@@ -64,8 +64,8 @@ public interface TestSelectorSuppliers {
                 g.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> Json(ConnectorConfig config) {
-        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
+    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> JsonKeyJsonValue() {
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
         return new WrapperKeyValueSelectorSuppliers<>(
                 j.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
