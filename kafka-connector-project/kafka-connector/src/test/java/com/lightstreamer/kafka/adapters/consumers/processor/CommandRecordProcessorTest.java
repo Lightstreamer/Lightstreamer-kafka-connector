@@ -19,7 +19,8 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandRecordProcessor;
@@ -28,7 +29,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -39,7 +40,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,11 +67,12 @@ public class CommandRecordProcessorTest {
     public void setUp() throws ExtractionException {
         this.mapper =
                 builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC,
-                                extractor(String(), "item1", Collections.emptyMap(), false, false))
+                                canonicalItemExtractor(
+                                        String(), Expressions.EmptyTemplate("item1")))
                         .withFieldExtractor(
-                                DataExtractors.staticFieldsExtractor(
+                                staticFieldsExtractor(
                                         String(),
                                         Map.of(
                                                 "key",
