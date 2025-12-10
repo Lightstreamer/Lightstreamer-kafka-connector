@@ -27,6 +27,7 @@ import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
@@ -36,6 +37,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -434,6 +436,11 @@ public class DynamicMessageSelectorSuppliers
         public Deserializer<DynamicMessage> deserializer() {
             return deserializer;
         }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.PROTOBUF;
+        }
     }
 
     /**
@@ -511,6 +518,11 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public Deserializer<DynamicMessage> deserializer() {
             return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            return EvaluatorType.PROTOBUF;
         }
     }
 
