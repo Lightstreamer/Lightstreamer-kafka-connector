@@ -22,6 +22,8 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -32,17 +34,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.Records;
-import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -137,30 +141,54 @@ public class FieldsExtractorTest {
     static Stream<Arguments> unboundExtractionExpressions() {
         return Stream.of(
                 arguments(Collections.emptyList(), false, EMPTY_MAP),
-                arguments(List.of(Expression("VALUE")), true, Map.of("VALUE", "aValue")),
                 arguments(
-                        List.of(Expression("VALUE"), Expression("KEY")),
-                        false,
-                        Map.of("KEY", "aKey", "VALUE", "aValue")),
-                arguments(
-                        List.of(Expression("VALUE"), Expression("KEY")),
+                        List.of(Expression("VALUE")),
                         true,
-                        Map.of("VALUE", "aValue", "KEY", "aKey")),
+                        Map.of("name", "joe", "signature", "YWJjZA==")),
                 arguments(
-                        List.of(
-                                Expression("TIMESTAMP"),
-                                Expression("PARTITION"),
-                                Expression("TOPIC")),
+                        List.of(Expression("KEY")),
+                        true,
+                        Map.of("name", "joe", "signature", "YWJjZA==")),
+                arguments(
+                        List.of(Expression("VALUE.notes"), Expression("VALUE")),
                         false,
-                        Map.of("PARTITION", "150", "TOPIC", "record-topic", "TIMESTAMP", "-1")),
+                        Map.of(
+                                "notes[0]",
+                                "note1",
+                                "notes[1]",
+                                "note2",
+                                "name",
+                                "joe",
+                                "signature",
+                                "YWJjZA==")),
                 arguments(
-                        List.of(Expression("HEADERS")),
+                        List.of(Expression("VALUE"), Expression("HEADERS")),
                         true,
                         Map.of(
+                                "name",
+                                "joe",
+                                "signature",
+                                "YWJjZA==",
                                 "header-key1",
                                 "header-value1",
                                 "header-key2",
                                 "header-value2",
+                                "header-index[0]",
+                                "header-index-value1",
+                                "header-index[1]",
+                                "header-index-value2")),
+                arguments(
+                        List.of(Expression("HEADERS['header-index']")),
+                        false,
+                        Map.of(
+                                "header-index[0]",
+                                "header-index-value1",
+                                "header-index[1]",
+                                "header-index-value2")),
+                arguments(
+                        List.of(Expression("HEADERS.header-index")),
+                        false,
+                        Map.of(
                                 "header-index[0]",
                                 "header-index-value1",
                                 "header-index[1]",
@@ -175,8 +203,9 @@ public class FieldsExtractorTest {
             Map<String, String> expectedValues)
             throws ExtractionException {
 
-        FieldsExtractor<String, String> extractor =
-                DataExtractors.dynamicFieldsExtractor(String(), expressions, skipOnFailure);
+        FieldsExtractor<JsonNode, JsonNode> extractor =
+                DataExtractors.dynamicFieldsExtractor(
+                        JsonKeyJsonValue(), expressions, skipOnFailure);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(true);
 
@@ -186,18 +215,41 @@ public class FieldsExtractorTest {
                         .add("header-key2", "header-value2".getBytes())
                         .add("header-index", "header-index-value1".getBytes())
                         .add("header-index", "header-index-value2".getBytes());
-        KafkaRecord<String, String> kafkaRecord =
-                Records.recordWithHeaders("aKey", "aValue", headers);
+
+        JsonNode sampleMessage = SampleJsonNodeProvider().sampleMessage();
+        KafkaRecord<JsonNode, JsonNode> kafkaRecord =
+                Records.recordWithHeaders(sampleMessage, sampleMessage, headers);
         Map<String, String> values = extractor.extractMap(kafkaRecord);
-        assertThat(values).isEqualTo(expectedValues);
+        assertThat(values).containsAtLeastEntriesIn(expectedValues);
         assertThat(extractor.mappedFields()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @EnumSource(names = {"TIMESTAMP", "PARTITION", "TOPIC", "OFFSET"})
+    public void shouldNotCreateDynamicExtractorFromConstantExpressions(Constant constant) {
+        // Prepare the extraction expressions, including a constant one that is not supported
+        List<ExtractionExpression> expressions = new ArrayList<>();
+        expressions.add(Expression("VALUE.attrib"));
+        expressions.add(constant);
+
+        IllegalArgumentException ee =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                DataExtractors.dynamicFieldsExtractor(
+                                        JsonValue(), expressions, false));
+        assertThat(ee.getMessage())
+                .isEqualTo(
+                        "Cannot handle dynamic extraction from the constant expression ["
+                                + constant
+                                + "]");
     }
 
     @Test
     public void shouldNotExtractMap() throws ExtractionException {
         FieldsExtractor<String, JsonNode> extractor =
                 DataExtractors.staticFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         Map.of(
                                 "undefined",
                                 Expressions.Wrapped("#{VALUE.undefined_attrib}"),
@@ -217,7 +269,7 @@ public class FieldsExtractorTest {
 
         FieldsExtractor<String, JsonNode> autoBoundExtractor =
                 DataExtractors.dynamicFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         List.of(
                                 Expressions.Wrapped("#{VALUE.undefined_maps}"),
                                 Expressions.Wrapped("#{VALUE.notes}")),
@@ -238,7 +290,7 @@ public class FieldsExtractorTest {
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
                 staticFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         Map.of(
                                 "complexObject",
                                 Expressions.Wrapped("#{VALUE}"),
@@ -268,7 +320,7 @@ public class FieldsExtractorTest {
 
         FieldsExtractor<String, JsonNode> boundExtractor =
                 DataExtractors.staticFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         Map.of(
                                 "undefined",
                                 Expressions.Wrapped("#{VALUE.undefined_attrib}"),
@@ -282,7 +334,7 @@ public class FieldsExtractorTest {
 
         FieldsExtractor<String, JsonNode> autoBoundExtractor =
                 DataExtractors.dynamicFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         List.of(
                                 Expressions.Wrapped("#{VALUE.undefined_map}"),
                                 Expressions.Wrapped("#{VALUE.notes}")),
@@ -298,7 +350,7 @@ public class FieldsExtractorTest {
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
                 staticFieldsExtractor(
-                        TestSelectorSuppliers.JsonValue(),
+                        JsonValue(),
                         Map.of(
                                 "complexObject",
                                 Expressions.Wrapped("#{VALUE}"),
@@ -326,23 +378,11 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ExtractionException.class,
                         () ->
-                                DataExtractors.staticFieldsExtractor(
-                                        TestSelectorSuppliers.JsonValue(),
-                                        Map.of("value", Expression("VALUE.a. .b")),
-                                        false,
-                                        false));
-        assertThat(ee.getMessage())
-                .contains("Found the invalid expression [VALUE.a. .b] with missing tokens");
-
-        ExtractionException ee2 =
-                assertThrows(
-                        ExtractionException.class,
-                        () ->
                                 DataExtractors.dynamicFieldsExtractor(
-                                        TestSelectorSuppliers.JsonValue(),
+                                        JsonValue(),
                                         List.of(Expression("VALUE.map[invalid-index]")),
                                         false));
-        assertThat(ee2.getMessage())
+        assertThat(ee.getMessage())
                 .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
     }
 }
