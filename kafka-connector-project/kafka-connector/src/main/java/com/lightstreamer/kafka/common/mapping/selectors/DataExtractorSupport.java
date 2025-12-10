@@ -148,7 +148,7 @@ class DataExtractorSupport {
                             yield record -> headerSelector.extract(key, record);
                         }
                         default -> {
-                            ConstantSelector constantSelector =
+                            GenericSelector constantSelector =
                                     wrapperSelectors
                                             .constantSelectorSupplier()
                                             .newSelector(expression);
@@ -184,7 +184,7 @@ class DataExtractorSupport {
                             yield (record, target) -> headerSelector.extractInto(record, target);
                         }
                         default -> {
-                            ConstantSelector constantSelector =
+                            GenericSelector constantSelector =
                                     mkSelector(
                                             wrapperSelectors.constantSelectorSupplier(),
                                             expression);
