@@ -170,29 +170,29 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
     }
 
-    private static class JsonNodeKeySelector extends StructuredBaseSelector<JsonNodeNode>
+    private static class JsonNodeKeySelector extends StructuredBaseSelector<JsonNode, JsonNodeNode>
             implements KeySelector<JsonNode> {
 
         JsonNodeKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, KEY);
+            super(expression, KEY, JsonNodeNode::new);
         }
 
         @Override
         public Data extractKey(String name, KafkaRecord<JsonNode, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::key, JsonNodeNode::new, checkScalar);
+            return eval(name, record::key, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<JsonNode, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::key, JsonNodeNode::new, checkScalar);
+            return eval(record::key, checkScalar);
         }
 
         @Override
         public void extractKeyInto(KafkaRecord<JsonNode, ?> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::key, JsonNodeNode::new, target);
+            evalInto(record::key, target);
         }
     }
 
@@ -225,29 +225,30 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
     }
 
-    private static final class JsonNodeValueSelector extends StructuredBaseSelector<JsonNodeNode>
+    private static final class JsonNodeValueSelector
+            extends StructuredBaseSelector<JsonNode, JsonNodeNode>
             implements ValueSelector<JsonNode> {
 
         JsonNodeValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE);
+            super(expression, Constant.VALUE, JsonNodeNode::new);
         }
 
         @Override
         public Data extractValue(String name, KafkaRecord<?, JsonNode> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::value, JsonNodeNode::new, checkScalar);
+            return eval(name, record::value, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, JsonNode> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::value, JsonNodeNode::new, checkScalar);
+            return eval(record::value, checkScalar);
         }
 
         @Override
         public void extractValueInto(KafkaRecord<?, JsonNode> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::value, JsonNodeNode::new, target);
+            evalInto(record::value, target);
         }
     }
 
