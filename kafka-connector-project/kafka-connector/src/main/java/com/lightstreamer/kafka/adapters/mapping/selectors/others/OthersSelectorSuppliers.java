@@ -32,22 +32,6 @@ import static com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorS
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 
-import java.util.EnumMap;
-import java.util.Map;
-
-import org.apache.kafka.common.serialization.BooleanDeserializer;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteBufferDeserializer;
-import org.apache.kafka.common.serialization.BytesDeserializer;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.DoubleDeserializer;
-import org.apache.kafka.common.serialization.FloatDeserializer;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.LongDeserializer;
-import org.apache.kafka.common.serialization.ShortDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.UUIDDeserializer;
-
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
@@ -66,6 +50,22 @@ import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+
+import org.apache.kafka.common.serialization.BooleanDeserializer;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteBufferDeserializer;
+import org.apache.kafka.common.serialization.BytesDeserializer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.DoubleDeserializer;
+import org.apache.kafka.common.serialization.FloatDeserializer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.LongDeserializer;
+import org.apache.kafka.common.serialization.ShortDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.UUIDDeserializer;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
@@ -95,6 +95,9 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
             this.type = type;
             this.deserializer = (Deserializer<T>) DESERIALIZERS.get(type);
+            if (this.deserializer == null) {
+                throw new IllegalArgumentException("Unsupported evaluator [" + type + "]");
+            }
         }
 
         public Deserializer<T> deserializer() {
@@ -134,9 +137,7 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         @Override
         public void extractKeyInto(
                 KafkaRecord<K, ?> record, Map<java.lang.String, java.lang.String> target)
-                throws ValueException {
-            selector.extractInto(record, target);
-        }
+                throws ValueException {}
     }
 
     private static class OthersKeySelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
@@ -184,9 +185,7 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         @Override
         public void extractValueInto(
                 KafkaRecord<?, V> record, Map<java.lang.String, java.lang.String> target)
-                throws ValueException {
-            selector.extractInto(record, target);
-        }
+                throws ValueException {}
     }
 
     private static class OthersValueSelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
