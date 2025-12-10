@@ -76,15 +76,18 @@ public class Expressions {
 
         public static Constant from(String name) {
             boolean indexed = false;
+
             if (name.endsWith("]") && name.contains("[")) {
                 indexed = true;
                 // Handle indexed constants like "KEY[0]"
                 name = name.substring(0, name.indexOf('['));
             }
+
             Constant constant = NAME_CACHE.get(name);
             if (constant != null && !constant.allowIndex() && indexed) {
                 return null;
             }
+
             return constant;
         }
 
