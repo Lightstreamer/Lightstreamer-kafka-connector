@@ -2,9 +2,9 @@
 
 This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Azure Event Hubs_](https://azure.microsoft.com/en-us/products/event-hubs) as the target cluster. You may follow the [instructions](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create) to perform the following operations:
 
- - Create an Event Hubs _namespace_ .
+ - Create an Event Hubs _namespace_.
  - Create an Event Hub (one Event Hub per Kafka topic) with name `stocks`.
- - Ensure the Kafka protocol is enabled on the namespace (it should enabled by default depending on pricing tier choosen but you can check in _Settings->Properties_).
+ - Ensure the Kafka protocol is enabled on the namespace (it should be enabled by default depending on pricing tier chosen but you can check in _Settings->Properties_).
  - Retrieve a Shared Access Policy connection string with the required permissions (`Listen` for consumers, `Send` for producers).
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Azure Event Hubs_ as follows:
@@ -13,7 +13,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 - _kafka-connector_:
 
-  - Definition of new environment variables to configure remote endpoint, credentials, and topic name in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
+  - Definition of new environment variables to configure remote endpoint and credentials in the `adapters.xml` through the _variable-expansion_ feature of Lightstreamer:
 
     ```yaml
     ...
@@ -23,7 +23,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
     ...
     ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include thw following changes:
+  - Adaptation of [`adapters.xml`](./adapters.xml) to include the following changes:
 
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
 
@@ -48,7 +48,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
         <param name="authentication.password">$env.connection_string</param>
       ```
 
-    - Add specific Kafka Concumer settings required by _Event Hub_ environment:
+    - Add specific Kafka Consumer settings required by __Azure__ environment:
 
       ```xml
 		    <!-- ##### Azure Event Hubs specific settings ##### -->
@@ -62,7 +62,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
    - Update of the parameter `--topic` from the environment variable `topic`
    
-   - Provisioning of the `producer.properties` configuration file to proper configure the access configurations required by __Azure__:
+   - Provisioning of the `producer.properties` configuration file to properly configure the access configurations required by __Azure__:
     
      ```yaml
      # Configure SASL/PLAIN mechanism
@@ -75,15 +75,15 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 ## Run
 
-From this directory, run follow the command:
+From this directory, run the following command:
 
 ```sh
 $ bootstrap_server=<bootstrap_server> connection_string="<connection_string>" topic=<topic> ./start.sh 
 ```
 
 where:
-- `<bootstrap_server>` - The bootstrap server address of the Event Hubs Namespace
-- `<connection_string>` - The primary connection string created in the shared access policies from the _Event Hubs console_
+- `<bootstrap_server>` - The bootstrap server address of the Event Hubs Namespace (something like this: `_my-namespace_.servicebus.windows.net:9093`)
+- `<connection_string>` - The primary connection string created in the shared access policies from the _Event Hubs console_ (something like this: `Endpoint=sb://_my-namespace_.servicebus.windows.net/;SharedAccessKeyName=client-consumer;SharedAccessKey=....`)
 - `<topic>` - The name of the topic (ie. Event Hub) created on  _Event Hubs Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart); after a few moments, the user interface starts displaying the real-time stock data.
