@@ -24,6 +24,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionEx
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -31,46 +32,59 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Test;
 
-class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
-
-    private Deserializer<T> deserializer;
-
-    KeySelectorSupplierImpl(Deserializer<T> deserializer) {
-        this.deserializer = deserializer;
-    }
-
-    @Override
-    public KeySelector<T> newSelector(ExtractionExpression expression) throws ExtractionException {
-        throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
-    }
-
-    @Override
-    public Deserializer<T> deserializer() {
-        return deserializer;
-    }
-}
-
-class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
-
-    private Deserializer<T> deserializer;
-
-    ValueSelectorSupplierImpl(Deserializer<T> deserializer) {
-        this.deserializer = deserializer;
-    }
-
-    @Override
-    public ValueSelector<T> newSelector(ExtractionExpression expression)
-            throws ExtractionException {
-        throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
-    }
-
-    @Override
-    public Deserializer<T> deserializer() {
-        return deserializer;
-    }
-}
-
 public class WrapperKeyValueSelectorSupplierTest {
+
+    static class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
+
+        private Deserializer<T> deserializer;
+
+        KeySelectorSupplierImpl(Deserializer<T> deserializer) {
+            this.deserializer = deserializer;
+        }
+
+        @Override
+        public KeySelector<T> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
+        }
+
+        @Override
+        public Deserializer<T> deserializer() {
+            return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'evaluatorType'");
+        }
+    }
+
+    static class ValueSelectorSupplierImpl<T> implements ValueSelectorSupplier<T> {
+
+        private Deserializer<T> deserializer;
+
+        ValueSelectorSupplierImpl(Deserializer<T> deserializer) {
+            this.deserializer = deserializer;
+        }
+
+        @Override
+        public ValueSelector<T> newSelector(ExtractionExpression expression)
+                throws ExtractionException {
+            throw new UnsupportedOperationException("Unimplemented method 'newSelector'");
+        }
+
+        @Override
+        public Deserializer<T> deserializer() {
+            return deserializer;
+        }
+
+        @Override
+        public SelectorEvaluatorType evaluatorType() {
+            throw new UnsupportedOperationException("Unimplemented method 'evaluatorType'");
+        }
+    }
+
     @Test
     void shouldCreate() {
         Deserializer<String> stringDeserializer = Serdes.String().deserializer();
