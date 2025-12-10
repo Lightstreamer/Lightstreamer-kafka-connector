@@ -22,9 +22,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.Schema;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.junit.jupiter.api.Test;
@@ -56,11 +55,10 @@ public class FieldConfigsTest {
         boolean[] mapScalars = {false, true};
         for (boolean skip : skipOnFailures) {
             for (boolean mapNonScalars : mapScalars) {
-                DataExtractor<String, String> extractor =
-                        configs.extractor(OthersSelectorSuppliers.String(), skip, mapNonScalars);
-                Schema schema = extractor.schema();
-                assertThat(schema.name()).isEqualTo("fields");
-                assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+                FieldsExtractor<String, String> extractor =
+                        configs.fieldsExtractor(
+                                OthersSelectorSuppliers.String(), skip, mapNonScalars);
+                assertThat(extractor.mappedFields()).isEqualTo(fieldMappings.keySet());
                 assertThat(extractor.skipOnFailure()).isEqualTo(skip);
                 assertThat(extractor.mapNonScalars()).isEqualTo(mapNonScalars);
             }
@@ -74,7 +72,9 @@ public class FieldConfigsTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> configs.extractor(OthersSelectorSuppliers.String(), false, false));
+                        () ->
+                                configs.fieldsExtractor(
+                                        OthersSelectorSuppliers.String(), false, false));
         assertThat(ee.getMessage())
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values");
@@ -95,11 +95,9 @@ public class FieldConfigsTest {
             throws ExtractionException {
         Map<String, String> fieldMappings = Map.of("field1", expression);
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        DataExtractor<Object, Object> extractor =
-                configs.extractor(TestSelectorSuppliers.Object(), false, false);
-        Schema schema = extractor.schema();
-        assertThat(schema.name()).isEqualTo("fields");
-        assertThat(schema.keys()).isEqualTo(fieldMappings.keySet());
+        FieldsExtractor<Object, Object> extractor =
+                configs.fieldsExtractor(TestSelectorSuppliers.Object(), false, false);
+        assertThat(extractor.mappedFields()).isEqualTo(fieldMappings.keySet());
     }
 
     @ParameterizedTest
