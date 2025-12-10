@@ -331,30 +331,31 @@ public class GenericRecordSelectorsSuppliers
         }
     }
 
-    private static final class GenericRecordKeySelector extends StructuredBaseSelector<AvroNode>
+    private static final class GenericRecordKeySelector
+            extends StructuredBaseSelector<GenericRecord, AvroNode>
             implements KeySelector<GenericRecord> {
 
         GenericRecordKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY);
+            super(expression, Constant.KEY, AvroNode::newNode);
         }
 
         @Override
         public Data extractKey(
                 String name, KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::key, AvroNode::newNode, checkScalar);
+            return eval(name, record::key, checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<GenericRecord, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::key, AvroNode::newNode, checkScalar);
+            return eval(record::key, checkScalar);
         }
 
         @Override
         public void extractKeyInto(KafkaRecord<GenericRecord, ?> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::key, AvroNode::newNode, target);
+            evalInto(record::key, target);
         }
     }
 
@@ -384,31 +385,32 @@ public class GenericRecordSelectorsSuppliers
         }
     }
 
-    private static final class GenericRecordValueSelector extends StructuredBaseSelector<AvroNode>
+    private static final class GenericRecordValueSelector
+            extends StructuredBaseSelector<GenericRecord, AvroNode>
             implements ValueSelector<GenericRecord> {
 
         GenericRecordValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE);
+            super(expression, Constant.VALUE, AvroNode::newNode);
         }
 
         @Override
         public Data extractValue(
                 String name, KafkaRecord<?, GenericRecord> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, record::value, AvroNode::newNode, checkScalar);
+            return eval(name, record::value, checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, GenericRecord> record, boolean checkScalar)
                 throws ValueException {
-            return eval(record::value, AvroNode::newNode, checkScalar);
+            return eval(record::value, checkScalar);
         }
 
         @Override
         public void extractValueInto(
                 KafkaRecord<?, GenericRecord> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(record::value, AvroNode::newNode, target);
+            evalInto(record::value, target);
         }
     }
 
