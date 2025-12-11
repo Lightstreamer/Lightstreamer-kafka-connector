@@ -99,7 +99,7 @@ public class JsonNodeSelectorsSuppliersTest {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not JSON");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not JSON");
     }
 
     @Test
@@ -128,10 +128,10 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class JsonNodeSelectorsSuppliersTest {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not JSON");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not JSON");
     }
 
     @Test
@@ -183,10 +183,10 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -233,9 +233,9 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.family[1][0].name               | name                 | bro10
                 VALUE.family[1][1].name               | name                 | bro11
                     """)
-    public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<JsonNode> valueSelector = valueSelector(expressionStr);
+        ValueSelector<JsonNode> valueSelector = valueSelector(expression);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -354,24 +354,24 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.children[4].name      | Field not found at index [4]
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -394,15 +394,15 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.children[4].name      | Field not found at index [4]
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -467,34 +467,34 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldHandleNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue((JsonNode) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue((JsonNode) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue((JsonNode) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -522,9 +522,9 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.family[1][0].name               | name          | bro10
                 KEY.family[1][1].name               | name          | bro11
                     """)
-    public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        KeySelector<JsonNode> keySelector = keySelector(expressionStr);
+        KeySelector<JsonNode> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -620,24 +620,21 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey("param", fromKey(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () ->
-                                keySelector(expressionStr)
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -660,14 +657,14 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -686,7 +683,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.root.object      | object        | {"a":1,"b":2}
                     """)
     public void shouldExtractKeyWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         ObjectMapper om = new ObjectMapper();
         JsonNode message =
@@ -707,11 +704,11 @@ public class JsonNodeSelectorsSuppliersTest {
                     }
                         """);
 
-        Data autoBoundValue = keySelector(expressionStr).extractKey(fromKey(message), false);
+        Data autoBoundValue = keySelector(expression).extractKey(fromKey(message), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
-        Data boundValue = keySelector(expressionStr).extractKey("param", fromKey(message), false);
+        Data boundValue = keySelector(expression).extractKey("param", fromKey(message), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -728,32 +725,29 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [KEY] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [KEY] from a null object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldHandleNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () ->
-                                keySelector(expressionStr)
-                                        .extractKey(fromKey((JsonNode) null))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                        () -> keySelector(expression).extractKey(fromKey((JsonNode) null)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey("param", fromKey((JsonNode) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(fromKey((JsonNode) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
