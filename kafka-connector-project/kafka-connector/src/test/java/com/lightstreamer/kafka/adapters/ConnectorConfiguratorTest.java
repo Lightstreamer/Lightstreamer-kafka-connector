@@ -34,11 +34,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -152,11 +151,11 @@ public class ConnectorConfiguratorTest {
         }
 
         ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
-        WrapperKeyValueSelectorSuppliers<?, ?> wrapper =
+        KeyValueSelectorSuppliers<?, ?> wrapper =
                 ConnectorConfigurator.mkKeyValueSelectorSuppliers(config);
-        KeyValueDeserializers<?, ?> deserializers = wrapper.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(expectedKeyDeserializer);
-        assertThat(deserializers.valueDeserializer().getClass())
+        assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
+                .isEqualTo(expectedKeyDeserializer);
+        assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
                 .isEqualTo(expectedValueDeserializer);
     }
 
@@ -190,9 +189,10 @@ public class ConnectorConfiguratorTest {
         Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
 
-        KeyValueDeserializers<?, ?> deserializers = consumerTriggerConfig.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
-        assertThat(consumerTriggerConfig.deserializers().valueDeserializer().getClass())
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerTriggerConfig.suppliers();
+        assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
+                .isEqualTo(StringDeserializer.class);
+        assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
 
         assertThat(consumerTriggerConfig.errorHandlingStrategy())
@@ -247,9 +247,10 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass()).isEqualTo(StringDeserializer.class);
-        assertThat(config.deserializers().valueDeserializer().getClass())
+        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
+                .isEqualTo(StringDeserializer.class);
+        assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
 
         Concurrency concurrency = config.concurrency();
@@ -293,10 +294,10 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass().getSimpleName())
+        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("WrapperKafkaAvroDeserializer");
-        assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
+        assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
     }
 
@@ -335,10 +336,10 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueDeserializers<?, ?> deserializers = config.deserializers();
-        assertThat(deserializers.keyDeserializer().getClass().getSimpleName())
+        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("KafkaProtobufDeserializer");
-        assertThat(config.deserializers().valueDeserializer().getClass().getSimpleName())
+        assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("KafkaProtobufDeserializer");
     }
 
