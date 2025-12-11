@@ -64,7 +64,7 @@ public class RecordErrorHandlingStrategiesTest {
                 assertThrows(
                         ConfigException.class,
                         () -> validator.ensureValid(RECORD_EXTRACTION_ERROR_STRATEGY, value));
-        assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -75,7 +75,8 @@ public class RecordErrorHandlingStrategiesTest {
                         () ->
                                 validator.ensureValid(
                                         RECORD_EXTRACTION_ERROR_STRATEGY, new Object()));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"record.extraction.error.strategy\": Must be a string");
     }

@@ -75,7 +75,7 @@ public class ItemTemplateValidatorTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(ITEM_TEMPLATES, value));
-        assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasCauseThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -84,7 +84,8 @@ public class ItemTemplateValidatorTest {
                 assertThrows(
                         ConfigException.class,
                         () -> validator.ensureValid(ITEM_TEMPLATES, new Object()));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Invalid value for configuration \"item.templates\": Must be a string");
     }
 }

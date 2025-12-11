@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,7 +27,6 @@ import com.google.common.io.Files;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.connect.client.ProxyAdapterClientOptions;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
@@ -63,7 +63,8 @@ public class LightstreamerConnectorConfigTest {
         Map<String, String> props = new HashMap<>();
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required configuration \"lightstreamer.server.proxy_adapter.address\" which has no default value.");
 
@@ -74,28 +75,32 @@ public class LightstreamerConnectorConfigTest {
 
         // No topic.mappings
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required configuration \"topic.mappings\" which has no default value.");
 
         // Empty topic.mappings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"topic.mappings\": Must be a non-empty semicolon-separated list");
 
         // List of empty topic.mappings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, ",");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"topic.mappings\": Each entry must be in the form [topicName]:[mappingList]");
 
         // List of mixed non-empty/empty-strings
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS, "item1,");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"topic.mappings\": Each entry must be in the form [topicName]:[mappingList]");
 
@@ -103,21 +108,24 @@ public class LightstreamerConnectorConfigTest {
         props.put(
                 LightstreamerConnectorConfig.TOPIC_MAPPINGS, "topic:item1,item-template.template1");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required configuration \"record.mappings\" which has no default value.");
 
         // Empty record.mapping
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"record.mappings\": Must be a non-empty list");
 
         // Invalid field mappings
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, "field1:value1");
         ce = assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value for configuration \"record.mappings\": Extraction expression must be in the form #{...}");
 
@@ -137,7 +145,8 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> new LightstreamerConnectorConfig(updateConfigs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.timeout.ms: Value must be at least 0");
     }
@@ -153,7 +162,8 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> new LightstreamerConnectorConfig(updateConfigs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.max.retries: Value must be at least 0");
     }
@@ -169,7 +179,8 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> new LightstreamerConnectorConfig(updateConfigs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value -1 for configuration lightstreamer.server.proxy_adapter.socket.connection.setup.retry.delay.ms: Value must be at least 0");
     }
@@ -264,7 +275,8 @@ public class LightstreamerConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> new LightstreamerConnectorConfig(updateConfigs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value 0 for configuration max.proxy.adapter.connections: Value must be at least 1");
     }
@@ -284,18 +296,13 @@ public class LightstreamerConnectorConfigTest {
 
         TemplateExpression stockExpression = itemTemplate.getTemplateExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
-        assertThat(stockExpression.params())
-                .containsExactly("index", Expressions.Expression("KEY"));
+        assertThat(stockExpression.params()).containsExactly("index", Expression("KEY"));
 
         TemplateExpression productExpression =
                 itemTemplate.getTemplateExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
-                .containsExactly(
-                        "id",
-                        Expressions.Expression("KEY"),
-                        "price",
-                        Expressions.Expression("VALUE.price"));
+                .containsExactly("id", Expression("KEY"), "price", Expression("VALUE.price"));
     }
 
     @Test
@@ -342,7 +349,8 @@ public class LightstreamerConnectorConfigTest {
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "INVALID");
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value INVALID for configuration topic.mappings.regex.enable: Expected value to be either true or false");
     }
@@ -376,7 +384,8 @@ public class LightstreamerConnectorConfigTest {
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "INVALID");
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> new LightstreamerConnectorConfig(props));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Invalid value INVALID for configuration record.mappings.skip.failed.enable: Expected value to be either true or false");
     }
@@ -413,41 +422,41 @@ public class LightstreamerConnectorConfigTest {
         assertThat(fieldMappings.expressions())
                 .containsExactly(
                         "timestamp",
-                        Expressions.Expression("VALUE.timestamp"),
+                        Expression("VALUE.timestamp"),
                         "time",
-                        Expressions.Expression("VALUE.time"),
+                        Expression("VALUE.time"),
                         "stock_name",
-                        Expressions.Expression("VALUE.name"),
+                        Expression("VALUE.name"),
                         "last_price",
-                        Expressions.Expression("VALUE.last_price"),
+                        Expression("VALUE.last_price"),
                         "ask",
-                        Expressions.Expression("VALUE.ask"),
+                        Expression("VALUE.ask"),
                         "ask_quantity",
-                        Expressions.Expression("VALUE.ask_quantity"),
+                        Expression("VALUE.ask_quantity"),
                         "bid",
-                        Expressions.Expression("VALUE.bid"),
+                        Expression("VALUE.bid"),
                         "bid_quantity",
-                        Expressions.Expression("VALUE.bid_quantity"),
+                        Expression("VALUE.bid_quantity"),
                         "pct_change",
-                        Expressions.Expression("VALUE.pct_change"),
+                        Expression("VALUE.pct_change"),
                         "min",
-                        Expressions.Expression("VALUE.min"),
+                        Expression("VALUE.min"),
                         "max",
-                        Expressions.Expression("VALUE.max"),
+                        Expression("VALUE.max"),
                         "ref_price",
-                        Expressions.Expression("VALUE.ref_price"),
+                        Expression("VALUE.ref_price"),
                         "open_price",
-                        Expressions.Expression("VALUE.open_price"),
+                        Expression("VALUE.open_price"),
                         "item_status",
-                        Expressions.Expression("VALUE.item_status"),
+                        Expression("VALUE.item_status"),
                         "ts",
-                        Expressions.Expression("TIMESTAMP"),
+                        Expression("TIMESTAMP"),
                         "topic",
-                        Expressions.Expression("TOPIC"),
+                        Expression("TOPIC"),
                         "offset",
-                        Expressions.Expression("OFFSET"),
+                        Expression("OFFSET"),
                         "partition",
-                        Expressions.Expression("PARTITION"));
+                        Expression("PARTITION"));
     }
 
     @ParameterizedTest
