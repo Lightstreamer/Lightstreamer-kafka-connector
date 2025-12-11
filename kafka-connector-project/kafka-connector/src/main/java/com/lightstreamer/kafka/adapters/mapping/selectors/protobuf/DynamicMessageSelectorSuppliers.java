@@ -28,7 +28,6 @@ import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
@@ -36,6 +35,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
@@ -76,7 +76,7 @@ import java.util.Map;
  *
  * <p>
  *
- * @see com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker
+ * @see com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker
  * @see com.google.protobuf.DynamicMessage
  */
 public class DynamicMessageSelectorSuppliers
