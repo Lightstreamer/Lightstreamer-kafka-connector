@@ -33,7 +33,6 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -74,18 +73,17 @@ public class GenericRecordSelectorsSuppliersTest {
     static GenericRecord SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleGenericRecordProvider().sampleMessageV2();
 
-    static KeySelector<GenericRecord> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static KeySelector<GenericRecord> keySelector(String expression) throws ExtractionException {
         return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
-    static ValueSelector<GenericRecord> valueSelector(ExtractionExpression expression)
+    static ValueSelector<GenericRecord> valueSelector(String expression)
             throws ExtractionException {
         return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
     @Test
@@ -114,7 +112,7 @@ public class GenericRecordSelectorsSuppliersTest {
 
     @Test
     public void shouldMakeKeySelector() throws ExtractionException {
-        KeySelector<GenericRecord> selector = keySelector(Expression("KEY"));
+        KeySelector<GenericRecord> selector = keySelector("KEY");
 
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -133,8 +131,7 @@ public class GenericRecordSelectorsSuppliersTest {
                     """)
     public void shouldNotNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -164,7 +161,7 @@ public class GenericRecordSelectorsSuppliersTest {
 
     @Test
     public void shouldMakeValueSelector() throws ExtractionException {
-        ValueSelector<GenericRecord> selector = valueSelector(Expression("VALUE"));
+        ValueSelector<GenericRecord> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
@@ -182,8 +179,7 @@ public class GenericRecordSelectorsSuppliersTest {
                     """)
     public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -231,7 +227,7 @@ public class GenericRecordSelectorsSuppliersTest {
                     """)
     public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<GenericRecord> valueSelector = valueSelector(Expression(expressionStr));
+        ValueSelector<GenericRecord> valueSelector = valueSelector(expressionStr);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -247,7 +243,7 @@ public class GenericRecordSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, GenericRecord> record = fromValue(SAMPLE_MESSAGE);
 
-        valueSelector(Expression("VALUE")).extractValueInto(record, target);
+        valueSelector("VALUE").extractValueInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name",
@@ -266,29 +262,29 @@ public class GenericRecordSelectorsSuppliersTest {
                         "[abc, xyz, null]");
         target.clear();
 
-        valueSelector(Expression("VALUE.preferences")).extractValueInto(record, target);
+        valueSelector("VALUE.preferences").extractValueInto(record, target);
         assertThat(target).containsExactly("pref1", "pref_value1", "pref2", "pref_value2");
         target.clear();
 
-        valueSelector(Expression("VALUE.documents.id")).extractValueInto(record, target);
+        valueSelector("VALUE.documents.id").extractValueInto(record, target);
         assertThat(target).containsExactly("doc_id", "ID123", "doc_type", "ID");
         target.clear();
 
-        valueSelector(Expression("VALUE.children")).extractValueInto(record, target);
+        valueSelector("VALUE.children").extractValueInto(record, target);
         assertThat(target).containsKey("children[0]");
         assertThat(target).containsKey("children[1]");
         assertThat(target).containsKey("children[2]");
         target.clear();
 
-        valueSelector(Expression("VALUE.array")).extractValueInto(record, target);
+        valueSelector("VALUE.array").extractValueInto(record, target);
         assertThat(target).containsExactly("array[0]", "abc", "array[1]", "xyz", "array[2]", null);
         target.clear();
 
-        valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
+        valueSelector("VALUE.nullValue").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        valueSelector(Expression("VALUE.emptyArray")).extractValueInto(record, target);
+        valueSelector("VALUE.emptyArray").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
     }
@@ -325,7 +321,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -334,7 +330,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -367,7 +363,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -395,14 +391,14 @@ public class GenericRecordSelectorsSuppliersTest {
     public void shouldExtractValueWithNonScalars(
             String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<GenericRecord> valueSelector = valueSelector(Expression(expressionStr));
+        ValueSelector<GenericRecord> valueSelector = valueSelector(expressionStr);
 
         Data autoBoundValue = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
-                valueSelector(Expression(expressionStr))
+                valueSelector(expressionStr)
                         .extractValue("param", fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
@@ -426,7 +422,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -435,7 +431,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -444,7 +440,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValueInto(
                                                 fromValue((GenericRecord) null), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -478,7 +474,7 @@ public class GenericRecordSelectorsSuppliersTest {
                     """)
     public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        KeySelector<GenericRecord> keySelector = keySelector(Expression(expressionStr));
+        KeySelector<GenericRecord> keySelector = keySelector(expressionStr);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -494,7 +490,7 @@ public class GenericRecordSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<GenericRecord, ?> record = fromKey(SAMPLE_MESSAGE);
 
-        keySelector(Expression("KEY")).extractKeyInto(record, target);
+        keySelector("KEY").extractKeyInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name",
@@ -513,29 +509,29 @@ public class GenericRecordSelectorsSuppliersTest {
                         "[abc, xyz, null]");
         target.clear();
 
-        keySelector(Expression("KEY.preferences")).extractKeyInto(record, target);
+        keySelector("KEY.preferences").extractKeyInto(record, target);
         assertThat(target).containsExactly("pref1", "pref_value1", "pref2", "pref_value2");
         target.clear();
 
-        keySelector(Expression("KEY.documents.id")).extractKeyInto(record, target);
+        keySelector("KEY.documents.id").extractKeyInto(record, target);
         assertThat(target).containsExactly("doc_id", "ID123", "doc_type", "ID");
         target.clear();
 
-        keySelector(Expression("KEY.children")).extractKeyInto(record, target);
+        keySelector("KEY.children").extractKeyInto(record, target);
         assertThat(target).containsKey("children[0]");
         assertThat(target).containsKey("children[1]");
         assertThat(target).containsKey("children[2]");
         target.clear();
 
-        keySelector(Expression("KEY.array")).extractKeyInto(record, target);
+        keySelector("KEY.array").extractKeyInto(record, target);
         assertThat(target).containsExactly("array[0]", "abc", "array[1]", "xyz", "array[2]", null);
         target.clear();
 
-        keySelector(Expression("KEY.nullValue")).extractKeyInto(record, target);
+        keySelector("KEY.nullValue").extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        keySelector(Expression("KEY.emptyArray")).extractKeyInto(record, target);
+        keySelector("KEY.emptyArray").extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
     }
@@ -569,7 +565,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey("param", fromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -578,7 +574,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -609,7 +605,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -637,14 +633,12 @@ public class GenericRecordSelectorsSuppliersTest {
             String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
         Data autoBoundValue =
-                keySelector(Expression(expressionStr))
-                        .extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
+                keySelector(expressionStr).extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
-                keySelector(Expression(expressionStr))
-                        .extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
+                keySelector(expressionStr).extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -667,7 +661,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -676,7 +670,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey("param", fromKey((GenericRecord) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -685,7 +679,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(
                                                 fromKey((GenericRecord) null), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
