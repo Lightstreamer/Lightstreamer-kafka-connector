@@ -106,7 +106,7 @@ public class KvpNodeSelectorsSuppliersTest {
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not KVP");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not KVP");
     }
 
     @Test
@@ -129,7 +129,7 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -150,7 +150,7 @@ public class KvpNodeSelectorsSuppliersTest {
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not KVP");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not KVP");
     }
 
     @Test
@@ -173,7 +173,7 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -297,13 +297,13 @@ public class KvpNodeSelectorsSuppliersTest {
                                 valueSelector(expression)
                                         .extractValue("param", fromValue(INPUT))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () -> valueSelector(expression).extractValue(fromValue(INPUT)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -329,7 +329,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(fromValue(INPUT), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @Test
@@ -409,7 +409,7 @@ public class KvpNodeSelectorsSuppliersTest {
                                 valueSelector(expression)
                                         .extractValue(fromValue((String) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
@@ -418,7 +418,7 @@ public class KvpNodeSelectorsSuppliersTest {
                                 valueSelector(expression)
                                         .extractValue("param", fromValue((String) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
@@ -427,7 +427,7 @@ public class KvpNodeSelectorsSuppliersTest {
                                 valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue((String) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -536,13 +536,13 @@ public class KvpNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () -> keySelector(expression).extractKey("param", fromKey(INPUT)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () -> keySelector(expression).extractKey(fromKey(INPUT)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -568,7 +568,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         () ->
                                 keySelector(expression)
                                         .extractKeyInto(fromKey(INPUT), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @Test
@@ -645,7 +645,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () -> keySelector(expression).extractKey(fromKey((String) null)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
@@ -654,7 +654,7 @@ public class KvpNodeSelectorsSuppliersTest {
                                 keySelector(expression)
                                         .extractKey("param", fromKey((String) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
@@ -662,6 +662,6 @@ public class KvpNodeSelectorsSuppliersTest {
                         () ->
                                 keySelector(expression)
                                         .extractKeyInto(fromKey((String) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
