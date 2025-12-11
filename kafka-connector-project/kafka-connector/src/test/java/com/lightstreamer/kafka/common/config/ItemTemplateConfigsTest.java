@@ -18,11 +18,11 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ public class ItemTemplateConfigsTest {
         assertThat(it.contains("template-name")).isTrue();
         TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
-        assertThat(expression.params()).containsExactly("param", Expressions.Expression("OFFSET"));
+        assertThat(expression.params()).containsExactly("param", Expression("OFFSET"));
     }
 
     @Test
@@ -73,11 +73,11 @@ public class ItemTemplateConfigsTest {
         assertThat(expression.params())
                 .containsExactly(
                         "param1",
-                        Expressions.Expression("OFFSET"),
+                        Expression("OFFSET"),
                         "param2",
-                        Expressions.Expression("PARTITION"),
+                        Expression("PARTITION"),
                         "param3",
-                        Expressions.Expression("TIMESTAMP"));
+                        Expression("TIMESTAMP"));
     }
 
     @Test
@@ -97,22 +97,22 @@ public class ItemTemplateConfigsTest {
         assertThat(expression_a.params())
                 .containsExactly(
                         "param1a",
-                        Expressions.Expression("VALUE"),
+                        Expression("VALUE"),
                         "param2a",
-                        Expressions.Expression("KEY"),
+                        Expression("KEY"),
                         "param3a",
-                        Expressions.Expression("PARTITION"));
+                        Expression("PARTITION"));
 
         TemplateExpression expression_b = it.getTemplateExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
                         "param1b",
-                        Expressions.Expression("VALUE.b"),
+                        Expression("VALUE.b"),
                         "param2b",
-                        Expressions.Expression("KEY.b"),
+                        Expression("KEY.b"),
                         "param3b",
-                        Expressions.Expression("KEY.c"));
+                        Expression("KEY.c"));
     }
 
     @ParameterizedTest
@@ -140,7 +140,8 @@ public class ItemTemplateConfigsTest {
                         () ->
                                 ItemTemplateConfigs.from(
                                         Map.of("template-name", templateExpression)));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the template [template-name] containing the expression ["
                                 + templateExpression
@@ -157,7 +158,8 @@ public class ItemTemplateConfigsTest {
                                         Map.of(
                                                 "template-name",
                                                 "item-#{name=VALUE,name=PARTITION}")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the template [template-name] containing the expression [item-#{name=VALUE,name=PARTITION}]: <No duplicated keys are allowed>");
     }
