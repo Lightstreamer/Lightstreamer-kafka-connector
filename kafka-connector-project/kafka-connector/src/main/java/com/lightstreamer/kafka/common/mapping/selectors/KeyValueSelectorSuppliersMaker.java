@@ -15,10 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
-
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
 public interface KeyValueSelectorSuppliersMaker<T> {
 
