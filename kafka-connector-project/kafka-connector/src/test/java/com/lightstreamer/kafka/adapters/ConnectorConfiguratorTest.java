@@ -353,11 +353,12 @@ public class ConnectorConfiguratorTest {
                                 "true",
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 String.valueOf(threads)));
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> new ConnectorConfigurator(config, ADAPTER_DIR));
-        assertThat(e.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
     }
@@ -367,11 +368,11 @@ public class ConnectorConfiguratorTest {
     public void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(
             String topicMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(topicMappingParam, "item"));
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> new ConnectorConfigurator(config, ADAPTER_DIR));
-        assertThat(e.getMessage()).isEqualTo("Specify a valid parameter [map.<...>.to]");
+        assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [map.<...>.to]");
     }
 
     @ParameterizedTest
@@ -381,7 +382,7 @@ public class ConnectorConfiguratorTest {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [field.<...>]");
+        assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [field.<...>]");
     }
 
     @ParameterizedTest
@@ -390,7 +391,9 @@ public class ConnectorConfiguratorTest {
             String itemTemplateParam) {
         Map<String, String> config = minimalConfigWith(Map.of(itemTemplateParam, "field_name"));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [item-template.<...>]");
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid parameter [item-template.<...>]");
     }
 
     @ParameterizedTest
@@ -398,7 +401,8 @@ public class ConnectorConfiguratorTest {
     public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
         Map<String, String> config = minimalConfigWith(Map.of("item-template.template", template));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the template [template] containing the expression [value]: <Invalid template expression>");
     }
@@ -409,7 +413,8 @@ public class ConnectorConfiguratorTest {
                 minimalConfigWith(
                         Map.of("record.consume.with.order.strategy", "invalidOrderStrategy"));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.consume.with.order.strategy]");
     }
@@ -423,7 +428,8 @@ public class ConnectorConfiguratorTest {
         Map<String, String> config = minimalConfigWith(configs);
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
 
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [map.topic1.to]");
     }
 
@@ -435,7 +441,7 @@ public class ConnectorConfiguratorTest {
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
 
-        assertThat(ce.getMessage()).isEqualTo("No item template [no-valid-template] found");
+        assertThat(ce).hasMessageThat().isEqualTo("No item template [no-valid-template] found");
     }
 
     static Stream<Arguments> invalidFieldExpressions() {
@@ -467,7 +473,7 @@ public class ConnectorConfiguratorTest {
                                 new ConnectorConfigurator(
                                                 updatedConfigs, new File("src/test/resources"))
                                         .configure());
-        assertThat(e.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(e).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest
@@ -497,7 +503,8 @@ public class ConnectorConfiguratorTest {
         ConfigException e =
                 assertThrows(
                         ConfigException.class, () -> newConfigurator(updatedConfigs).configure());
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the template [template1] containing the expression ["
                                 + expression
