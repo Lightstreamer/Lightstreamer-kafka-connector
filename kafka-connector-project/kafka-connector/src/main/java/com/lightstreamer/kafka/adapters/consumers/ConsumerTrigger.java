@@ -22,10 +22,10 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -42,7 +42,7 @@ public interface ConsumerTrigger {
 
         FieldsExtractor<K, V> fieldsExtractor();
 
-        KeyValueDeserializers<K, V> deserializers();
+        KeyValueSelectorSuppliers<K, V> suppliers();
 
         RecordErrorHandlingStrategy errorHandlingStrategy();
 
