@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -68,18 +67,16 @@ public class JsonNodeSelectorsSuppliersTest {
 
     static JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
 
-    static KeySelector<JsonNode> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
-    static ValueSelector<JsonNode> valueSelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
     @Test
@@ -115,7 +112,7 @@ public class JsonNodeSelectorsSuppliersTest {
 
     @Test
     public void shouldMakeKeySelector() throws ExtractionException {
-        KeySelector<JsonNode> selector = keySelector(Expression("KEY"));
+        KeySelector<JsonNode> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
 
@@ -133,8 +130,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """)
     public void shouldNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -171,7 +167,7 @@ public class JsonNodeSelectorsSuppliersTest {
 
     @Test
     public void shouldMakeValueSelector() throws ExtractionException {
-        ValueSelector<JsonNode> selector = valueSelector(Expression("VALUE"));
+        ValueSelector<JsonNode> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
@@ -189,8 +185,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """)
     public void shouldNotMakeValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -240,7 +235,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """)
     public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<JsonNode> valueSelector = valueSelector(Expression(expressionStr));
+        ValueSelector<JsonNode> valueSelector = valueSelector(expressionStr);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -278,7 +273,7 @@ public class JsonNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, JsonNode> record = fromValue(message);
 
-        valueSelector(Expression("VALUE")).extractValueInto(record, target);
+        valueSelector("VALUE").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "name",
@@ -299,39 +294,39 @@ public class JsonNodeSelectorsSuppliersTest {
                         null);
         target.clear();
 
-        valueSelector(Expression("VALUE.data")).extractValueInto(record, target);
+        valueSelector("VALUE.data").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3", "data[3]", null);
         target.clear();
 
-        valueSelector(Expression("VALUE.emptyData")).extractValueInto(record, target);
+        valueSelector("VALUE.emptyData").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        valueSelector(Expression("VALUE.map")).extractValueInto(record, target);
+        valueSelector("VALUE.map").extractValueInto(record, target);
         assertThat(target).containsExactly("a", "1", "b", "2", "c", "3");
         target.clear();
 
-        valueSelector(Expression("VALUE.emptyMap")).extractValueInto(record, target);
+        valueSelector("VALUE.emptyMap").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        valueSelector(Expression("VALUE.matrix")).extractValueInto(record, target);
+        valueSelector("VALUE.matrix").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "matrix[0]", "[1,2,3]", "matrix[1]", "[4,5,6]", "matrix[2]", "[7,8,9]");
         target.clear();
 
-        valueSelector(Expression("VALUE.matrix[1]")).extractValueInto(record, target);
+        valueSelector("VALUE.matrix[1]").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly("matrix[1][0]", "4", "matrix[1][1]", "5", "matrix[1][2]", "6");
         target.clear();
 
-        valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
+        valueSelector("VALUE.nullValue").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        valueSelector(Expression("VALUE.nullValue")).extractValueInto(record, target);
+        valueSelector("VALUE.nullValue").extractValueInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
     }
@@ -364,7 +359,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -373,7 +368,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -404,7 +399,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -448,15 +443,14 @@ public class JsonNodeSelectorsSuppliersTest {
                     }
                         """);
 
-        ValueSelector<JsonNode> valueSelector = valueSelector(Expression(expressionString));
+        ValueSelector<JsonNode> valueSelector = valueSelector(expressionString);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(message), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
         Data boundData =
-                valueSelector(Expression(expressionString))
-                        .extractValue("param", fromValue(message), false);
+                valueSelector(expressionString).extractValue("param", fromValue(message), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -479,7 +473,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -488,7 +482,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -497,7 +491,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValueInto(
                                                 fromValue((JsonNode) null), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -530,7 +524,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """)
     public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        KeySelector<JsonNode> keySelector = keySelector(Expression(expressionStr));
+        KeySelector<JsonNode> keySelector = keySelector(expressionStr);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -562,7 +556,7 @@ public class JsonNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<JsonNode, ?> record = fromKey(message);
 
-        keySelector(Expression("KEY")).extractKeyInto(record, target);
+        keySelector("KEY").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "name",
@@ -581,24 +575,24 @@ public class JsonNodeSelectorsSuppliersTest {
                         null);
         target.clear();
 
-        keySelector(Expression("KEY.data")).extractKeyInto(record, target);
+        keySelector("KEY.data").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3", "data[3]", null);
         target.clear();
 
-        keySelector(Expression("KEY.emptyData")).extractKeyInto(record, target);
+        keySelector("KEY.emptyData").extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        keySelector(Expression("KEY.map")).extractKeyInto(record, target);
+        keySelector("KEY.map").extractKeyInto(record, target);
         assertThat(target).containsExactly("a", "1", "b", "2", "c", "3");
         target.clear();
 
-        keySelector(Expression("KEY.emptyMap")).extractKeyInto(record, target);
+        keySelector("KEY.emptyMap").extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
 
-        keySelector(Expression("KEY.nullValue")).extractKeyInto(record, target);
+        keySelector("KEY.nullValue").extractKeyInto(record, target);
         assertThat(target).isEmpty();
         target.clear();
     }
@@ -631,7 +625,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey("param", fromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -640,7 +634,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -671,7 +665,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -713,13 +707,11 @@ public class JsonNodeSelectorsSuppliersTest {
                     }
                         """);
 
-        Data autoBoundValue =
-                keySelector(Expression(expressionStr)).extractKey(fromKey(message), false);
+        Data autoBoundValue = keySelector(expressionStr).extractKey(fromKey(message), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
-        Data boundValue =
-                keySelector(Expression(expressionStr)).extractKey("param", fromKey(message), false);
+        Data boundValue = keySelector(expressionStr).extractKey("param", fromKey(message), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -742,7 +734,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -751,7 +743,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey("param", fromKey((JsonNode) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -760,7 +752,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(fromKey((JsonNode) null), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
