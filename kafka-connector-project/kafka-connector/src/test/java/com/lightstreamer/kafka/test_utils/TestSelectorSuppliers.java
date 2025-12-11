@@ -30,7 +30,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -46,13 +45,13 @@ public interface TestSelectorSuppliers {
 
     public static KeyValueSelectorSuppliers<GenericRecord, GenericRecord> Avro() {
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(fullAvroConfig());
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 g.makeKeySelectorSupplier(), g.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<String, GenericRecord> AvroValue() {
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(fullAvroConfig());
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), g.makeValueSelectorSupplier());
     }
 
@@ -60,37 +59,39 @@ public interface TestSelectorSuppliers {
         ConnectorConfig config = avroKeyJsonValueConfig();
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
         GenericRecordSelectorsSuppliers g = new GenericRecordSelectorsSuppliers(config);
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 g.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<JsonNode, JsonNode> JsonKeyJsonValue() {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 j.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue(ConnectorConfig config) {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue() {
         JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<String, DynamicMessage> ProtoValue() {
         ConnectorConfig config = protoValueConfig();
         DynamicMessageSelectorSuppliers d = new DynamicMessageSelectorSuppliers(config);
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), d.makeValueSelectorSupplier());
     }
 
     public static KeyValueSelectorSuppliers<Object, Object> Object() {
-        return new ConnectSelectorsSuppliers();
+        ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
+        return KeyValueSelectorSuppliers.of(
+                s.makeKeySelectorSupplier(), s.makeValueSelectorSupplier());
     }
 
     private static ConnectorConfig avroKeyJsonValueConfig() {
