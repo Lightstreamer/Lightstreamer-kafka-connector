@@ -34,8 +34,6 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Const
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
@@ -46,6 +44,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
@@ -239,6 +238,6 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
     }
 
     public static KeyValueSelectorSuppliers<String, String> String() {
-        return new WrapperKeyValueSelectorSuppliers<>(StringKey(), StringValue());
+        return KeyValueSelectorSuppliers.of(StringKey(), StringValue());
     }
 }
