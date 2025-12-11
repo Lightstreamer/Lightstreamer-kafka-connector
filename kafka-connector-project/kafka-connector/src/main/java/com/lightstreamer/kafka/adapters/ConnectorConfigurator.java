@@ -22,9 +22,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -37,6 +34,8 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,7 @@ public class ConnectorConfigurator {
             Properties consumerProperties,
             ItemTemplates<K, V> itemTemplates,
             FieldsExtractor<K, V> fieldsExtractor,
-            KeyValueDeserializers<K, V> deserializers,
+            KeyValueSelectorSuppliers<K, V> suppliers,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean isCommandEnforceEnabled,
             Concurrency concurrency)
@@ -91,7 +90,7 @@ public class ConnectorConfigurator {
     }
 
     private static <K, V> ConsumerTriggerConfigImpl<K, V> doConfigure(
-            ConnectorConfig config, WrapperKeyValueSelectorSuppliers<K, V> sSuppliers)
+            ConnectorConfig config, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
 
@@ -113,7 +112,7 @@ public class ConnectorConfigurator {
                 config.baseConsumerProps(),
                 itemTemplates,
                 fieldsExtractor,
-                sSuppliers.deserializers(),
+                sSuppliers,
                 config.getRecordExtractionErrorHandlingStrategy(),
                 config.isCommandEnforceEnabled(),
                 new ConcurrencyConfig(
@@ -121,8 +120,7 @@ public class ConnectorConfigurator {
                         config.getRecordConsumeWithNumThreads()));
     }
 
-    static WrapperKeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(
-            ConnectorConfig config) {
+    static KeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(ConnectorConfig config) {
         Map<EvaluatorType, KeyValueSelectorSuppliersMaker<?>> t = new HashMap<>();
         Function<? super EvaluatorType, ? extends KeyValueSelectorSuppliersMaker<?>> getMaker =
                 type -> {
@@ -139,7 +137,7 @@ public class ConnectorConfigurator {
         KeyValueSelectorSuppliersMaker<?> valueMaker =
                 t.computeIfAbsent(config.getValueEvaluator(), getMaker);
 
-        return new WrapperKeyValueSelectorSuppliers<>(
+        return KeyValueSelectorSuppliers.of(
                 keyMaker.makeKeySelectorSupplier(), valueMaker.makeValueSelectorSupplier());
     }
 }
