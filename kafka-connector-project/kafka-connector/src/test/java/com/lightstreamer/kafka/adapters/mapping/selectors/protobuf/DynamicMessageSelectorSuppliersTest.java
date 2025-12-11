@@ -133,7 +133,7 @@ public class DynamicMessageSelectorSuppliersTest {
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not PROTOBUF");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not PROTOBUF");
     }
 
     @Test
@@ -181,10 +181,10 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -211,7 +211,7 @@ public class DynamicMessageSelectorSuppliersTest {
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not PROTOBUF");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not PROTOBUF");
     }
 
     @Test
@@ -259,10 +259,10 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -309,9 +309,9 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.any.type_url                        | type_url        | type.googleapis.com/Car
                 VALUE.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException {
-        ValueSelector<DynamicMessage> valueSelector = valueSelector(expressionStr);
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -389,24 +389,24 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -427,15 +427,15 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractValueIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -452,9 +452,9 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
     public void shouldExtractValueWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<DynamicMessage> valueSelector = valueSelector(expressionStr);
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -477,25 +477,25 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldHandleNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue((DynamicMessage) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue((DynamicMessage) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -527,9 +527,9 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.any.type_url                        | type_url        | type.googleapis.com/Car
                 KEY.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        KeySelector<DynamicMessage> keySelector = keySelector(expressionStr);
+        KeySelector<DynamicMessage> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -607,15 +607,12 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () ->
-                                keySelector(expressionStr)
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -636,14 +633,14 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractKeyIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -660,9 +657,9 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
     public void shouldExtractKeyWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        KeySelector<DynamicMessage> keySelector = keySelector(expressionStr);
+        KeySelector<DynamicMessage> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -685,33 +682,33 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.children[0].no_attrib  | Cannot retrieve field [KEY] from a null object
                 KEY.no_children[0]         | Cannot retrieve field [KEY] from a null object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldHandleNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey(fromKey((DynamicMessage) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey("param", fromKey((DynamicMessage) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(
                                                 fromKey((DynamicMessage) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
