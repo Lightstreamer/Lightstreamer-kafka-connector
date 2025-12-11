@@ -123,7 +123,7 @@ public class OthersSelectorSuppliersTestTest {
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Unsupported evaluator [" + type + "]");
+        assertThat(ie).hasMessageThat().isEqualTo("Unsupported evaluator [" + type + "]");
     }
 
     @Test
@@ -149,7 +149,7 @@ public class OthersSelectorSuppliersTestTest {
                 KEY.a        | Found the invalid expression [KEY.a] for scalar values
                 KEY.attrib[] | Found the invalid expression [KEY.attrib[]] for scalar values
                     """)
-    public void shouldNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
@@ -158,8 +158,8 @@ public class OthersSelectorSuppliersTestTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> keySelectorSupplier.newSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        () -> keySelectorSupplier.newSelector(Expression(expression)));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest
@@ -193,7 +193,7 @@ public class OthersSelectorSuppliersTestTest {
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Unsupported evaluator [" + type + "]");
+        assertThat(ie).hasMessageThat().isEqualTo("Unsupported evaluator [" + type + "]");
     }
 
     @Test
@@ -219,7 +219,7 @@ public class OthersSelectorSuppliersTestTest {
                 VALUE.a        | Found the invalid expression [VALUE.a] for scalar values
                 VALUE.attrib[] | Found the invalid expression [VALUE.attrib[]] for scalar values
                     """)
-    public void shouldNotMakeValueSelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
@@ -228,8 +228,8 @@ public class OthersSelectorSuppliersTestTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> valueSelectorSupplier.newSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        () -> valueSelectorSupplier.newSelector(Expression(expression)));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     static Stream<Arguments> recordArgs() {
@@ -376,7 +376,8 @@ public class OthersSelectorSuppliersTestTest {
                         () -> {
                             valueSupplier.newSelector(expression);
                         });
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo("Found the invalid expression [VALUE.a] for scalar values");
     }
 }
