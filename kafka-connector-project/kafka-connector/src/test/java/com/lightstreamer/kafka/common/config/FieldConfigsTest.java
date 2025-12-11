@@ -75,7 +75,8 @@ public class FieldConfigsTest {
                         () ->
                                 configs.fieldsExtractor(
                                         OthersSelectorSuppliers.String(), false, false));
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Found the invalid expression [VALUE.notAllowedAttrib] for scalar values");
     }
@@ -109,7 +110,8 @@ public class FieldConfigsTest {
         fieldMappings.put("field1", expression);
         ConfigException ee =
                 assertThrows(ConfigException.class, () -> FieldConfigs.from(fieldMappings));
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the field [field1] containing the expression ["
                                 + expression
@@ -124,7 +126,8 @@ public class FieldConfigsTest {
         ConfigException ee =
                 assertThrows(ConfigException.class, () -> FieldConfigs.from(fieldMappings));
 
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the field [field1] containing the expression ["
                                 + fieldExpression
