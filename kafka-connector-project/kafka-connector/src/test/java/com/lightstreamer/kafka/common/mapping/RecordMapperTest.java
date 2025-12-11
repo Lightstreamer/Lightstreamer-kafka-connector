@@ -484,7 +484,7 @@ public class RecordMapperTest {
                 Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         ValueException ve = assertThrows(ValueException.class, () -> mappedRecord.fieldsMap());
-        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+        assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
     }
 
     @ParameterizedTest
@@ -524,7 +524,7 @@ public class RecordMapperTest {
                                                 TEST_TOPIC_1,
                                                 "",
                                                 SampleJsonNodeProvider().sampleMessage())));
-        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+        assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
     }
 
     static Stream<Arguments> avoFieldExtractors() throws ExtractionException {
