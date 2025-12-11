@@ -107,7 +107,7 @@ public class GenericRecordSelectorsSuppliersTest {
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not AVRO");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not AVRO");
     }
 
     @Test
@@ -129,10 +129,10 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -156,7 +156,7 @@ public class GenericRecordSelectorsSuppliersTest {
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not AVRO");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not AVRO");
     }
 
     @Test
@@ -177,10 +177,10 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -225,9 +225,9 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[1].children[1]['name'] | name          | terence
                 VALUE.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<GenericRecord> valueSelector = valueSelector(expressionStr);
+        ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -316,24 +316,24 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray[0]         | Field not found at index [0]
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -358,15 +358,15 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray[0]         | Field not found at index [0]
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -389,16 +389,16 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.nullValue                 | nullValue     |
                     """)
     public void shouldExtractValueWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<GenericRecord> valueSelector = valueSelector(expressionStr);
+        ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
         Data autoBoundValue = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
-                valueSelector(expressionStr)
+                valueSelector(expression)
                         .extractValue("param", fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
@@ -416,34 +416,34 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldHandleNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(fromValue((GenericRecord) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue("param", fromValue((GenericRecord) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValueInto(
                                                 fromValue((GenericRecord) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -472,9 +472,9 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.children[1].children[1]['name'] | name          | terence
                 KEY.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        KeySelector<GenericRecord> keySelector = keySelector(expressionStr);
+        KeySelector<GenericRecord> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -560,24 +560,21 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.type.attrib           | Cannot retrieve field [attrib] from a scalar object
                 KEY.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey("param", fromKey(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () ->
-                                keySelector(expressionStr)
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -600,14 +597,14 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.type.attrib            | Cannot retrieve field [attrib] from a scalar object
                 KEY.nullValue[0]           | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -630,15 +627,14 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.nullValue                 | nullValue     |
                     """)
     public void shouldExtractKeyWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        Data autoBoundValue =
-                keySelector(expressionStr).extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
+        Data autoBoundValue = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
-                keySelector(expressionStr).extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
+                keySelector(expression).extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -655,33 +651,33 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [KEY] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [KEY] from a null object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldHandleNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey(fromKey((GenericRecord) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey("param", fromKey((GenericRecord) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKeyInto(
                                                 fromKey((GenericRecord) null), new HashMap<>()));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
