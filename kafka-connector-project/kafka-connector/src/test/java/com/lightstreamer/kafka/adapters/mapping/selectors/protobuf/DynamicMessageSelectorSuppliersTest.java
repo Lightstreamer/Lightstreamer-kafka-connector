@@ -40,7 +40,6 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
@@ -85,18 +84,17 @@ public class DynamicMessageSelectorSuppliersTest {
     static DynamicMessage SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessageV2();
 
-    static KeySelector<DynamicMessage> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static KeySelector<DynamicMessage> keySelector(String expression) throws ExtractionException {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
-    static ValueSelector<DynamicMessage> valueSelector(ExtractionExpression expression)
+    static ValueSelector<DynamicMessage> valueSelector(String expression)
             throws ExtractionException {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(expression);
+                .newSelector(Expression(expression));
     }
 
     static String maybeEmpty(String expected) {
@@ -167,7 +165,7 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldMakeKeySelector() throws ExtractionException {
-        KeySelector<DynamicMessage> selector = keySelector(Expression("KEY"));
+        KeySelector<DynamicMessage> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
 
@@ -185,8 +183,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """)
     public void shouldNotMakeKeySelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> keySelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -246,7 +243,7 @@ public class DynamicMessageSelectorSuppliersTest {
 
     @Test
     public void shouldMakeValueSelector() throws ExtractionException {
-        ValueSelector<DynamicMessage> selector = valueSelector(Expression("VALUE"));
+        ValueSelector<DynamicMessage> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
@@ -264,8 +261,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """)
     public void shouldNotMakeValueSelector(String expressionStr, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
+                assertThrows(ExtractionException.class, () -> valueSelector(expressionStr));
         assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
     }
 
@@ -315,7 +311,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """)
     public void shouldExtractValue(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException, ValueException {
-        ValueSelector<DynamicMessage> valueSelector = valueSelector(Expression(expressionStr));
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expressionStr);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -331,7 +327,7 @@ public class DynamicMessageSelectorSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, DynamicMessage> record = fromValue(SAMPLE_MESSAGE);
 
-        valueSelector(Expression("VALUE")).extractValueInto(record, target);
+        valueSelector("VALUE").extractValueInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name", "joe",
@@ -340,33 +336,33 @@ public class DynamicMessageSelectorSuppliersTest {
                         "signature", "abcd");
         target.clear();
 
-        valueSelector(Expression("VALUE.car")).extractValueInto(record, target);
+        valueSelector("VALUE.car").extractValueInto(record, target);
         assertThat(target).containsExactly("brand", "BMW");
         target.clear();
 
-        valueSelector(Expression("VALUE.phoneNumbers")).extractValueInto(record, target);
+        valueSelector("VALUE.phoneNumbers").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
         target.clear();
 
-        valueSelector(Expression("VALUE.otherAddresses['club']")).extractValueInto(record, target);
+        valueSelector("VALUE.otherAddresses['club']").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
         target.clear();
 
-        valueSelector(Expression("VALUE.data")).extractValueInto(record, target);
+        valueSelector("VALUE.data").extractValueInto(record, target);
         assertThat(target).containsExactly("aDataKey", "-13.3");
         target.clear();
 
-        valueSelector(Expression("VALUE.friends[0]")).extractValueInto(record, target);
+        valueSelector("VALUE.friends[0]").extractValueInto(record, target);
         assertThat(target).containsEntry("name", "mike");
         target.clear();
 
-        valueSelector(Expression("VALUE.friends[1]")).extractValueInto(record, target);
+        valueSelector("VALUE.friends[1]").extractValueInto(record, target);
         assertThat(target).containsEntry("name", "john");
         target.clear();
 
-        valueSelector(Expression("VALUE.friends[1].friends[0]")).extractValueInto(record, target);
+        valueSelector("VALUE.friends[1].friends[0]").extractValueInto(record, target);
         assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
         target.clear();
     }
@@ -398,7 +394,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -407,7 +403,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -436,7 +432,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValueInto(
                                                 fromValue(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -458,7 +454,7 @@ public class DynamicMessageSelectorSuppliersTest {
     public void shouldExtractValueWithNonScalars(
             String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException {
-        ValueSelector<DynamicMessage> valueSelector = valueSelector(Expression(expressionStr));
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expressionStr);
 
         Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -487,7 +483,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue(fromValue((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -496,7 +492,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expressionStr)
                                         .extractValue("param", fromValue((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -533,7 +529,7 @@ public class DynamicMessageSelectorSuppliersTest {
                     """)
     public void shouldExtractKey(String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        KeySelector<DynamicMessage> keySelector = keySelector(Expression(expressionStr));
+        KeySelector<DynamicMessage> keySelector = keySelector(expressionStr);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -550,7 +546,7 @@ public class DynamicMessageSelectorSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<DynamicMessage, ?> record = fromKey(SAMPLE_MESSAGE);
 
-        keySelector(Expression("KEY")).extractKeyInto(record, target);
+        keySelector("KEY").extractKeyInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name", "joe",
@@ -559,33 +555,33 @@ public class DynamicMessageSelectorSuppliersTest {
                         "signature", "abcd");
         target.clear();
 
-        keySelector(Expression("KEY.car")).extractKeyInto(record, target);
+        keySelector("KEY.car").extractKeyInto(record, target);
         assertThat(target).containsExactly("brand", "BMW");
         target.clear();
 
-        keySelector(Expression("KEY.phoneNumbers")).extractKeyInto(record, target);
+        keySelector("KEY.phoneNumbers").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
         target.clear();
 
-        keySelector(Expression("KEY.otherAddresses['club']")).extractKeyInto(record, target);
+        keySelector("KEY.otherAddresses['club']").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
         target.clear();
 
-        keySelector(Expression("KEY.data")).extractKeyInto(record, target);
+        keySelector("KEY.data").extractKeyInto(record, target);
         assertThat(target).containsExactly("aDataKey", "-13.3");
         target.clear();
 
-        keySelector(Expression("KEY.friends[0]")).extractKeyInto(record, target);
+        keySelector("KEY.friends[0]").extractKeyInto(record, target);
         assertThat(target).containsEntry("name", "mike");
         target.clear();
 
-        keySelector(Expression("KEY.friends[1]")).extractKeyInto(record, target);
+        keySelector("KEY.friends[1]").extractKeyInto(record, target);
         assertThat(target).containsEntry("name", "john");
         target.clear();
 
-        keySelector(Expression("KEY.friends[1].friends[0]")).extractKeyInto(record, target);
+        keySelector("KEY.friends[1].friends[0]").extractKeyInto(record, target);
         assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
         target.clear();
     }
@@ -616,7 +612,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -645,7 +641,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
     }
@@ -666,7 +662,7 @@ public class DynamicMessageSelectorSuppliersTest {
     public void shouldExtractKeyWithNonScalars(
             String expressionStr, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        KeySelector<DynamicMessage> keySelector = keySelector(Expression(expressionStr));
+        KeySelector<DynamicMessage> keySelector = keySelector(expressionStr);
 
         Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -695,7 +691,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey(fromKey((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -704,7 +700,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKey("param", fromKey((DynamicMessage) null))
                                         .text());
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
@@ -713,7 +709,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
+                                keySelector(expressionStr)
                                         .extractKeyInto(
                                                 fromKey((DynamicMessage) null), new HashMap<>()));
         assertThat(ve.getMessage()).isEqualTo(errorMessage);
