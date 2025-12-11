@@ -54,7 +54,11 @@ public class DataAdapterConfigurator {
                         config.getItemTemplateConfigs(),
                         config.getTopicMappings(),
                         config.isRegexEnabled());
-        KeyValueSelectorSuppliers<Object, Object> sSuppliers = new ConnectSelectorsSuppliers();
+        ConnectSelectorsSuppliers selectorsSuppliers = new ConnectSelectorsSuppliers();
+        KeyValueSelectorSuppliers<Object, Object> sSuppliers =
+                KeyValueSelectorSuppliers.of(
+                        selectorsSuppliers.makeKeySelectorSupplier(),
+                        selectorsSuppliers.makeValueSelectorSupplier());
         try {
             ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
             logger.info("Constructed item templates: {}", templates);
