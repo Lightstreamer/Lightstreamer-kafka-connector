@@ -84,7 +84,7 @@ public class SchemaTest {
                         () -> {
                             Schema.from(null, Set.of("a", "b"));
                         });
-        assertThat(exception.getMessage()).isEqualTo("Schema name must be a non empty string");
+        assertThat(exception).hasMessageThat().isEqualTo("Schema name must be a non empty string");
     }
 
     @Test
@@ -95,6 +95,6 @@ public class SchemaTest {
                         () -> {
                             Schema.from("  ", Set.of("a", "b"));
                         });
-        assertThat(exception.getMessage()).isEqualTo("Schema name must be a non empty string");
+        assertThat(exception).hasMessageThat().isEqualTo("Schema name must be a non empty string");
     }
 }

@@ -238,7 +238,8 @@ public class FieldsExtractorTest {
                         () ->
                                 DataExtractors.dynamicFieldsExtractor(
                                         JsonValue(), expressions, false));
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Cannot handle dynamic extraction from the constant expression ["
                                 + constant
@@ -308,7 +309,8 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ValueException.class,
                         () -> extractor.extractMap(Records.record("aValue", message)));
-        assertThat(ve.getMessage())
+        assertThat(ve)
+                .hasMessageThat()
                 .contains("The expression [VALUE] must evaluate to a non-complex object");
     }
 
@@ -382,7 +384,8 @@ public class FieldsExtractorTest {
                                         JsonValue(),
                                         List.of(Expression("VALUE.map[invalid-index]")),
                                         false));
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
     }
 }

@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,16 +38,16 @@ public class ParsersTest {
 
     static Stream<Arguments> args() {
         return Stream.of(
-                arguments(Expressions.Expression("VALUE"), Constant.VALUE),
-                arguments(Expressions.Expression("KEY.attrib"), Constant.KEY),
-                arguments(Expressions.Expression("HEADERS"), Constant.HEADERS),
-                arguments(Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
-                arguments(Expressions.Expression("HEADERS['key']"), Constant.HEADERS),
-                arguments(Expressions.Expression("VALUE"), Constant.VALUE),
-                arguments(Expressions.Expression("KEY.attrib"), Constant.KEY),
-                arguments(Expressions.Expression("HEADERS"), Constant.HEADERS),
-                arguments(Expressions.Expression("HEADERS[1]"), Constant.HEADERS),
-                arguments(Expressions.Expression("HEADERS['key']"), Constant.HEADERS));
+                arguments(Expression("VALUE"), Constant.VALUE),
+                arguments(Expression("KEY.attrib"), Constant.KEY),
+                arguments(Expression("HEADERS"), Constant.HEADERS),
+                arguments(Expression("HEADERS[1]"), Constant.HEADERS),
+                arguments(Expression("HEADERS['key']"), Constant.HEADERS),
+                arguments(Expression("VALUE"), Constant.VALUE),
+                arguments(Expression("KEY.attrib"), Constant.KEY),
+                arguments(Expression("HEADERS"), Constant.HEADERS),
+                arguments(Expression("HEADERS[1]"), Constant.HEADERS),
+                arguments(Expression("HEADERS['key']"), Constant.HEADERS));
     }
 
     @ParameterizedTest
@@ -59,24 +60,24 @@ public class ParsersTest {
 
     @Test
     void shouldMatchRoot() throws ExtractionException {
-        Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("VALUE"), Constant.VALUE);
+        Parsers.ParsingContext p = new Parsers.ParsingContext(Expression("VALUE"), Constant.VALUE);
         assertDoesNotThrow(() -> p.matchRoot());
     }
 
     @Test
     void shouldNotMatchRoot() {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("KEY.attrib"), Constant.VALUE);
+                new Parsers.ParsingContext(Expression("KEY.attrib"), Constant.VALUE);
         ExtractionException ee = assertThrows(ExtractionException.class, () -> p.matchRoot());
-        assertThat(ee.getMessage())
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo("Expected the root token [VALUE] while evaluating [KEY.attrib]");
     }
 
     @Test
     void shouldHaveOneTokenFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("VALUE.a"), Constant.VALUE);
+                new Parsers.ParsingContext(Expression("VALUE.a"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("VALUE");
@@ -88,7 +89,7 @@ public class ParsersTest {
     @Test
     void shouldOneStarTokenFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("VALUE.*"), Constant.VALUE);
+                new Parsers.ParsingContext(Expression("VALUE.*"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("VALUE");
@@ -100,7 +101,7 @@ public class ParsersTest {
     @Test
     void shouldHaveMoreTokensFollowingTheRoot() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("VALUE.a.b"), Constant.VALUE);
+                new Parsers.ParsingContext(Expression("VALUE.a.b"), Constant.VALUE);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("VALUE");
@@ -114,7 +115,7 @@ public class ParsersTest {
     @Test
     void shouldHaveMoreTokensFollowingHeaders() throws ExtractionException {
         Parsers.ParsingContext p =
-                new Parsers.ParsingContext(Expressions.Expression("HEADERS.a"), Constant.HEADERS);
+                new Parsers.ParsingContext(Expression("HEADERS.a"), Constant.HEADERS);
         p.matchRoot();
         assertThat(p.hasNext()).isTrue();
         assertThat(p.next()).isEqualTo("HEADERS");

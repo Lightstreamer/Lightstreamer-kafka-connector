@@ -22,7 +22,6 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expre
 
 import static org.junit.Assert.assertThrows;
 
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
@@ -66,14 +65,13 @@ public class HeaderSelectorSupplierTest {
                 }
             };
 
-    static HeadersSelector headersSelector(ExtractionExpression expression)
-            throws ExtractionException {
-        return new HeadersSelectorSupplier().newSelector(expression);
+    static HeadersSelector headersSelector(String expression) throws ExtractionException {
+        return new HeadersSelectorSupplier().newSelector(Expression(expression));
     }
 
     @Test
     public void shouldMakeHeaderSelector() throws ExtractionException {
-        HeadersSelector selector = headersSelector(Expression("HEADERS"));
+        HeadersSelector selector = headersSelector("HEADERS");
         assertThat(selector.expression().expression()).isEqualTo("HEADERS");
     }
 
@@ -88,12 +86,10 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
                 HEADERS.attrib[a],    Found the invalid indexed expression [HEADERS.attrib[a]]
                 """)
-    public void shouldNotMakeHeaderSelector(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotMakeHeaderSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () -> headersSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExtractionException.class, () -> headersSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -122,12 +118,11 @@ public class HeaderSelectorSupplierTest {
                 HEADERS[4]              | HEADERS[4]    | type1
                 HEADERS[5]              | HEADERS[5]    | type2
                     """)
-    public void shouldExtractHeaders(
-            String expressionStr, String expectedName, String expectedValue)
+    public void shouldExtractHeaders(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
 
         for (KafkaRecord<?, ?> record : RECORDS) {
-            HeadersSelector headersSelector = headersSelector(Expression(expressionStr));
+            HeadersSelector headersSelector = headersSelector(expression);
 
             Data autoBoundData = headersSelector.extract(record);
             assertThat(autoBoundData.name()).isEqualTo(expectedName);
@@ -144,7 +139,7 @@ public class HeaderSelectorSupplierTest {
         Map<String, String> target = new HashMap<>();
 
         for (KafkaRecord<?, ?> record : RECORDS) {
-            headersSelector(Expression("HEADERS")).extractInto(record, target);
+            headersSelector("HEADERS").extractInto(record, target);
             assertThat(target)
                     .containsExactly(
                             "name", "joe",
@@ -155,39 +150,39 @@ public class HeaderSelectorSupplierTest {
                             "docType[1]", "type2");
             target.clear();
 
-            headersSelector(Expression("HEADERS.accountId")).extractInto(record, target);
+            headersSelector("HEADERS.accountId").extractInto(record, target);
             assertThat(target)
                     .containsExactly(
                             "accountId[0]", "12345",
                             "accountId[1]", "67890");
             target.clear();
 
-            headersSelector(Expression("HEADERS['accountId']")).extractInto(record, target);
+            headersSelector("HEADERS['accountId']").extractInto(record, target);
             assertThat(target)
                     .containsExactly(
                             "accountId[0]", "12345",
                             "accountId[1]", "67890");
             target.clear();
 
-            headersSelector(Expression("HEADERS.docType")).extractInto(record, target);
+            headersSelector("HEADERS.docType").extractInto(record, target);
             assertThat(target)
                     .containsExactly(
                             "docType[0]", "type1",
                             "docType[1]", "type2");
             target.clear();
 
-            headersSelector(Expression("HEADERS['docType']")).extractInto(record, target);
+            headersSelector("HEADERS['docType']").extractInto(record, target);
             assertThat(target)
                     .containsExactly(
                             "docType[0]", "type1",
                             "docType[1]", "type2");
             target.clear();
 
-            headersSelector(Expression("HEADERS.accountId[0]")).extractInto(record, target);
+            headersSelector("HEADERS.accountId[0]").extractInto(record, target);
             assertThat(target).isEmpty();
             target.clear();
 
-            headersSelector(Expression("HEADERS.name")).extractInto(record, target);
+            headersSelector("HEADERS.name").extractInto(record, target);
             assertThat(target).isEmpty();
             target.clear();
         }
@@ -210,25 +205,19 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId[0].account | Cannot retrieve field [account] from a scalar object
                 HEADERS['accountId']         | The expression [HEADERS['accountId']] must evaluate to a non-complex object
                             """)
-    public void shouldNotExtractRecordHeader(String expressionStr, String errorMessage) {
+    public void shouldNotExtractRecordHeader(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
                             ValueException.class,
-                            () ->
-                                    headersSelector(Expression(expressionStr))
-                                            .extract("name", record)
-                                            .text());
-            assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                            () -> headersSelector(expression).extract("name", record).text());
+            assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
             ve =
                     assertThrows(
                             ValueException.class,
-                            () ->
-                                    headersSelector(Expression(expressionStr))
-                                            .extract(record)
-                                            .text());
-            assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                            () -> headersSelector(expression).extract(record).text());
+            assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
         }
     }
 
@@ -246,15 +235,13 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.name['no_key']       | Cannot retrieve field [no_key] from a scalar object
                 HEADERS.accountId[0].account | Cannot retrieve field [account] from a scalar object
                             """)
-    public void shouldNotExtractRecordHeadersIntoMap(String expressionStr, String errorMessage) {
+    public void shouldNotExtractRecordHeadersIntoMap(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
                             ValueException.class,
-                            () ->
-                                    headersSelector(Expression(expressionStr))
-                                            .extractInto(record, new HashMap<>()));
-            assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                            () -> headersSelector(expression).extractInto(record, new HashMap<>()));
+            assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
         }
     }
 
@@ -270,9 +257,9 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.docType   | docType       | [type1, type2]
                         """)
     public void shouldExtractRecordHeaderWithNonScalars(
-            String expressionStr, String expectedName, String expectedValue)
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        HeadersSelector headersSelector = headersSelector(Expression(expressionStr));
+        HeadersSelector headersSelector = headersSelector(expression);
         for (KafkaRecord<?, ?> record : RECORDS) {
             Data autoBoundData = headersSelector.extract(record, false);
             assertThat(autoBoundData.name()).isEqualTo(expectedName);

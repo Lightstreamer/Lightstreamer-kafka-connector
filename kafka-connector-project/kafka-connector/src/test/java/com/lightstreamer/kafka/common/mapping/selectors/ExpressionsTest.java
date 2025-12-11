@@ -92,9 +92,9 @@ public class ExpressionsTest {
     @ParameterizedTest
     @MethodSource("expressionArgs")
     void shouldParseExtractionExpression(
-            String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Expression(expressionStr);
-        assertThat(ee.expression()).isEqualTo(expressionStr);
+            String expression, Constant expectedRoot, List<String> expectedTokens) {
+        ExtractionExpression ee = Expression(expression);
+        assertThat(ee.expression()).isEqualTo(expression);
         assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
     }
@@ -103,33 +103,34 @@ public class ExpressionsTest {
     @EmptySource
     @NullSource
     @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\", "VALUE OFFSET}"})
-    void shouldNotParseExpressionDueToMissingRootTokens(String expressionStr) {
+    void shouldNotParseExpressionDueToMissingRootTokens(String expression) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
-        assertThat(ee.getMessage())
+                assertThrows(ExpressionException.class, () -> Expression(expression));
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE.", "VALUE..", "VALUE.attrib.", "VALUE.attrib[]]."})
-    void shouldNotParseExpressionDueToTrailingDots(String expressionStr) {
+    void shouldNotParseExpressionDueToTrailingDots(String expression) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
-        assertThat(ee.getMessage())
+                assertThrows(ExpressionException.class, () -> Expression(expression));
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Found unexpected trailing dot(s) in the expression ["
-                                + expressionStr
-                                + "]");
+                        "Found unexpected trailing dot(s) in the expression [" + expression + "]");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE. ", "VALUE.a .b", "VALUE. a"})
-    void shouldNotParseExpressionDueTokensWithWhiteChars(String expressionStr) {
+    void shouldNotParseExpressionDueTokensWithWhiteChars(String expression) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
-        assertThat(ee.getMessage())
-                .isEqualTo("Found unexpected white char in the expression [" + expressionStr + "]");
+                assertThrows(ExpressionException.class, () -> Expression(expression));
+        assertThat(ee)
+                .hasMessageThat()
+                .isEqualTo("Found unexpected white char in the expression [" + expression + "]");
     }
 
     static Stream<Arguments> templateArgs() {
@@ -159,8 +160,8 @@ public class ExpressionsTest {
     @ParameterizedTest
     @MethodSource("templateArgs")
     void shouldParseTemplateExpression(
-            String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
-        TemplateExpression template = Template(expressionStr);
+            String expression, String expectedPrefix, Map<String, String> expectedParams) {
+        TemplateExpression template = Template(expression);
         assertThat(template.prefix()).isEqualTo(expectedPrefix);
 
         Map<String, ExtractionExpression> templateParams = template.params();
@@ -218,10 +219,10 @@ public class ExpressionsTest {
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
                 template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
                     """)
-    void shouldNotParseTemplateExpression(String expressionStr, String expectedErrorMessage) {
+    void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Template(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExpressionException.class, () -> Template(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -238,7 +239,7 @@ public class ExpressionsTest {
         ExpressionException ee =
                 assertThrows(
                         ExpressionException.class, () -> Expressions.EmptyTemplate(invalidItem));
-        assertThat(ee.getMessage()).isEqualTo("Invalid Item");
+        assertThat(ee).hasMessageThat().isEqualTo("Invalid Item");
     }
 
     static Stream<Arguments> subscriptionArgs() {
@@ -304,11 +305,11 @@ public class ExpressionsTest {
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
     void shouldParseSubscriptionExpression(
-            String expressionStr,
+            String expression,
             String expectedPrefix,
             Set<Data> expectedParams,
             String expectedCanonicalItem) {
-        SubscriptionExpression subscription = Subscription(expressionStr);
+        SubscriptionExpression subscription = Subscription(expression);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);
         assertThat(subscription.schema().name()).isEqualTo(expectedPrefix);
         assertThat(subscription.asCanonicalItemName()).isEqualTo(expectedCanonicalItem);
@@ -328,10 +329,10 @@ public class ExpressionsTest {
                 ''                                 $ Invalid Item
                 template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
                     """)
-    void shouldNotParseSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
+    void shouldNotParseSubscriptionExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Subscription(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExpressionException.class, () -> Subscription(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     static Stream<Arguments> fieldArgs() {
@@ -356,12 +357,11 @@ public class ExpressionsTest {
     @ParameterizedTest
     @MethodSource("fieldArgs")
     void shouldParseWrappedExpression(
-            String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Wrapped(expressionStr);
+            String expression, Constant expectedRoot, List<String> expectedTokens) {
+        ExtractionExpression ee = Wrapped(expression);
         // Remove '#{' and '}'
         String expectedExpression =
-                expressionStr.substring(
-                        expressionStr.indexOf("#{") + 2, expressionStr.lastIndexOf("}"));
+                expression.substring(expression.indexOf("#{") + 2, expression.lastIndexOf("}"));
         assertThat(ee.expression()).isEqualTo(expectedExpression);
         assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
@@ -369,10 +369,10 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"#{NOT-EXISTING-CONSTANT}", "#{..}", "#{@}", "#{\\}"})
-    void shouldNotParseWrappedExpression(String expressionStr) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
-        assertThat(ee.getMessage())
+    void shouldNotParseWrappedExpression(String expression) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> Wrapped(expression));
+        assertThat(ee)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
     }
@@ -392,10 +392,9 @@ public class ExpressionsTest {
                 #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
                     """)
     void shouldNotParseWrappedExpressionDueToInvalidExpression(
-            String expressionStr, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+            String expression, String expectedErrorMessage) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> Wrapped(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @ParameterizedTest

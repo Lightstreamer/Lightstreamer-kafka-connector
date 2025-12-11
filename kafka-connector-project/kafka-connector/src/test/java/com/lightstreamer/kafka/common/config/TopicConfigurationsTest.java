@@ -18,13 +18,13 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 
 import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
@@ -77,8 +77,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference = itemReferences.get(0);
         assertThat(itemReference.prefix()).isEqualTo("template1");
-        assertThat(itemReference.params())
-                .containsExactly("a", Expressions.Expression("PARTITION"));
+        assertThat(itemReference.params()).containsExactly("a", Expression("PARTITION"));
     }
 
     @Test
@@ -131,11 +130,11 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference1 = itemReferences.get(0);
         assertThat(itemReference1.prefix()).isEqualTo("template1");
-        assertThat(itemReference1.params()).containsExactly("a", Expressions.Expression("VALUE"));
+        assertThat(itemReference1.params()).containsExactly("a", Expression("VALUE"));
 
         TemplateExpression itemReference2 = itemReferences.get(1);
         assertThat(itemReference2.prefix()).isEqualTo("template2");
-        assertThat(itemReference2.params()).containsExactly("c", Expressions.Expression("OFFSET"));
+        assertThat(itemReference2.params()).containsExactly("c", Expression("OFFSET"));
     }
 
     @Test
@@ -186,7 +185,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference = itemReferences.get(0);
         assertThat(itemReference.prefix()).isEqualTo("template1");
-        assertThat(itemReference.params()).containsExactly("a", Expressions.Expression("KEY"));
+        assertThat(itemReference.params()).containsExactly("a", Expression("KEY"));
     }
 
     @Test
@@ -280,7 +279,7 @@ public class TopicConfigurationsTest {
                                                 Map.of(
                                                         "topic",
                                                         "item-template.missing-template"))));
-        assertThat(ce.getMessage()).isEqualTo("No item template [missing-template] found");
+        assertThat(ce).hasMessageThat().isEqualTo("No item template [missing-template] found");
     }
 
     @Test
@@ -293,6 +292,8 @@ public class TopicConfigurationsTest {
                                         ItemTemplateConfigs.empty(),
                                         TopicMappingConfig.from(
                                                 Map.of("topic", "item-template."))));
-        assertThat(ce.getMessage()).isEqualTo("Item template reference must be a non-empty string");
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Item template reference must be a non-empty string");
     }
 }
