@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
@@ -37,7 +38,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -86,23 +86,22 @@ public class ConnectSelectorsSuppliersTest {
     static Struct STRUCT = SampleMessageProviders.SampleStructProvider().sampleMessage();
     static Struct SIMPLE_STRUCT = SampleMessageProviders.SampleStructProvider().sampleMessageV2();
 
-    private ConnectSelectorsSuppliers connectSelectorsSuppliers;
+    KeySelector<Object> keySelector(String expression) throws ExtractionException {
+        return new ConnectSelectorsSuppliers()
+                .makeKeySelectorSupplier()
+                .newSelector(Expressions.Expression(expression));
+    }
 
     ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
-        return connectSelectorsSuppliers
-                .valueSelectorSupplier()
+        return new ConnectSelectorsSuppliers()
+                .makeValueSelectorSupplier()
                 .newSelector(Expressions.Expression(expression));
     }
 
-    KeySelector<Object> keySelector(String expression) throws ExtractionException {
-        return connectSelectorsSuppliers
-                .keySelectorSupplier()
-                .newSelector(Expressions.Expression(expression));
-    }
-
-    @BeforeEach
-    public void beforeEach() {
-        connectSelectorsSuppliers = new ConnectSelectorsSuppliers();
+    public void shouldMakeKeySelectorSupplier() {
+        ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
+        KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(s.makeKeySelectorSupplier().evaluatorType()).isEqualTo("null");
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
