@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaSinkRec
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
@@ -46,7 +47,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Object, Object> {
+public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
     private static class SchemaAndValueNode implements Node<SchemaAndValueNode> {
 
@@ -276,17 +277,17 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliers<Obje
         }
     }
 
-    private final ConnectKeySelectorSupplier keySelectorSupplier = new ConnectKeySelectorSupplier();
-    private final ConnectValueSelectorSupplier valueSelectorSupplier =
-            new ConnectValueSelectorSupplier();
-
     @Override
-    public KeySelectorSupplier<Object> keySelectorSupplier() {
-        return keySelectorSupplier;
+    public KeySelectorSupplier<Object> makeKeySelectorSupplier() {
+        return new ConnectKeySelectorSupplier();
     }
 
     @Override
-    public ValueSelectorSupplier<Object> valueSelectorSupplier() {
-        return valueSelectorSupplier;
+    public ValueSelectorSupplier<Object> makeValueSelectorSupplier() {
+        return new ConnectValueSelectorSupplier();
+    }
+
+    public KeyValueSelectorSuppliers<Object, Object> makeKeyValueSelectorSuppliers() {
+        return KeyValueSelectorSuppliers.of(makeKeySelectorSupplier(), makeValueSelectorSupplier());
     }
 }
