@@ -15,24 +15,17 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Test;
 
-public class WrapperKeyValueSelectorSupplierTest {
+public class KeyValueSelectorSuppliersTest {
 
     static class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
 
@@ -55,7 +48,6 @@ public class WrapperKeyValueSelectorSupplierTest {
 
         @Override
         public SelectorEvaluatorType evaluatorType() {
-            // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'evaluatorType'");
         }
     }
@@ -93,16 +85,16 @@ public class WrapperKeyValueSelectorSupplierTest {
         Deserializer<Long> longDeserializer = Serdes.Long().deserializer();
         ValueSelectorSupplierImpl<Long> valueSelectorSupplier =
                 new ValueSelectorSupplierImpl<Long>(longDeserializer);
-        WrapperKeyValueSelectorSuppliers<String, Long> adapterKeyValueSelectorSupplier =
-                new WrapperKeyValueSelectorSuppliers<>(keySelectorSupplier, valueSelectorSupplier);
+        KeyValueSelectorSuppliers<String, Long> adapterKeyValueSelectorSupplier =
+                KeyValueSelectorSuppliers.of(keySelectorSupplier, valueSelectorSupplier);
 
         assertThat(adapterKeyValueSelectorSupplier.keySelectorSupplier())
                 .isSameInstanceAs(keySelectorSupplier);
         assertThat(adapterKeyValueSelectorSupplier.valueSelectorSupplier())
                 .isSameInstanceAs(valueSelectorSupplier);
-        KeyValueDeserializers<String, Long> deserializers =
-                adapterKeyValueSelectorSupplier.deserializers();
-        assertThat(deserializers.keyDeserializer()).isSameInstanceAs(stringDeserializer);
-        assertThat(deserializers.valueDeserializer()).isSameInstanceAs(longDeserializer);
+        assertThat(adapterKeyValueSelectorSupplier.keySelectorSupplier().deserializer())
+                .isSameInstanceAs(stringDeserializer);
+        assertThat(adapterKeyValueSelectorSupplier.valueSelectorSupplier().deserializer())
+                .isSameInstanceAs(longDeserializer);
     }
 }
