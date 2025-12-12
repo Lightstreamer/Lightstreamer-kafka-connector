@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,83 +90,14 @@ public class Parsers {
             target.put(name(), text());
         }
 
-        static <P, T extends Node<T>> T createRoot(
-                Supplier<P> payload, BiFunction<String, P, T> rootNode) {
-            P object = payload.get();
-            if (object == null) {
-                return nullNode();
-            }
-            return (T) rootNode(propertyName -> rootNode.apply(propertyName, object));
-        }
+        static class KafkaRecordNode<P, T extends Node<T>> implements Node<T> {
 
-        @SuppressWarnings("unchecked")
-        static <T extends Node<T>> T nullNode() {
-            return (T) NullNode.INSTANCE;
-        }
+            private final Supplier<P> payloadSupplier;
+            private final BiFunction<String, P, T> nodeFactory;
 
-        static class NullNode<T extends Node<T>> implements Node<T> {
-
-            private static final NullNode<?> INSTANCE = new NullNode<>();
-
-            private NullNode() {
-                // private constructor to prevent instantiation
-            }
-
-            @Override
-            public String name() {
-                return "NULL NODE";
-            }
-
-            @Override
-            public boolean isNull() {
-                return true;
-            }
-
-            @Override
-            public boolean isScalar() {
-                return true;
-            }
-
-            public boolean has(String propertyname) {
-                return false;
-            }
-
-            @Override
-            public T get(String nodeName, String propertyName) {
-                return null;
-            }
-
-            @Override
-            public boolean isArray() {
-                return false;
-            }
-
-            @Override
-            public int size() {
-                return 0;
-            }
-
-            @Override
-            public T get(String nodeName, int index) {
-                return null;
-            }
-
-            @Override
-            public String text() {
-                return "null";
-            }
-        }
-
-        static <T extends Node<T>> Node<T> rootNode(Function<String, T> rootNodeFactory) {
-            return new RootNode<>(rootNodeFactory);
-        }
-
-        static class RootNode<T extends Node<T>> implements Node<T> {
-
-            private final Function<String, T> rootNodeFactory;
-
-            RootNode(Function<String, T> rootNodeFactory) {
-                this.rootNodeFactory = Objects.requireNonNull(rootNodeFactory);
+            KafkaRecordNode(Supplier<P> payload, BiFunction<String, P, T> nodeFactory) {
+                this.payloadSupplier = payload;
+                this.nodeFactory = nodeFactory;
             }
 
             @Override
@@ -187,7 +117,8 @@ public class Parsers {
 
             @Override
             public T get(String nodeName, String propertyName) {
-                return rootNodeFactory.apply(nodeName);
+                P recordSubPart = payloadSupplier.get();
+                return nodeFactory.apply(nodeName, recordSubPart);
             }
 
             @Override
@@ -269,9 +200,9 @@ public class Parsers {
             return next != null;
         }
 
-        abstract T eval(T node, String nodeName) throws ValueException;
+        abstract Node<T> eval(Node<T> node, String nodeName) throws ValueException;
 
-        T eval(T node) throws ValueException {
+        Node<T> eval(Node<T> node) throws ValueException {
             return eval(node, propertyName);
         }
 
@@ -283,23 +214,23 @@ public class Parsers {
             return next;
         }
 
-        final T evalAndAdvance(T node, String nodeName) throws ValueException {
-            T evaluated = eval(node, nodeName);
+        final Node<T> evalAndAdvance(Node<T> node, String nodeName) throws ValueException {
+            Node<T> evaluated = eval(node, nodeName);
             if (next != null) {
                 return next.evalAndAdvance(evaluated, nodeName);
             }
             return evaluated;
         }
 
-        final T evalAndAdvance(T node) throws ValueException {
-            T evaluated = eval(node);
+        final Node<T> evalAndAdvance(Node<T> node) throws ValueException {
+            Node<T> evaluated = eval(node);
             if (next != null) {
                 return next.evalAndAdvance(evaluated);
             }
             return evaluated;
         }
 
-        final T evalAndAdvanceRecursive(T node, String nodeName) throws ValueException {
+        final Node<T> evalAndAdvanceRecursive(Node<T> node, String nodeName) throws ValueException {
             NodeEvaluator<T> current = this;
 
             while (current != null) {
@@ -310,7 +241,7 @@ public class Parsers {
             return node;
         }
 
-        final T evalAndAdvanceRecursive(T node) throws ValueException {
+        final Node<T> evalAndAdvanceRecursive(Node<T> node) throws ValueException {
             return evalAndAdvanceRecursive(node, propertyName);
         }
     }
@@ -322,7 +253,7 @@ public class Parsers {
         }
 
         @Override
-        public T eval(T node, String nodeName) {
+        public Node<T> eval(Node<T> node, String nodeName) {
             return node.getProperty(nodeName, propertyName);
         }
     }
@@ -337,8 +268,8 @@ public class Parsers {
         }
 
         @Override
-        public final T eval(T node, String nodeName) {
-            T navigable = node.getProperty(nodeName, propertyName);
+        public final Node<T> eval(Node<T> node, String nodeName) {
+            Node<T> navigable = node.getProperty(nodeName, propertyName);
             for (GeneralizedKey gk : indexes) {
                 navigable = gk.eval(navigable, nodeName);
             }
@@ -346,8 +277,8 @@ public class Parsers {
         }
 
         @Override
-        public final T eval(T node) {
-            T navigable = node.getProperty(propertyName, propertyName);
+        public final Node<T> eval(Node<T> node) {
+            Node<T> navigable = node.getProperty(propertyName, propertyName);
             for (GeneralizedKey gk : indexes) {
                 navigable = gk.eval(navigable);
             }
