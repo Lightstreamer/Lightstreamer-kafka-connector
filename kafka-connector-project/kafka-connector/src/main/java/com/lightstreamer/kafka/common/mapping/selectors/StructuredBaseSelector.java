@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node.KafkaRecordNode;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.NodeEvaluator;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.ParsingContext;
 
@@ -33,16 +34,16 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
     private final Parsers.SelectorExpressionParser<T> parser =
             new Parsers.SelectorExpressionParser<>();
 
-    private final BiFunction<String, P, T> rootNode;
+    private final BiFunction<String, P, T> nodeFactory;
     private final NodeEvaluator<T> evaluator;
 
     protected StructuredBaseSelector(
             ExtractionExpression expression,
             Constant expectedRoot,
-            BiFunction<String, P, T> rootNode)
+            BiFunction<String, P, T> nodeFactory)
             throws ExtractionException {
         super(expression);
-        this.rootNode = rootNode;
+        this.nodeFactory = nodeFactory;
         this.evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
     }
 
@@ -54,15 +55,16 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
         return doEval(payloadSupplier, node -> evaluator.evalAndAdvance(node, name), checkScalar);
     }
 
-    private Node<T> doEval(Supplier<P> payloadSupplier, Function<T, T> eval, boolean checkScalar) {
-        T node = Node.createRoot(payloadSupplier, this.rootNode);
-        node = eval.apply(node);
+    private Node<T> doEval(
+            Supplier<P> payloadSupplier, Function<Node<T>, Node<T>> eval, boolean checkScalar) {
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.nodeFactory);
+        Node<T> resultNode = eval.apply(recordNode);
 
-        if (checkScalar && !node.isScalar()) {
+        if (checkScalar && !resultNode.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return node;
+        return resultNode;
     }
 
     protected final void evalInto(Supplier<P> payloadSupplier, Map<String, String> target) {
