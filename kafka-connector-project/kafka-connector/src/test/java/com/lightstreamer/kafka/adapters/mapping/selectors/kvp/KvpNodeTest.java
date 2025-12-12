@@ -39,7 +39,7 @@ public class KvpNodeTest {
     @ParameterizedTest
     @ValueSource(strings = {"key1=value1;key2=value2", "key1=value1;key2=value2;"})
     public void shouldParseValidString(String text) {
-        KvpMap kvpMap = KvpSelectorsSuppliers.KvpMap.fromString("root", text);
+        KvpMap kvpMap = KvpMap.fromString("root", text);
         assertThat(kvpMap.name()).isEqualTo("root");
         assertKvpMap(kvpMap);
     }
@@ -123,7 +123,7 @@ public class KvpNodeTest {
         assertThat(csvMap.isScalar()).isFalse();
         assertThat(csvMap.isArray()).isFalse();
         assertThat(csvMap.isNull()).isTrue();
-        assertThat(csvMap.text()).isEmpty();
+        assertThat(csvMap.text()).isNull();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
