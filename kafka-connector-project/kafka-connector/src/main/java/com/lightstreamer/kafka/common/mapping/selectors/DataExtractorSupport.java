@@ -17,7 +17,11 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.OFFSET;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.PARTITION;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
 import java.util.HashMap;
@@ -71,10 +75,7 @@ class DataExtractorSupport {
             HeadersSelectorSupplier headersSelectorSupplier = new HeadersSelectorSupplier();
             ConstantSelectorSupplier constantSelectorSupplier =
                     ConstantSelectorSupplier.makeSelectorSupplier(
-                            Constant.OFFSET,
-                            Constant.PARTITION,
-                            Constant.TIMESTAMP,
-                            Constant.TOPIC);
+                            OFFSET, PARTITION, TIMESTAMP, TOPIC);
 
             WrapperSelectors<K, V> wrapperSelectors =
                     new WrapperSelectors<>(

@@ -142,7 +142,7 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
     private static class OthersKeySelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
             implements KeySelectorSupplier<T> {
 
-        private final ConstantSelectorSupplier supplier = makeSelectorSupplier(Constant.KEY);
+        private final ConstantSelectorSupplier supplier = makeSelectorSupplier(KEY);
 
         OthersKeySelectorSupplier(EvaluatorType type) {
             super(type, KEY);

@@ -17,6 +17,9 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.kvp;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
@@ -288,7 +291,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         @Override
         public KeySelector<String> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new KvpNodeSelector(expression, kvpMapFactory, Constant.KEY);
+            return new KvpNodeSelector(expression, kvpMapFactory, KEY);
         }
     }
 
@@ -302,7 +305,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         @Override
         public ValueSelector<String> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return new KvpNodeSelector(expression, kvpMapFactory, Constant.VALUE);
+            return new KvpNodeSelector(expression, kvpMapFactory, VALUE);
         }
     }
 

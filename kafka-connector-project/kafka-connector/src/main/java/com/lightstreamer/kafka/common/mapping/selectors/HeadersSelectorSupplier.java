@@ -17,7 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeader;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
@@ -225,7 +226,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
             extends StructuredBaseSelector<KafkaHeaders, HeaderNode> implements HeadersSelector {
 
         HeadersSelectorImpl(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.HEADERS, HeadersNode::new);
+            super(expression, HEADERS, HeadersNode::new);
         }
 
         @Override

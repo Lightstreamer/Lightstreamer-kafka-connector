@@ -17,6 +17,9 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.protobuf;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumValueDescriptor;
@@ -29,7 +32,6 @@ import com.google.protobuf.TextFormat;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -475,10 +477,7 @@ public class DynamicMessageSelectorSuppliers
             implements KeySelector<DynamicMessage> {
 
         DynamicMessageKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(
-                    expression,
-                    Constant.KEY,
-                    (rootName, key) -> ProtobufNode.rootNode(rootName, key));
+            super(expression, KEY, (rootName, key) -> ProtobufNode.rootNode(rootName, key));
         }
 
         @Override
@@ -554,10 +553,7 @@ public class DynamicMessageSelectorSuppliers
             implements ValueSelector<DynamicMessage> {
 
         DynamicMessageValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(
-                    expression,
-                    Constant.VALUE,
-                    (rootName, value) -> ProtobufNode.rootNode(rootName, value));
+            super(expression, VALUE, (rootName, value) -> ProtobufNode.rootNode(rootName, value));
         }
 
         @Override

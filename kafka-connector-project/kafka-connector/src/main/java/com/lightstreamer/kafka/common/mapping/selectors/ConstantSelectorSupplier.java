@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
@@ -94,7 +96,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
 
     public static ConstantSelectorSupplier makeSelectorSupplier(Constant... constants) {
         for (Constant constant : constants) {
-            if (constant == Constant.HEADERS) {
+            if (constant == HEADERS) {
                 throw new IllegalArgumentException("Cannot handle HEADERS constant");
             }
         }

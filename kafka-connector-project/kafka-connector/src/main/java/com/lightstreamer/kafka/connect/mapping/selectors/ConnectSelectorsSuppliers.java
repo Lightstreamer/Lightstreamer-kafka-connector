@@ -17,8 +17,10 @@
 
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -188,6 +190,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
                 StringBuilder keyBuilder =
                         new StringBuilder(name.length() + 4); // reasonable initial capacity
                 int size = size();
+                @SuppressWarnings("unchecked")
                 List<Object> array = (List<Object>) data.value();
                 for (int i = 0; i < size; i++) {
                     String value = textValue(array.get(i));
@@ -247,7 +250,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
             implements KeySelector<Object> {
 
         ConnectKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY, ConnectKeySelector::asNode);
+            super(expression, KEY, ConnectKeySelector::asNode);
         }
 
         @Override
@@ -297,7 +300,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
             implements ValueSelector<Object> {
 
         ConnectValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE, ConnectValueSelector::asNode);
+            super(expression, VALUE, ConnectValueSelector::asNode);
         }
 
         @Override
