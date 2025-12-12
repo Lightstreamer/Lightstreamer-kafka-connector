@@ -18,6 +18,12 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.OFFSET;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.PARTITION;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
@@ -71,22 +77,17 @@ public class ExpressionsTest {
 
     static Stream<Arguments> expressionArgs() {
         return Stream.of(
-                arguments("VALUE", Constant.VALUE, Arrays.asList("VALUE")),
-                arguments("OFFSET", Constant.OFFSET, Arrays.asList("OFFSET")),
-                arguments("TIMESTAMP", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
-                arguments("PARTITION", Constant.PARTITION, Arrays.asList("PARTITION")),
-                arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
-                arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
-                arguments("VALUE.*", Constant.VALUE, Arrays.asList("VALUE", ".", "*")),
-                arguments(
-                        "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
-                arguments("VALUE['name']", Constant.VALUE, Arrays.asList("VALUE['name']")),
-                arguments(
-                        "VALUE['name'].aaa",
-                        Constant.VALUE,
-                        Arrays.asList("VALUE['name']", ".", "aaa")),
-                arguments(
-                        "HEADERS['attrib']", Constant.HEADERS, Arrays.asList("HEADERS['attrib']")));
+                arguments("VALUE", VALUE, Arrays.asList("VALUE")),
+                arguments("OFFSET", OFFSET, Arrays.asList("OFFSET")),
+                arguments("TIMESTAMP", TIMESTAMP, Arrays.asList("TIMESTAMP")),
+                arguments("PARTITION", PARTITION, Arrays.asList("PARTITION")),
+                arguments("KEY", KEY, Arrays.asList("KEY")),
+                arguments("VALUE.attrib", VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("VALUE.*", VALUE, Arrays.asList("VALUE", ".", "*")),
+                arguments("VALUE.attrib[]", VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments("VALUE['name']", VALUE, Arrays.asList("VALUE['name']")),
+                arguments("VALUE['name'].aaa", VALUE, Arrays.asList("VALUE['name']", ".", "aaa")),
+                arguments("HEADERS['attrib']", HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
@@ -337,21 +338,15 @@ public class ExpressionsTest {
 
     static Stream<Arguments> fieldArgs() {
         return Stream.of(
-                arguments("#{VALUE}", Constant.VALUE, Arrays.asList("VALUE")),
-                arguments("#{OFFSET}", Constant.OFFSET, Arrays.asList("OFFSET")),
-                arguments("#{TIMESTAMP}", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
-                arguments("#{PARTITION}", Constant.PARTITION, Arrays.asList("PARTITION")),
-                arguments("#{KEY}", Constant.KEY, Arrays.asList("KEY")),
-                arguments("#{VALUE.attrib}", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
-                arguments("#{HEADERS}", Constant.HEADERS, Arrays.asList("HEADERS")),
-                arguments(
-                        "#{HEADERS.attrib}",
-                        Constant.HEADERS,
-                        Arrays.asList("HEADERS", ".", "attrib")),
-                arguments(
-                        "#{HEADERS['attrib']}",
-                        Constant.HEADERS,
-                        Arrays.asList("HEADERS['attrib']")));
+                arguments("#{VALUE}", VALUE, Arrays.asList("VALUE")),
+                arguments("#{OFFSET}", OFFSET, Arrays.asList("OFFSET")),
+                arguments("#{TIMESTAMP}", TIMESTAMP, Arrays.asList("TIMESTAMP")),
+                arguments("#{PARTITION}", PARTITION, Arrays.asList("PARTITION")),
+                arguments("#{KEY}", KEY, Arrays.asList("KEY")),
+                arguments("#{VALUE.attrib}", VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("#{HEADERS}", HEADERS, Arrays.asList("HEADERS")),
+                arguments("#{HEADERS.attrib}", HEADERS, Arrays.asList("HEADERS", ".", "attrib")),
+                arguments("#{HEADERS['attrib']}", HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
