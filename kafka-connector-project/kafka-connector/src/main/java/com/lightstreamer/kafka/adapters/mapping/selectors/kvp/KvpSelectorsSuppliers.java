@@ -108,8 +108,6 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
     static class KvpMap implements KvpNode {
 
-        static final KvpMap NULL_MAP = new KvpMap("NULL_MAP", Collections.emptyMap());
-
         private final String name;
         private final Map<String, String> values;
 
@@ -125,7 +123,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public boolean isNull() {
-            return this == NULL_MAP;
+            return values.isEmpty();
         }
 
         @Override
@@ -145,7 +143,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public String text() {
-            return this != NULL_MAP ? toString() : "";
+            return !isNull() ? toString() : null;
         }
 
         @Override
@@ -159,35 +157,43 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         /**
-         * Parses a string into a {@code KvpMap} using the specified delimiters for key-value pairs
+         * Parses a string into a {@code KvpMap} using the default delimiters for key-value pairs
          * and key-value separation.
          *
+         * <p>The input string is expected to contain key-value pairs separated by a semicolon
+         * ({@code ;}) and keys and values separated by an equals sign ({@code =}).
+         *
          * @param name the name to be assigned to the created {@code KvpMap}
-         * @param text the input string to be parsed into a {@code KvpMap}. The string should
-         *     contain key-value pairs separated by a semicolon ({@code ;}) and keys and values
-         *     separated by an equals sign ({@code =}). If null or blank, {@link KvpMap#NULL_MAP} is
-         *     returned.
-         * @return a {@code KvpMap} containing the parsed key-value pairs
+         * @param text the input string to be parsed into a {@code KvpMap}. If null or blank, an
+         *     empty {@code KvpMap} is returned.
+         * @return a {@code KvpMap} containing the parsed key-value pairs, or an empty {@code
+         *     KvpMap} if the input is null or blank
          */
         static KvpMap fromString(String name, String text) {
             return fromString(name, text, Split.on(';'), Split.on('='));
         }
 
         /**
-         * Parses a string into a {@code KvpMap} using the provided {@code Splitter} instance for
-         * splitting pairs and key-value components.
+         * Parses a string into a {@code KvpMap} using custom splitters for pairs and key-value
+         * components.
+         *
+         * <p>This method allows customization of the delimiters used to split the input string. The
+         * {@code pairs} splitter divides the input into individual key-value pair strings, and the
+         * {@code keyValue} splitter separates each pair into its key and value components.
          *
          * @param name the name to be assigned to the created {@code KvpMap}
-         * @param text the input string to be parsed. If null or blank, {@link KvpMap#NULL_MAP} is
+         * @param text the input string to be parsed. If null or blank, an empty {@code KvpMap} is
          *     returned.
-         * @param pairs a {@code Splitter} used to split the input string into pairs
-         * @param keyValue a {@code Splitter} used to split each pair into key-value components
-         * @return a {@code KvpMap} containing the parsed key-value pairs. If the input string is
-         *     null or blank, {@link KvpMap#NULL_MAP} is returned.
+         * @param pairs a {@code Splitter} used to split the input string into individual pair
+         *     strings
+         * @param keyValue a {@code Splitter} used to split each pair string into key and value
+         *     components
+         * @return a {@code KvpMap} containing the parsed key-value pairs, or an empty {@code
+         *     KvpMap} if the input is null or blank
          */
         static KvpMap fromString(String name, String text, Splitter pairs, Splitter keyValue) {
             if (text == null || text.isBlank()) {
-                return KvpMap.NULL_MAP;
+                return new KvpMap(name, Collections.emptyMap());
             }
 
             List<String> tokens = pairs.splitToList(text);
@@ -249,7 +255,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
     }
 
-    private static class KvpNodeSelectorSupplier {
+    private abstract static sealed class KvpNodeSelectorSupplier
+            permits KvpNodeKeySelectorSupplier, KvpNodeValueSelectorSupplier {
 
         private final Deserializer<String> deserializer;
         protected final BiFunction<String, String, KvpNode> kvpMapFactory;
@@ -262,16 +269,16 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
                     };
         }
 
-        public Deserializer<String> deserializer() {
+        public final Deserializer<String> deserializer() {
             return deserializer;
         }
 
-        public SelectorEvaluatorType evaluatorType() {
+        public final SelectorEvaluatorType evaluatorType() {
             return EvaluatorType.KVP;
         }
     }
 
-    private static class KvpNodeKeySelectorSupplier extends KvpNodeSelectorSupplier
+    private static final class KvpNodeKeySelectorSupplier extends KvpNodeSelectorSupplier
             implements KeySelectorSupplier<String> {
 
         KvpNodeKeySelectorSupplier(Splitter pair, Splitter keyValue) {
@@ -285,7 +292,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
     }
 
-    private static class KvpNodeValueSelectorSupplier extends KvpNodeSelectorSupplier
+    private static final class KvpNodeValueSelectorSupplier extends KvpNodeSelectorSupplier
             implements ValueSelectorSupplier<String> {
 
         KvpNodeValueSelectorSupplier(Splitter pair, Splitter keyValue) {
