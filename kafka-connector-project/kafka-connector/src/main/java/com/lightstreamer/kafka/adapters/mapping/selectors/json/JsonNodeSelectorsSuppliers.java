@@ -18,12 +18,13 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -42,7 +43,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 
 public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
@@ -50,10 +50,6 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
 
         private final String name;
         private final JsonNode node;
-
-        static BiFunction<String, JsonNode, JsonNodeNode> rootFactory(String boundParameter) {
-            return (name, node) -> new JsonNodeNode(name, node);
-        }
 
         JsonNodeNode(String name, JsonNode node) {
             this.name = name;
@@ -139,6 +135,12 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
                 target.put(key, value);
             }
         }
+
+        static JsonNodeNode rootNode(String name, JsonNode node) {
+            return node != null
+                    ? new JsonNodeNode(name, node)
+                    : new JsonNodeNode(name, NullNode.getInstance());
+        }
     }
 
     private static class JsonNodeKeySelectorSupplier implements KeySelectorSupplier<JsonNode> {
@@ -174,7 +176,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
             implements KeySelector<JsonNode> {
 
         JsonNodeKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, KEY, JsonNodeNode::new);
+            super(expression, KEY, JsonNodeNode::rootNode);
         }
 
         @Override
@@ -230,7 +232,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
             implements ValueSelector<JsonNode> {
 
         JsonNodeValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE, JsonNodeNode::new);
+            super(expression, VALUE, JsonNodeNode::rootNode);
         }
 
         @Override
