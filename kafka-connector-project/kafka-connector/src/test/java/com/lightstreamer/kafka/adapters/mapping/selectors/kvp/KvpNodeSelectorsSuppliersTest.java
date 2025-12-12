@@ -390,6 +390,19 @@ public class KvpNodeSelectorsSuppliersTest {
         }
     }
 
+    @Test
+    public void shouldHandleNullValue() throws ExtractionException {
+        ValueSelector<String> valueSelector = valueSelector("VALUE");
+
+        Data autoBoundData = valueSelector.extractValue(fromValue((String) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("VALUE");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = valueSelector.extractValue("param", fromValue((String) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -397,10 +410,10 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                VALUE.A    | Cannot retrieve field [VALUE] from a null object
-                VALUE.B    | Cannot retrieve field [VALUE] from a null object
+                VALUE.A    | Cannot retrieve field [A] from a null object
+                VALUE.B    | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldHandleNullValue(String expression, String errorMessage)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -629,6 +642,19 @@ public class KvpNodeSelectorsSuppliersTest {
         }
     }
 
+    @Test
+    public void shouldHandleNullKey() throws ExtractionException {
+        KeySelector<String> keySelector = keySelector("KEY");
+
+        Data autoBoundData = keySelector.extractKey(fromKey((String) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("KEY");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = keySelector.extractKey("param", fromKey((String) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -636,10 +662,10 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION | EXPECTED_ERROR_MESSAGE
-                KEY.A      | Cannot retrieve field [KEY] from a null object
-                KEY.B      | Cannot retrieve field [KEY] from a null object
+                KEY.A      | Cannot retrieve field [A] from a null object
+                KEY.B      | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldHandleNullKey(String expression, String errorMessage)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
