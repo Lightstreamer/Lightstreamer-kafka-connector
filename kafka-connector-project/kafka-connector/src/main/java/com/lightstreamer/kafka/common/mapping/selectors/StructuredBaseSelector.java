@@ -34,16 +34,16 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
     private final Parsers.SelectorExpressionParser<T> parser =
             new Parsers.SelectorExpressionParser<>();
 
-    private final BiFunction<String, P, T> nodeFactory;
+    private final BiFunction<String, P, T> rootNodeFactory;
     private final NodeEvaluator<T> evaluator;
 
     protected StructuredBaseSelector(
             ExtractionExpression expression,
             Constant expectedRoot,
-            BiFunction<String, P, T> nodeFactory)
+            BiFunction<String, P, T> rootNodeFactory)
             throws ExtractionException {
         super(expression);
-        this.nodeFactory = nodeFactory;
+        this.rootNodeFactory = rootNodeFactory;
         this.evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
     }
 
@@ -57,7 +57,7 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
 
     private Node<T> doEval(
             Supplier<P> payloadSupplier, Function<Node<T>, Node<T>> eval, boolean checkScalar) {
-        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.nodeFactory);
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
         Node<T> resultNode = eval.apply(recordNode);
 
         if (checkScalar && !resultNode.isScalar()) {
