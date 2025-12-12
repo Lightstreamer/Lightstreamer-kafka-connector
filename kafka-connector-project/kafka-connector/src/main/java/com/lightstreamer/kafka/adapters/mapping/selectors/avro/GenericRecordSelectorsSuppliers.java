@@ -17,10 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
@@ -336,7 +338,7 @@ public class GenericRecordSelectorsSuppliers
             implements KeySelector<GenericRecord> {
 
         GenericRecordKeySelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.KEY, AvroNode::newNode);
+            super(expression, KEY, AvroNode::newNode);
         }
 
         @Override
@@ -390,7 +392,7 @@ public class GenericRecordSelectorsSuppliers
             implements ValueSelector<GenericRecord> {
 
         GenericRecordValueSelector(ExtractionExpression expression) throws ExtractionException {
-            super(expression, Constant.VALUE, AvroNode::newNode);
+            super(expression, VALUE, AvroNode::newNode);
         }
 
         @Override
