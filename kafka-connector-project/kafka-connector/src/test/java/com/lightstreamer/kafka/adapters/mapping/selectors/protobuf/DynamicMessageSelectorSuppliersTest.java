@@ -465,6 +465,18 @@ public class DynamicMessageSelectorSuppliersTest {
         assertThat(boundData.text()).isEqualTo(unescape(expectedValue));
     }
 
+    @Test
+    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+        Data autoBoundValue = valueSelector("VALUE").extractValue(fromValue((DynamicMessage) null));
+        assertThat(autoBoundValue.name()).isEqualTo("VALUE");
+        assertThat(autoBoundValue.text()).isNull();
+
+        Data boundValue =
+                valueSelector("VALUE").extractValue("param", fromValue((DynamicMessage) null));
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -472,12 +484,11 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                  | EXPECTED_ERROR_MESSAGE
-                VALUE                       | Cannot retrieve field [VALUE] from a null object
-                VALUE.no_attrib             | Cannot retrieve field [VALUE] from a null object
-                VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
-                VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldHandleNullValue(String expression, String errorMessage)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -670,6 +681,17 @@ public class DynamicMessageSelectorSuppliersTest {
         assertThat(boundData.text()).isEqualTo(unescape(expectedValue));
     }
 
+    @Test
+    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+        Data autoBoundValue = keySelector("KEY").extractKey(fromKey((DynamicMessage) null));
+        assertThat(autoBoundValue.name()).isEqualTo("KEY");
+        assertThat(autoBoundValue.text()).isNull();
+
+        Data boundValue = keySelector("KEY").extractKey("param", fromKey((DynamicMessage) null));
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -677,12 +699,11 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                |  EXPECTED_ERROR_MESSAGE
-                KEY                        | Cannot retrieve field [KEY] from a null object
-                KEY.no_attrib              | Cannot retrieve field [KEY] from a null object
-                KEY.children[0].no_attrib  | Cannot retrieve field [KEY] from a null object
-                KEY.no_children[0]         | Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib              | Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib  | Cannot retrieve field [children] from a null object
+                KEY.no_children[0]         | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldHandleNullKey(String expression, String errorMessage)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
