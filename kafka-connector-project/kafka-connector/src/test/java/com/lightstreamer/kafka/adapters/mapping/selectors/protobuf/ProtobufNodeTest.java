@@ -24,6 +24,7 @@ import com.lightstreamer.example.Person;
 import com.lightstreamer.example.Role;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.MapFieldNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.MessageWrapperNode;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.NullProtobufNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.ProtobufNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.RepeatedFieldNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.ScalarFieldNode;
@@ -40,6 +41,17 @@ public class ProtobufNodeTest {
 
     static DynamicMessage MESSAGE =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessage();
+
+    @Test
+    public void shouldCreateRootNode() {
+        ProtobufNode rootNode = ProtobufNode.rootNode("rootNode", MESSAGE);
+        assertThat(rootNode).isInstanceOf(MessageWrapperNode.class);
+        assertThat(rootNode.name()).isEqualTo("rootNode");
+
+        ProtobufNode nullNode = ProtobufNode.rootNode("nullNode", null);
+        assertThat(nullNode).isInstanceOf(NullProtobufNode.class);
+        assertThat(nullNode.isNull()).isTrue();
+    }
 
     @Test
     public void shouldCreateMessageWrapperNode() {
@@ -129,6 +141,21 @@ public class ProtobufNodeTest {
             """);
     }
 
+    @Test
+    public void shouldCreateNullProtobufNode() {
+        NullProtobufNode nullNode = new NullProtobufNode("NULLNODE");
+        assertThat(nullNode.name()).isEqualTo("NULLNODE");
+        assertThat(nullNode.isArray()).isFalse();
+        assertThat(nullNode.size()).isEqualTo(0);
+        assertThat(nullNode.isNull()).isTrue();
+        assertThat(nullNode.isScalar()).isTrue();
+        assertThat(nullNode.text()).isNull();
+
+        Map<String, String> targetMap = new HashMap<>();
+        nullNode.flatIntoMap(targetMap);
+        assertThat(targetMap).isEmpty();
+    }
+
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -150,18 +177,22 @@ public class ProtobufNodeTest {
         assertThat(fieldScalarNode.size()).isEqualTo(0);
         assertThat(fieldScalarNode.isNull()).isFalse();
         assertThat(fieldScalarNode.isScalar()).isTrue();
-
         assertThat(fieldScalarNode.text()).isEqualTo(expectedValue);
+
+        Map<String, String> targetMap = new HashMap<>();
+        fieldScalarNode.flatIntoMap(targetMap);
+        assertThat(targetMap).isEmpty();
     }
 
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                    FIELD,       VALUE
-                    mainAddress, ''
-                    car,         brand: "BMW"
+                    FIELD       | VALUE
+                    mainAddress | ''
+                    car         | brand: "BMW"
                     """)
     public void shouldGetMessageField(String field, String expectedValue) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
