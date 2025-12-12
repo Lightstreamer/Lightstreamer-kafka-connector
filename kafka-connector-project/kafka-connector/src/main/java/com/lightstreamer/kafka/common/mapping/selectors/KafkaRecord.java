@@ -159,16 +159,10 @@ public interface KafkaRecord<K, V> {
         }
 
         public SchemaAndValue keySchemaAndValue() {
-            if (record.key() == null) {
-                return null;
-            }
             return new SchemaAndValue(record.keySchema(), record.key());
         }
 
         public SchemaAndValue valueSchemaAndValue() {
-            if (record.value() == null) {
-                return null;
-            }
             return new SchemaAndValue(record.valueSchema(), record.value());
         }
 
