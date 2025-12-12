@@ -75,7 +75,7 @@ public class ItemTemplateValidatorTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(ITEM_TEMPLATES, value));
-        assertThat(ce).hasCauseThat().isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
