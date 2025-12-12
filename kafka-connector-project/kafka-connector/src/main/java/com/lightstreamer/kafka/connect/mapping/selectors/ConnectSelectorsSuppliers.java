@@ -138,7 +138,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
             List<Object> array = (List<Object>) data.value();
             Schema elementsSchema = data.schema().valueSchema();
             return new SchemaAndValueNode(
-                    name + "[" + index + "]", new SchemaAndValue(elementsSchema, array.get(index)));
+                    nodeName, new SchemaAndValue(elementsSchema, array.get(index)));
         }
 
         @Override
@@ -157,7 +157,10 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
 
         @Override
         public String text() {
-            Object value = data.value();
+            return textValue(data.value());
+        }
+
+        static String textValue(Object value) {
             if (value != null) {
                 if (value instanceof Struct struct) {
                     byte[] fromConnectData =
@@ -172,6 +175,49 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
                 }
             }
             return null;
+        }
+
+        @Override
+        public void flatIntoMap(Map<String, String> target) {
+            if (isScalar()) {
+                return;
+            }
+
+            if (isArray()) {
+                // Pre-allocate StringBuilder for array index keys to avoid string concatenation
+                StringBuilder keyBuilder =
+                        new StringBuilder(name.length() + 4); // reasonable initial capacity
+                int size = size();
+                List<Object> array = (List<Object>) data.value();
+                for (int i = 0; i < size; i++) {
+                    String value = textValue(array.get(i));
+                    keyBuilder.append(name);
+                    keyBuilder.append('[').append(i).append(']');
+                    target.put(keyBuilder.toString(), value);
+                    keyBuilder.delete(0, keyBuilder.length()); // reset for next use
+                }
+                return;
+            }
+
+            Schema schema = data.schema();
+
+            switch (schema.type()) {
+                case MAP -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> map = (Map<String, ?>) data.value();
+                    for (Map.Entry<String, ?> entry : map.entrySet()) {
+                        String key = entry.getKey();
+                        target.put(key, textValue(entry.getValue()));
+                    }
+                }
+
+                default -> {
+                    Struct struct = (Struct) data.value();
+                    for (Field field : schema.fields()) {
+                        target.put(field.name(), textValue(struct.get(field)));
+                    }
+                }
+            }
         }
     }
 
@@ -197,7 +243,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
     }
 
     private static class ConnectKeySelector
-            extends StructuredBaseSelector<KafkaSinkRecord, SchemaAndValueNode>
+            extends StructuredBaseSelector<SchemaAndValue, SchemaAndValueNode>
             implements KeySelector<Object> {
 
         ConnectKeySelector(ExtractionExpression expression) throws ExtractionException {
@@ -207,23 +253,24 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
         @Override
         public Data extractKey(String name, KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, () -> ((KafkaSinkRecord) record), checkScalar);
+            return eval(name, () -> ((KafkaSinkRecord) record).keySchemaAndValue(), checkScalar);
         }
 
         @Override
         public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
                 throws ValueException {
-            return eval(() -> ((KafkaSinkRecord) record), checkScalar);
+            return eval(() -> ((KafkaSinkRecord) record).keySchemaAndValue(), checkScalar);
         }
 
-        private static SchemaAndValueNode asNode(String name, KafkaSinkRecord sinkRecord) {
-            return new SchemaAndValueNode(
-                    name, new SchemaAndValue(sinkRecord.keySchema(), sinkRecord.key()));
+        private static SchemaAndValueNode asNode(String name, SchemaAndValue schemaAndValue) {
+            return new SchemaAndValueNode(name, schemaAndValue);
         }
 
         @Override
         public void extractKeyInto(KafkaRecord<Object, ?> record, Map<String, String> target)
-                throws ValueException {}
+                throws ValueException {
+            evalInto(() -> ((KafkaSinkRecord) record).keySchemaAndValue(), target);
+        }
     }
 
     private static class ConnectValueSelectorSupplier implements ValueSelectorSupplier<Object> {
@@ -246,7 +293,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
     }
 
     private static class ConnectValueSelector
-            extends StructuredBaseSelector<KafkaSinkRecord, SchemaAndValueNode>
+            extends StructuredBaseSelector<SchemaAndValue, SchemaAndValueNode>
             implements ValueSelector<Object> {
 
         ConnectValueSelector(ExtractionExpression expression) throws ExtractionException {
@@ -256,24 +303,23 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
         @Override
         public Data extractValue(String name, KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return eval(name, () -> ((KafkaSinkRecord) record), checkScalar);
+            return eval(name, () -> ((KafkaSinkRecord) record).valueSchemaAndValue(), checkScalar);
         }
 
         @Override
         public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
                 throws ValueException {
-            return eval(() -> ((KafkaSinkRecord) record), checkScalar);
+            return eval(() -> ((KafkaSinkRecord) record).valueSchemaAndValue(), checkScalar);
         }
 
-        private static SchemaAndValueNode asNode(String name, KafkaSinkRecord sinkRecord) {
-            return new SchemaAndValueNode(
-                    name, new SchemaAndValue(sinkRecord.valueSchema(), sinkRecord.value()));
+        private static SchemaAndValueNode asNode(String name, SchemaAndValue schemaAndValue) {
+            return new SchemaAndValueNode(name, schemaAndValue);
         }
 
         @Override
         public void extractValueInto(KafkaRecord<?, Object> record, Map<String, String> target)
                 throws ValueException {
-            evalInto(() -> ((KafkaSinkRecord) record), target);
+            evalInto(() -> ((KafkaSinkRecord) record).valueSchemaAndValue(), target);
         }
     }
 
