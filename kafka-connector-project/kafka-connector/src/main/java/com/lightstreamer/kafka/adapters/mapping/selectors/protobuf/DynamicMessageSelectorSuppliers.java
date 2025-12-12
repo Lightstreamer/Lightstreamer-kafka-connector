@@ -106,7 +106,7 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         default ProtobufNode get(String nodeName, String propertyName) {
-            return NullNode.INSTANCE;
+            return null;
         }
 
         @Override
@@ -116,7 +116,7 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         default ProtobufNode get(String nodeName, int index) {
-            return NullNode.INSTANCE;
+            return null;
         }
 
         default boolean isArray() {
@@ -148,26 +148,6 @@ public class DynamicMessageSelectorSuppliers
             };
         }
 
-        static class NullNode implements ProtobufNode {
-
-            private static final NullNode INSTANCE = new NullNode();
-
-            @Override
-            public String name() {
-                return "null";
-            }
-
-            @Override
-            public String text() {
-                return "null";
-            }
-
-            @Override
-            public boolean isNull() {
-                return true;
-            }
-        }
-
         /**
          * Creates a new {@link ProtobufNode} instance based on the provided value and field
          * descriptor.
@@ -185,6 +165,13 @@ public class DynamicMessageSelectorSuppliers
                 case MESSAGE -> new MessageWrapperNode(nodeName, (Message) value);
                 default -> new ScalarFieldNode(nodeName, value, fieldDescriptor);
             };
+        }
+
+        static ProtobufNode rootNode(String name, Object value) {
+            if (value != null) {
+                return new MessageWrapperNode(name, (Message) value);
+            }
+            return new NullProtobufNode(name);
         }
     }
 
@@ -409,6 +396,35 @@ public class DynamicMessageSelectorSuppliers
         }
     }
 
+    static class NullProtobufNode implements ProtobufNode {
+
+        private final String name;
+
+        NullProtobufNode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public String text() {
+            return null;
+        }
+
+        @Override
+        public boolean isNull() {
+            return true;
+        }
+
+        @Override
+        public boolean isScalar() {
+            return true;
+        }
+    }
+
     /**
      * A supplier implementation for creating key selectors that work with Protocol Buffers'
      * DynamicMessage objects.
@@ -462,7 +478,7 @@ public class DynamicMessageSelectorSuppliers
             super(
                     expression,
                     Constant.KEY,
-                    (rootName, key) -> new MessageWrapperNode(rootName, (Message) key));
+                    (rootName, key) -> ProtobufNode.rootNode(rootName, key));
         }
 
         @Override
@@ -541,7 +557,7 @@ public class DynamicMessageSelectorSuppliers
             super(
                     expression,
                     Constant.VALUE,
-                    (rootName, value) -> new MessageWrapperNode(rootName, (Message) value));
+                    (rootName, value) -> ProtobufNode.rootNode(rootName, value));
         }
 
         @Override
