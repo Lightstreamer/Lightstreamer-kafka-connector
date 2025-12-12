@@ -18,20 +18,21 @@
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromKey;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.google.common.truth.StringSubject;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import org.apache.kafka.connect.data.Schema;
@@ -47,6 +48,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class ConnectSelectorsSuppliersTest {
@@ -89,19 +92,87 @@ public class ConnectSelectorsSuppliersTest {
     KeySelector<Object> keySelector(String expression) throws ExtractionException {
         return new ConnectSelectorsSuppliers()
                 .makeKeySelectorSupplier()
-                .newSelector(Expressions.Expression(expression));
+                .newSelector(Expression(expression));
     }
 
     ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
         return new ConnectSelectorsSuppliers()
                 .makeValueSelectorSupplier()
-                .newSelector(Expressions.Expression(expression));
+                .newSelector(Expression(expression));
     }
 
+    @Test
     public void shouldMakeKeySelectorSupplier() {
         ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(s.makeKeySelectorSupplier().evaluatorType()).isEqualTo("null");
+        assertThat(keySelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
+    }
+
+    @Test
+    public void shouldMakeKeySelector() throws ExtractionException {
+        KeySelector<Object> selector = keySelector("KEY");
+        assertThat(selector.expression().expression()).isEqualTo("KEY");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED_ERROR_MESSAGE
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
+                    """)
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    public void shouldMakeValueSelectorSupplier() {
+        ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
+        ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
+    }
+
+    @Test
+    public void shouldMakeValueSelector() throws ExtractionException {
+        ValueSelector<Object> selector = valueSelector("VALUE");
+        assertThat(selector.expression().expression()).isEqualTo("VALUE");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION         | EXPECTED_ERROR_MESSAGE
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
+                    """)
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    public void shouldNotGetDeserializer() {
+        KeySelectorSupplier<Object> keySelectorSupplier =
+                new ConnectSelectorsSuppliers().makeKeySelectorSupplier();
+        assertThrows(UnsupportedOperationException.class, () -> keySelectorSupplier.deserializer());
+
+        ValueSelectorSupplier<Object> valueSelectorSupplier =
+                new ConnectSelectorsSuppliers().makeValueSelectorSupplier();
+        assertThrows(
+                UnsupportedOperationException.class, () -> valueSelectorSupplier.deserializer());
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -110,52 +181,72 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input VALUE.signature
             textBlock =
                     """
-                EXPRESSION                             |  EXPECTED
-                VALUE.name                             |  joe
-                VALUE.signature                        |  [97, 98, 99, 100]
-                VALUE.children[0].name                 |  alex
-                VALUE.children[0]['name']              |  alex
-                VALUE.children[0].signature            |  NULL
-                VALUE.children[1].name                 |  anna
-                VALUE.children[2].name                 |  serena
-                VALUE.children[3]                      |  NULL
-                VALUE.children[1].children[0].name     |  gloria
-                VALUE.children[1].children[1].name     |  terence
-                VALUE.children[1].children[1]['name']  |  terence
+                EXPRESSION                             | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE.name                             | name          |  joe
+                VALUE['name']                          | name          |  joe
+                VALUE.signature                        | signature     |  [97, 98, 99, 100]
+                VALUE.children[0].name                 | name          |  alex
+                VALUE.children[0]['name']              | name          |  alex
+                VALUE.children[0].signature            | signature     |
+                VALUE.children[1].name                 | name          |  anna
+                VALUE.children[2].name                 | name          |  serena
+                VALUE.children[3]                      | children[3]   |
+                VALUE.children[1].children[0].name     | name          |  gloria
+                VALUE.children[1].children[1].name     | name          |  terence
+                VALUE.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractValue(String expression, String expected) throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        valueSelector(expression)
-                                .extractValue(sinkFromValue("topic", STRUCT.schema(), STRUCT))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+    public void shouldExtractValue(String expression, String expectedNName, String expectedValue)
+            throws ExtractionException {
+        ValueSelector<Object> valueSelector = valueSelector(expression);
+        KafkaRecord<Object, Object> record = sinkFromValue("topic", STRUCT.schema(), STRUCT);
+
+        Data autoBoundData = valueSelector.extractValue(record);
+        assertThat(autoBoundData.name()).isEqualTo(expectedNName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = valueSelector.extractValue("param", record, false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
+        ValueSelector<Object> valueSelector = valueSelector("VALUE");
+        KafkaRecord<Object, Object> record =
+                sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
+
+        Map<String, String> target = new HashMap<>();
+        valueSelector.extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "name", "joe",
+                        "signature", "[97, 98, 99, 100]",
+                        "children", "[]",
+                        "nullArray", null);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                   EXPECTED_ERROR_MESSAGE
-                VALUE,                        The expression [VALUE] must evaluate to a non-complex object
-                VALUE.no_attrib,              Field [no_attrib] not found
-                VALUE.children[0].no_attrib,  Field [no_attrib] not found
-                VALUE.no_children[0],         Field [no_children] not found
-                VALUE.name[0],                Field [name] is not indexed
-                VALUE.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
-                VALUE.name.no_key,            Cannot retrieve field [no_key] from a scalar object
-                VALUE.children,               The expression [VALUE.children] must evaluate to a non-complex object
-                VALUE.children[0]['no_key'],  Field [no_key] not found
-                VALUE.children[0],            The expression [VALUE.children[0]] must evaluate to a non-complex object
-                VALUE.children[3].name,       Cannot retrieve field [name] from a null object
-                VALUE.children[4],            Field not found at index [4]
-                VALUE.children[4].name,       Field not found at index [4]
-                VALUE.nullArray[0],           Cannot retrieve index [0] from a null object
+                EXPRESSION                   | EXPECTED_ERROR_MESSAGE
+                VALUE                        | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.no_attrib              | Field [no_attrib] not found
+                VALUE['no_attrib']           | Field [no_attrib] not found
+                VALUE.children[0].no_attrib  | Field [no_attrib] not found
+                VALUE.no_children[0]         | Field [no_children] not found
+                VALUE.name[0]                | Field [name] is not indexed
+                VALUE.name['no_key']         | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key            | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children               | The expression [VALUE.children] must evaluate to a non-complex object
+                VALUE.children[0]['no_key']  | Field [no_key] not found
+                VALUE.children[0]            | The expression [VALUE.children[0]] must evaluate to a non-complex object
+                VALUE.children[3].name       | Cannot retrieve field [name] from a null object
+                VALUE.children[4]            | Field not found at index [4]
+                VALUE.children[4].name       | Field not found at index [4]
+                VALUE.nullArray[0]           | Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -165,29 +256,70 @@ public class ConnectSelectorsSuppliersTest {
                                 valueSelector(expression)
                                         .extractValue(
                                                 sinkFromValue("topic", STRUCT.schema(), STRUCT)));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION     | EXPECTED
-                VALUE          | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                VALUE.children | []
-                VALUE.name     | joe
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldExtractValueWithNonScalars(String expression, String expected)
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                sinkFromValue("topic", STRUCT.schema(), STRUCT),
+                                                new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION     | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE          | VALUE         | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                VALUE.children | children      | []
+                VALUE.name     | name          | joe
+                    """)
+    public void shouldExtractValueWithNonScalars(
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        String text =
-                valueSelector(expression)
-                        .extractValue(
-                                sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
-                                false)
-                        .text();
-        assertThat(text).isEqualTo(expected);
+        ValueSelector<Object> valueSelector = valueSelector(expression);
+
+        Data autoBoundData =
+                valueSelector.extractValue(
+                        sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData =
+                valueSelector.extractValue(
+                        "param",
+                        sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
+                        false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
     }
 
     @Test
@@ -198,30 +330,54 @@ public class ConnectSelectorsSuppliersTest {
                         () ->
                                 valueSelector("VALUE")
                                         .extractValue(sinkFromValue("topic", null, "a Value")));
-        assertThat(ve.getMessage()).isEqualTo("A Schema is required");
+        assertThat(ve).hasMessageThat().isEqualTo("A Schema is required");
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE                       | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib             | Cannot retrieve field [VALUE] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldHandleNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(expressionStr)
+                                valueSelector(expression)
                                         .extractValue(
                                                 sinkFromValue(
                                                         "topic", SIMPLE_STRUCT.schema(), null)));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue(
+                                                "param",
+                                                sinkFromValue(
+                                                        "topic", SIMPLE_STRUCT.schema(), null)));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                sinkFromValue(
+                                                        "topic", SIMPLE_STRUCT.schema(), null),
+                                                new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -230,52 +386,72 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|', // Required because of the expected value for input KEY.signature
             textBlock =
                     """
-                EXPRESSION                           | EXPECTED
-                KEY.name                             | joe
-                KEY.signature                        | [97, 98, 99, 100]
-                KEY.children[0].name                 | alex
-                KEY.children[0]['name']              | alex
-                KEY.children[0].signature            | NULL
-                KEY.children[1].name                 | anna
-                KEY.children[2].name                 | serena
-                KEY.children[3]                      | NULL
-                KEY.children[1].children[0].name     | gloria
-                KEY.children[1].children[1].name     | terence
-                KEY.children[1].children[1]['name']  | terence
+                EXPRESSION                           | EXPECTED_NAME | EXPECTED_VALUE
+                KEY.name                             | name          |  joe
+                KEY['name']                          | name          |  joe
+                KEY.signature                        | signature     |  [97, 98, 99, 100]
+                KEY.children[0].name                 | name          |  alex
+                KEY.children[0]['name']              | name          |  alex
+                KEY.children[0].signature            | signature     |
+                KEY.children[1].name                 | name          |  anna
+                KEY.children[2].name                 | name          |  serena
+                KEY.children[3]                      | children[3]   |
+                KEY.children[1].children[0].name     | name          |  gloria
+                KEY.children[1].children[1].name     | name          |  terence
+                KEY.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractKey(String expression, String expected) throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        keySelector(expression)
-                                .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KeySelector<Object> keySelector = keySelector(expression);
+        KafkaRecord<Object, Object> record = sinkFromKey("topic", STRUCT.schema(), STRUCT);
+
+        Data autoBoundData = keySelector.extractKey(record);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = keySelector.extractKey("param", record, false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
+        KeySelector<Object> keySelector = keySelector("KEY");
+        KafkaRecord<Object, Object> record =
+                sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
+
+        Map<String, String> target = new HashMap<>();
+        keySelector.extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "name", "joe",
+                        "signature", "[97, 98, 99, 100]",
+                        "children", "[]",
+                        "nullArray", null);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                 EXPECTED_ERROR_MESSAGE
-                KEY,                        The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib,              Field [no_attrib] not found
-                KEY.children[0].no_attrib,  Field [no_attrib] not found
-                KEY.no_children[0],         Field [no_children] not found
-                KEY.name[0],                Field [name] is not indexed
-                KEY.name['no_key'],         Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key,            Cannot retrieve field [no_key] from a scalar object
-                KEY.children,               The expression [KEY.children] must evaluate to a non-complex object
-                KEY.children[0]['no_key'],  Field [no_key] not found
-                KEY.children[0],            The expression [KEY.children[0]] must evaluate to a non-complex object
-                KEY.children[3].name,       Cannot retrieve field [name] from a null object
-                KEY.children[4],            Field not found at index [4]
-                KEY.children[4].name,       Field not found at index [4]
-                KEY.nullArray[0],           Cannot retrieve index [0] from a null object
+                EXPRESSION                 | EXPECTED_ERROR_MESSAGE
+                KEY                        | The expression [KEY] must evaluate to a non-complex object
+                KEY.no_attrib              | Field [no_attrib] not found
+                KEY['no_attrib']           | Field [no_attrib] not found
+                KEY.children[0].no_attrib  | Field [no_attrib] not found
+                KEY.no_children[0]         | Field [no_children] not found
+                KEY.name[0]                | Field [name] is not indexed
+                KEY.name['no_key']         | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key            | Cannot retrieve field [no_key] from a scalar object
+                KEY.children               | The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children[0]['no_key']  | Field [no_key] not found
+                KEY.children[0]            | The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name       | Cannot retrieve field [name] from a null object
+                KEY.children[4]            | Field not found at index [4]
+                KEY.children[4].name       | Field not found at index [4]
+                KEY.nullArray[0]           | Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
@@ -284,28 +460,7 @@ public class ConnectSelectorsSuppliersTest {
                         () ->
                                 keySelector(expression)
                                         .extractKey(sinkFromKey("topic", STRUCT.schema(), STRUCT)));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input KEY.signature
-            textBlock =
-                    """
-                EXPRESSION   |  EXPECTED
-                KEY          |  {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
-                KEY.children |  []
-                KEY.name     |  joe
-                    """)
-    public void shouldExtractKeyWithNonScalars(String expression, String expected)
-            throws ExtractionException {
-        String text =
-                keySelector(expression)
-                        .extractKey(
-                                sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false)
-                        .text();
-        assertThat(text).isEqualTo(expected);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -315,55 +470,115 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib             | Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
-                KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.children[3].name      | Cannot retrieve field [name] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(
+                                                sinkFromKey("topic", STRUCT.schema(), STRUCT),
+                                                new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION   | EXPECTED_NAME | EXPECTED_VALUE
+                KEY          | KEY         | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                KEY.children | children      | []
+                KEY.name     | name          | joe
+                    """)
+    public void shouldExtractKeyWithNonScalars(
+            String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KeySelector<Object> keySelector = keySelector(expression);
+
+        Data autoBoundData =
+                keySelector.extractKey(
+                        sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData =
+                keySelector.extractKey(
+                        "param",
+                        sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT),
+                        false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldNotExtractKeyDueToMissingSchema() {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> keySelector("KEY").extractKey(sinkFromKey("topic", null, "a Value")));
+        assertThat(ve).hasMessageThat().isEqualTo("A Schema is required");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY                       | Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib             | Cannot retrieve field [KEY] from a null object
+                KEY.children[0].no_attrib | Cannot retrieve field [KEY] from a null object
+                KEY.no_children[0]        | Cannot retrieve field [KEY] from a null object
+                    """)
+    public void shouldHandleNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(expressionStr)
+                                keySelector(expression)
                                         .extractKey(
                                                 sinkFromKey(
                                                         "topic", SIMPLE_STRUCT.schema(), null)));
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,          EXPECTED_ERROR_MESSAGE
-                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
-                VALUE.attrib[0]xsd,  Found the invalid indexed expression [VALUE.attrib[0]xsd]
-                VALUE.attrib[],      Found the invalid indexed expression [VALUE.attrib[]]
-                VALUE.attrib[a],     Found the invalid indexed expression [VALUE.attrib[a]]
-                    """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKey(
+                                                "param",
+                                                sinkFromKey(
+                                                        "topic", SIMPLE_STRUCT.schema(), null)));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,        EXPECTED_ERROR_MESSAGE
-                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
-                KEY.attrib[0]xsd,  Found the invalid indexed expression [KEY.attrib[0]xsd]
-                KEY.attrib[],      Found the invalid indexed expression [KEY.attrib[]]
-                KEY.attrib[a],     Found the invalid indexed expression [KEY.attrib[a]]
-                    """)
-    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(
+                                                sinkFromKey("topic", SIMPLE_STRUCT.schema(), null),
+                                                new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     static Stream<Arguments> scalars() {
