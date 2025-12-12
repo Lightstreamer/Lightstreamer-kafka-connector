@@ -333,6 +333,22 @@ public class ConnectSelectorsSuppliersTest {
         assertThat(ve).hasMessageThat().isEqualTo("A Schema is required");
     }
 
+    @Test
+    public void shouldHandleNullValue() throws ExtractionException {
+        ValueSelector<Object> valueSelector = valueSelector("VALUE");
+
+        Data autoBoundData =
+                valueSelector.extractValue(sinkFromValue("topic", SIMPLE_STRUCT.schema(), null));
+        assertThat(autoBoundData.name()).isEqualTo("VALUE");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData =
+                valueSelector.extractValue(
+                        "param", sinkFromValue("topic", SIMPLE_STRUCT.schema(), null));
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -340,12 +356,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                  | EXPECTED_ERROR_MESSAGE
-                VALUE                       | Cannot retrieve field [VALUE] from a null object
-                VALUE.no_attrib             | Cannot retrieve field [VALUE] from a null object
-                VALUE.children[0].no_attrib | Cannot retrieve field [VALUE] from a null object
-                VALUE.no_children[0]        | Cannot retrieve field [VALUE] from a null object
+                VALUE.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldHandleNullValue(String expression, String errorMessage)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -535,6 +550,21 @@ public class ConnectSelectorsSuppliersTest {
         assertThat(ve).hasMessageThat().isEqualTo("A Schema is required");
     }
 
+    @Test
+    public void shouldHandleNullKey() throws ExtractionException {
+        KeySelector<Object> keySelector = keySelector("KEY");
+
+        Data autoBoundData =
+                keySelector.extractKey(sinkFromKey("topic", SIMPLE_STRUCT.schema(), null));
+        assertThat(autoBoundData.name()).isEqualTo("KEY");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData =
+                keySelector.extractKey("param", sinkFromKey("topic", SIMPLE_STRUCT.schema(), null));
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -542,12 +572,11 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
-                KEY                       | Cannot retrieve field [KEY] from a null object
-                KEY.no_attrib             | Cannot retrieve field [KEY] from a null object
-                KEY.children[0].no_attrib | Cannot retrieve field [KEY] from a null object
-                KEY.no_children[0]        | Cannot retrieve field [KEY] from a null object
+                KEY.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldHandleNullKey(String expression, String errorMessage)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
