@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.ArrayList;
@@ -158,12 +158,18 @@ public interface KafkaRecord<K, V> {
             return record.kafkaPartition();
         }
 
-        public Schema keySchema() {
-            return record.keySchema();
+        public SchemaAndValue keySchemaAndValue() {
+            if (record.key() == null) {
+                return null;
+            }
+            return new SchemaAndValue(record.keySchema(), record.key());
         }
 
-        public Schema valueSchema() {
-            return record.valueSchema();
+        public SchemaAndValue valueSchemaAndValue() {
+            if (record.value() == null) {
+                return null;
+            }
+            return new SchemaAndValue(record.valueSchema(), record.value());
         }
 
         @Override
