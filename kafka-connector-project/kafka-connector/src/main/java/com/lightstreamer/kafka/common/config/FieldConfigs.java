@@ -17,8 +17,9 @@
 
 package com.lightstreamer.kafka.common.config;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+
 import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -31,41 +32,37 @@ import java.util.Map;
 
 public class FieldConfigs {
 
-    private static String SCHEMA_NAME = "fields";
-
     public static FieldConfigs from(Map<String, String> configs) {
         return new FieldConfigs(configs);
     }
 
-    private final Map<String, ExtractionExpression> boundFieldExpressions = new HashMap<>();
-
-    private final Map<String, ExtractionExpression> autoBoundFieldExpressions = new HashMap<>();
+    private final Map<String, ExtractionExpression> boundExpressions = new HashMap<>();
+    private final Map<String, ExtractionExpression> autoBoundExpressions = new HashMap<>();
 
     private FieldConfigs(Map<String, String> fieldsMapping) {
         for (Map.Entry<String, String> entry : fieldsMapping.entrySet()) {
             String fieldName = entry.getKey();
-            String wrappedExpression = entry.getValue();
+            String expression = entry.getValue();
             try {
                 if ("*".equals(fieldName)) {
-                    autoBoundFieldExpressions.put(
-                            fieldName, Expressions.Wrapped(wrappedExpression));
+                    autoBoundExpressions.put(fieldName, Wrapped(expression));
                     continue;
                 }
-                boundFieldExpressions.put(fieldName, Expressions.Wrapped(wrappedExpression));
+                boundExpressions.put(fieldName, Wrapped(expression));
             } catch (ExpressionException e) {
                 throw new ConfigException(
                         "Got the following error while evaluating the field [%s] containing the expression [%s]: <%s>"
-                                .formatted(fieldName, wrappedExpression, e.getMessage()));
+                                .formatted(fieldName, expression, e.getMessage()));
             }
         }
     }
 
-    public Map<String, ExtractionExpression> expressions() {
-        return new HashMap<>(boundFieldExpressions);
+    public Map<String, ExtractionExpression> boundExpressions() {
+        return new HashMap<>(boundExpressions);
     }
 
-    public ExtractionExpression getExpression(String fieldName) {
-        return boundFieldExpressions.get(fieldName);
+    public Map<String, ExtractionExpression> autoBoundExpressions() {
+        return new HashMap<>(autoBoundExpressions);
     }
 
     public <K, V> FieldsExtractor<K, V> fieldsExtractor(
@@ -75,18 +72,15 @@ public class FieldConfigs {
             throws ExtractionException {
 
         List<FieldsExtractor<K, V>> fieldExtractors = new java.util.ArrayList<>();
-        if (!autoBoundFieldExpressions.isEmpty()) {
+        if (!autoBoundExpressions.isEmpty()) {
             fieldExtractors.add(
                     DataExtractors.dynamicFieldsExtractor(
-                            selectorSuppliers, autoBoundFieldExpressions.values(), skipOnFailure));
+                            selectorSuppliers, autoBoundExpressions.values(), skipOnFailure));
         }
-        if (!boundFieldExpressions.isEmpty()) {
+        if (!boundExpressions.isEmpty()) {
             fieldExtractors.add(
                     DataExtractors.staticFieldsExtractor(
-                            selectorSuppliers,
-                            boundFieldExpressions,
-                            skipOnFailure,
-                            mapNonScalars));
+                            selectorSuppliers, boundExpressions, skipOnFailure, mapNonScalars));
         }
 
         if (fieldExtractors.size() == 1) {
