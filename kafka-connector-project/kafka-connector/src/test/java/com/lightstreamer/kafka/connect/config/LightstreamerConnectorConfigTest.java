@@ -401,7 +401,7 @@ public class LightstreamerConnectorConfigTest {
                     ask:#{VALUE.ask},\
                     ask_quantity:#{VALUE.ask_quantity},\
                     bid:#{VALUE.bid},\
-                    bid_quantity:   #{VALUE.bid_quantity}  ,\
+                    bid_quantity:   #{VALUE.bid_quantity},\
                     pct_change:#{VALUE.pct_change},\
                     min:#{VALUE.min},\
                     max:#{VALUE.max},\
@@ -411,7 +411,8 @@ public class LightstreamerConnectorConfigTest {
                     ts:#{TIMESTAMP},\
                     topic:#{TOPIC},\
                     offset:#{OFFSET},\
-                    partition:#{PARTITION}
+                    partition:#{PARTITION},\
+                    *:#{VALUE}
                 """;
         Map<String, String> props = basicConfig();
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, fieldMappingConfig);
@@ -419,7 +420,7 @@ public class LightstreamerConnectorConfigTest {
 
         FieldConfigs fieldMappings = config.getFieldConfigs();
 
-        assertThat(fieldMappings.expressions())
+        assertThat(fieldMappings.boundExpressions())
                 .containsExactly(
                         "timestamp",
                         Expression("VALUE.timestamp"),
