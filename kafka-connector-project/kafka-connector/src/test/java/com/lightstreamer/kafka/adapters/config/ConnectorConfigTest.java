@@ -1520,8 +1520,8 @@ public class ConnectorConfigTest {
     void shouldGetFieldConfigs() {
         ConnectorConfig cgg = ConnectorConfigProvider.minimal();
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
-        assertThat(fieldConfigs.expressions()).hasSize(1);
-        assertThat(fieldConfigs.getExpression("fieldName1").toString()).isEqualTo("VALUE");
+        assertThat(fieldConfigs.boundExpressions()).hasSize(1);
+        assertThat(fieldConfigs.boundExpressions().get("fieldName1").toString()).isEqualTo("VALUE");
     }
 
     @Test
