@@ -63,7 +63,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @MethodSource("staticFieldMappings")
-    public void shouldCreateAndMakeStaticFieldsExtractor(
+    public void shouldCreateAndMakeNamedFieldsExtractor(
             Map<String, String> fieldMappings,
             KeyValueSelectorSuppliers<?, ?> suppliers,
             boolean mapNonScalars,
