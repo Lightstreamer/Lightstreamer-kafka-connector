@@ -344,11 +344,45 @@ public class DataExtractors {
         }
     }
 
+    /**
+     * A composite {@link FieldsExtractor} that applies multiple field extractors in sequence to a
+     * Kafka record.
+     *
+     * <p>This class enables the combination of multiple extraction strategies, where each extractor
+     * in the composition contributes to building the final field map. Extractors are applied in the
+     * order they are provided, and each extractor writes its extracted fields into the same target
+     * map.
+     *
+     * <p><b>Field Override Behavior:</b> When multiple extractors produce values for the same field
+     * name, later extractors will override values set by earlier ones.
+     *
+     * <p><b>Error Handling:</b> The {@link #skipOnFailure()} behavior is determined by evaluating
+     * all composed extractors. The composite extractor will skip on failure only if all individual
+     * extractors indicate they should skip on failure.
+     *
+     * @param <K> the type of the Kafka record key
+     * @param <V> the type of the Kafka record value
+     */
     static class ComposedFieldExtractor<K, V> implements FieldsExtractor<K, V> {
 
         private final List<FieldsExtractor<K, V>> extractors;
 
+        /**
+         * Constructs a ComposedFieldExtractor with the specified list of field extractors.
+         *
+         * @param extractors the list of {@link FieldsExtractor} instances to be composed. Must not
+         *     be {@code null} or empty. The order of extractors in the list determines the
+         *     application order, which affects the final field values when multiple extractors
+         *     target the same field names.
+         */
         ComposedFieldExtractor(List<FieldsExtractor<K, V>> extractors) {
+            if (extractors == null || extractors.isEmpty()) {
+                throw new IllegalArgumentException("Extractors list must not be null or empty");
+            }
+            if (extractors.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException(
+                        "Extractors list must not contain null elements");
+            }
             this.extractors = extractors;
         }
 
@@ -356,6 +390,7 @@ public class DataExtractors {
         public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
                 throws ValueException {
             for (int i = 0; i < this.extractors.size(); i++) {
+                // The last extractor may override fields extracted by previous ones
                 this.extractors.get(i).extractIntoMap(record, targetMap);
             }
         }
