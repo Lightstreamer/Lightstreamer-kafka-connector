@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
@@ -123,7 +123,7 @@ public class FieldsExtractorTest {
             throws ExtractionException {
 
         FieldsExtractor<String, String> extractor =
-                DataExtractors.staticFieldsExtractor(
+                DataExtractors.namedFieldsExtractor(
                         String(), expressions, skipOnFailure, mapNonScalars);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(mapNonScalars);
@@ -205,7 +205,7 @@ public class FieldsExtractorTest {
             throws ExtractionException {
 
         FieldsExtractor<JsonNode, JsonNode> extractor =
-                DataExtractors.dynamicFieldsExtractor(
+                DataExtractors.discoveredFieldsExtractor(
                         JsonKeyJsonValue(), expressions, skipOnFailure);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(true);
@@ -240,13 +240,12 @@ public class FieldsExtractorTest {
 
         // Create the composed FieldsExtractor
         FieldsExtractor<String, JsonNode> boundExtractor =
-                DataExtractors.staticFieldsExtractor(JsonValue(), boundExpressions, false, false);
+                DataExtractors.namedFieldsExtractor(JsonValue(), boundExpressions, false, false);
         FieldsExtractor<String, JsonNode> autoBoundExtractor =
-                DataExtractors.dynamicFieldsExtractor(JsonValue(), autoBoundExpressions, false);
+                DataExtractors.discoveredFieldsExtractor(JsonValue(), autoBoundExpressions, false);
 
         FieldsExtractor<String, JsonNode> composedExtractor =
-                DataExtractors.composedFieldsExtractor(
-                        List.of(autoBoundExtractor, boundExtractor));
+                DataExtractors.composedFieldsExtractor(List.of(autoBoundExtractor, boundExtractor));
 
         // Extract the values from a Kafka Record
         Headers headers = new RecordHeaders();
@@ -286,7 +285,7 @@ public class FieldsExtractorTest {
                 assertThrows(
                         IllegalArgumentException.class,
                         () ->
-                                DataExtractors.dynamicFieldsExtractor(
+                                DataExtractors.discoveredFieldsExtractor(
                                         JsonValue(), expressions, false));
         assertThat(ee)
                 .hasMessageThat()
@@ -299,7 +298,7 @@ public class FieldsExtractorTest {
     @Test
     public void shouldNotExtractMap() throws ExtractionException {
         FieldsExtractor<String, JsonNode> boundExtractor =
-                DataExtractors.staticFieldsExtractor(
+                DataExtractors.namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "undefined",
@@ -319,7 +318,7 @@ public class FieldsExtractorTest {
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
 
         FieldsExtractor<String, JsonNode> autoBoundExtractor =
-                DataExtractors.dynamicFieldsExtractor(
+                DataExtractors.discoveredFieldsExtractor(
                         JsonValue(),
                         List.of(
                                 Expressions.Wrapped("#{VALUE.undefined_maps}"),
@@ -336,15 +335,15 @@ public class FieldsExtractorTest {
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
 
         FieldsExtractor<String, JsonNode> composExtractor =
-                DataExtractors.composedFieldsExtractor(
-                        List.of(autoBoundExtractor, boundExtractor));
+                DataExtractors.composedFieldsExtractor(List.of(autoBoundExtractor, boundExtractor));
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
                                 composExtractor.extractMap(
                                         Records.record(
-                                                "aKey", SampleJsonNodeProvider().sampleMessage())));;
+                                                "aKey", SampleJsonNodeProvider().sampleMessage())));
+        ;
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
     }
 
@@ -352,7 +351,7 @@ public class FieldsExtractorTest {
     public void shouldNotExtractMapDueToNotMappingScalars()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
-                staticFieldsExtractor(
+                namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "complexObject",
@@ -383,7 +382,7 @@ public class FieldsExtractorTest {
                 Records.record("aKey", SampleJsonNodeProvider().sampleMessage());
 
         FieldsExtractor<String, JsonNode> boundExtractor =
-                DataExtractors.staticFieldsExtractor(
+                DataExtractors.namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "undefined",
@@ -397,7 +396,7 @@ public class FieldsExtractorTest {
         assertThat(tryExtractData).containsAtLeast("name", "joe");
 
         FieldsExtractor<String, JsonNode> autoBoundExtractor =
-                DataExtractors.dynamicFieldsExtractor(
+                DataExtractors.discoveredFieldsExtractor(
                         JsonValue(),
                         List.of(
                                 Expressions.Wrapped("#{VALUE.undefined_map}"),
@@ -413,7 +412,7 @@ public class FieldsExtractorTest {
     public void shouldExtractMapWithScalarMapping()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
-                staticFieldsExtractor(
+                namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "complexObject",
@@ -442,7 +441,7 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ExtractionException.class,
                         () ->
-                                DataExtractors.dynamicFieldsExtractor(
+                                DataExtractors.discoveredFieldsExtractor(
                                         JsonValue(),
                                         List.of(Expression("VALUE.map[invalid-index]")),
                                         false));
@@ -454,7 +453,7 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ExtractionException.class,
                         () ->
-                                DataExtractors.staticFieldsExtractor(
+                                DataExtractors.namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of("field", Expression("VALUE.map[invalid-index]")),
                                         false,
