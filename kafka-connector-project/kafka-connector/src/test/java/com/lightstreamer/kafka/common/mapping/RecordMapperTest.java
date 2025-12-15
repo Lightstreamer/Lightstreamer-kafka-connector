@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.dynamicFieldsExtractor;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.discoveredFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleDynamicMessageProvider;
@@ -148,7 +148,7 @@ public class RecordMapperTest {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         String(),
                                         Map.of("aKey", Wrapped("#{PARTITION}")),
                                         false,
@@ -181,7 +181,7 @@ public class RecordMapperTest {
                                 canonicalItemExtractor(
                                         String(), Template("prefix3-#{value=VALUE}")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         String(),
                                         Map.of(
                                                 "keyField",
@@ -266,7 +266,7 @@ public class RecordMapperTest {
                                         String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         String(),
                                         Map.of(
                                                 "keyField",
@@ -328,7 +328,7 @@ public class RecordMapperTest {
     static Stream<Arguments> jsonFieldExtractors() throws ExtractionException {
         return Stream.of(
                 arguments(
-                        staticFieldsExtractor(
+                        namedFieldsExtractor(
                                 JsonValue(),
                                 Map.of(
                                         "firstName",
@@ -339,7 +339,7 @@ public class RecordMapperTest {
                                 false),
                         true),
                 arguments(
-                        dynamicFieldsExtractor(
+                        discoveredFieldsExtractor(
                                 JsonValue(), List.of(Wrapped("#{VALUE.children[0]}")), false),
                         false));
     }
@@ -431,7 +431,7 @@ public class RecordMapperTest {
                                 canonicalItemExtractor(
                                         JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
                                                 "firstName",
@@ -464,7 +464,7 @@ public class RecordMapperTest {
                                 canonicalItemExtractor(
                                         JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
                                                 "firstName",
@@ -499,7 +499,7 @@ public class RecordMapperTest {
                                         JsonValue(),
                                         Template("test-#{name=VALUE.not_valid_attrib}")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
                                                 "firstName",
@@ -530,7 +530,7 @@ public class RecordMapperTest {
     static Stream<Arguments> avoFieldExtractors() throws ExtractionException {
         return Stream.of(
                 arguments(
-                        staticFieldsExtractor(
+                        namedFieldsExtractor(
                                 AvroValue(),
                                 Map.of(
                                         "firstName",
@@ -541,7 +541,7 @@ public class RecordMapperTest {
                                 false),
                         true),
                 arguments(
-                        dynamicFieldsExtractor(
+                        discoveredFieldsExtractor(
                                 AvroValue(), List.of(Wrapped("#{VALUE.children[0]}")), false),
                         false));
     }
@@ -625,7 +625,7 @@ public class RecordMapperTest {
     static Stream<Arguments> protobufFieldExtractors() throws ExtractionException {
         return Stream.of(
                 arguments(
-                        staticFieldsExtractor(
+                        namedFieldsExtractor(
                                 ProtoValue(),
                                 Map.of(
                                         "firstName",
@@ -636,7 +636,7 @@ public class RecordMapperTest {
                                 false),
                         true),
                 arguments(
-                        dynamicFieldsExtractor(
+                        discoveredFieldsExtractor(
                                 ProtoValue(),
                                 List.of(Wrapped("#{VALUE.friends[1].friends[0]}")),
                                 false),
@@ -745,7 +745,7 @@ public class RecordMapperTest {
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         Object(),
                                         Map.of(
                                                 "firstName",
