@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.staticFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandRecordProcessor;
@@ -72,7 +72,7 @@ public class CommandRecordProcessorTest {
                                 canonicalItemExtractor(
                                         String(), Expressions.EmptyTemplate("item1")))
                         .withFieldExtractor(
-                                staticFieldsExtractor(
+                                namedFieldsExtractor(
                                         String(),
                                         Map.of(
                                                 "key",
