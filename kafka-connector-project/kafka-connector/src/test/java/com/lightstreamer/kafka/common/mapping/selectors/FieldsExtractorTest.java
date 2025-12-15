@@ -46,6 +46,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -224,6 +225,55 @@ public class FieldsExtractorTest {
         assertThat(extractor.mappedFields()).isEmpty();
     }
 
+    @Test
+    public void shouldExtractMapFromComposedExtractor() throws ExtractionException {
+        // Prepare the bound and auto-bound extraction expressions
+        Map<String, ExtractionExpression> boundExpressions =
+                Map.of(
+                        "name", Expression("VALUE.name"),
+                        "signature", Expression("VALUE.signature"),
+                        "conflictingKey", Expression("VALUE.name"),
+                        "key", Expression("KEY"),
+                        "topic", Expression("TOPIC"));
+        List<ExtractionExpression> autoBoundExpressions =
+                List.of(Expression("VALUE.notes"), Expression("HEADERS"));
+
+        // Create the composed FieldsExtractor
+        FieldsExtractor<String, JsonNode> boundExtractor =
+                DataExtractors.staticFieldsExtractor(JsonValue(), boundExpressions, false, false);
+        FieldsExtractor<String, JsonNode> autoBoundExtractor =
+                DataExtractors.dynamicFieldsExtractor(JsonValue(), autoBoundExpressions, false);
+
+        FieldsExtractor<String, JsonNode> composedExtractor =
+                DataExtractors.composedFieldsExtractor(
+                        List.of(autoBoundExtractor, boundExtractor));
+
+        // Extract the values from a Kafka Record
+        Headers headers = new RecordHeaders();
+        headers.add("conflictingKey", "header-value1".getBytes(StandardCharsets.UTF_8));
+        headers.add("accountId", "12345".getBytes(StandardCharsets.UTF_8));
+        headers.add("accountId", "67890".getBytes(StandardCharsets.UTF_8));
+
+        KafkaRecord<String, JsonNode> kafkaRecord =
+                Records.recordWithHeaders(
+                        "aKey", SampleJsonNodeProvider().sampleMessage(), headers);
+        Map<String, String> values = composedExtractor.extractMap(kafkaRecord);
+
+        // Verify the extracted values
+        assertThat(values)
+                .containsExactly(
+                        "name", "joe",
+                        "key", "aKey",
+                        "conflictingKey",
+                                "joe", // The bound extractor has precedence over the auto-bound one
+                        "topic", "record-topic",
+                        "notes[0]", "note1",
+                        "notes[1]", "note2",
+                        "signature", "YWJjZA==",
+                        "accountId[0]", "12345",
+                        "accountId[1]", "67890");
+    }
+
     @ParameterizedTest
     @EnumSource(names = {"TIMESTAMP", "PARTITION", "TOPIC", "OFFSET"})
     public void shouldNotCreateDynamicExtractorFromConstantExpressions(Constant constant) {
@@ -248,7 +298,7 @@ public class FieldsExtractorTest {
 
     @Test
     public void shouldNotExtractMap() throws ExtractionException {
-        FieldsExtractor<String, JsonNode> extractor =
+        FieldsExtractor<String, JsonNode> boundExtractor =
                 DataExtractors.staticFieldsExtractor(
                         JsonValue(),
                         Map.of(
@@ -263,7 +313,7 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                extractor.extractMap(
+                                boundExtractor.extractMap(
                                         Records.record(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
@@ -283,6 +333,18 @@ public class FieldsExtractorTest {
                                 autoBoundExtractor.extractMap(
                                         Records.record(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
+        assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
+
+        FieldsExtractor<String, JsonNode> composExtractor =
+                DataExtractors.composedFieldsExtractor(
+                        List.of(autoBoundExtractor, boundExtractor));
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                composExtractor.extractMap(
+                                        Records.record(
+                                                "aKey", SampleJsonNodeProvider().sampleMessage())));;
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
     }
 
@@ -384,6 +446,19 @@ public class FieldsExtractorTest {
                                         JsonValue(),
                                         List.of(Expression("VALUE.map[invalid-index]")),
                                         false));
+        assertThat(ee)
+                .hasMessageThat()
+                .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
+
+        ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () ->
+                                DataExtractors.staticFieldsExtractor(
+                                        JsonValue(),
+                                        Map.of("field", Expression("VALUE.map[invalid-index]")),
+                                        false,
+                                        true));
         assertThat(ee)
                 .hasMessageThat()
                 .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
