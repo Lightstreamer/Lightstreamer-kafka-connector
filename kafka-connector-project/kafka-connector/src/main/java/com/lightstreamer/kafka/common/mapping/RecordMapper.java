@@ -73,33 +73,35 @@ public interface RecordMapper<K, V> {
      * <p>The mapping process transforms Kafka records into Lightstreamer items by:
      *
      * <ul>
-     *   <li>Expanding templates into concrete item names using record data
+     *   <li>Expanding templates into canonical item names using record data
      *   <li>Providing routing capabilities to match against subscriber subscriptions
-     *   <li>Offering lazy field extraction for data updates when needed
+     *   <li>Offering lazy field extraction for Lightstreamer data updates when needed
      * </ul>
      *
      * <p><strong>Canonical form guarantee:</strong> All item names are returned in canonical form
-     * with fields arranged in consistent alphabetical order by the statically configured template
-     * field names, ensuring deterministic output regardless of the original template definition
-     * order.
+     * with template parameters sorted in alphanumeric order by their parameter names, ensuring
+     * deterministic output regardless of the order specified in the template definition.
      *
-     * <p><strong>Configuration-independent field ordering example:</strong> If a template is
-     * configured as: {@code
-     * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"} The
-     * resulting item name will always arrange fields alphabetically: {@code
-     * "item-[accountId=123,profileId=456,userId=789]"} - with fields ordered by their configured
-     * names (accountId, profileId, userId), not by their definition order in the template.
+     * <p><strong>Alphanumeric parameter ordering example:</strong> If a template is configured as:
+     * {@code "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"}
+     *
+     * <p>The resulting canonical item name will have parameters sorted alphabetically: {@code
+     * "item-[accountId=123,profileId=456,userId=789]"}
+     *
+     * <p>Parameters are ordered by their names (accountId, profileId, userId), not by their
+     * definition order in the template.
      */
     interface MappedRecord {
 
         /**
          * Returns the canonical Lightstreamer item names that this Kafka record maps to after
-         * template processing. Each name represents a distinct Lightstreamer item that should
+         * template expansion. Each name represents a distinct Lightstreamer item that should
          * receive data updates when this record is processed.
          *
          * <p>These item names are produced by evaluating item templates against the Kafka record's
-         * data. Templates containing placeholders like {@code {VALUE.symbol}} or {@code {KEY.id}}
-         * are resolved into concrete item names using the actual field values from the record.
+         * data. Templates containing parameter expressions like {@code VALUE.symbol} or {@code
+         * KEY.id} are resolved into concrete item names using the actual extracted values from the
+         * record.
          *
          * <p><strong>Examples:</strong>
          *
@@ -111,7 +113,7 @@ public interface RecordMapper<K, V> {
          *   <li>Static template {@code "market-summary"} → Item name {@code "market-summary"}
          * </ul>
          *
-         * <p>The returned item names are used primarily for:
+         * <p>The returned item names are used for:
          *
          * <ul>
          *   <li>Routing records to subscribers of matching items
@@ -120,16 +122,15 @@ public interface RecordMapper<K, V> {
          * </ul>
          *
          * <p><strong>Canonical form guarantee:</strong> Each returned item name is in canonical
-         * form with fields arranged alphabetically by the statically configured template field
-         * names.
+         * form with template parameters sorted in alphanumeric order by their parameter names,
+         * ensuring deterministic routing regardless of the order specified in the template
+         * definition.
          *
-         * <p><strong>Configuration-independent field ordering example:</strong> If a template is
-         * configured as: {@code
-         * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"} The
-         * resulting item name will always arrange fields alphabetically: {@code
-         * "item-[accountId=123,profileId=456,userId=789]"} - with fields ordered by their
-         * configured names (accountId, profileId, userId), not by their definition order in the
-         * template.
+         * <p><strong>Alphanumeric parameter ordering example:</strong> For template {@code
+         * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"}, the
+         * resulting canonical item name will be {@code
+         * "item-[accountId=123,profileId=456,userId=789]"} with parameters sorted alphabetically
+         * (accountId, profileId, userId).
          *
          * @return an array of canonical Lightstreamer item names derived from template evaluation;
          *     never null but may be empty
@@ -137,31 +138,31 @@ public interface RecordMapper<K, V> {
         String[] canonicalItemNames();
 
         /**
-         * Provides lazy access to the field data extracted from the Kafka record for data updates.
-         * This map contains the structured field values that will be sent to Lightstreamer
-         * subscribers when items matching this record receive updates.
+         * Provides lazy access to the Lightstreamer field data extracted from the Kafka record.
+         * This map contains the structured field name-value pairs that will be sent to
+         * Lightstreamer subscribers when items matching this record receive updates.
          *
-         * <p>Unlike {@link #canonicalItemNames()} which handles routing through template expansion,
-         * this method extracts the actual data payload using field extractors. The field names in
-         * the returned map correspond to the Lightstreamer schema fields that subscribers will
-         * receive.
+         * <p>Unlike {@link #canonicalItemNames()} which handles routing through template expansion
+         * with parameters, this method extracts the actual data payload using field extractors. The
+         * field names in the returned map correspond to the Lightstreamer schema fields that
+         * subscribers will receive as data updates.
          *
          * <p><strong>Key characteristics:</strong>
          *
          * <ul>
          *   <li><strong>Lazy evaluation:</strong> Field extraction is performed on-demand to
          *       optimize performance when only routing information is needed
-         *   <li><strong>Schema-based:</strong> Field names match the configured schema for
-         *       consistent data structure
-         *   <li><strong>Update payload:</strong> Contains the actual values that will be pushed to
-         *       subscribers
+         *   <li><strong>Schema-based:</strong> Field names match the configured Lightstreamer
+         *       schema for consistent data structure
+         *   <li><strong>Update payload:</strong> Contains the actual data values that will be
+         *       pushed to subscribers
          * </ul>
          *
          * <p><strong>Example:</strong> For a stock record, this might return: {@code {"symbol":
          * "AAPL", "price": "150.25", "timestamp": "2024-01-15T10:30:00Z"}}
          *
-         * @return a map of field names to their extracted values from the record; never null but
-         *     may be empty
+         * @return a map of Lightstreamer field names to their extracted string values from the
+         *     record; never null but may be empty
          * @throws ValueException if field extraction fails due to data format issues or missing
          *     required fields
          */
@@ -198,16 +199,17 @@ public interface RecordMapper<K, V> {
     }
 
     /**
-     * Retrieves the set of template extractors configured for the specified Kafka topic. Template
-     * extractors are responsible for generating canonical item names through template expansion
-     * when records from the given topic are processed by {@link #map(KafkaRecord)}.
+     * Retrieves the set of canonical item extractors configured for the specified Kafka topic.
+     * Canonical item extractors are responsible for generating canonical Lightstreamer item names
+     * through template expansion when records from the given topic are processed by {@link
+     * #map(KafkaRecord)}.
      *
      * <p>This method enables inspection of the mapping configuration and is primarily used for
      * diagnostics, testing, and validation of extractor configurations.
      *
      * @param topicName the name of the Kafka topic to retrieve extractors for
-     * @return a set of data extractors configured for the specified topic; never null but may be
-     *     empty if no extractors are configured for the topic
+     * @return a set of canonical item extractors configured for the specified topic; never null but
+     *     may be empty if no extractors are configured for the topic
      */
     Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
 
@@ -223,8 +225,9 @@ public interface RecordMapper<K, V> {
      * <p><strong>Processing steps:</strong>
      *
      * <ol>
-     *   <li>Identifies template extractors for the record's topic
-     *   <li>Evaluates each template against the record data to produce canonical item names
+     *   <li>Identifies canonical item extractors for the record's topic
+     *   <li>Evaluates each template against the record data to produce canonical item names with
+     *       parameters sorted in alphanumeric order
      *   <li>Sets up lazy field extraction using the configured field extractor
      *   <li>Returns a {@code MappedRecord} containing both routing and data information
      * </ol>
@@ -232,10 +235,11 @@ public interface RecordMapper<K, V> {
      * <p><strong>Example:</strong> A record from topic "stocks" with value containing {@code
      * {"symbol": "AAPL", "price": 150.25}} processed with template {@code
      * "stock-#{symbol=VALUE.symbol}"} would produce a {@code MappedRecord} with canonical item name
-     * {@code "stock-[symbol=AAPL]"} and field data available on demand.
+     * {@code "stock-[symbol=AAPL]"} and Lightstreamer field data available on demand.
      *
-     * <p><strong>No-op behavior:</strong> If no template extractors are configured for the record's
-     * topic, returns a no-operation record that produces no routing targets and empty field data.
+     * <p><strong>No-op behavior:</strong> If no canonical item extractors are configured for the
+     * record's topic, returns a no-operation record that produces no routing targets and empty
+     * field data.
      *
      * @param record the Kafka record to be mapped into Lightstreamer format
      * @return a {@code MappedRecord} containing canonical item names and lazy field access; never
