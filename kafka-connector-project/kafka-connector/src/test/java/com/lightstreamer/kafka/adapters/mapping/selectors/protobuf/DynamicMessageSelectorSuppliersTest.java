@@ -27,7 +27,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -87,14 +87,14 @@ public class DynamicMessageSelectorSuppliersTest {
     static KeySelector<DynamicMessage> keySelector(String expression) throws ExtractionException {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static ValueSelector<DynamicMessage> valueSelector(String expression)
             throws ExtractionException {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static String maybeEmpty(String expected) {
@@ -327,7 +327,7 @@ public class DynamicMessageSelectorSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, DynamicMessage> record = fromValue(SAMPLE_MESSAGE);
 
-        valueSelector("VALUE").extractValueInto(record, target);
+        valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name", "joe",
@@ -388,6 +388,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.mainAddress              | The expression [VALUE.mainAddress] must evaluate to a non-complex object
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
+                VALUE.*                        | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -557,7 +558,7 @@ public class DynamicMessageSelectorSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<DynamicMessage, ?> record = fromKey(SAMPLE_MESSAGE);
 
-        keySelector("KEY").extractKeyInto(record, target);
+        keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name", "joe",
@@ -617,6 +618,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.mainAddress              | The expression [KEY.mainAddress] must evaluate to a non-complex object
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
+                KEY.*                        | The expression [KEY.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
