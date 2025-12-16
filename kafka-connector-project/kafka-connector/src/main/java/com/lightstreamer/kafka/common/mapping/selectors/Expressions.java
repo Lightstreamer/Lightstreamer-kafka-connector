@@ -52,6 +52,10 @@ public class Expressions {
         String[] tokens();
 
         String expression();
+
+        default boolean isWildCardExpression() {
+            return false;
+        }
     }
 
     public enum Constant implements ExtractionExpression {
@@ -157,7 +161,8 @@ public class Expressions {
         public static ExpressionException missingRootTokens(String expression)
                 throws ExpressionException {
             return new ExpressionException(
-                    "Missing root tokens [%s]".formatted(Constant.VALUES_STR));
+                    "Missing root tokens [%s] in the expression [%s]"
+                            .formatted(Constant.VALUES_STR, expression));
         }
 
         public static ExpressionException unexpectedTrailingDots(String expression)
@@ -171,6 +176,18 @@ public class Expressions {
                 throws ExpressionException {
             return new ExpressionException(
                     "Found unexpected white char in the expression [%s]".formatted(expression));
+        }
+
+        public static ExpressionException unexpectedWildCard(String expression)
+                throws ExpressionException {
+            return new ExpressionException(
+                    "Found unexpected wildcard char in the expression [%s]".formatted(expression));
+        }
+
+        public static ExpressionException expectedWildCard(String expression)
+                throws ExpressionException {
+            return new ExpressionException(
+                    "Missing wildcard char in the expression [%s]".formatted(expression));
         }
     }
 
@@ -263,11 +280,11 @@ public class Expressions {
             implements Parser.ParseResultBuilder<TemplateExpression> {
 
         private final SortedMap<String, ExtractionExpression> params = new TreeMap<>();
-        private final ExtractionExpressionParser extractionExpressionParser;
+        private final ExpressionParser expressionParser;
         private String prefix;
 
-        private TemplateBuilder(ExtractionExpressionParser extractionExpressionParser) {
-            this.extractionExpressionParser = extractionExpressionParser;
+        private TemplateBuilder(ExpressionParser expressionParser) {
+            this.expressionParser = expressionParser;
         }
 
         @Override
@@ -280,7 +297,9 @@ public class Expressions {
             if (params.containsKey(key)) {
                 return false;
             }
-            params.put(key, extractionExpressionParser.parse(value));
+            ExtractionExpression value2 = expressionParser.parse(value);
+            ExpressionParser.checkWildcard(value2, false);
+            params.put(key, value2);
             return true;
         }
 
@@ -331,11 +350,18 @@ public class Expressions {
         private final Constant root;
         private final String completeExpression;
         private final String[] tokens;
+        private final boolean wildCardExpression;
 
-        private ExtractionExpressionImpl(Constant root, String[] tokens, String expression) {
+        private ExtractionExpressionImpl(
+                Constant root, String[] tokens, String expression, boolean isWildCard) {
             this.root = root;
             this.completeExpression = expression;
-            this.tokens = tokens;
+            if (isWildCard) {
+                this.tokens = Arrays.copyOf(tokens, tokens.length - 2);
+            } else {
+                this.tokens = Arrays.copyOf(tokens, tokens.length);
+            }
+            this.wildCardExpression = isWildCard;
         }
 
         @Override
@@ -353,13 +379,19 @@ public class Expressions {
             return completeExpression;
         }
 
+        @Override
         public String[] tokens() {
             return Arrays.copyOf(tokens, tokens.length);
         }
 
         @Override
+        public boolean isWildCardExpression() {
+            return wildCardExpression;
+        }
+
+        @Override
         public int hashCode() {
-            return Objects.hash(completeExpression);
+            return Objects.hash(completeExpression, wildCardExpression);
         }
 
         @Override
@@ -367,32 +399,63 @@ public class Expressions {
             if (this == obj) return true;
 
             return obj instanceof ExtractionExpressionImpl other
-                    && Objects.equals(completeExpression, other.completeExpression);
+                    && Objects.equals(completeExpression, other.completeExpression)
+                    && wildCardExpression == other.wildCardExpression;
         }
     }
 
-    private static class ExtractionExpressionParser {
+    private static class ExpressionParser {
 
-        private static final Pattern FIELD = Pattern.compile(SELECTION_REGEX);
+        private final Pattern SELECTION = Pattern.compile(SELECTION_REGEX);
 
-        ExtractionExpression parseWrapped(String wrappedExpression) {
-            Matcher matcher = FIELD.matcher(nonNullString(wrappedExpression));
+        private ExpressionParser() {}
+
+        ExtractionExpression parseWrapped(String wrappedExpression) throws ExpressionException {
+            Matcher matcher = SELECTION.matcher(nonNullString(wrappedExpression));
             if (!matcher.matches()) {
                 throw new ExpressionException("Invalid expression");
             }
             return parse(matcher.group(1));
         }
 
+        ExtractionExpression parseWrapped(String wrappedExpression, boolean expectedAsWildCard)
+                throws ExpressionException {
+            ExtractionExpression expression = parseWrapped(wrappedExpression);
+            checkWildcard(expression, expectedAsWildCard);
+            return expression;
+        }
+
         ExtractionExpression parse(String expression) throws ExpressionException {
+            // Here expression is guaranteed to be non-null and non-empty, therefore at least one
+            // token is expected
             String[] tokens = getTokens(nonNullString(expression));
-            Constant root = tokens.length > 0 ? Constant.from(tokens[0]) : null;
+            int length = tokens.length;
+
+            Constant root = Constant.from(tokens[0]);
             if (root == null) {
                 throw ExpressionException.missingRootTokens(expression);
             }
-            if (tokens.length > 0 && tokens[tokens.length - 1].equals(".")) {
+
+            String lastToken = tokens[length - 1];
+            if (lastToken.equals(".")) {
                 throw ExpressionException.unexpectedTrailingDots(expression);
             }
-            return new ExtractionExpressionImpl(root, tokens, expression);
+
+            boolean isWildCard =
+                    length >= 2 && lastToken.equals("*") && tokens[length - 2].equals(".");
+
+            return new ExtractionExpressionImpl(root, tokens, expression, isWildCard);
+        }
+
+        static void checkWildcard(
+                ExtractionExpression extractionExpression, boolean expectedAsWildCard) {
+            if (extractionExpression.isWildCardExpression() != expectedAsWildCard) {
+                if (expectedAsWildCard) {
+                    throw ExpressionException.expectedWildCard(extractionExpression.expression());
+                } else {
+                    throw ExpressionException.unexpectedWildCard(extractionExpression.expression());
+                }
+            }
         }
     }
 
@@ -411,14 +474,13 @@ public class Expressions {
     // INSTANCE FIELDS
     // ================================
 
-    private final ExtractionExpressionParser extractionExpressionParser =
-            new ExtractionExpressionParser();
+    private final ExpressionParser expressionParser = new ExpressionParser();
 
     private final Parser<TemplateExpression> templateParser =
             new Parser.ParserBuilder<TemplateExpression>()
                     .withGlobalPattern(
                             Pattern.compile("(^[a-zA-Z0-9_-]+)(-" + SELECTION_REGEX + ")$"))
-                    .withResultBuilder(() -> new TemplateBuilder(extractionExpressionParser))
+                    .withResultBuilder(() -> new TemplateBuilder(expressionParser))
                     .withErrorMsg("Invalid template expression")
                     .build();
 
@@ -463,6 +525,16 @@ public class Expressions {
         return EXPRESSIONS.parseWrapped(wrappedExpression);
     }
 
+    public static ExtractionExpression WrappedWithWildcards(String wrappedExpression)
+            throws ExpressionException {
+        return EXPRESSIONS.parseWrappedWithWildcard(wrappedExpression);
+    }
+
+    public static ExtractionExpression WrappedNoWildcardCheck(String wrappedExpression)
+            throws ExpressionException {
+        return EXPRESSIONS.parseWrappedNoWildcardCheck(wrappedExpression);
+    }
+
     public static SubscriptionExpression Subscription(String subscriptionExpression)
             throws ExpressionException {
         return EXPRESSIONS.parseSubscription(subscriptionExpression);
@@ -472,8 +544,13 @@ public class Expressions {
         return EXPRESSIONS.canonicalItemName(expression);
     }
 
-    public static ExtractionExpression Expression(String expression) throws ExpressionException {
-        return EXPRESSIONS.parseExtractionExpression(expression);
+    public static ExtractionExpression Wrap(String expression) throws ExpressionException {
+        return EXPRESSIONS.parseWrapped("#{" + expression + "}");
+    }
+
+    public static ExtractionExpression WrapWithWildcards(String expression)
+            throws ExpressionException {
+        return EXPRESSIONS.parseWrappedWithWildcard("#{" + expression + "}");
     }
 
     // ================================
@@ -493,12 +570,18 @@ public class Expressions {
         return canonicalItemNameParser.parse(expression);
     }
 
-    ExtractionExpression parseWrapped(String wrappedExpression) throws ExpressionException {
-        return extractionExpressionParser.parseWrapped(wrappedExpression);
+    ExtractionExpression parseWrappedNoWildcardCheck(String fieldExpression)
+            throws ExpressionException {
+        return expressionParser.parseWrapped(fieldExpression);
     }
 
-    ExtractionExpression parseExtractionExpression(String expression) throws ExpressionException {
-        return extractionExpressionParser.parse(expression);
+    ExtractionExpression parseWrapped(String fieldExpression) throws ExpressionException {
+        return expressionParser.parseWrapped(fieldExpression, false);
+    }
+
+    ExtractionExpression parseWrappedWithWildcard(String fieldExpression)
+            throws ExpressionException {
+        return expressionParser.parseWrapped(fieldExpression, true);
     }
 
     // ================================
