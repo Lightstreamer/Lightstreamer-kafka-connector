@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.EmptyTemplate;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
 
@@ -34,7 +34,6 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -116,10 +115,9 @@ public class ItemTemplatesTest {
         assertWithMessage("The extractor associated with TEST_TOPIC_1 is as expected")
                 .that(extractors.get(TEST_TOPIC_1))
                 .containsExactly(
-                        canonicalItemExtractor(
-                                Object(),
-                                new TemplateExpression(
-                                        "stock", Map.of("index", Expression("KEY.attrib")))));
+                        canonicalItemExtractor(Object(), Template("stock-#{index=KEY.attrib}")));
+        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+                .containsExactly(Schema.from("stock", Set.of("index")));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
                 .that(extractors.get(TEST_TOPIC_2))
@@ -127,10 +125,7 @@ public class ItemTemplatesTest {
         assertWithMessage("The extractor associated with TEST_TOPIC_2 is as expected")
                 .that(extractors.get(TEST_TOPIC_2))
                 .containsExactly(
-                        canonicalItemExtractor(
-                                Object(),
-                                new TemplateExpression(
-                                        "stock", Map.of("index", Expression("KEY.attrib")))));
+                        canonicalItemExtractor(Object(), Template("stock-#{index=KEY.attrib}")));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
