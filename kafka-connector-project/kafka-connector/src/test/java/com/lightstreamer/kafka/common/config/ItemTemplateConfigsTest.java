@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -56,7 +56,8 @@ public class ItemTemplateConfigsTest {
         assertThat(it.contains("template-name")).isTrue();
         TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
-        assertThat(expression.params()).containsExactly("param", Expression("OFFSET"));
+        assertThat(expression.params())
+                .containsExactly("param", WrappedNoWildcardCheck("#{OFFSET}"));
     }
 
     @Test
@@ -73,11 +74,11 @@ public class ItemTemplateConfigsTest {
         assertThat(expression.params())
                 .containsExactly(
                         "param1",
-                        Expression("OFFSET"),
+                        WrappedNoWildcardCheck("#{OFFSET}"),
                         "param2",
-                        Expression("PARTITION"),
+                        WrappedNoWildcardCheck("#{PARTITION}"),
                         "param3",
-                        Expression("TIMESTAMP"));
+                        WrappedNoWildcardCheck("#{TIMESTAMP}"));
     }
 
     @Test
@@ -97,22 +98,21 @@ public class ItemTemplateConfigsTest {
         assertThat(expression_a.params())
                 .containsExactly(
                         "param1a",
-                        Expression("VALUE"),
+                        WrappedNoWildcardCheck("#{VALUE}"),
                         "param2a",
-                        Expression("KEY"),
+                        WrappedNoWildcardCheck("#{KEY}"),
                         "param3a",
-                        Expression("PARTITION"));
-
+                        WrappedNoWildcardCheck("#{PARTITION}"));
         TemplateExpression expression_b = it.getTemplateExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
                         "param1b",
-                        Expression("VALUE.b"),
+                        WrappedNoWildcardCheck("#{VALUE.b}"),
                         "param2b",
-                        Expression("KEY.b"),
+                        WrappedNoWildcardCheck("#{KEY.b}"),
                         "param3b",
-                        Expression("KEY.c"));
+                        WrappedNoWildcardCheck("#{KEY.c}"));
     }
 
     @ParameterizedTest
