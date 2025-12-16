@@ -544,15 +544,6 @@ public class Expressions {
         return EXPRESSIONS.canonicalItemName(expression);
     }
 
-    public static ExtractionExpression Wrap(String expression) throws ExpressionException {
-        return EXPRESSIONS.parseWrapped("#{" + expression + "}");
-    }
-
-    public static ExtractionExpression WrapWithWildcards(String expression)
-            throws ExpressionException {
-        return EXPRESSIONS.parseWrappedWithWildcard("#{" + expression + "}");
-    }
-
     // ================================
     // PACKAGE-PRIVATE INSTANCE METHODS
     // ================================
