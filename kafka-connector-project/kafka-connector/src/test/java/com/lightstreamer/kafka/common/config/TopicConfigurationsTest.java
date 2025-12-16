@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static org.junit.Assert.assertThrows;
 
@@ -77,7 +77,8 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference = itemReferences.get(0);
         assertThat(itemReference.prefix()).isEqualTo("template1");
-        assertThat(itemReference.params()).containsExactly("a", Expression("PARTITION"));
+        assertThat(itemReference.params())
+                .containsExactly("a", WrappedNoWildcardCheck("#{PARTITION}"));
     }
 
     @Test
@@ -130,11 +131,13 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference1 = itemReferences.get(0);
         assertThat(itemReference1.prefix()).isEqualTo("template1");
-        assertThat(itemReference1.params()).containsExactly("a", Expression("VALUE"));
+        assertThat(itemReference1.params())
+                .containsExactly("a", WrappedNoWildcardCheck("#{VALUE}"));
 
         TemplateExpression itemReference2 = itemReferences.get(1);
         assertThat(itemReference2.prefix()).isEqualTo("template2");
-        assertThat(itemReference2.params()).containsExactly("c", Expression("OFFSET"));
+        assertThat(itemReference2.params())
+                .containsExactly("c", WrappedNoWildcardCheck("#{OFFSET}"));
     }
 
     @Test
@@ -185,7 +188,7 @@ public class TopicConfigurationsTest {
 
         TemplateExpression itemReference = itemReferences.get(0);
         assertThat(itemReference.prefix()).isEqualTo("template1");
-        assertThat(itemReference.params()).containsExactly("a", Expression("KEY"));
+        assertThat(itemReference.params()).containsExactly("a", WrappedNoWildcardCheck("#{KEY}"));
     }
 
     @Test
