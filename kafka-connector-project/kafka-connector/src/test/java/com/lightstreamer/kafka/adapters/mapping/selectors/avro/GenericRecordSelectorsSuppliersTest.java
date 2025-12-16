@@ -23,7 +23,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -76,14 +76,14 @@ public class GenericRecordSelectorsSuppliersTest {
     static KeySelector<GenericRecord> keySelector(String expression) throws ExtractionException {
         return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static ValueSelector<GenericRecord> valueSelector(String expression)
             throws ExtractionException {
         return new GenericRecordSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -243,7 +243,7 @@ public class GenericRecordSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, GenericRecord> record = fromValue(SAMPLE_MESSAGE);
 
-        valueSelector("VALUE").extractValueInto(record, target);
+        valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name",
@@ -315,6 +315,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.type.attrib           | Cannot retrieve field [attrib] from a scalar object
                 VALUE.emptyArray[0]         | Field not found at index [0]
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
+                VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -501,7 +502,7 @@ public class GenericRecordSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<GenericRecord, ?> record = fromKey(SAMPLE_MESSAGE);
 
-        keySelector("KEY").extractKeyInto(record, target);
+        keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
                 .containsAtLeast(
                         "name",
@@ -570,6 +571,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.type.attrib           | Cannot retrieve field [attrib] from a scalar object
                 KEY.nullValue[0]          | Cannot retrieve index [0] from a null object
+                KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
