@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -70,13 +70,13 @@ public class JsonNodeSelectorsSuppliersTest {
     static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -273,7 +273,7 @@ public class JsonNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, JsonNode> record = fromValue(message);
 
-        valueSelector("VALUE").extractValueInto(record, target);
+        valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "name",
@@ -339,6 +339,7 @@ public class JsonNodeSelectorsSuppliersTest {
                     """
                 EXPRESSION                  | EXPECTED_ERROR_MESSAGE
                 VALUE                       | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.a b                   | Field [a b] not found
                 VALUE.no_attrib             | Field [no_attrib] not found
                 VALUE['no_attrib']          | Field [no_attrib] not found
                 VALUE.children[0].no_attrib | Field [no_attrib] not found
@@ -353,6 +354,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 VALUE.children[4]           | Field not found at index [4]
                 VALUE.children[4].name      | Field not found at index [4]
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
+                VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -568,7 +570,7 @@ public class JsonNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<JsonNode, ?> record = fromKey(message);
 
-        keySelector("KEY").extractKeyInto(record, target);
+        keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "name",
@@ -631,6 +633,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.children[4]           | Field not found at index [4]
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
+                KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
