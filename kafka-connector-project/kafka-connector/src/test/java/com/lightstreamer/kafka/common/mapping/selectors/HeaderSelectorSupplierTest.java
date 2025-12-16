@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static org.junit.Assert.assertThrows;
 
@@ -66,7 +66,8 @@ public class HeaderSelectorSupplierTest {
             };
 
     static HeadersSelector headersSelector(String expression) throws ExtractionException {
-        return new HeadersSelectorSupplier().newSelector(Expression(expression));
+        return new HeadersSelectorSupplier()
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -196,6 +197,7 @@ public class HeaderSelectorSupplierTest {
                     """
                 EXPRESSION                   | EXPECTED_ERROR_MESSAGE
                 HEADERS                      | The expression [HEADERS] must evaluate to a non-complex object
+                HEADERS.*                    | The expression [HEADERS.*] must evaluate to a non-complex object
                 HEADERS['no_attrib']         | Field [no_attrib] not found
                 HEADERS.no_attrib            | Field [no_attrib] not found
                 HEADERS.no_children[0]       | Field [no_children] not found
