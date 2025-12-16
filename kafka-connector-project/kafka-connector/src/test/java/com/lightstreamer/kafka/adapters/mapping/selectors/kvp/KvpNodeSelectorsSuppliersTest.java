@@ -25,7 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
@@ -74,7 +74,7 @@ public class KvpNodeSelectorsSuppliersTest {
             throws ExtractionException {
         return new KvpSelectorsSuppliers(config)
                 .makeKeySelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static ValueSelector<String> valueSelector(String expression) throws ExtractionException {
@@ -85,7 +85,7 @@ public class KvpNodeSelectorsSuppliersTest {
             throws ExtractionException {
         return new KvpSelectorsSuppliers(config)
                 .makeValueSelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -193,7 +193,7 @@ public class KvpNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION         | EXPECTED_NAME       | EXPECTED_VALUE
+                EXPRESSION         | EXPECTED_NAME      | EXPECTED_VALUE
                 VALUE.QCHARTTOT    | QCHARTTOT          | 2032
                 VALUE['QCHARTTOT'] | QCHARTTOT          | 2032
                 VALUE.TRow         | TRow               | 12790
@@ -230,7 +230,7 @@ public class KvpNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, String> record = fromValue(INPUT);
 
-        valueSelector("VALUE").extractValueInto(record, target);
+        valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "QCHARTTOT",
@@ -280,6 +280,7 @@ public class KvpNodeSelectorsSuppliersTest {
                     """
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
                 VALUE                     | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.*                   | The expression [VALUE.*] must evaluate to a non-complex object
                 VALUE.no_attrib           | Field [no_attrib] not found
                 VALUE['no_attrib']        | Field [no_attrib] not found
                 VALUE.no_children[0]      | Field [no_children] not found
@@ -486,7 +487,7 @@ public class KvpNodeSelectorsSuppliersTest {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<String, ?> record = fromKey(INPUT);
 
-        keySelector("KEY").extractKeyInto(record, target);
+        keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
                 .containsExactly(
                         "QCHARTTOT",
@@ -536,6 +537,7 @@ public class KvpNodeSelectorsSuppliersTest {
                     """
                 EXPRESSION              | EXPECTED_ERROR_MESSAGE
                 KEY                     | The expression [KEY] must evaluate to a non-complex object
+                KEY.*                   | The expression [KEY.*] must evaluate to a non-complex object
                 KEY.no_attrib           | Field [no_attrib] not found
                 KEY['no_attrib']        | Field [no_attrib] not found
                 KEY.no_children[0]      | Field [no_children] not found
