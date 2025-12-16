@@ -35,7 +35,7 @@ public class ConnectorConfigProvider {
         adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
         adapterParams.put("map.topic.to", "item");
         adapterParams.put("field.fieldName1", "#{VALUE}");
-        adapterParams.put("field.*", "#{VALUE}");
+        adapterParams.put("field.*", "#{VALUE.*}");
         return adapterParams;
     }
 
