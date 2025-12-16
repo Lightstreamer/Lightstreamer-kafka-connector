@@ -61,6 +61,7 @@ public class ConstantTest {
         assertThat(allValues.length).isEqualTo(allConstants.size());
         for (Constant constant : allValues) {
             assertThat(allConstants.contains(constant));
+            assertThat(constant.isWildCardExpression()).isFalse();
         }
     }
 
