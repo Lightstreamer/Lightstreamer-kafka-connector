@@ -33,7 +33,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.SHORT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -133,7 +133,8 @@ public class OthersSelectorSuppliersTestTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
-        KeySelector<Object> selector = keySelectorSupplier.newSelector(Expression("KEY"));
+        KeySelector<Object> selector =
+                keySelectorSupplier.newSelector(WrappedNoWildcardCheck("#{KEY}"));
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
 
@@ -158,7 +159,9 @@ public class OthersSelectorSuppliersTestTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> keySelectorSupplier.newSelector(Expression(expression)));
+                        () ->
+                                keySelectorSupplier.newSelector(
+                                        WrappedNoWildcardCheck("#{" + expression + "}")));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
@@ -203,7 +206,8 @@ public class OthersSelectorSuppliersTestTest {
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
-        ValueSelector<Object> selector = valueSelectorSupplier.newSelector(Expression("VALUE"));
+        ValueSelector<Object> selector =
+                valueSelectorSupplier.newSelector(WrappedNoWildcardCheck("#{VALUE}"));
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
@@ -228,7 +232,9 @@ public class OthersSelectorSuppliersTestTest {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
-                        () -> valueSelectorSupplier.newSelector(Expression(expression)));
+                        () ->
+                                valueSelectorSupplier.newSelector(
+                                        WrappedNoWildcardCheck("#{" + expression + "}")));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
@@ -275,20 +281,22 @@ public class OthersSelectorSuppliersTestTest {
         for (boolean checkScalar : checkScalars) {
             Data autoBoundData =
                     valueSupplier
-                            .newSelector(Expression("VALUE"))
+                            .newSelector(WrappedNoWildcardCheck("#{VALUE}"))
                             .extractValue(kafkaRecord, checkScalar);
             assertThat(autoBoundData.name()).isEqualTo("VALUE");
             assertThat(autoBoundData.text()).isEqualTo(String.valueOf(data));
 
             Data boundData =
                     valueSupplier
-                            .newSelector(Expression("VALUE"))
+                            .newSelector(WrappedNoWildcardCheck("#{VALUE}"))
                             .extractValue("param", kafkaRecord, checkScalar);
             assertThat(boundData.name()).isEqualTo("param");
             assertThat(boundData.text()).isEqualTo(String.valueOf(data));
 
             Map<String, String> target = new java.util.HashMap<>();
-            valueSupplier.newSelector(Expression("VALUE")).extractValueInto(kafkaRecord, target);
+            valueSupplier
+                    .newSelector(WrappedNoWildcardCheck("#{VALUE.*}"))
+                    .extractValueInto(kafkaRecord, target);
             assertThat(target).isEmpty();
         }
     }
@@ -307,7 +315,7 @@ public class OthersSelectorSuppliersTestTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     valueSupplier
-                            .newSelector(Expression("VALUE"))
+                            .newSelector(WrappedNoWildcardCheck("#{VALUE}"))
                             .extractValue(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isNull();
@@ -331,12 +339,25 @@ public class OthersSelectorSuppliersTestTest {
 
         boolean[] checkScalars = {true, false};
         for (boolean checkScalar : checkScalars) {
-            String text =
+            Data autoBoundData =
                     keySupplier
-                            .newSelector(Expression("KEY"))
-                            .extractKey(kafkaRecord, checkScalar)
-                            .text();
-            assertThat(text).isEqualTo(String.valueOf(data));
+                            .newSelector(WrappedNoWildcardCheck("#{KEY}"))
+                            .extractKey(kafkaRecord, checkScalar);
+            assertThat(autoBoundData.name()).isEqualTo("KEY");
+            assertThat(autoBoundData.text()).isEqualTo(String.valueOf(data));
+
+            Data boundData =
+                    keySupplier
+                            .newSelector(WrappedNoWildcardCheck("#{KEY}"))
+                            .extractKey("param", kafkaRecord, checkScalar);
+            assertThat(boundData.name()).isEqualTo("param");
+            assertThat(boundData.text()).isEqualTo(String.valueOf(data));
+
+            Map<String, String> target = new java.util.HashMap<>();
+            keySupplier
+                    .newSelector(WrappedNoWildcardCheck("#{KEY.*}"))
+                    .extractKeyInto(kafkaRecord, target);
+            assertThat(target).isEmpty();
         }
     }
 
@@ -354,7 +375,7 @@ public class OthersSelectorSuppliersTestTest {
         for (boolean checkScalar : checkScalars) {
             String text =
                     keySupplier
-                            .newSelector(Expression("KEY"))
+                            .newSelector(WrappedNoWildcardCheck("#{KEY}"))
                             .extractKey(kafkaRecord, checkScalar)
                             .text();
             assertThat(text).isNull();
@@ -369,7 +390,7 @@ public class OthersSelectorSuppliersTestTest {
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
-        ExtractionExpression expression = Expression("VALUE.a");
+        ExtractionExpression expression = WrappedNoWildcardCheck("#{VALUE.a}");
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
