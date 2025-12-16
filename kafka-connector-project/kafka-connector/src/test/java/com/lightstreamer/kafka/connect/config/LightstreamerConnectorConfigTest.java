@@ -18,7 +18,8 @@
 package com.lightstreamer.kafka.connect.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -296,13 +297,13 @@ public class LightstreamerConnectorConfigTest {
 
         TemplateExpression stockExpression = itemTemplate.getTemplateExpression("stock-template");
         assertThat(stockExpression.prefix()).isEqualTo("stock");
-        assertThat(stockExpression.params()).containsExactly("index", Expression("KEY"));
+        assertThat(stockExpression.params()).containsExactly("index", Wrapped("#{KEY}"));
 
         TemplateExpression productExpression =
                 itemTemplate.getTemplateExpression("product-template");
         assertThat(productExpression.prefix()).isEqualTo("product");
         assertThat(productExpression.params())
-                .containsExactly("id", Expression("KEY"), "price", Expression("VALUE.price"));
+                .containsExactly("id", Wrapped("#{KEY}"), "price", Wrapped("#{VALUE.price}"));
     }
 
     @Test
@@ -412,52 +413,54 @@ public class LightstreamerConnectorConfigTest {
                     topic:#{TOPIC},\
                     offset:#{OFFSET},\
                     partition:#{PARTITION},\
-                    *:#{VALUE}
+                    *:#{VALUE.*}
                 """;
         Map<String, String> props = basicConfig();
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS, fieldMappingConfig);
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
 
         FieldConfigs fieldMappings = config.getFieldConfigs();
+        assertThat(fieldMappings.discoveredFieldsExpressions())
+                .containsExactly("*", WrappedWithWildcards("#{VALUE.*}"));
 
-        assertThat(fieldMappings.boundExpressions())
+        assertThat(fieldMappings.namedFieldsExpressions())
                 .containsExactly(
                         "timestamp",
-                        Expression("VALUE.timestamp"),
+                        Wrapped("#{VALUE.timestamp}"),
                         "time",
-                        Expression("VALUE.time"),
+                        Wrapped("#{VALUE.time}"),
                         "stock_name",
-                        Expression("VALUE.name"),
+                        Wrapped("#{VALUE.name}"),
                         "last_price",
-                        Expression("VALUE.last_price"),
+                        Wrapped("#{VALUE.last_price}"),
                         "ask",
-                        Expression("VALUE.ask"),
+                        Wrapped("#{VALUE.ask}"),
                         "ask_quantity",
-                        Expression("VALUE.ask_quantity"),
+                        Wrapped("#{VALUE.ask_quantity}"),
                         "bid",
-                        Expression("VALUE.bid"),
+                        Wrapped("#{VALUE.bid}"),
                         "bid_quantity",
-                        Expression("VALUE.bid_quantity"),
+                        Wrapped("#{VALUE.bid_quantity}"),
                         "pct_change",
-                        Expression("VALUE.pct_change"),
+                        Wrapped("#{VALUE.pct_change}"),
                         "min",
-                        Expression("VALUE.min"),
+                        Wrapped("#{VALUE.min}"),
                         "max",
-                        Expression("VALUE.max"),
+                        Wrapped("#{VALUE.max}"),
                         "ref_price",
-                        Expression("VALUE.ref_price"),
+                        Wrapped("#{VALUE.ref_price}"),
                         "open_price",
-                        Expression("VALUE.open_price"),
+                        Wrapped("#{VALUE.open_price}"),
                         "item_status",
-                        Expression("VALUE.item_status"),
+                        Wrapped("#{VALUE.item_status}"),
                         "ts",
-                        Expression("TIMESTAMP"),
+                        Wrapped("#{TIMESTAMP}"),
                         "topic",
-                        Expression("TOPIC"),
+                        Wrapped("#{TOPIC}"),
                         "offset",
-                        Expression("OFFSET"),
+                        Wrapped("#{OFFSET}"),
                         "partition",
-                        Expression("PARTITION"));
+                        Wrapped("#{PARTITION}"));
     }
 
     @ParameterizedTest
