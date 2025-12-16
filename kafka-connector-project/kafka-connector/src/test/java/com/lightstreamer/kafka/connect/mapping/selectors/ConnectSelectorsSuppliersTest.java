@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.connect.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromKey;
 import static com.lightstreamer.kafka.test_utils.Records.sinkFromValue;
 
@@ -92,13 +92,13 @@ public class ConnectSelectorsSuppliersTest {
     KeySelector<Object> keySelector(String expression) throws ExtractionException {
         return new ConnectSelectorsSuppliers()
                 .makeKeySelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     ValueSelector<Object> valueSelector(String expression) throws ExtractionException {
         return new ConnectSelectorsSuppliers()
                 .makeValueSelectorSupplier()
-                .newSelector(Expression(expression));
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class ConnectSelectorsSuppliersTest {
 
     @Test
     public void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
-        ValueSelector<Object> valueSelector = valueSelector("VALUE");
+        ValueSelector<Object> valueSelector = valueSelector("VALUE.*");
         KafkaRecord<Object, Object> record =
                 sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
 
@@ -232,7 +232,7 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                   | EXPECTED_ERROR_MESSAGE
-                VALUE                        | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.*                      | The expression [VALUE.*] must evaluate to a non-complex object
                 VALUE.no_attrib              | Field [no_attrib] not found
                 VALUE['no_attrib']           | Field [no_attrib] not found
                 VALUE.children[0].no_attrib  | Field [no_attrib] not found
@@ -431,7 +431,7 @@ public class ConnectSelectorsSuppliersTest {
 
     @Test
     public void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
-        KeySelector<Object> keySelector = keySelector("KEY");
+        KeySelector<Object> keySelector = keySelector("KEY.*");
         KafkaRecord<Object, Object> record =
                 sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
 
@@ -453,6 +453,7 @@ public class ConnectSelectorsSuppliersTest {
                     """
                 EXPRESSION                 | EXPECTED_ERROR_MESSAGE
                 KEY                        | The expression [KEY] must evaluate to a non-complex object
+                KEY.*                      | The expression [KEY.*] must evaluate to a non-complex object
                 KEY.no_attrib              | Field [no_attrib] not found
                 KEY['no_attrib']           | Field [no_attrib] not found
                 KEY.children[0].no_attrib  | Field [no_attrib] not found
