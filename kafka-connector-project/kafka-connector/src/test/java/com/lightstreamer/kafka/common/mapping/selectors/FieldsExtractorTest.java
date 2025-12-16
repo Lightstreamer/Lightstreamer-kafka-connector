@@ -20,7 +20,8 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
@@ -28,13 +29,10 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import static java.util.Collections.EMPTY_MAP;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.test_utils.Records;
 
@@ -43,7 +41,6 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.charset.StandardCharsets;
@@ -56,66 +53,65 @@ import java.util.stream.Stream;
 
 public class FieldsExtractorTest {
 
-    static Stream<Arguments> boundExtractionExpressions() {
+    static Stream<Arguments> namedFieldsExpressions() {
         return Stream.of(
-                arguments(EMPTY_MAP, false, false, EMPTY_MAP),
                 arguments(
-                        Map.of("name", Expression("VALUE")), true, false, Map.of("name", "aValue")),
+                        Map.of("name", Wrapped("#{VALUE}")), true, false, Map.of("name", "aValue")),
                 arguments(
-                        Map.of("value", Expression("VALUE"), "key", Expression("KEY")),
+                        Map.of("value", Wrapped("#{VALUE}"), "key", Wrapped("#{KEY}")),
                         false,
                         true,
                         Map.of("key", "aKey", "value", "aValue")),
                 arguments(
-                        Map.of("value", Expression("VALUE"), "key", Expression("KEY")),
+                        Map.of("value", Wrapped("#{VALUE}"), "key", Wrapped("#{KEY}")),
                         true,
                         false,
                         Map.of("key", "aKey", "value", "aValue")),
                 arguments(
                         Map.of(
                                 "timestamp",
-                                Expression("TIMESTAMP"),
+                                Wrapped("#{TIMESTAMP}"),
                                 "partition",
-                                Expression("PARTITION"),
+                                Wrapped("#{PARTITION}"),
                                 "topic",
-                                Expression("TOPIC")),
+                                Wrapped("#{TOPIC}")),
                         false,
                         true,
                         Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
                 arguments(
                         Map.of(
                                 "timestamp",
-                                Expression("TIMESTAMP"),
+                                Wrapped("#{TIMESTAMP}"),
                                 "partition",
-                                Expression("PARTITION"),
+                                Wrapped("#{PARTITION}"),
                                 "topic",
-                                Expression("TOPIC")),
+                                Wrapped("#{TOPIC}")),
                         false,
                         false,
                         Map.of("partition", "150", "topic", "record-topic", "timestamp", "-1")),
                 arguments(
                         Map.of(
                                 "header1",
-                                Expression("HEADERS[0]"),
+                                Wrapped("#{HEADERS[0]}"),
                                 "header2",
-                                Expression("HEADERS['header-key2']")),
+                                Wrapped("#{HEADERS['header-key2']}")),
                         true,
                         false,
                         Map.of("header1", "header-value1", "header2", "header-value2")),
                 arguments(
                         Map.of(
                                 "header1",
-                                Expression("HEADERS[0]"),
+                                Wrapped("#{HEADERS[0]}"),
                                 "header2",
-                                Expression("HEADERS['header-key2']")),
+                                Wrapped("#{HEADERS['header-key2']}")),
                         true,
                         true,
                         Map.of("header1", "header-value1", "header2", "header-value2")));
     }
 
     @ParameterizedTest
-    @MethodSource("boundExtractionExpressions")
-    public void shouldExtractMapFromBoundExtractionExpressions(
+    @MethodSource("namedFieldsExpressions")
+    public void shouldExtractMapFromNamedFieldsExpressions(
             Map<String, ExtractionExpression> expressions,
             boolean skipOnFailure,
             boolean mapNonScalars,
@@ -139,19 +135,20 @@ public class FieldsExtractorTest {
         assertThat(extractor.mappedFields()).isEqualTo(expressions.keySet());
     }
 
-    static Stream<Arguments> unboundExtractionExpressions() {
+    static Stream<Arguments> discoveredFieldsExpressions() {
         return Stream.of(
-                arguments(Collections.emptyList(), false, EMPTY_MAP),
                 arguments(
-                        List.of(Expression("VALUE")),
+                        List.of(WrappedWithWildcards("#{VALUE.*}")),
                         true,
                         Map.of("name", "joe", "signature", "YWJjZA==")),
                 arguments(
-                        List.of(Expression("KEY")),
+                        List.of(WrappedWithWildcards("#{KEY.*}")),
                         true,
                         Map.of("name", "joe", "signature", "YWJjZA==")),
                 arguments(
-                        List.of(Expression("VALUE.notes"), Expression("VALUE")),
+                        List.of(
+                                WrappedWithWildcards("#{VALUE.notes.*}"),
+                                WrappedWithWildcards("#{VALUE.*}")),
                         false,
                         Map.of(
                                 "notes[0]",
@@ -163,7 +160,9 @@ public class FieldsExtractorTest {
                                 "signature",
                                 "YWJjZA==")),
                 arguments(
-                        List.of(Expression("VALUE"), Expression("HEADERS")),
+                        List.of(
+                                WrappedWithWildcards("#{VALUE.*}"),
+                                WrappedWithWildcards("#{HEADERS.*}")),
                         true,
                         Map.of(
                                 "name",
@@ -179,7 +178,7 @@ public class FieldsExtractorTest {
                                 "header-index[1]",
                                 "header-index-value2")),
                 arguments(
-                        List.of(Expression("HEADERS['header-index']")),
+                        List.of(WrappedWithWildcards("#{HEADERS['header-index'].*}")),
                         false,
                         Map.of(
                                 "header-index[0]",
@@ -187,7 +186,7 @@ public class FieldsExtractorTest {
                                 "header-index[1]",
                                 "header-index-value2")),
                 arguments(
-                        List.of(Expression("HEADERS.header-index")),
+                        List.of(WrappedWithWildcards("#{HEADERS.header-index.*}")),
                         false,
                         Map.of(
                                 "header-index[0]",
@@ -197,8 +196,8 @@ public class FieldsExtractorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("unboundExtractionExpressions")
-    public void shouldExtractMapFromAutoBoundExtractionExpressions(
+    @MethodSource("discoveredFieldsExpressions")
+    public void shouldExtractMapFromDiscoveredFieldsExpressions(
             Collection<ExtractionExpression> expressions,
             boolean skipOnFailure,
             Map<String, String> expectedValues)
@@ -227,26 +226,28 @@ public class FieldsExtractorTest {
 
     @Test
     public void shouldExtractMapFromComposedExtractor() throws ExtractionException {
-        // Prepare the bound and auto-bound extraction expressions
-        Map<String, ExtractionExpression> boundExpressions =
+        // Prepare the named and discovered extraction expressions
+        Map<String, ExtractionExpression> namedExpressions =
                 Map.of(
-                        "name", Expression("VALUE.name"),
-                        "signature", Expression("VALUE.signature"),
-                        "conflictingKey", Expression("VALUE.name"),
-                        "key", Expression("KEY"),
-                        "topic", Expression("TOPIC"));
-        List<ExtractionExpression> autoBoundExpressions =
-                List.of(Expression("VALUE.notes"), Expression("HEADERS"));
+                        "name", Wrapped("#{VALUE.name}"),
+                        "signature", Wrapped("#{VALUE.signature}"),
+                        "conflictingKey", Wrapped("#{VALUE.name}"),
+                        "key", Wrapped("#{KEY}"),
+                        "topic", Wrapped("#{TOPIC}"));
+        List<ExtractionExpression> discoveredExpressions =
+                List.of(
+                        WrappedWithWildcards("#{VALUE.notes.*}"),
+                        WrappedWithWildcards("#{HEADERS.*}"));
 
         // Create the composed FieldsExtractor
-        FieldsExtractor<String, JsonNode> boundExtractor =
-                DataExtractors.namedFieldsExtractor(JsonValue(), boundExpressions, false, false);
-        FieldsExtractor<String, JsonNode> autoBoundExtractor =
-                DataExtractors.discoveredFieldsExtractor(JsonValue(), autoBoundExpressions, false);
+        FieldsExtractor<String, JsonNode> namedExtractor =
+                DataExtractors.namedFieldsExtractor(JsonValue(), namedExpressions, false, false);
+        FieldsExtractor<String, JsonNode> discoveredExtractor =
+                DataExtractors.discoveredFieldsExtractor(JsonValue(), discoveredExpressions, false);
 
         FieldsExtractor<String, JsonNode> composedExtractor =
-                DataExtractors.composedFieldsExtractor(List.of(autoBoundExtractor, boundExtractor));
-
+                DataExtractors.composedFieldsExtractor(
+                        List.of(discoveredExtractor, namedExtractor));
         // Extract the values from a Kafka Record
         Headers headers = new RecordHeaders();
         headers.add("conflictingKey", "header-value1".getBytes(StandardCharsets.UTF_8));
@@ -273,38 +274,129 @@ public class FieldsExtractorTest {
                         "accountId[1]", "67890");
     }
 
-    @ParameterizedTest
-    @EnumSource(names = {"TIMESTAMP", "PARTITION", "TOPIC", "OFFSET"})
-    public void shouldNotCreateDynamicExtractorFromConstantExpressions(Constant constant) {
-        // Prepare the extraction expressions, including a constant one that is not supported
-        List<ExtractionExpression> expressions = new ArrayList<>();
-        expressions.add(Expression("VALUE.attrib"));
-        expressions.add(constant);
+    static Stream<Arguments> invalidExpressionsForNamedFieldsExtractor() {
+        Map<String, Expressions.ExtractionExpression> mapWithNullEntries =
+                new java.util.HashMap<>();
+        mapWithNullEntries.put("field1", Wrapped("#{VALUE.attrib}"));
+        mapWithNullEntries.put("field2", null);
+        mapWithNullEntries.put("field3", Wrapped("#{KEY}"));
+        mapWithNullEntries.put(null, WrappedWithWildcards("#{VALUE.*}"));
 
+        return Stream.of(
+                arguments(Collections.emptyMap()),
+                arguments((Map<String, ExtractionExpression>) null),
+                arguments(mapWithNullEntries),
+                arguments(
+                        Map.of(
+                                "field",
+                                WrappedWithWildcards("#{VALUE.attrib.*}"),
+                                "field2",
+                                WrappedWithWildcards("#{VALUE.[0].*}"))),
+                arguments(
+                        Map.of(
+                                "field",
+                                Wrapped("#{VALUE.attrib}"),
+                                "field2",
+                                WrappedWithWildcards("#{KEY.*}"))));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidExpressionsForNamedFieldsExtractor")
+    public void shouldNotCreateNamedFieldsExtractor(Map<String, ExtractionExpression> expressions) {
+        IllegalArgumentException ee =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                DataExtractors.namedFieldsExtractor(
+                                        JsonValue(), expressions, false, false));
+        assertThat(ee)
+                .hasMessageThat()
+                .isEqualTo("All expressions must be non-wildcard expressions");
+    }
+
+    static Stream<Arguments> invalidExpressionsForDiscoveredFieldsExtractor() {
+        List<ExtractionExpression> listWithNullElements = new ArrayList<>();
+        listWithNullElements.add(WrappedWithWildcards("#{VALUE.attrib.*}"));
+        listWithNullElements.add(null);
+        listWithNullElements.add(WrappedWithWildcards("#{KEY.*}"));
+
+        return Stream.of(
+                arguments(Collections.emptyList()),
+                arguments((List<ExtractionExpression>) null),
+                arguments(listWithNullElements),
+                arguments(List.of(Wrapped("#{VALUE.attrib}"), Wrapped("#{TIMESTAMP}"))),
+                arguments(List.of(WrappedWithWildcards("#{VALUE.attrib.*}"), Wrapped("#{KEY}"))));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidExpressionsForDiscoveredFieldsExtractor")
+    public void shouldNotCreateDiscoveredFieldsExtractor(List<ExtractionExpression> expressions) {
         IllegalArgumentException ee =
                 assertThrows(
                         IllegalArgumentException.class,
                         () ->
                                 DataExtractors.discoveredFieldsExtractor(
                                         JsonValue(), expressions, false));
+        assertThat(ee).hasMessageThat().isEqualTo("All expressions must be wildcard expressions");
+    }
+
+    static Stream<Arguments> invalidComposedExtractorArguments() {
+        return Stream.of(
+                arguments((List<FieldsExtractor<String, JsonNode>>) null),
+                arguments(Collections.emptyList()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidComposedExtractorArguments")
+    public void shouldNotCreateComposedExtractorWithNoExtractors(
+            List<FieldsExtractor<String, JsonNode>> extractors) {
+        IllegalArgumentException iae =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> DataExtractors.composedFieldsExtractor(extractors));
+        assertThat(iae).hasMessageThat().isEqualTo("Extractors list must not be null or empty");
+    }
+
+    @Test
+    public void shouldNotCreateExtractorDueToExtractionException() {
+        ExtractionException ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () ->
+                                DataExtractors.discoveredFieldsExtractor(
+                                        JsonValue(),
+                                        List.of(
+                                                WrappedWithWildcards(
+                                                        "#{VALUE.map[invalid-index].*}")),
+                                        false));
         assertThat(ee)
                 .hasMessageThat()
-                .isEqualTo(
-                        "Cannot handle dynamic extraction from the constant expression ["
-                                + constant
-                                + "]");
+                .contains("Found the invalid indexed expression [VALUE.map[invalid-index].*]");
+
+        ee =
+                assertThrows(
+                        ExtractionException.class,
+                        () ->
+                                DataExtractors.namedFieldsExtractor(
+                                        JsonValue(),
+                                        Map.of("field", Wrapped("#{VALUE.map[invalid-index]}")),
+                                        false,
+                                        true));
+        assertThat(ee)
+                .hasMessageThat()
+                .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
     }
 
     @Test
     public void shouldNotExtractMap() throws ExtractionException {
-        FieldsExtractor<String, JsonNode> boundExtractor =
+        FieldsExtractor<String, JsonNode> namedExtractor =
                 DataExtractors.namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "undefined",
-                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                Wrapped("#{VALUE.undefined_attrib}"),
                                 "name",
-                                Expressions.Wrapped("#{VALUE.name}")),
+                                Wrapped("#{VALUE.name}")),
                         false,
                         false);
 
@@ -312,30 +404,31 @@ public class FieldsExtractorTest {
                 assertThrows(
                         ValueException.class,
                         () ->
-                                boundExtractor.extractMap(
+                                namedExtractor.extractMap(
                                         Records.record(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
 
-        FieldsExtractor<String, JsonNode> autoBoundExtractor =
+        FieldsExtractor<String, JsonNode> discoveredExtractor =
                 DataExtractors.discoveredFieldsExtractor(
                         JsonValue(),
                         List.of(
-                                Expressions.Wrapped("#{VALUE.undefined_maps}"),
-                                Expressions.Wrapped("#{VALUE.notes}")),
+                                WrappedWithWildcards("#{VALUE.undefined_maps.*}"),
+                                WrappedWithWildcards("#{VALUE.notes.*}")),
                         false);
 
         ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                autoBoundExtractor.extractMap(
+                                discoveredExtractor.extractMap(
                                         Records.record(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
 
         FieldsExtractor<String, JsonNode> composExtractor =
-                DataExtractors.composedFieldsExtractor(List.of(autoBoundExtractor, boundExtractor));
+                DataExtractors.composedFieldsExtractor(
+                        List.of(discoveredExtractor, namedExtractor));
         ve =
                 assertThrows(
                         ValueException.class,
@@ -355,9 +448,9 @@ public class FieldsExtractorTest {
                         JsonValue(),
                         Map.of(
                                 "complexObject",
-                                Expressions.Wrapped("#{VALUE}"),
+                                Wrapped("#{VALUE}"),
                                 "simpleAttribute",
-                                Expressions.Wrapped("#{VALUE.name}")),
+                                Wrapped("#{VALUE.name}")),
                         false,
                         false);
 
@@ -381,28 +474,29 @@ public class FieldsExtractorTest {
         KafkaRecord<String, JsonNode> record =
                 Records.record("aKey", SampleJsonNodeProvider().sampleMessage());
 
-        FieldsExtractor<String, JsonNode> boundExtractor =
+        FieldsExtractor<String, JsonNode> namedExtractor =
                 DataExtractors.namedFieldsExtractor(
                         JsonValue(),
                         Map.of(
                                 "undefined",
-                                Expressions.Wrapped("#{VALUE.undefined_attrib}"),
+                                Wrapped("#{VALUE.undefined_attrib}"),
                                 "name",
-                                Expressions.Wrapped("#{VALUE.name}")),
+                                Wrapped("#{VALUE.name}")),
                         true,
                         false);
 
-        Map<String, String> tryExtractData = boundExtractor.extractMap(record);
+        Map<String, String> tryExtractData = namedExtractor.extractMap(record);
         assertThat(tryExtractData).containsAtLeast("name", "joe");
 
-        FieldsExtractor<String, JsonNode> autoBoundExtractor =
+        // We expect that only the extraction related to the VALUE.undefined_map fails
+        FieldsExtractor<String, JsonNode> discoveredExtractor =
                 DataExtractors.discoveredFieldsExtractor(
                         JsonValue(),
                         List.of(
-                                Expressions.Wrapped("#{VALUE.undefined_map}"),
-                                Expressions.Wrapped("#{VALUE.notes}")),
+                                WrappedWithWildcards("#{VALUE.undefined_map.*}"),
+                                WrappedWithWildcards("#{VALUE.notes.*}")),
                         true);
-        assertThat(autoBoundExtractor.extractMap(record))
+        assertThat(discoveredExtractor.extractMap(record))
                 .containsExactly(
                         "notes[0]", "note1",
                         "notes[1]", "note2");
@@ -416,9 +510,9 @@ public class FieldsExtractorTest {
                         JsonValue(),
                         Map.of(
                                 "complexObject",
-                                Expressions.Wrapped("#{VALUE}"),
+                                Wrapped("#{VALUE}"),
                                 "simpleAttribute",
-                                Expressions.Wrapped("#{VALUE.name}")),
+                                Wrapped("#{VALUE.name}")),
                         false,
                         true);
 
@@ -433,33 +527,5 @@ public class FieldsExtractorTest {
         // Ensure that both the complex object and the simple attribute are extracted correctly
         assertThat(tryExtractData)
                 .containsExactly("complexObject", message.toString(), "simpleAttribute", "joe");
-    }
-
-    @Test
-    public void shouldNotCreateExtractorDueToExtractionException() {
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () ->
-                                DataExtractors.discoveredFieldsExtractor(
-                                        JsonValue(),
-                                        List.of(Expression("VALUE.map[invalid-index]")),
-                                        false));
-        assertThat(ee)
-                .hasMessageThat()
-                .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
-
-        ee =
-                assertThrows(
-                        ExtractionException.class,
-                        () ->
-                                DataExtractors.namedFieldsExtractor(
-                                        JsonValue(),
-                                        Map.of("field", Expression("VALUE.map[invalid-index]")),
-                                        false,
-                                        true));
-        assertThat(ee)
-                .hasMessageThat()
-                .contains("Found the invalid indexed expression [VALUE.map[invalid-index]]");
     }
 }
