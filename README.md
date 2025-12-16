@@ -1230,6 +1230,24 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > HEADERS.['myKey']
  > ```
 
+- Expressions support **wildcards** for dynamic field discovery:
+
+  - **`#{VALUE.*}`**: Extract all fields from the record value
+  - **`#{KEY.*}`**: Extract all fields from the record key
+  - **`#{HEADERS.*}`**: Extract all headers
+  - **`#{VALUE.nested.*}`**: Extract all fields from any nested non-scalar structure (objects or maps)
+  - **`#{VALUE.items.*}`**: Extract all elements from an array (field names will be `items[0]`, `items[1]`, etc.)
+
+  Wildcard expressions enable automatic field discovery where field names are determined from the record structure at runtime, rather than being predefined in the configuration. Wildcards can be applied at any level to any non-scalar part of the record:
+  
+  - **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
+  - **Arrays**: Extract all elements with indexed field names like `array_name[0]`, `array_name[1]`, etc.
+  
+  This makes wildcards highly flexible for adapting to schema changes or working with variable record structures.
+
+  > [!IMPORTANT]
+  > Wildcard expressions can only be used with the `field.*` parameter for field mapping. They cannot be used in item templates or for specific named field mappings.
+
 - Expressions must evaluate to _scalar_ values
 
   When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
@@ -1337,6 +1355,97 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 <param name="field.item_status">#{VALUE.item_status}</param>
 ..
 ```
+
+##### Dynamic Field Discovery (`field.*`)
+
+Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
+
+- The record schema changes frequently and you want automatic adaptation
+- You have many fields and don't want to list them individually
+- You're working with schema-less or variable-structure records
+
+To enable dynamic field discovery, use wildcard expressions in your field configuration:
+
+```xml
+<param name="field.*">#{VALUE.*}</param>
+```
+
+This configuration automatically extracts all attributes from the record value and maps them to Lightstreamer fields with matching names. For example, a Kafka record with value:
+
+```json
+{
+  "symbol": "AAPL",
+  "price": 150.25,
+  "volume": 1000000,
+  "exchange": "NASDAQ"
+}
+```
+
+will automatically create fields `symbol`, `price`, `volume`, and `exchange` without needing to explicitly configure each one.
+
+**Wildcard patterns supported:**
+
+Wildcards can be applied at any level to extract all fields from non-scalar structures:
+
+- `#{VALUE.*}` - Discover all fields from the root record value
+- `#{KEY.*}` - Discover all fields from the root record key
+- `#{HEADERS.*}` - Discover all headers
+- `#{VALUE.nested.*}` - Discover all fields from any nested non-scalar structure (objects or maps)
+- `#{VALUE.items.*}` - Discover all elements from an array (field names will be `items[0]`, `items[1]`, etc.)
+
+For example, with nested objects or maps:
+
+```json
+{
+  "trade": {
+    "symbol": "AAPL",
+    "details": {
+      "price": 150.25,
+      "volume": 1000000,
+      "exchange": "NASDAQ"
+    }
+  }
+}
+```
+
+You can extract all fields from the nested `details` structure with:
+
+```xml
+<param name="field.*">#{VALUE.trade.details.*}</param>
+```
+
+This creates fields `price`, `volume`, and `exchange` from the nested object. The same wildcard pattern works for maps, where the map keys become field names.
+
+For arrays, the wildcard discovers all elements with indexed field names:
+
+```json
+{
+  "trades": [
+    {"symbol": "AAPL", "price": 150.25},
+    {"symbol": "GOOGL", "price": 2800.50}
+  ]
+}
+```
+
+```xml
+<param name="field.*">#{VALUE.trades.*}</param>
+```
+
+This creates fields `trades[0]` and `trades[1]` containing the array elements.
+
+You can also combine static field mapping with dynamic discovery:
+
+```xml
+<!-- Explicitly map metadata fields -->
+<param name="field.timestamp">#{TIMESTAMP}</param>
+<param name="field.partition">#{PARTITION}</param>
+
+<!-- Discover all value fields automatically -->
+<param name="field.*">#{VALUE.*}</param>
+```
+
+> [!NOTE]
+> When using dynamic field discovery, the `field.*` syntax in the configuration parameter name is separate from the wildcard expression `VALUE.*` used for extraction. The configuration still uses static parameters; what's "discovered" is the field names at runtime based on the actual record content.
 
 ##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
 
