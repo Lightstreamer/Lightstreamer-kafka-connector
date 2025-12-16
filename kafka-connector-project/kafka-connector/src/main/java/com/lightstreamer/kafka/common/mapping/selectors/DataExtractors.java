@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Factory class for creating data extraction components that transform Kafka records into
@@ -248,8 +249,6 @@ public class DataExtractors {
                     yield (record, target) -> headerSelector.extractInto(record, target);
                 }
                 default ->
-                        // GenericSelector constantSelector = newConstantSelector(expression);
-                        // yield (record, target) -> constantSelector.extractInto(record, target);
                         throw new IllegalArgumentException(
                                 "Cannot handle dynamic extraction from the constant expression ["
                                         + expression.constant()
@@ -414,6 +413,12 @@ public class DataExtractors {
                 boolean mapNonScalars)
                 throws ExtractionException {
 
+            checkMap(expressions, "All expressions must be non-wildcard expressions");
+            if (!areNamedExpressions(expressions.values())) {
+                throw new IllegalArgumentException(
+                        "All expressions must be non-wildcard expressions");
+            }
+
             this.skipOnFailure = skipOnFailure;
             this.mapNonScalars = mapNonScalars;
             this.extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
@@ -459,6 +464,22 @@ public class DataExtractors {
         @Override
         public Set<String> mappedFields() {
             return fieldNames;
+        }
+
+        private static boolean areNamedExpressions(Collection<ExtractionExpression> expressions) {
+            return expressions.stream()
+                    .allMatch(Predicate.not(ExtractionExpression::isWildCardExpression));
+        }
+
+        private static void checkMap(Map<String, ?> map, String errorMessage) {
+            if (map == null || map.isEmpty()) {
+                throw new IllegalArgumentException(errorMessage);
+            }
+
+            if (map.keySet().stream().anyMatch(Objects::isNull)
+                    || map.values().stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException(errorMessage);
+            }
         }
     }
 
@@ -507,6 +528,10 @@ public class DataExtractors {
                 Collection<ExtractionExpression> expressions,
                 boolean skipOnFailure)
                 throws ExtractionException {
+            checkCollection(expressions, "All expressions must be wildcard expressions");
+            if (!areWildcardExpressions(expressions)) {
+                throw new IllegalArgumentException("All expressions must be wildcard expressions");
+            }
 
             this.skipOnFailure = skipOnFailure;
             this.mapExtractors = (MapExtractor<K, V>[]) new MapExtractor[expressions.size()];
@@ -544,6 +569,21 @@ public class DataExtractors {
         @Override
         public Set<String> mappedFields() {
             return Collections.emptySet();
+        }
+
+        private static boolean areWildcardExpressions(
+                Collection<ExtractionExpression> expressions) {
+            return expressions.stream().allMatch(ExtractionExpression::isWildCardExpression);
+        }
+
+        private static void checkCollection(Collection<?> collection, String errorMessage) {
+            if (collection == null || collection.isEmpty()) {
+                throw new IllegalArgumentException(errorMessage);
+            }
+
+            if (collection.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException(errorMessage);
+            }
         }
     }
 
@@ -583,8 +623,7 @@ public class DataExtractors {
                 throw new IllegalArgumentException("Extractors list must not be null or empty");
             }
             if (extractors.stream().anyMatch(Objects::isNull)) {
-                throw new IllegalArgumentException(
-                        "Extractors list must not contain null elements");
+                throw new IllegalArgumentException("Extractors list must not be null or empty");
             }
             this.extractors = extractors;
         }
@@ -676,6 +715,12 @@ public class DataExtractors {
      * configuration time. The extractor performs structured field extraction with configurable
      * error handling and non-scalar value mapping.
      *
+     * <p><strong>Non-wildcard expression requirement:</strong> All provided expressions
+     * <em>must</em> be non-wildcard expressions (e.g., {@code "VALUE.symbol"}, {@code
+     * "KEY.userId"}). Wildcard expressions will cause an {@link IllegalArgumentException} to be
+     * thrown. Use {@link #discoveredFieldsExtractor} for runtime field discovery with wildcard
+     * expressions.
+     *
      * <p><strong>Field mapping behavior:</strong>
      *
      * <ul>
@@ -704,8 +749,8 @@ public class DataExtractors {
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value
      * @param sSuppliers the selector suppliers providing key and value extraction capabilities
-     * @param expressions a map of field names to extraction expressions defining the fields to
-     *     extract and their sources
+     * @param expressions a map of field names to non-wildcard extraction expressions defining the
+     *     fields to extract and their sources
      * @param skipOnFailure if {@code true}, individual field extraction failures are silently
      *     ignored and the field is omitted from results; if {@code false}, any field failure causes
      *     the entire extraction to fail with a {@link ValueException}
@@ -713,6 +758,8 @@ public class DataExtractors {
      *     their string representations; if {@code false}, non-scalar values cause extraction
      *     failures
      * @return a new {@link FieldsExtractor} instance configured for named field extraction
+     * @throws IllegalArgumentException if {@code expressions} is {@code null}, empty, contains
+     *     {@code null} elements, or contains any wildcard expressions
      * @throws ExtractionException if any extraction expression cannot be compiled or contains
      *     invalid selector references
      */
@@ -722,6 +769,7 @@ public class DataExtractors {
             boolean skipOnFailure,
             boolean mapNonScalars)
             throws ExtractionException {
+
         return new NamedFieldsExtractorImpl<>(
                 sSuppliers, expressions, skipOnFailure, mapNonScalars);
     }
@@ -733,6 +781,11 @@ public class DataExtractors {
      * <p>This factory method is used for scenarios where field names cannot be known at
      * configuration time, such as schema-less records, variable structures, or wholesale extraction
      * of nested objects.
+     *
+     * <p><strong>Wildcard expression requirement:</strong> All provided expressions <em>must</em>
+     * be wildcard expressions (e.g., {@code "VALUE.*"}, {@code "KEY.*"}). Non-wildcard expressions
+     * will cause an {@link IllegalArgumentException} to be thrown. Use {@link
+     * #namedFieldsExtractor} for extracting specific named fields.
      *
      * <p><strong>Dynamic extraction behavior:</strong>
      *
@@ -763,12 +816,14 @@ public class DataExtractors {
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value
      * @param sSuppliers the selector suppliers providing key and value extraction capabilities
-     * @param expressions a collection of extraction expressions that perform runtime field
+     * @param expressions a collection of wildcard extraction expressions that perform runtime field
      *     discovery from the record
      * @param skipOnFailure if {@code true}, extraction failures are silently ignored and
      *     problematic fields are omitted; if {@code false}, any extraction failure causes the
      *     entire operation to fail with a {@link ValueException}
      * @return a new {@link FieldsExtractor} instance configured for dynamic field extraction
+     * @throws IllegalArgumentException if {@code expressions} is {@code null}, empty, contains
+     *     {@code null} elements, or contains any non-wildcard expressions
      * @throws ExtractionException if any extraction expression cannot be compiled or contains
      *     invalid selector references
      */
