@@ -75,7 +75,7 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 
 ## Intelligent Streaming
 
-With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnections seamlessly, keeping your users connected and up-to-date.
+With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnection seamlessly, keeping your users connected and up-to-date.
 
 ## Comprehensive Client SDKs
 
@@ -181,7 +181,7 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `adapters.xml` file. For convenience, we provide a predefined configuration (very similar to the one used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `adapters.xml` file. For convenience, we provide a predefined configuration which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStartConfluentCloud` in the file as follows:
 
