@@ -25,7 +25,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Const
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.test_utils.Records.record;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -49,7 +49,7 @@ public class ConstantSelectorSupplierTest {
     static GenericSelector selector(String expression) throws ExtractionException {
         return ConstantSelectorSupplier.makeSelectorSupplier(
                         VALUE, KEY, OFFSET, TIMESTAMP, PARTITION, TOPIC)
-                .newSelector(Expression(expression));
+                .newSelector(Wrapped("#{" + expression + "}"));
     }
 
     static Stream<Arguments> constants() {
@@ -86,7 +86,7 @@ public class ConstantSelectorSupplierTest {
         ConstantSelectorSupplier constantSelectorSupplier =
                 ConstantSelectorSupplier.makeSelectorSupplier(constants.toArray(new Constant[0]));
         for (Constant constant : constants) {
-            ExtractionExpression expression = Expression(constant.name());
+            ExtractionExpression expression = Wrapped("#{" + constant.name() + "}");
             GenericSelector selector = constantSelectorSupplier.newSelector(expression);
             assertThat(selector.expression().expression()).isEqualTo(expression.expression());
         }
@@ -98,7 +98,8 @@ public class ConstantSelectorSupplierTest {
         ConstantSelectorSupplier s = ConstantSelectorSupplier.makeSelectorSupplier(KEY, VALUE);
         ExtractionException ee =
                 assertThrows(
-                        ExtractionException.class, () -> s.newSelector(Expression(expression)));
+                        ExtractionException.class,
+                        () -> s.newSelector(Wrapped("#{" + expression + "}")));
         assertThat(ee)
                 .hasMessageThat()
                 .isEqualTo(
