@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.di
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleDynamicMessageProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -340,7 +341,9 @@ public class RecordMapperTest {
                         true),
                 arguments(
                         discoveredFieldsExtractor(
-                                JsonValue(), List.of(Wrapped("#{VALUE.children[0]}")), false),
+                                JsonValue(),
+                                List.of(WrappedWithWildcards("#{VALUE.children[0].*}")),
+                                false),
                         false));
     }
 
@@ -542,7 +545,9 @@ public class RecordMapperTest {
                         true),
                 arguments(
                         discoveredFieldsExtractor(
-                                AvroValue(), List.of(Wrapped("#{VALUE.children[0]}")), false),
+                                AvroValue(),
+                                List.of(WrappedWithWildcards("#{VALUE.children[0].*}")),
+                                false),
                         false));
     }
 
@@ -638,7 +643,7 @@ public class RecordMapperTest {
                 arguments(
                         discoveredFieldsExtractor(
                                 ProtoValue(),
-                                List.of(Wrapped("#{VALUE.friends[1].friends[0]}")),
+                                List.of(WrappedWithWildcards("#{VALUE.friends[1].friends[0].*}")),
                                 false),
                         false));
     }
