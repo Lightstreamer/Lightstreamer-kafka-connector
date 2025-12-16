@@ -85,7 +85,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordEr
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE;
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
@@ -1420,11 +1420,13 @@ public class ConnectorConfigTest {
 
         TemplateExpression te1 = templateConfigs.getTemplateExpression("template1");
         assertThat(te1.prefix()).isEqualTo("item1");
-        assertThat(te1.params()).containsExactly("param1", Expression("VALUE.value1"));
+        assertThat(te1.params())
+                .containsExactly("param1", WrappedNoWildcardCheck("#{VALUE.value1}"));
 
         TemplateExpression te2 = templateConfigs.getTemplateExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
-        assertThat(te2.params()).containsExactly("param2", Expression("VALUE.value2"));
+        assertThat(te2.params())
+                .containsExactly("param2", WrappedNoWildcardCheck("#{VALUE.value2}"));
     }
 
     @Test
@@ -1520,8 +1522,9 @@ public class ConnectorConfigTest {
     void shouldGetFieldConfigs() {
         ConnectorConfig cgg = ConnectorConfigProvider.minimal();
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
-        assertThat(fieldConfigs.boundExpressions()).hasSize(1);
-        assertThat(fieldConfigs.boundExpressions().get("fieldName1").toString()).isEqualTo("VALUE");
+        assertThat(fieldConfigs.namedFieldsExpressions()).hasSize(1);
+        assertThat(fieldConfigs.namedFieldsExpressions().get("fieldName1").toString())
+                .isEqualTo("VALUE");
     }
 
     @Test
