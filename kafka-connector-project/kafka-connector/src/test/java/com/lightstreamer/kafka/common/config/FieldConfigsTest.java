@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 
 public class FieldConfigsTest {
 
-    static Stream<Arguments> staticFieldMappings() {
+    static Stream<Arguments> namedFieldMapping() {
         return Stream.of(
                 Arguments.of(
                         Map.of("field1", "#{VALUE}", "field2", "#{KEY}"), String(), false, true),
@@ -62,7 +62,7 @@ public class FieldConfigsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("staticFieldMappings")
+    @MethodSource("namedFieldMapping")
     public void shouldCreateAndMakeNamedFieldsExtractor(
             Map<String, String> fieldMappings,
             KeyValueSelectorSuppliers<?, ?> suppliers,
@@ -70,8 +70,8 @@ public class FieldConfigsTest {
             boolean skipOnFailure)
             throws ExtractionException {
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        checkBoundExpressions(fieldMappings, configs.boundExpressions());
-        assertThat(configs.autoBoundExpressions()).isEmpty();
+        checkBoundExpressions(fieldMappings, configs.namedFieldsExpressions());
+        assertThat(configs.discoveredFieldsExpressions()).isEmpty();
 
         boolean[] skipOnFailures = {false, true};
         for (boolean skip : skipOnFailures) {
@@ -97,8 +97,8 @@ public class FieldConfigsTest {
 
     static Stream<Arguments> dynamicFieldsMapping() {
         return Stream.of(
-                Arguments.of(Map.of("*", "#{VALUE.list}"), JsonKeyJsonValue(), false),
-                Arguments.of(Map.of("*", "#{VALUE.map}"), JsonKeyJsonValue(), true));
+                Arguments.of(Map.of("*", "#{VALUE.list.*}"), JsonKeyJsonValue(), false),
+                Arguments.of(Map.of("*", "#{VALUE.map.*}"), JsonKeyJsonValue(), true));
     }
 
     @ParameterizedTest
@@ -109,8 +109,8 @@ public class FieldConfigsTest {
             boolean mapNonScalars)
             throws ExtractionException {
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        assertThat(configs.boundExpressions()).isEmpty();
-        assertThat(configs.autoBoundExpressions()).hasSize(1);
+        assertThat(configs.namedFieldsExpressions()).isEmpty();
+        assertThat(configs.discoveredFieldsExpressions()).hasSize(1);
 
         boolean[] skipOnFailures = {false, true};
         for (boolean skip : skipOnFailures) {
@@ -134,14 +134,14 @@ public class FieldConfigsTest {
                         false, // expectedComposed
                         Set.of("field1", "field2")),
                 Arguments.of(
-                        Map.of("*", "#{VALUE.list}"),
+                        Map.of("*", "#{VALUE.list.*}"),
                         JsonKeyJsonValue(),
                         true, // mapNonScalars
                         true, // skipOnFailure
                         false, // expectedComposed
                         Collections.emptySet()),
                 Arguments.of(
-                        Map.of("*", "#{VALUE.list}", "field1", "#{KEY}"),
+                        Map.of("*", "#{VALUE.list.*}", "field1", "#{KEY}"),
                         JsonKeyJsonValue(),
                         true, // mapNonScalars
                         false, // skipOnFailure
@@ -172,8 +172,8 @@ public class FieldConfigsTest {
         }
 
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
-        checkBoundExpressions(staticFieldMappings, configs.boundExpressions());
-        assertThat(configs.autoBoundExpressions()).hasSize(dynamicFieldMappings.size());
+        checkBoundExpressions(staticFieldMappings, configs.namedFieldsExpressions());
+        assertThat(configs.discoveredFieldsExpressions()).hasSize(dynamicFieldMappings.size());
 
         FieldsExtractor<?, ?> extractor =
                 configs.fieldsExtractor(JsonKeyJsonValue(), skipOnFailure, mapNonScalars);
@@ -202,7 +202,7 @@ public class FieldConfigsTest {
     @EmptySource
     @NullAndEmptySource
     @ValueSource(strings = {"#{}", ".", "\\", " "})
-    public void shouldFailCreationDueToInvalidWrapperExpression(String expression) {
+    public void shouldFailCreationDueToInvalidWrappedExpression(String expression) {
         Map<String, String> fieldMappings = new HashMap<>();
         fieldMappings.put("field1", expression);
         ConfigException ee =
@@ -216,10 +216,11 @@ public class FieldConfigsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"#{.}", "#{...}"})
+    @ValueSource(strings = {".", "..."})
     public void shouldFailCreationDueToMissingRootTokens(String fieldExpression) {
+        String wrappedExpression = "#{" + fieldExpression + "}";
         Map<String, String> fieldMappings = new HashMap<>();
-        fieldMappings.put("field1", fieldExpression);
+        fieldMappings.put("field1", wrappedExpression);
         ConfigException ee =
                 assertThrows(ConfigException.class, () -> FieldConfigs.from(fieldMappings));
 
@@ -227,7 +228,9 @@ public class FieldConfigsTest {
                 .hasMessageThat()
                 .isEqualTo(
                         "Got the following error while evaluating the field [field1] containing the expression ["
+                                + wrappedExpression
+                                + "]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression ["
                                 + fieldExpression
-                                + "]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>");
+                                + "]>");
     }
 }
