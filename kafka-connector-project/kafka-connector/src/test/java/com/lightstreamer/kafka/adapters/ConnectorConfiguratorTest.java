@@ -217,6 +217,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put("field.*", "#{VALUE.*}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "JSON");
         updatedConfigs.put(
                 ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(threads));
@@ -270,6 +271,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put("field.*", "#{VALUE.*}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "test_schema.avsc");
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
@@ -312,6 +314,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
+        updatedConfigs.put("field.*", "#{VALUE.*}");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
@@ -454,7 +457,7 @@ public class ConnectorConfiguratorTest {
                         "Got the following error while evaluating the field [fieldName1] containing the expression [VALUE]: <Invalid expression>"),
                 arguments(
                         "#{UNRECOGNIZED}",
-                        "Got the following error while evaluating the field [fieldName1] containing the expression [#{UNRECOGNIZED}]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]>"));
+                        "Got the following error while evaluating the field [fieldName1] containing the expression [#{UNRECOGNIZED}]: <Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [UNRECOGNIZED]>"));
     }
 
     @ParameterizedTest
