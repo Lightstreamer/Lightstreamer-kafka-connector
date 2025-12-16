@@ -1383,8 +1383,6 @@ This configuration automatically extracts all attributes from the record value a
 
 will automatically create fields `symbol`, `price`, `volume`, and `exchange` without needing to explicitly configure each one.
 
-**Wildcard patterns supported:**
-
 Wildcards can be applied at any level to extract all fields from non-scalar structures:
 
 - `#{VALUE.*}` - Discover all fields from the root record value
