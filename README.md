@@ -1248,13 +1248,13 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   > [!IMPORTANT]
   > Wildcard expressions can only be used with the `field.*` parameter for field mapping. They cannot be used in item templates or for specific named field mappings.
 
-- Expressions must evaluate to _scalar_ values
+- Scalar vs Non-Scalar Value Extraction
 
-  When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
+  By default, expressions must evaluate to _scalar_ values. When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
 
-  When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
+  When an expression evaluates to a non-scalar value (object, array, or nested structure) and non-scalar mapping is not enabled, the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
 
-  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
+  To allow complex data structures to be directly mapped to fields (preserving their structure as generic text), enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
