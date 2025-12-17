@@ -1375,20 +1375,24 @@ This configuration automatically extracts all attributes from the record value a
 
 will automatically create fields `symbol`, `price`, `volume`, and `exchange` without needing to explicitly configure each one.
 
+**Supported wildcard patterns:**
+
 Wildcards can be applied at any level to extract all fields from non-scalar structures:
 
 - `#{VALUE.*}` - Discover all fields from the root record value
 - `#{KEY.*}` - Discover all fields from the root record key
 - `#{HEADERS.*}` - Discover all headers
-- `#{VALUE.nested.*}` - Discover all fields from any nested non-scalar structure (objects or maps)
-- `#{VALUE.items.*}` - Discover all elements from an array (field names will be `items[0]`, `items[1]`, etc.)
+- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map)
+- `#{VALUE.items.*}` - Discover all elements from an array
 
 **How wildcards map to field names:**
 
-Wildcards can be applied at any level to any non-scalar part of the record, and the resulting field names depend on the structure type:
+Wildcards can be applied at any level to any non-scalar part of the record. The resulting field names depend on the structure type:
 
 - **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
-- **Arrays**: Extract all elements with indexed field names like `array_name[0]`, `array_name[1]`, etc.
+- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`)
+
+Dynamic field discovery automatically handles both scalar and non-scalar values. Non-scalar values (objects, arrays, nested structures) are serialized as generic text (e.g., JSON strings) and mapped to their corresponding field names.
 
 For example, with nested objects or maps:
 
