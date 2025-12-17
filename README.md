@@ -1230,20 +1230,15 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > HEADERS.['myKey']
  > ```
 
-- Expressions support **wildcards** for dynamic field discovery:
+- Expressions support **wildcards** to extract multiple values at once:
 
   - **`#{VALUE.*}`**: Extract all fields from the record value
   - **`#{KEY.*}`**: Extract all fields from the record key
   - **`#{HEADERS.*}`**: Extract all headers
-  - **`#{VALUE.nested.*}`**: Extract all fields from any nested non-scalar structure (objects or maps)
-  - **`#{VALUE.items.*}`**: Extract all elements from an array (field names will be `items[0]`, `items[1]`, etc.)
+  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps)
+  - **`#{VALUE.items.*}`**: Extract all elements from an array
 
-  Wildcard expressions enable automatic field discovery where field names are determined from the record structure at runtime, rather than being predefined in the configuration. Wildcards can be applied at any level to any non-scalar part of the record:
-  
-  - **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
-  - **Arrays**: Extract all elements with indexed field names like `array_name[0]`, `array_name[1]`, etc.
-  
-  For detailed examples and configuration, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
+  Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
 - Scalar vs Non-Scalar Value Extraction
 
@@ -1387,6 +1382,13 @@ Wildcards can be applied at any level to extract all fields from non-scalar stru
 - `#{HEADERS.*}` - Discover all headers
 - `#{VALUE.nested.*}` - Discover all fields from any nested non-scalar structure (objects or maps)
 - `#{VALUE.items.*}` - Discover all elements from an array (field names will be `items[0]`, `items[1]`, etc.)
+
+**How wildcards map to field names:**
+
+Wildcards can be applied at any level to any non-scalar part of the record, and the resulting field names depend on the structure type:
+
+- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
+- **Arrays**: Extract all elements with indexed field names like `array_name[0]`, `array_name[1]`, etc.
 
 For example, with nested objects or maps:
 
