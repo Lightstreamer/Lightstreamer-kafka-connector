@@ -239,7 +239,7 @@ To quickly complete the installation and verify the successful integration with 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
 
   ```xml
-  <param name="field.stock_name">#{VALUE.name}</param>
+  <param name="field.name">#{VALUE.name}</param>
   <param name="field.last_price">#{VALUE.last_price}</param>
   <param name="field.ask">#{VALUE.ask}</param>
   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -909,7 +909,7 @@ Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapte
 
 Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless QuickStart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
-#### MSL QuickStart
+#### MSK QuickStart
 
 Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK QuickStart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
@@ -1333,7 +1333,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ...
 <param name="field.timestamp">#{VALUE.timestamp}</param>
 <param name="field.time">#{VALUE.time}</param>
-<param name="field.stock_name">#{VALUE.name}</param>
+<param name="field.name">#{VALUE.name}</param>
 <param name="field.last_price">#{VALUE.last_price}</param>
 <param name="field.ask">#{VALUE.ask}</param>
 <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -1475,6 +1475,9 @@ In the following example:
 ```
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
+
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
 
 Can be one of the following:
 - `true`
