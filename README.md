@@ -1178,7 +1178,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - **Record data**: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
+  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys
   - **Headers**: Retrieve values from record headers
 
   ```js
@@ -1243,7 +1243,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   - **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
   - **Arrays**: Extract all elements with indexed field names like `array_name[0]`, `array_name[1]`, etc.
   
-  This makes wildcards highly flexible for adapting to schema changes or working with variable record structures.
+  For detailed examples and configuration, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
 - Scalar vs Non-Scalar Value Extraction
 
@@ -1415,18 +1415,15 @@ For arrays, the wildcard discovers all elements with indexed field names:
 
 ```json
 {
-  "trades": [
-    {"symbol": "AAPL", "price": 150.25},
-    {"symbol": "GOOGL", "price": 2800.50}
-  ]
+  "prices": [150.25, 155.50, 148.75, 152.30]
 }
 ```
 
 ```xml
-<param name="field.*">#{VALUE.trades.*}</param>
+<param name="field.*">#{VALUE.prices.*}</param>
 ```
 
-This creates fields `trades[0]` and `trades[1]` containing the array elements.
+This creates fields `prices[0]`, `prices[1]`, `prices[2]`, and `prices[3]` containing the individual price values.
 
 You can also combine static field mapping with dynamic discovery:
 
@@ -1439,8 +1436,10 @@ You can also combine static field mapping with dynamic discovery:
 <param name="field.*">#{VALUE.*}</param>
 ```
 
+When combining both approaches, static field mappings take precedence over dynamic discovery. If a field name is explicitly defined with `field.fieldName`, it will not be overridden by the wildcard `field.*` pattern.
+
 > [!NOTE]
-> When using dynamic field discovery, the `field.*` syntax in the configuration parameter name is separate from the wildcard expression `VALUE.*` used for extraction. The configuration still uses static parameters; what's "discovered" is the field names at runtime based on the actual record content.
+> The `field.*` configuration parameter name is static (defined at configuration time), while the wildcard expression `#{VALUE.*}` dynamically discovers field names at runtime from the actual record content.
 
 > [!IMPORTANT]
 > Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
