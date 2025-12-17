@@ -473,7 +473,7 @@
              <param name="field.*">#{VALUE.items.*}</param>
 
              Static field.fieldName mappings take precedence over field.* wildcards.
-                
+
              At least one mapping must be provided. -->
         <!--
         <param name="field.FIELD_NAME">extraction_expression</param>
@@ -495,7 +495,7 @@
         <param name="field.ts">#{TIMESTAMP}</param>
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
-        <param name="field.partition">#{PARTITION}</param>  
+        <param name="field.partition">#{PARTITION}</param>
 
         <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
              Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. Can be one of the following:
