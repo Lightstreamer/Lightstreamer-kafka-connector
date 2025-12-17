@@ -1245,9 +1245,6 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   
   This makes wildcards highly flexible for adapting to schema changes or working with variable record structures.
 
-  > [!IMPORTANT]
-  > Wildcard expressions can only be used with the `field.*` parameter for field mapping. They cannot be used in item templates or for specific named field mappings.
-
 - Scalar vs Non-Scalar Value Extraction
 
   By default, expressions must evaluate to _scalar_ values. When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
@@ -1444,6 +1441,9 @@ You can also combine static field mapping with dynamic discovery:
 
 > [!NOTE]
 > When using dynamic field discovery, the `field.*` syntax in the configuration parameter name is separate from the wildcard expression `VALUE.*` used for extraction. The configuration still uses static parameters; what's "discovered" is the field names at runtime based on the actual record content.
+
+> [!IMPORTANT]
+> Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
 
 ##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
 
