@@ -23,7 +23,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Connection with Redpanda Cloud](#connection-with-redpanda-cloud)
   - [Start](#start)
     - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
-    - [2. Attach a Lightstreamer consumer](#2-attach-a-lightstreamer-consumer)
+    - [2. Attach a Lightstreamer Consumer](#2-attach-a-lightstreamer-consumer)
     - [3. Publish the Events](#3-publish-the-events)
     - [4. Check the Consumed Events](#4-check-the-consumed-events)
 - [Configuration](#configuration)
@@ -42,11 +42,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [`schema.registry.url`](#schemaregistryurl)
     - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
     - [Encryption Parameters](#encryption-parameters-1)
-    - [Schema Registry QuickStart](#quick-start-schema-registry-example)
+    - [Schema Registry QuickStart](#schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
+- [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
@@ -1756,7 +1756,7 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Schema Registry QuickStart 
+#### Schema Registry QuickStart
 
 Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
@@ -2232,14 +2232,14 @@ Example:
 
 ```
 record.mappings=index:#{KEY.}, \
-                stock_name:#{VALUE.name}, \
+                name:#{VALUE.name}, \
                 last_price:#{VALUE.last_price}
 ```
 
 The configuration above specifies the following mappings:
 
 1. The record key to the Lightstreamer field `index`
-2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
+2. The `name` attribute of the record value to the Lightstreamer field `name`
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 ### `record.mappings.skip.failed.enable`
