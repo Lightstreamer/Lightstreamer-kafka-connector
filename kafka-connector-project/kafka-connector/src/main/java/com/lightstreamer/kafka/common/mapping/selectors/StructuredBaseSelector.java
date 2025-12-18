@@ -48,11 +48,36 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
     }
 
     protected final Node<T> eval(Supplier<P> payloadSupplier, boolean checkScalar) {
-        return doEval(payloadSupplier, n -> evaluator.evalAndAdvance(n), checkScalar);
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        NodeEvaluator<T> next = evaluator;
+        while (next != null) {
+            recordNode = next.eval(recordNode);
+            next = next.next();
+        }
+        Node<T> resultNode = recordNode;
+
+        if (checkScalar && !resultNode.isScalar()) {
+            throw ValueException.nonComplexObjectRequired(expression().expression());
+        }
+
+        return resultNode;
     }
 
     protected final Node<T> eval(String name, Supplier<P> payloadSupplier, boolean checkScalar) {
-        return doEval(payloadSupplier, node -> evaluator.evalAndAdvance(node, name), checkScalar);
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        // NodeEvaluator<T> next = evaluator;
+        // while (next != null) {
+        //     recordNode = next.eval(recordNode, name);
+        //     next = next.next();
+        // }
+        // Node<T> resultNode = recordNode;
+        Node<T> resultNode = evaluator.evalAndAdvance(recordNode, name);
+
+        if (checkScalar && !resultNode.isScalar()) {
+            throw ValueException.nonComplexObjectRequired(expression().expression());
+        }
+
+        return resultNode;
     }
 
     private Node<T> doEval(
