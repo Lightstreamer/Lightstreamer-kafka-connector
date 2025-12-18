@@ -36,18 +36,8 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
     interface HeaderNode extends Node<HeaderNode> {
 
         @Override
-        default HeaderNode get(String nodeName, String propertyName) {
-            return null;
-        }
-
-        @Override
         default boolean has(String propertyName) {
             return false;
-        }
-
-        @Override
-        default HeaderNode get(String nodeName, int index) {
-            return null;
         }
 
         @Override
@@ -116,16 +106,28 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         public void flatIntoMap(Map<String, String> target) {
             // Left empty on purpose
         }
+
+        @Override
+        public HeaderNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.scalarObject(propertyName);
+        }
+
+        @Override
+        public HeaderNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.noIndexedField(indexedPropertyName);
+        }
     }
 
     static class SubArrayHeaderNode implements HeaderNode {
 
         private final String name;
         private final List<KafkaHeader> headers;
+        private final int size;
 
         SubArrayHeaderNode(String name, List<KafkaHeader> headers) {
             this.name = name;
             this.headers = headers;
+            this.size = headers.size();
         }
 
         public String name() {
@@ -138,8 +140,12 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         }
 
         @Override
-        public HeaderNode get(String nodeName, int index) {
-            return new SingleHeaderNode(nodeName, headers.get(index));
+        public HeaderNode getIndexed(String nodeName, int index, String propertyName) {
+            if (index < size) {
+                KafkaHeader header = headers.get(index);
+                return new SingleHeaderNode(nodeName, header);
+            }
+            throw ValueException.indexOfOutBounds(index);
         }
 
         @Override
@@ -153,16 +159,22 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
                     .map(HeaderNode::toText)
                     .collect(Collectors.joining(", ", "[", "]"));
         }
+
+        public HeaderNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.arrayObject(propertyName);
+        }
     }
 
     static class HeadersNode implements HeaderNode {
 
         private final String name;
         private final KafkaHeaders headers;
+        private final int size;
 
         HeadersNode(String name, KafkaHeaders headers) {
             this.name = name;
             this.headers = headers;
+            this.size = headers.size();
         }
 
         @Override
@@ -176,10 +188,10 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         }
 
         @Override
-        public HeaderNode get(String nodeName, String propertyname) {
+        public HeaderNode getProperty(String nodeName, String propertyname) {
             List<KafkaHeader> headersList = headers.headers(propertyname);
             if (headersList == null) {
-                return null;
+                throw ValueException.fieldNotFound(propertyname);
             }
 
             if (headersList.size() == 1) {
@@ -191,13 +203,16 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
 
         @Override
         public int size() {
-            return headers.size();
+            return size;
         }
 
         @Override
-        public HeaderNode get(String nodeName, int index) {
-            KafkaHeader header = headers.get(index);
-            return new SingleHeaderNode(nodeName, header);
+        public HeaderNode getIndexed(String nodeName, int index, String propertyName) {
+            if (index < size) {
+                KafkaHeader header = headers.get(index);
+                return new SingleHeaderNode(nodeName, header);
+            }
+            throw ValueException.indexOfOutBounds(index);
         }
 
         @Override
