@@ -75,7 +75,9 @@ public class KvpNodeTest {
                 .contains("Cannot retrieve field [anyProp] from a scalar object");
 
         ve = assertThrows(ValueException.class, () -> key1Value.getIndexed("node3", 0, "nodeKey1"));
-        assertThat(ve).hasMessageThat().contains("Cannot retrieve field [nodeKey1] from a scalar object");
+        assertThat(ve)
+                .hasMessageThat()
+                .contains("Cannot retrieve field [nodeKey1] from a scalar object");
 
         assertThat(key1Value.text()).isEqualTo("value1");
         assertThat(kvpMap.has("key2")).isTrue();
