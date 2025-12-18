@@ -30,12 +30,14 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node.NullNode;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericContainer;
@@ -53,18 +55,8 @@ public class GenericRecordSelectorsSuppliers
     interface AvroNode extends Node<AvroNode> {
 
         @Override
-        default AvroNode get(String nodeName, String propertyName) {
-            return InvalidNode.INSTANCE;
-        }
-
-        @Override
         default boolean has(String propertyname) {
             return false;
-        }
-
-        @Override
-        default AvroNode get(String nodeName, int index) {
-            return InvalidNode.INSTANCE;
         }
 
         default boolean isArray() {
@@ -79,51 +71,43 @@ public class GenericRecordSelectorsSuppliers
             return 0;
         }
 
-        static class InvalidNode implements AvroNode {
-
-            static final InvalidNode INSTANCE = new InvalidNode();
-
-            @Override
-            public String name() {
-                return "INVALID NODE";
-            }
-
-            @Override
-            public String text() {
-                return "INVALID NODE";
-            }
-        }
-
         static AvroNode newNode(String name, Object value) {
             if (value instanceof GenericContainer container) {
                 Schema schema = container.getSchema();
                 Type valueType = schema.getType();
                 return switch (valueType) {
-                    case RECORD -> new RecordNode(name, (GenericData.Record) container);
-                    case ARRAY -> new ArrayNode(name, (GenericData.Array<?>) container);
-                    case FIXED, ENUM -> new ScalarNode(name, container);
+                    case RECORD -> new AvroRecordNode(name, (GenericData.Record) container);
+                    case ARRAY -> new AvroArrayNode(name, (GenericData.Array<?>) container);
+                    case FIXED, ENUM -> new AvroScalarNode(name, container);
                     default -> throw new RuntimeException("Unsupported Avro type: " + valueType);
                 };
             }
 
             if (value instanceof Map<?, ?> map) {
-                return new MapNode(name, map);
+                return new AvroMapNode(name, map);
             }
 
             if (value == null) {
-                return new NullValueNode(name);
+                return new NullAvroNode(name);
             }
 
-            return new ScalarNode(name, value);
+            return new AvroScalarNode(name, value);
         }
     }
 
-    static class RecordNode implements AvroNode {
+    static class NullAvroNode extends NullNode<AvroNode> implements AvroNode {
+
+        NullAvroNode(String name) {
+            super(name);
+        }
+    }
+
+    static class AvroRecordNode implements AvroNode {
 
         private final GenericData.Record record;
         private final String name;
 
-        RecordNode(String name, GenericData.Record record) {
+        AvroRecordNode(String name, GenericData.Record record) {
             this.name = name;
             this.record = record;
         }
@@ -139,9 +123,13 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public AvroNode get(String nodeName, String propertyName) {
-            Object field = record.get(propertyName);
-            return AvroNode.newNode(nodeName, field);
+        public AvroNode getProperty(String nodeName, String propertyName) {
+            try {
+                Object field = record.get(propertyName);
+                return AvroNode.newNode(nodeName, field);
+            } catch (AvroRuntimeException e) {
+                throw ValueException.fieldNotFound(propertyName);
+            }
         }
 
         @Override
@@ -155,16 +143,23 @@ public class GenericRecordSelectorsSuppliers
                 target.put(field.name(), Objects.toString(object, null));
             }
         }
+
+        @Override
+        public AvroNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nonArrayObject(index);
+        }
     }
 
-    static class ArrayNode implements AvroNode {
+    static class AvroArrayNode implements AvroNode {
 
         private final GenericData.Array<?> array;
         private final String name;
+        private final int size;
 
-        ArrayNode(String name, GenericData.Array<?> array) {
+        AvroArrayNode(String name, GenericData.Array<?> array) {
             this.name = name;
             this.array = array;
+            this.size = array.size();
         }
 
         @Override
@@ -179,13 +174,21 @@ public class GenericRecordSelectorsSuppliers
 
         @Override
         public int size() {
-            return array.size();
+            return size;
         }
 
         @Override
-        public AvroNode get(String nodeName, int index) {
-            Object element = array.get(index);
-            return AvroNode.newNode(nodeName, element);
+        public AvroNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.arrayObject(propertyName);
+        }
+
+        @Override
+        public AvroNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            if (index < size) {
+                Object element = array.get(index);
+                return AvroNode.newNode(nodeName, element);
+            }
+            throw ValueException.indexOfOutBounds(index);
         }
 
         @Override
@@ -200,12 +203,12 @@ public class GenericRecordSelectorsSuppliers
         }
     }
 
-    static class MapNode implements AvroNode {
+    static class AvroMapNode implements AvroNode {
 
         private final Map<?, ?> map;
         private final String name;
 
-        MapNode(String name, Map<?, ?> map) {
+        AvroMapNode(String name, Map<?, ?> map) {
             this.name = name;
             this.map = map;
         }
@@ -221,9 +224,17 @@ public class GenericRecordSelectorsSuppliers
         }
 
         @Override
-        public AvroNode get(String nodeName, String propertyName) {
+        public AvroNode getProperty(String nodeName, String propertyName) {
             Object value = map.get(new Utf8(propertyName));
+            if (value == null) {
+                throw ValueException.fieldNotFound(propertyName);
+            }
             return AvroNode.newNode(nodeName, value);
+        }
+
+        @Override
+        public AvroNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nonArrayObject(index);
         }
 
         @Override
@@ -252,12 +263,12 @@ public class GenericRecordSelectorsSuppliers
         }
     }
 
-    static class ScalarNode implements AvroNode {
+    static class AvroScalarNode implements AvroNode {
 
         private final Object value;
         private final String name;
 
-        ScalarNode(String name, Object value) {
+        AvroScalarNode(String name, Object value) {
             this.name = name;
             this.value = value;
         }
@@ -276,34 +287,15 @@ public class GenericRecordSelectorsSuppliers
         public String text() {
             return value.toString();
         }
-    }
 
-    static class NullValueNode implements AvroNode {
-
-        private final String name;
-
-        NullValueNode(String name) {
-            this.name = name;
+        @Override
+        public AvroNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.scalarObject(propertyName);
         }
 
         @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public boolean isNull() {
-            return true;
-        }
-
-        @Override
-        public boolean isScalar() {
-            return true;
-        }
-
-        @Override
-        public String text() {
-            return null;
+        public AvroNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.noIndexedField(indexedPropertyName);
         }
     }
 
