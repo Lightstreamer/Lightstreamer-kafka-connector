@@ -198,6 +198,7 @@ public class HeaderSelectorSupplierTest {
                 EXPRESSION                   | EXPECTED_ERROR_MESSAGE
                 HEADERS                      | The expression [HEADERS] must evaluate to a non-complex object
                 HEADERS.*                    | The expression [HEADERS.*] must evaluate to a non-complex object
+                HEADERS[6]                   | Field not found at index [6]
                 HEADERS['no_attrib']         | Field [no_attrib] not found
                 HEADERS.no_attrib            | Field [no_attrib] not found
                 HEADERS.no_children[0]       | Field [no_children] not found
@@ -205,6 +206,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.name['no_key']       | Cannot retrieve field [no_key] from a scalar object
                 HEADERS.accountId            | The expression [HEADERS.accountId] must evaluate to a non-complex object
                 HEADERS.accountId[0].account | Cannot retrieve field [account] from a scalar object
+                HEADERS.accountId[2]         | Field not found at index [2]
                 HEADERS['accountId']         | The expression [HEADERS['accountId']] must evaluate to a non-complex object
                             """)
     public void shouldNotExtractRecordHeader(String expression, String errorMessage) {
