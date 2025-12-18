@@ -176,7 +176,7 @@ public class HeaderNodeTest {
                 assertThrows(
                         ValueException.class,
                         () -> arrayNodeForKey1.getProperty("anyNode", "any-key"));
-        assertThat(ve).hasMessageThat().isEqualTo("Field [any-key] not found");
+        assertThat(ve).hasMessageThat().isEqualTo("Cannot retrieve field [any-key] from an array object");
     }
 
     @ParameterizedTest
