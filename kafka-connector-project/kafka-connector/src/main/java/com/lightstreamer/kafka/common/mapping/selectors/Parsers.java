@@ -35,22 +35,7 @@ public class Parsers {
 
         String name();
 
-        default T getProperty(String nodeName, String propertyName) {
-            if (isNull()) {
-                throw ValueException.nullObject(propertyName);
-            }
-
-            if (isScalar()) {
-                throw ValueException.scalarObject(propertyName);
-            }
-
-            if (!has(propertyName)) {
-                throw ValueException.fieldNotFound(propertyName);
-            }
-            return get(nodeName, propertyName);
-        }
-
-        T get(String nodeName, String propertyName);
+        T getProperty(String nodeName, String propertyName);
 
         default boolean isNull() {
             return false;
@@ -60,23 +45,7 @@ public class Parsers {
 
         boolean has(String propertyname);
 
-        default T getIndexed(String nodeName, int index, String indexedPropertyName) {
-            if (isNull()) {
-                throw ValueException.nullObject(index);
-            }
-
-            if (isArray()) {
-                if (index < size()) {
-                    return get(nodeName, index);
-                } else {
-                    throw ValueException.indexOfOutBounds(index);
-                }
-            }
-
-            throw ValueException.noIndexedField(indexedPropertyName);
-        }
-
-        T get(String nodeName, int index);
+        T getIndexed(String nodeName, int index, String indexedPropertyName);
 
         boolean isArray();
 
@@ -116,7 +85,7 @@ public class Parsers {
             }
 
             @Override
-            public T get(String nodeName, String propertyName) {
+            public T getProperty(String nodeName, String propertyName) {
                 P recordSubPart = payloadSupplier.get();
                 return nodeFactory.apply(nodeName, recordSubPart);
             }
@@ -132,13 +101,72 @@ public class Parsers {
             }
 
             @Override
-            public T get(String nodeName, int index) {
+            public T getIndexed(String nodeName, int index, String indexedPropertyName) {
                 return null;
             }
 
             @Override
             public String text() {
                 return "ROOT";
+            }
+        }
+
+        static class NullNode<T extends Node<T>> implements Node<T> {
+
+            private final String name;
+
+            protected NullNode(String name) {
+                this.name = name;
+            }
+
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public boolean has(String propertyname) {
+                return false;
+            }
+
+            @Override
+            public T getProperty(String nodeName, String propertyName) {
+                throw ValueException.nullObject(propertyName);
+            }
+
+            @Override
+            public boolean isArray() {
+                return false;
+            }
+
+            @Override
+            public int size() {
+                return 0;
+            }
+
+            @Override
+            public T getIndexed(String nodeName, int index, String indexedPropertyName) {
+                throw ValueException.nullObject(index);
+            }
+
+            @Override
+            public boolean isNull() {
+                return true;
+            }
+
+            @Override
+            public boolean isScalar() {
+                return true;
+            }
+
+            @Override
+            public String text() {
+                return null;
+            }
+
+            @Override
+            public void flatIntoMap(Map<String, String> target) {
+                // No-op for null node
             }
         }
     }
@@ -215,34 +243,26 @@ public class Parsers {
         }
 
         final Node<T> evalAndAdvance(Node<T> node, String nodeName) throws ValueException {
-            Node<T> evaluated = eval(node, nodeName);
-            if (next != null) {
-                return next.evalAndAdvance(evaluated, nodeName);
+            NodeEvaluator<T> next = this;
+            while (next != null) {
+                node = next.eval(node, nodeName);
+                next = next.next();
             }
-            return evaluated;
-        }
-
-        final Node<T> evalAndAdvance(Node<T> node) throws ValueException {
-            Node<T> evaluated = eval(node);
-            if (next != null) {
-                return next.evalAndAdvance(evaluated);
-            }
-            return evaluated;
-        }
-
-        final Node<T> evalAndAdvanceRecursive(Node<T> node, String nodeName) throws ValueException {
-            NodeEvaluator<T> current = this;
-
-            while (current != null) {
-                node = current.eval(node, nodeName);
-                current = current.next;
-            }
-
             return node;
         }
 
-        final Node<T> evalAndAdvanceRecursive(Node<T> node) throws ValueException {
-            return evalAndAdvanceRecursive(node, propertyName);
+        final Node<T> evalAndAdvance(Node<T> node) throws ValueException {
+            // Node<T> evaluated = eval(node);
+            // if (next != null) {
+            //     return next.evalAndAdvance(evaluated);
+            // }
+            // return evaluated;
+            NodeEvaluator<T> next = this;
+            while (next != null) {
+                node = next.eval(node);
+                next = next.next();
+            }
+            return node;
         }
     }
 
