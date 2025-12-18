@@ -35,6 +35,10 @@ public class ValueException extends RuntimeException {
         return mkException("Cannot retrieve field [%s] from an array object", field);
     }
 
+    public static ValueException nonArrayObject(int index) throws ValueException {
+        return mkException("Cannot retrieve index [%d] from a non-array object", index);
+    }
+
     public static ValueException nullObject(int index) throws ValueException {
         return mkException("Cannot retrieve index [%d] from a null object", index);
     }
