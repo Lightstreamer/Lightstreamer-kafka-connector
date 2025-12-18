@@ -61,10 +61,6 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             return 0;
         }
 
-        @Override
-        default KvpNode get(String nodeName, int index) {
-            return null;
-        }
     }
 
     static class KvpValue implements KvpNode {
@@ -103,9 +99,13 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public KvpNode get(String nodeName, String propertyName) {
-            // Should not be called on a scalar
-            return null;
+        public KvpNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.scalarObject(propertyName);
+        }
+
+        @Override
+        public KvpNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.scalarObject(indexedPropertyName);
         }
     }
 
@@ -140,9 +140,15 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         }
 
         @Override
-        public KvpNode get(String nodeName, String propertyName) {
+        public KvpNode getProperty(String nodeName, String propertyName) {
             return new KvpValue(nodeName, values.get(propertyName));
         }
+
+
+        @Override
+        public KvpNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nonArrayObject(index);
+        }        
 
         @Override
         public String text() {
@@ -208,6 +214,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
             return new KvpMap(name, values);
         }
+
     }
 
     private static final class KvpNodeSelector extends StructuredBaseSelector<String, KvpNode>
