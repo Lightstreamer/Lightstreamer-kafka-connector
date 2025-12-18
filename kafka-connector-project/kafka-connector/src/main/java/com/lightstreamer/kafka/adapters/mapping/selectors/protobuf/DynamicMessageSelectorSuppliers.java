@@ -107,18 +107,8 @@ public class DynamicMessageSelectorSuppliers
     interface ProtobufNode extends Node<ProtobufNode> {
 
         @Override
-        default ProtobufNode get(String nodeName, String propertyName) {
-            return null;
-        }
-
-        @Override
         default boolean has(String propertyname) {
             return false;
-        }
-
-        @Override
-        default ProtobufNode get(String nodeName, int index) {
-            return null;
         }
 
         default boolean isArray() {
@@ -207,8 +197,11 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtobufNode get(String nodeName, String propertyName) {
+        public ProtobufNode getProperty(String nodeName, String propertyName) {
             FieldDescriptor fieldDescriptor = descriptor.findFieldByName(propertyName);
+            if (fieldDescriptor == null) {
+                throw ValueException.fieldNotFound(propertyName);
+            }
             if (fieldDescriptor.isMapField()) {
                 return new MapFieldNode(nodeName, message, fieldDescriptor);
             }
@@ -218,6 +211,11 @@ public class DynamicMessageSelectorSuppliers
 
             Object value = message.getField(fieldDescriptor);
             return ProtobufNode.newNode(nodeName, value, fieldDescriptor);
+        }
+
+        @Override
+        public ProtobufNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nonArrayObject(index);
         }
 
         @Override
@@ -251,11 +249,13 @@ public class DynamicMessageSelectorSuppliers
         private final String name;
         private final Message containing;
         private final FieldDescriptor fieldDescriptor;
+        private final int size;
 
         RepeatedFieldNode(String name, Message containing, FieldDescriptor fieldDescriptor) {
             this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
+            this.size = containing.getRepeatedFieldCount(fieldDescriptor);
         }
 
         @Override
@@ -270,13 +270,20 @@ public class DynamicMessageSelectorSuppliers
 
         @Override
         public int size() {
-            return containing.getRepeatedFieldCount(fieldDescriptor);
+            return size;
+        }
+
+        public ProtobufNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.arrayObject(propertyName);
         }
 
         @Override
-        public ProtobufNode get(String nodeName, int index) {
-            Object value = containing.getRepeatedField(fieldDescriptor, index);
-            return ProtobufNode.newNode(nodeName, value, fieldDescriptor);
+        public ProtobufNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            if (index < size) {
+                Object value = containing.getRepeatedField(fieldDescriptor, index);
+                return ProtobufNode.newNode(nodeName, value, fieldDescriptor);
+            }
+            throw ValueException.indexOfOutBounds(index);
         }
 
         @Override
@@ -336,9 +343,17 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
-        public ProtobufNode get(String nodeName, String propertyName) {
+        public ProtobufNode getProperty(String nodeName, String propertyName) {
             Object value = map.get(propertyName);
-            return ProtobufNode.newNode(nodeName, value, fieldValueDescriptor);
+            if (value != null) {
+                return ProtobufNode.newNode(nodeName, value, fieldValueDescriptor);
+            }
+            throw ValueException.fieldNotFound(propertyName);
+        }
+
+        @Override
+        public ProtobufNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nonArrayObject(index);
         }
 
         @Override
@@ -393,6 +408,16 @@ public class DynamicMessageSelectorSuppliers
         }
 
         @Override
+        public ProtobufNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.scalarObject(propertyName);
+        }
+
+        @Override
+        public ProtobufNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.noIndexedField(indexedPropertyName);
+        }
+
+        @Override
         public String text() {
             return ProtobufNode.textValue(fieldDescriptor, value);
         }
@@ -424,6 +449,16 @@ public class DynamicMessageSelectorSuppliers
         @Override
         public boolean isScalar() {
             return true;
+        }
+
+        @Override
+        public ProtobufNode getProperty(String nodeName, String propertyName) {
+            throw ValueException.nullObject(propertyName);
+        }
+
+        @Override
+        public ProtobufNode getIndexed(String nodeName, int index, String indexedPropertyName) {
+            throw ValueException.nullObject(index);
         }
     }
 
