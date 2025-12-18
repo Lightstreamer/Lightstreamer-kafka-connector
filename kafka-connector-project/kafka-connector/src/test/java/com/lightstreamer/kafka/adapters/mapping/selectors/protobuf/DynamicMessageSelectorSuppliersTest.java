@@ -375,8 +375,10 @@ public class DynamicMessageSelectorSuppliersTest {
                     """
                 EXPRESSION                     | EXPECTED_ERROR_MESSAGE
                 VALUE                          | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.a b                      | Field [a b] not found
                 VALUE.no_attrib                | Field [no_attrib] not found
                 VALUE['no_attrib']             | Field [no_attrib] not found
+                VALUE[0]                       | Cannot retrieve index [0] from a non-array object
                 VALUE.friends[0].no_attrib     | Field [no_attrib] not found
                 VALUE.no_children[0]           | Field [no_children] not found
                 VALUE.name[0]                  | Field [name] is not indexed
@@ -385,9 +387,12 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.phoneNumbers             | The expression [VALUE.phoneNumbers] must evaluate to a non-complex object
                 VALUE.otherAddresses           | The expression [VALUE.otherAddresses] must evaluate to a non-complex object
                 VALUE.otherAddresses['no_key'] | Field [no_key] not found
+                VALUE.otherAddresses[0]        | Cannot retrieve index [0] from a non-array object
                 VALUE.mainAddress              | The expression [VALUE.mainAddress] must evaluate to a non-complex object
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
+                VALUE.friends['name']          | Cannot retrieve field [name] from an array object
+                VALUE.friends.name             | Cannot retrieve field [name] from an array object
                 VALUE.*                        | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
@@ -605,8 +610,11 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                   | EXPECTED_ERROR_MESSAGE
-                KEY                          | The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib                | Field [no_attrib] not found
+                KEY                       | The expression [KEY] must evaluate to a non-complex object
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
                 KEY.friends[0].no_attrib     | Field [no_attrib] not found
                 KEY.no_children[0]           | Field [no_children] not found
                 KEY.name[0]                  | Field [name] is not indexed
@@ -615,9 +623,12 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.phoneNumbers             | The expression [KEY.phoneNumbers] must evaluate to a non-complex object
                 KEY.otherAddresses           | The expression [KEY.otherAddresses] must evaluate to a non-complex object
                 KEY.otherAddresses['no_key'] | Field [no_key] not found
+                KEY.otherAddresses[0]        | Cannot retrieve index [0] from a non-array object
                 KEY.mainAddress              | The expression [KEY.mainAddress] must evaluate to a non-complex object
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
+                KEY.friends['name']          | Cannot retrieve field [name] from an array object
+                KEY.friends.name             | Cannot retrieve field [name] from an array object
                 KEY.*                        | The expression [KEY.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
