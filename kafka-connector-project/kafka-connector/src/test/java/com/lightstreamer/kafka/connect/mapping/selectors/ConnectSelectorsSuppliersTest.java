@@ -231,22 +231,27 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                   | EXPECTED_ERROR_MESSAGE
-                VALUE.*                      | The expression [VALUE.*] must evaluate to a non-complex object
-                VALUE.no_attrib              | Field [no_attrib] not found
-                VALUE['no_attrib']           | Field [no_attrib] not found
-                VALUE.children[0].no_attrib  | Field [no_attrib] not found
-                VALUE.no_children[0]         | Field [no_children] not found
-                VALUE.name[0]                | Field [name] is not indexed
-                VALUE.name['no_key']         | Cannot retrieve field [no_key] from a scalar object
-                VALUE.name.no_key            | Cannot retrieve field [no_key] from a scalar object
-                VALUE.children               | The expression [VALUE.children] must evaluate to a non-complex object
-                VALUE.children[0]['no_key']  | Field [no_key] not found
-                VALUE.children[0]            | The expression [VALUE.children[0]] must evaluate to a non-complex object
-                VALUE.children[3].name       | Cannot retrieve field [name] from a null object
-                VALUE.children[4]            | Field not found at index [4]
-                VALUE.children[4].name       | Field not found at index [4]
-                VALUE.nullArray[0]           | Cannot retrieve index [0] from a null object
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE                       | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.a b                   | Field [a b] not found
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE[0]                    | Cannot retrieve index [0] from a non-array object
+                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children              | The expression [VALUE.children] must evaluate to a non-complex object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children['name']      | Cannot retrieve field [name] from an array object
+                VALUE.children.name         | Cannot retrieve field [name] from an array object
+                VALUE.children[0]           | The expression [VALUE.children[0]] must evaluate to a non-complex object
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
+                VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
@@ -451,23 +456,27 @@ public class ConnectSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                 | EXPECTED_ERROR_MESSAGE
-                KEY                        | The expression [KEY] must evaluate to a non-complex object
-                KEY.*                      | The expression [KEY.*] must evaluate to a non-complex object
-                KEY.no_attrib              | Field [no_attrib] not found
-                KEY['no_attrib']           | Field [no_attrib] not found
-                KEY.children[0].no_attrib  | Field [no_attrib] not found
-                KEY.no_children[0]         | Field [no_children] not found
-                KEY.name[0]                | Field [name] is not indexed
-                KEY.name['no_key']         | Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key            | Cannot retrieve field [no_key] from a scalar object
-                KEY.children               | The expression [KEY.children] must evaluate to a non-complex object
-                KEY.children[0]['no_key']  | Field [no_key] not found
-                KEY.children[0]            | The expression [KEY.children[0]] must evaluate to a non-complex object
-                KEY.children[3].name       | Cannot retrieve field [name] from a null object
-                KEY.children[4]            | Field not found at index [4]
-                KEY.children[4].name       | Field not found at index [4]
-                KEY.nullArray[0]           | Cannot retrieve index [0] from a null object
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY                       | The expression [KEY] must evaluate to a non-complex object
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.children              | The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.children['name']      | Cannot retrieve field [name] from an array object
+                KEY.children.name         | Cannot retrieve field [name] from an array object
+                KEY.children[0]           | The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name      | Cannot retrieve field [name] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
+                KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
     public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
@@ -518,7 +527,7 @@ public class ConnectSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION   | EXPECTED_NAME | EXPECTED_VALUE
-                KEY          | KEY         | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
+                KEY          | KEY           | {"name":"joe","signature":"YWJjZA==","children":[],"nullArray":null}
                 KEY.children | children      | []
                 KEY.name     | name          | joe
                     """)
@@ -723,6 +732,19 @@ public class ConnectSelectorsSuppliersTest {
         assertThat(valueSelector("VALUE.map['key']").extractValue(record).text())
                 .isEqualTo("value");
         assertThat(keySelector("KEY.map['key']").extractKey(record).text()).isEqualTo("value");
+
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> valueSelector("VALUE.map[0]").extractValue(record));
+        assertThat(ve)
+                .hasMessageThat()
+                .isEqualTo("Cannot retrieve index [0] from a non-array object");
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> valueSelector("VALUE.map['no_key']").extractValue(record));
+        assertThat(ve).hasMessageThat().isEqualTo("Field [no_key] not found");
     }
 
     @Test
@@ -734,19 +756,32 @@ public class ConnectSelectorsSuppliersTest {
         Schema schema = struct.schema();
 
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
-        KafkaRecord<Object, Object> kafkaRecord = KafkaRecord.from(sinkRecord);
+        KafkaRecord<Object, Object> record = KafkaRecord.from(sinkRecord);
 
-        assertThat(valueSelector("VALUE.complexMap['key'].int8").extractValue(kafkaRecord).text())
+        assertThat(valueSelector("VALUE.complexMap['key'].int8").extractValue(record).text())
                 .isEqualTo("8");
-        assertThat(
-                        valueSelector("VALUE.complexMap['key']['int8']")
-                                .extractValue(kafkaRecord)
-                                .text())
+        assertThat(valueSelector("VALUE.complexMap['key']['int8']").extractValue(record).text())
                 .isEqualTo("8");
-        assertThat(keySelector("KEY.complexMap['key'].int8").extractKey(kafkaRecord).text())
+        assertThat(keySelector("KEY.complexMap['key'].int8").extractKey(record).text())
                 .isEqualTo("8");
-        assertThat(keySelector("KEY.complexMap['key']['int8']").extractKey(kafkaRecord).text())
+        assertThat(keySelector("KEY.complexMap['key']['int8']").extractKey(record).text())
                 .isEqualTo("8");
+
+        ValueSelector<Object> valueSelector = valueSelector("VALUE.complexMap");
+        Data value = valueSelector.extractValue(record, false);
+        assertThat(value.text())
+                .isEqualTo(
+                        "{key: {\"int8\":8,\"int16\":16,\"int32\":32,\"int64\":64,\"float32\":32.0,\"float64\":64.0,\"boolean\":true,\"string\":\"abcd\",\"bytes\":\"YWJjZA==\",\"byteBuffer\":\"YWJjZA==\"}}");
+
+        Map<String, String> target = new HashMap<>();
+
+        valueSelector.extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "key",
+                        "{\"int8\":8,\"int16\":16,\"int32\":32,\"int64\":64,\"float32\":32.0,"
+                                + "\"float64\":64.0,\"boolean\":true,\"string\":\"abcd\","
+                                + "\"bytes\":\"YWJjZA==\",\"byteBuffer\":\"YWJjZA==\"}");
     }
 
     @Test
