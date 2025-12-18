@@ -426,11 +426,11 @@ public class DataExtractors {
 
             Set<String> fields = new HashSet<>();
             int index = 0;
-            for (Map.Entry<String, ExtractionExpression> boundExpression : expressions.entrySet()) {
-                String fieldName = boundExpression.getKey();
+            for (Map.Entry<String, ExtractionExpression> namedExpression : expressions.entrySet()) {
+                String fieldName = namedExpression.getKey();
                 this.extractors[index++] =
                         provider.createDataExtractor(
-                                fieldName, boundExpression.getValue(), mapNonScalars);
+                                fieldName, namedExpression.getValue(), mapNonScalars);
                 fields.add(fieldName);
             }
             this.fieldNames = Collections.unmodifiableSet(fields);
