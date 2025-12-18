@@ -163,7 +163,9 @@ public class AvroNodeTest {
 
         ValueException ve =
                 assertThrows(ValueException.class, () -> arrayNode.getProperty("node", "aField"));
-        assertThat(ve).hasMessageThat().contains("Field [aField] not found");
+        assertThat(ve)
+                .hasMessageThat()
+                .contains("Cannot retrieve field [aField] from an array object");
 
         ve =
                 assertThrows(
