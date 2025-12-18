@@ -60,7 +60,6 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         default int size() {
             return 0;
         }
-
     }
 
     static class KvpValue implements KvpNode {
@@ -144,11 +143,10 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             return new KvpValue(nodeName, values.get(propertyName));
         }
 
-
         @Override
         public KvpNode getIndexed(String nodeName, int index, String indexedPropertyName) {
             throw ValueException.nonArrayObject(index);
-        }        
+        }
 
         @Override
         public String text() {
@@ -214,7 +212,6 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
             return new KvpMap(name, values);
         }
-
     }
 
     private static final class KvpNodeSelector extends StructuredBaseSelector<String, KvpNode>
