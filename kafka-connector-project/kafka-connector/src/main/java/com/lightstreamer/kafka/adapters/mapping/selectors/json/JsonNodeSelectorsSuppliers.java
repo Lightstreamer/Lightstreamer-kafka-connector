@@ -94,10 +94,10 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         @Override
         public JsonNodeNode getProperty(String nodeName, String propertyName) {
             JsonNode node = objectNode.get(propertyName);
-            if (node == null) {
-                throw ValueException.fieldNotFound(propertyName);
+            if (node != null) {
+                return JsonNodeNode.newNode(nodeName, node);
             }
-            return JsonNodeNode.newNode(nodeName, node);
+            throw ValueException.fieldNotFound(propertyName);
         }
 
         @Override
