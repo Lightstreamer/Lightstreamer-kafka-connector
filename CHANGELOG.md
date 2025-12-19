@@ -4,7 +4,7 @@
 
 **Improvements**
 
-- **Data Extraction Language Enhancement and Dynamic Field Discovery**: Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support wildcard expressions (e.g., `#{VALUE.*}`, `#{KEY.*}`, `#{HEADERS.*}`), enabling the new [_Dynamic Field Discovery_](README.md#dynamic-field-discovery-field) mechanism with the `field.*` configuration parameter. This allows automatic mapping of Kafka record fields to Lightstreamer fields at runtime, eliminating the need to explicitly configure each field individually – especially useful for records with numerous or dynamically varying fields. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+- **Data Extraction Language Enhancement and Dynamic Field Discovery**: Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support wildcard expressions (e.g., `#{VALUE.*}`, `#{KEY.*}`, `#{HEADERS.*}`), enabling the new [_Dynamic Field Discovery_](README.md#dynamic-field-discovery-field) mechanism with the `field.*` configuration parameter. This allows automatic mapping of Kafka record fields to Lightstreamer fields at runtime, eliminating the need to explicitly configure each field individually – especially useful for records with numerous or dynamically varying fields (also available for the Sink connector). ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
 
 - Upgraded _Gradle_ to version 9.2.1. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
 
