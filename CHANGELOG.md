@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.1] (UNRELEASED)
+## [1.3.1] (2025-12-19)
 
 **Improvements**
 
